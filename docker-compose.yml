@@ -1,0 +1,52 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hospital-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - hospital-network
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:alpine
+    container_name: hospital-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - hospital-network
+    depends_on:
+      - app
+
+  db:
+    image: postgres:16-alpine
+    container_name: hospital-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hospital_db
+      POSTGRES_USER: hospital_user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - hospital-network
+
+networks:
+  hospital-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local
