@@ -1,0 +1,31 @@
+{
+  "name": "hospital-app",
+  "version": "1.0.0",
+  "description": "Une application de gestion hospitalière construite avec Laravel 11 et Docker.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Evrajody/hospital-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Evrajody/hospital-app/issues"
+  },
+  "homepage": "https://github.com/Evrajody/hospital-app#readme",
+  "devDependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "@inertiajs/vue3": "^2.3.4",
+    "@vitejs/plugin-vue": "^6.0.3",
+    "element-plus": "^2.13.0",
+    "laravel-vite-plugin": "^2.0.1",
+    "vite": "^7.3.0",
+    "vue": "^3.5.26"
+  }
+}
