@@ -1,0 +1,52 @@
+/**
+ * Configuration des polices de l'application
+ * Police principale : DM Sans
+ */
+
+/* ===================================
+   DM SANS - POLICE PRINCIPALE
+   =================================== */
+
+/**
+ * DM Sans est une police sans-serif moderne optimisée pour l'UI/UX.
+ * Créée par Colophon Foundry et Google Fonts.
+ *
+ * Caractéristiques :
+ * - Géométrique avec faibles contrastes
+ * - Excellente lisibilité sur écran
+ * - Design épuré et professionnel
+ * - Open source et gratuite
+ *
+ * Source : https://fonts.google.com/specimen/DM+Sans
+ */
+
+/* Import de DM Sans depuis Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+/* ===================================
+   FONT VARIABLES
+   =================================== */
+
+:root {
+    /* Police principale pour le corps du texte */
+    --font-primary: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                    'Roboto', 'Helvetica Neue', Arial, sans-serif;
+
+    /* Police pour les titres */
+    --font-headings: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* Police monospace pour le code */
+    --font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono',
+                 'Courier New', monospace;
+
+    /* Poids de police disponibles */
+    --font-weight-thin: 100;
+    --font-weight-extralight: 200;
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+    --font-weight-black: 900;
+}

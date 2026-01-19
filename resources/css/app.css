@@ -1,3 +1,6 @@
+/* Import des polices */
+@import './fonts.css';
+
 /* Styles globaux de l'application */
 
 * {
@@ -7,11 +10,19 @@
 }
 
 body {
-    font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
-        'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+    font-family: var(--font-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Titres avec la police principale */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headings);
+    font-weight: 600;
 }
 
 /* Custom styles pour Element Plus */
 :root {
     --el-color-primary: #409eff;
+    --el-font-family: var(--font-primary);
 }

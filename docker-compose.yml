@@ -11,6 +11,7 @@ services:
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
       - hospital-network
+      - nexox
     depends_on:
       - db
 
@@ -25,6 +26,7 @@ services:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
     networks:
       - hospital-network
+      - nexox
     depends_on:
       - app
 
@@ -46,6 +48,9 @@ services:
 networks:
   hospital-network:
     driver: bridge
+  nexox:
+    driver: bridge
+    external: true
 
 volumes:
   dbdata:
