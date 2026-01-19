@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUTPUT_FILE="../database_export.sql"
+OUTPUT_FILE="../database_export_clients.sql"
 
 # Fonction pour exporter les données d'une table
 export_table_data() {
