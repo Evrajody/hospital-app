@@ -1,23 +1,21 @@
-FROM php:8.2-fpm
+FROM php:8.2-fpm-alpine
 
 # Arguments
 ARG user=hospital
 ARG uid=1000
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     git \
     curl \
     libpng-dev \
-    libonig-dev \
+    oniguruma-dev \
     libxml2-dev \
-    libpq-dev \
+    postgresql-dev \
     zip \
     unzip \
-    nginx
-
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+    nginx \
+    shadow
 
 # Install PHP extensions
 RUN docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd
