@@ -13,6 +13,49 @@
         </el-button>
       </div>
 
+      <!-- Statistiques rapides -->
+      <el-row :gutter="20" class="stats-row">
+        <el-col :xs="24" :sm="8">
+          <el-card shadow="hover">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+                <el-icon :size="24"><User /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ fournisseurs.length }}</div>
+                <div class="stat-label">Total Fournisseurs</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="8">
+          <el-card shadow="hover">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+                <el-icon :size="24"><Document /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ stats.factures_en_cours }}</div>
+                <div class="stat-label">Factures en cours</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="8">
+          <el-card shadow="hover">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)">
+                <el-icon :size="24"><Wallet /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ formatMontant(stats.dettes_total) }}</div>
+                <div class="stat-label">Dettes totales</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+
       <!-- Filters Card -->
       <el-card class="filter-card" shadow="never">
         <el-form :inline="true" :model="filters" class="filter-form">
@@ -189,7 +232,10 @@ import {
   Edit,
   Delete,
   Phone,
-  Message
+  Message,
+  User,
+  Document,
+  Wallet
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -214,6 +260,13 @@ const props = defineProps({
   user: {
     type: Object,
     default: () => null
+  },
+  stats: {
+    type: Object,
+    default: () => ({
+      factures_en_cours: 0,
+      dettes_total: 0
+    })
   }
 });
 
@@ -284,6 +337,14 @@ const handleExport = () => {
   // TODO: Implement export functionality
   ElMessage.info('Export en cours de développement...');
 };
+
+const formatMontant = (montant) => {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'XOF',
+    minimumFractionDigits: 0
+  }).format(montant || 0);
+};
 </script>
 
 <script>
@@ -317,6 +378,43 @@ export default {
   font-size: 14px;
   color: #6b7280;
   margin: 0;
+}
+
+.stats-row {
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .filter-card {
