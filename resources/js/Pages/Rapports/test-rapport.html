@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Rapport Noir & Blanc</title>
+    <style>
+        /* Variables CSS - NOIR & BLANC */
+        :root {
+            --color-black: #000000;
+            --color-dark: #333333;
+            --color-medium: #666666;
+            --color-light: #CCCCCC;
+            --color-lighter: #EEEEEE;
+            --color-lightest: #F5F5F5;
+            --color-white: #FFFFFF;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--color-lightest);
+            font-family: Arial, sans-serif;
+        }
+
+        .document-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: var(--color-white);
+            padding: 20mm;
+            border: 3px double var(--color-black);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* En-tête avec double bordure */
+        .header {
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            border-bottom: 3px double var(--color-black);
+        }
+
+        .hospital-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--color-black);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hospital-info {
+            font-size: 11px;
+            color: var(--color-medium);
+            margin-top: 8px;
+        }
+
+        /* Titre avec double bordure */
+        .document-title {
+            text-align: center;
+            margin: 25px 0;
+            padding: 18px;
+            background: var(--color-white);
+            color: var(--color-black);
+            border: 3px double var(--color-black);
+        }
+
+        .document-title h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Section avec bordure gauche épaisse */
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--color-black);
+            background: var(--color-lighter);
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 2px solid var(--color-black);
+            border-left: 5px solid var(--color-black);
+        }
+
+        /* Tableau avec bordures variées */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid var(--color-black);
+            margin: 15px 0;
+        }
+
+        .data-table th {
+            background: var(--color-lighter);
+            color: var(--color-black);
+            font-weight: bold;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid var(--color-black);
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .data-table td {
+            padding: 10px;
+            border: 1px solid var(--color-light);
+        }
+
+        /* Alternance lignes */
+        .data-table tbody tr:nth-child(even) {
+            background: var(--color-lightest);
+        }
+
+        .data-table tbody tr:nth-child(odd) {
+            background: var(--color-white);
+        }
+
+        /* Total avec bordure double */
+        .data-table tfoot {
+            background: var(--color-lighter);
+            border-top: 3px double var(--color-black);
+        }
+
+        .data-table tfoot td {
+            font-weight: bold;
+            border: 1px solid var(--color-black);
+        }
+
+        .montant-col {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        /* Note avec bordure gauche épaisse */
+        .note-fiscale {
+            margin-top: 30px;
+            padding: 15px;
+            background: var(--color-lighter);
+            border: 2px solid var(--color-black);
+            border-left: 5px solid var(--color-black);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 50px;
+            padding-top: 15px;
+            border-top: 2px solid var(--color-black);
+            font-size: 11px;
+            color: var(--color-medium);
+        }
+
+        /* Classes utilitaires */
+        .border-simple { border: 1px solid var(--color-black); }
+        .border-double { border: 3px double var(--color-black); }
+        .border-thick { border: 2px solid var(--color-black); }
+        .border-dotted { border: 1px dotted var(--color-medium); }
+
+        .box {
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <!-- En-tête -->
+        <div class="header">
+            <div class="hospital-name">HÔPITAL DE MÉNONTIN</div>
+            <div class="hospital-info">
+                Service Comptabilité - BP 123 Cotonou<br>
+                Tél: +229 21 XX XX XX
+            </div>
+        </div>
+
+        <!-- Titre -->
+        <div class="document-title">
+            <h1>EXEMPLE DE RAPPORT</h1>
+            <div style="font-size: 13px; margin-top: 8px;">Test Noir & Blanc avec Bordures Variées</div>
+        </div>
+
+        <!-- Section 1 -->
+        <div class="section">
+            <h2>Exemples de Bordures</h2>
+
+            <div class="box border-simple">
+                <strong>Bordure simple</strong> - Pour sections normales
+            </div>
+
+            <div class="box border-double">
+                <strong>Bordure double</strong> - Pour documents officiels
+            </div>
+
+            <div class="box border-thick">
+                <strong>Bordure épaisse</strong> - Pour sections importantes
+            </div>
+
+            <div class="box border-dotted">
+                <strong>Bordure pointillée</strong> - Pour bordereaux/listes
+            </div>
+        </div>
+
+        <!-- Section 2 avec tableau -->
+        <div class="section">
+            <h2>EXEMPLE DE TABLEAU</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Référence</th>
+                        <th class="montant-col">Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>15/01/2026</td>
+                        <td>Facture Fournisseur A</td>
+                        <td>FOUR/001</td>
+                        <td class="montant-col">1 250 000 FCFA</td>
+                    </tr>
+                    <tr>
+                        <td>16/01/2026</td>
+                        <td>Facture Fournisseur B</td>
+                        <td>FOUR/002</td>
+                        <td class="montant-col">750 000 FCFA</td>
+                    </tr>
+                    <tr>
+                        <td>17/01/2026</td>
+                        <td>Facture Fournisseur C</td>
+                        <td>FOUR/003</td>
+                        <td class="montant-col">2 000 000 FCFA</td>
+                    </tr>
+                    <tr>
+                        <td>18/01/2026</td>
+                        <td>Facture Fournisseur D</td>
+                        <td>FOUR/004</td>
+                        <td class="montant-col">500 000 FCFA</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" style="text-align: right; text-transform: uppercase;">
+                            <strong>TOTAL GÉNÉRAL</strong>
+                        </td>
+                        <td class="montant-col">4 500 000 FCFA</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Note fiscale -->
+        <div class="note-fiscale">
+            <strong>NOTE IMPORTANTE :</strong> Ceci est un exemple de note importante avec une bordure gauche épaisse pour attirer l'attention, sans utiliser de couleur. L'économie d'encre est garantie!
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Document généré le 26 janvier 2026 | Page 1/1 | Hôpital de Ménontin
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px; padding: 20px; background: var(--color-lighter); border: 2px solid var(--color-black);">
+        <h3 style="margin: 0 0 10px 0;">✅ 100% NOIR & BLANC</h3>
+        <p style="margin: 0; color: var(--color-dark);">
+            Bordures doubles ✓ | Bordures simples ✓ | Bordures épaisses ✓<br>
+            Lignes alternées ✓ | Économie d'encre garantie 💰
+        </p>
+        <p style="margin: 10px 0 0 0; font-size: 12px;">
+            <strong>Imprimez ce document pour voir le résultat!</strong>
+        </p>
+    </div>
+</body>
+</html>

@@ -21,7 +21,7 @@
         <div class="periode">Période du {{ formatDate(periode.debut) }} au {{ formatDate(periode.fin) }}</div>
       </div>
 
-      <!-- Résumé TVA -->
+      <!-- Résumé TVA - Commenté pour l'impression
       <div class="section summary-section">
         <div class="summary-grid">
           <div class="summary-box">
@@ -38,6 +38,7 @@
           </div>
         </div>
       </div>
+      -->
 
       <!-- Détail des factures -->
       <div class="section">
@@ -156,18 +157,20 @@ const handleClose = () => window.close();
 <style scoped>
 @import url('./rapports-styles.css');
 
+/* NOIR & BLANC UNIQUEMENT */
+
 .republic {
   font-size: 14px;
   font-weight: bold;
   text-align: center;
-  color: #1f2937;
+  color: #000000;
   text-transform: uppercase;
 }
 
 .motto {
   font-size: 11px;
   text-align: center;
-  color: #6b7280;
+  color: #666666;
   font-style: italic;
   margin: 4px 0;
 }
@@ -175,13 +178,13 @@ const handleClose = () => window.close();
 .separator {
   text-align: center;
   margin: 6px 0;
-  color: #9ca3af;
+  color: #666666;
 }
 
 .document-title .periode {
   font-size: 13px;
   margin-top: 8px;
-  opacity: 0.9;
+  color: #333333;
 }
 
 .summary-section {
@@ -195,35 +198,42 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border: 2px solid #000000;
   text-align: center;
 }
 
-.summary-box.warning { border-left-color: #f59e0b; }
+/* Box warning avec bordure épaisse au lieu de couleur */
+.summary-box.warning {
+  border: 3px solid #000000;
+  border-left: 5px solid #000000;
+}
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
+  font-weight: 600;
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 .tva-cell {
-  color: #f59e0b;
+  color: #000000;
   font-weight: bold;
+  font-family: 'Courier New', monospace;
 }
 
 .tva-total {
-  color: #f59e0b !important;
+  color: #000000 !important;
   font-size: 16px !important;
+  font-weight: bold !important;
 }
 
 .recapitulatif-tva {
@@ -231,48 +241,63 @@ const handleClose = () => window.close();
 }
 
 .tva-calculation {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border-radius: 0;
+  border: 2px solid #000000;
 }
 
 .tva-row {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .tva-row.total-tva {
   border-bottom: none;
   margin-top: 15px;
   padding-top: 15px;
-  border-top: 2px solid #1f2937;
+  border-top: 3px double #000000;
+  background: #eeeeee;
 }
 
 .tva-label {
   font-size: 14px;
-  color: #6b7280;
+  color: #333333;
 }
 
 .tva-value {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
+  font-family: 'Courier New', monospace;
 }
 
 .tva-value.tva-collectee {
-  color: #f59e0b;
+  color: #000000;
+  font-weight: bold;
 }
 
+/* Note fiscale en noir et blanc avec bordure épaisse */
 .note-fiscale {
   margin-top: 30px;
   padding: 15px;
-  background: #fef3c7;
-  border-left: 4px solid #f59e0b;
+  background: #eeeeee;
+  border: 2px solid #000000;
+  border-left: 5px solid #000000;
   font-size: 12px;
-  color: #78350f;
+  color: #000000;
   line-height: 1.6;
+}
+
+@media print {
+  .summary-box,
+  .tva-calculation,
+  .note-fiscale {
+    border-color: #000000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }
 </style>

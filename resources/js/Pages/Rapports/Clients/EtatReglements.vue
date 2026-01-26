@@ -18,12 +18,19 @@
       </div>
 
       <!-- Statistiques globales -->
+      <!-- Summary cards commentées pour impression
       <div class="section summary-section">
         <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Nombre de règlements</div>
             <div class="summary-value">{{ reglements.length }}</div>
           </div>
+        </div>
+      </div>
+      -->
+
+      <!-- <div class="section summary-section">
+        <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Nombre de clients</div>
             <div class="summary-value">{{ uniqueClients }}</div>
@@ -33,7 +40,7 @@
             <div class="summary-value">{{ formatMontant(totalEncaisse) }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Tableau des règlements -->
       <div class="section">
@@ -191,29 +198,29 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.summary-box.success { border-left-color: #059669; }
+.summary-box.success { border-left-color: #000000; }
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 .client-code {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
 }
 </style>

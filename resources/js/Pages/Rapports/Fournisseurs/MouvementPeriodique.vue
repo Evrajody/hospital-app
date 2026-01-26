@@ -93,7 +93,7 @@
       </div>
 
       <!-- Statistiques -->
-      <div class="section stats-section">
+     Situation des banques
         <div class="stats-grid">
           <div class="stat-box">
             <div class="stat-label">Nombre de factures</div>
@@ -112,7 +112,7 @@
             <div class="stat-value">{{ formatMontant(totaux.reste) }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Footer -->
       <div class="footer">
@@ -195,15 +195,15 @@ const handleClose = () => window.close();
 
 .status-badge {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
 }
 
-.status-success { background: #d1fae5; color: #065f46; }
-.status-warning { background: #fed7aa; color: #92400e; }
-.status-danger { background: #fee2e2; color: #991b1b; }
+.status-success { background: #f5f5f5; color: #000000; }
+.status-warning { background: #eeeeee; color: #000000; }
+.status-danger { background: #eeeeee; color: #000000; }
 
 .stats-section {
   margin-top: 30px;
@@ -216,30 +216,30 @@ const handleClose = () => window.close();
 }
 
 .stat-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.stat-box.success { border-left-color: #059669; }
-.stat-box.danger { border-left-color: #dc2626; }
+.stat-box.success { border-left-color: #000000; }
+.stat-box.danger { border-left-color: #000000; }
 
 .stat-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .stat-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 @media print {
-  .document-container { background: white; padding: 0; }
+  .document-container { background: #ffffff; padding: 0; }
   .document-page { box-shadow: none; padding: 15mm; margin: 0; }
   .no-print { display: none !important; }
   @page { margin: 15mm; }

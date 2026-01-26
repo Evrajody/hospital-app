@@ -18,12 +18,16 @@
       </div>
 
       <!-- Statistiques globales -->
+      <!-- Summary cards commentées pour impression
       <div class="section summary-section">
         <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Nombre de chèques</div>
             <div class="summary-value">{{ cheques.length }}</div>
           </div>
+      -->
+      <!-- <div class="section summary-section">
+        <div class="summary-grid">
           <div class="summary-box success">
             <div class="summary-label">Total Chèques</div>
             <div class="summary-value">{{ formatMontant(totalCheques) }}</div>
@@ -33,7 +37,7 @@
             <div class="summary-value">{{ uniqueBanques }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Tableau des chèques -->
       <div class="section">
@@ -224,52 +228,52 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.summary-box.success { border-left-color: #059669; }
+.summary-box.success { border-left-color: #000000; }
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 .client-code {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
 }
 
 .statut-badge {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
   text-transform: capitalize;
 }
 
 .statut-success {
-  background: #d1fae5;
-  color: #065f46;
+  background: #f5f5f5;
+  color: #000000;
 }
 
 .statut-warning {
-  background: #fed7aa;
-  color: #92400e;
+  background: #eeeeee;
+  color: #000000;
 }
 
 .statut-danger {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #eeeeee;
+  color: #000000;
 }
 </style>

@@ -213,12 +213,12 @@ const handleClose = () => window.close();
 
 .status-badge {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  background: #fed7aa;
-  color: #92400e;
+  background: #eeeeee;
+  color: #000000;
 }
 
 .signature-section {
@@ -235,20 +235,20 @@ const handleClose = () => window.close();
   flex: 1;
   text-align: center;
   padding: 12px;
-  border: 1px solid #e5e7eb;
-  background: #fafafa;
+  border: 1px solid #cccccc;
+  background: #f5f5f5;
 }
 
 .signature-label {
   font-size: 12px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 4px;
 }
 
 .signature-sub {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 25px;
   font-style: italic;
 }
@@ -260,12 +260,12 @@ const handleClose = () => window.close();
 
 .signature-name {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 4px;
 }
 
 .signature-date {
   font-size: 10px;
-  color: #9ca3af;
+  color: #666666;
 }
 </style>
