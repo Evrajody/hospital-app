@@ -307,9 +307,9 @@
                   </div>
                   <el-divider style="margin: 12px 0" />
                   <div class="reglement-actions">
-                    <el-button size="small" :icon="Printer" @click="handlePrintRecu(reglement)">
+                    <!-- <el-button size="small" :icon="Printer" @click="handlePrintRecu(reglement)">
                       Reçu
-                    </el-button>
+                    </el-button> -->
                     <el-button size="small" type="primary" :icon="DocumentCopy" @click="handlePrintMandat(reglement)">
                       Mandat
                     </el-button>

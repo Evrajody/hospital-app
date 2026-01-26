@@ -18,12 +18,17 @@
       </div>
 
       <!-- Statistiques globales -->
+      <!-- Summary cards commentées pour impression
       <div class="section summary-section">
         <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Nombre de factures</div>
             <div class="summary-value">{{ factures.length }}</div>
           </div>
+      -->
+<!-- 
+      <div class="section summary-section">
+        <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Total Facturé</div>
             <div class="summary-value">{{ formatMontant(totaux.facture) }}</div>
@@ -37,7 +42,7 @@
             <div class="summary-value">{{ formatMontant(totaux.reste) }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Détail par facture -->
       <div class="section" v-for="facture in factures" :key="facture.id">
@@ -200,33 +205,33 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.summary-box.success { border-left-color: #059669; }
-.summary-box.danger { border-left-color: #dc2626; }
+.summary-box.success { border-left-color: #000000; }
+.summary-box.danger { border-left-color: #000000; }
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 .facture-header {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 15px;
   margin-bottom: 10px;
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid #000000;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -235,14 +240,14 @@ const handleClose = () => window.close();
 .facture-header h3 {
   font-size: 14px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin: 0;
 }
 
 .facture-date {
   font-size: 12px;
   font-weight: normal;
-  color: #6b7280;
+  color: #666666;
   margin-left: 8px;
 }
 
@@ -254,28 +259,28 @@ const handleClose = () => window.close();
 
 .facture-montant .label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
 }
 
 .facture-montant .value {
   font-size: 16px;
   font-weight: bold;
-  color: #2563eb;
+  color: #000000;
 }
 
 .solde-cell {
-  color: #059669;
+  color: #000000;
   font-weight: bold;
 }
 
 .reste-cell {
-  color: #dc2626 !important;
+  color: #000000 !important;
   font-weight: bold;
 }
 
 .no-data {
   text-align: center;
-  color: #9ca3af;
+  color: #666666;
   font-style: italic;
   padding: 20px;
 }
@@ -283,7 +288,7 @@ const handleClose = () => window.close();
 .facture-statut {
   margin-top: 10px;
   padding: 10px;
-  background: #f9fafb;
+  background: #f5f5f5;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -292,19 +297,19 @@ const handleClose = () => window.close();
 
 .statut-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   font-weight: 600;
 }
 
 .statut-badge {
   padding: 6px 16px;
-  border-radius: 16px;
+  border-radius: 0;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
-.statut-success { background: #d1fae5; color: #065f46; }
-.statut-warning { background: #fed7aa; color: #92400e; }
-.statut-danger { background: #fee2e2; color: #991b1b; }
+.statut-success { background: #f5f5f5; color: #000000; }
+.statut-warning { background: #eeeeee; color: #000000; }
+.statut-danger { background: #eeeeee; color: #000000; }
 </style>

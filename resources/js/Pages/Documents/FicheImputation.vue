@@ -297,14 +297,14 @@ const handleClose = () => {
   align-items: flex-start;
   margin-bottom: 30px;
   padding-bottom: 15px;
-  border-bottom: 3px double #1f2937;
+  border-bottom: 3px double #000000;
 }
 
 .republic {
   font-size: 15px;
   font-weight: bold;
   text-align: center;
-  color: #1f2937;
+  color: #000000;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -312,7 +312,7 @@ const handleClose = () => {
 .motto {
   font-size: 11px;
   text-align: center;
-  color: #6b7280;
+  color: #666666;
   font-style: italic;
   margin: 4px 0;
 }
@@ -320,7 +320,7 @@ const handleClose = () => {
 .separator {
   text-align: center;
   font-size: 12px;
-  color: #9ca3af;
+  color: #666666;
   margin: 6px 0;
 }
 
@@ -328,7 +328,7 @@ const handleClose = () => {
   font-size: 17px;
   font-weight: bold;
   text-align: center;
-  color: #1f2937;
+  color: #000000;
   margin: 8px 0;
   text-transform: uppercase;
 }
@@ -336,27 +336,27 @@ const handleClose = () => {
 .hospital-info {
   font-size: 10px;
   text-align: center;
-  color: #6b7280;
+  color: #666666;
   line-height: 1.6;
 }
 
 .document-ref {
   text-align: right;
-  border: 2px solid #059669;
+  border: 2px solid #000000;
   padding: 12px;
   min-width: 100px;
-  background: #f0fdf4;
+  background: #f5f5f5;
 }
 
 .ref-number {
   font-size: 15px;
   font-weight: bold;
-  color: #059669;
+  color: #000000;
 }
 
 .ref-year {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
   margin-top: 4px;
 }
 
@@ -365,9 +365,9 @@ const handleClose = () => {
   text-align: center;
   margin: 25px 0;
   padding: 18px;
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: none;
   color: white;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .document-title-section h1 {
@@ -385,7 +385,7 @@ const handleClose = () => {
 .document-date {
   text-align: right;
   font-size: 13px;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 25px;
   font-weight: 500;
 }
@@ -403,7 +403,7 @@ const handleClose = () => {
   font-size: 13px;
   font-weight: bold;
   color: white;
-  background: #059669;
+  background: #000000;
   padding: 7px 12px;
   margin-bottom: 15px;
   text-transform: uppercase;
@@ -412,9 +412,9 @@ const handleClose = () => {
 
 /* Section info */
 .info-section {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-left: 4px solid #059669;
+  border-left: 4px solid #000000;
   margin-bottom: 30px;
 }
 
@@ -427,24 +427,24 @@ const handleClose = () => {
 .info-item {
   display: flex;
   padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .info-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   font-weight: 600;
   min-width: 140px;
 }
 
 .info-value {
   font-size: 12px;
-  color: #1f2937;
+  color: #000000;
   flex: 1;
 }
 
 .montant-highlight {
-  color: #059669;
+  color: #000000;
   font-weight: bold;
   font-size: 14px;
 }
@@ -458,7 +458,7 @@ const handleClose = () => {
 }
 
 .imputation-table thead {
-  background: #1f2937;
+  background: #000000;
   color: white;
 }
 
@@ -485,28 +485,28 @@ const handleClose = () => {
 }
 
 .imputation-table tbody tr {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .imputation-table tbody tr:hover {
-  background: #f9fafb;
+  background: #f5f5f5;
 }
 
 .compte-cell {
   padding: 12px 10px;
   font-weight: bold;
-  color: #374151;
+  color: #333333;
   font-family: 'Courier New', monospace;
 }
 
 .libelle-cell {
   padding: 12px 10px;
-  color: #1f2937;
+  color: #000000;
 }
 
 .detail-cell {
   font-size: 10px;
-  color: #6b7280;
+  color: #666666;
   margin-top: 3px;
   font-style: italic;
 }
@@ -518,18 +518,18 @@ const handleClose = () => {
 }
 
 .debit-cell {
-  color: #dc2626;
-  background: #fef2f2;
+  color: #000000;
+  background: #f5f5f5;
 }
 
 .credit-cell {
-  color: #059669;
-  background: #f0fdf4;
+  color: #000000;
+  background: #f5f5f5;
 }
 
 .imputation-table tfoot {
-  background: #f3f4f6;
-  border-top: 2px solid #1f2937;
+  background: #eeeeee;
+  border-top: 2px solid #000000;
 }
 
 .total-row {
@@ -540,13 +540,13 @@ const handleClose = () => {
   padding: 12px 10px;
   text-transform: uppercase;
   font-size: 12px;
-  color: #1f2937;
+  color: #000000;
 }
 
 .total-cell {
   font-size: 13px;
-  color: #1f2937;
-  background: #e5e7eb;
+  color: #000000;
+  background: #cccccc;
 }
 
 .equilibre-note {
@@ -554,10 +554,10 @@ const handleClose = () => {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: #f0fdf4;
-  border: 1px solid #059669;
-  border-radius: 4px;
-  color: #059669;
+  background: #f5f5f5;
+  border: 1px solid #000000;
+  border-radius: 0;
+  color: #000000;
   font-size: 12px;
   font-weight: 600;
 }
@@ -577,15 +577,15 @@ const handleClose = () => {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: #f9fafb;
-  border-left: 3px solid #6b7280;
+  background: #f5f5f5;
+  border-left: 3px solid #666666;
   font-size: 12px;
-  color: #374151;
+  color: #333333;
 }
 
 .piece-icon {
   font-size: 16px;
-  color: #6b7280;
+  color: #666666;
 }
 
 /* Signatures */
@@ -603,21 +603,21 @@ const handleClose = () => {
   flex: 1;
   text-align: center;
   padding: 12px;
-  border: 1px solid #e5e7eb;
-  background: #fafafa;
+  border: 1px solid #cccccc;
+  background: #f5f5f5;
 }
 
 .signature-label {
   font-size: 12px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .signature-sub {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 25px;
   font-style: italic;
 }
@@ -629,23 +629,23 @@ const handleClose = () => {
 
 .signature-name {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 4px;
 }
 
 .signature-date {
   font-size: 10px;
-  color: #9ca3af;
+  color: #666666;
 }
 
 /* Note comptable */
 .comptable-note {
   margin-top: 30px;
   padding: 12px;
-  background: #dbeafe;
-  border-left: 4px solid #2563eb;
+  background: #f5f5f5;
+  border-left: 4px solid #000000;
   font-size: 11px;
-  color: #1e40af;
+  color: #000000;
   line-height: 1.6;
 }
 
@@ -656,21 +656,21 @@ const handleClose = () => {
 
 .footer-line {
   height: 2px;
-  background: linear-gradient(to right, #059669, transparent);
+  background: none;
   margin-bottom: 12px;
 }
 
 .footer-content {
   text-align: center;
   font-size: 10px;
-  color: #9ca3af;
+  color: #666666;
   margin-bottom: 15px;
 }
 
 .confidential {
   margin-top: 4px;
   font-style: italic;
-  color: #059669;
+  color: #000000;
   font-weight: 600;
 }
 

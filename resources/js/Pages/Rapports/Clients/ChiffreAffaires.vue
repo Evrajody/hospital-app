@@ -17,7 +17,7 @@
         <div class="periode">Période du {{ formatDate(periode.debut) }} au {{ formatDate(periode.fin) }}</div>
       </div>
 
-      <!-- Statistiques globales -->
+      <!-- Statistiques globales - Commentées pour impression
       <div class="section summary-section">
         <div class="summary-grid">
           <div class="summary-box">
@@ -46,6 +46,7 @@
           </div>
         </div>
       </div>
+      -->
 
       <!-- Détail par client -->
       <div class="section">
@@ -239,26 +240,26 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.summary-box.success { border-left-color: #059669; }
-.summary-box.warning { border-left-color: #f59e0b; }
+.summary-box.success { border-left-color: #000000; }
+.summary-box.warning { border-left-color: #000000; }
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .summary-value {
   font-size: 18px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 @media print {

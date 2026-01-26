@@ -131,24 +131,24 @@ const handleClose = () => window.close();
 }
 
 .stat-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.stat-box.success { border-left-color: #059669; }
+.stat-box.success { border-left-color: #000000; }
 
 .stat-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .stat-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 </style>

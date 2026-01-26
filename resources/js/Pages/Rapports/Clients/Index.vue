@@ -124,7 +124,7 @@ const rapports = ref([
     titre: 'États périodiques des règlements',
     description: 'Suivi détaillé des paiements reçus des clients',
     icon: 'Money',
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: '#eeeeee',
     route: '/rapports/clients/etat-reglements'
   },
   {
@@ -132,7 +132,7 @@ const rapports = ref([
     titre: 'États périodiques des créances',
     description: 'Point détaillé des factures non soldées par client',
     icon: 'Wallet',
-    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    color: '#eeeeee',
     route: '/rapports/clients/etat-creances'
   },
   {
@@ -140,7 +140,7 @@ const rapports = ref([
     titre: 'Brouillard de chèques',
     description: 'Registre des chèques reçus et imputations comptables',
     icon: 'CreditCard',
-    color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    color: '#eeeeee',
     route: '/rapports/clients/brouillard-cheques'
   },
   {
@@ -148,7 +148,7 @@ const rapports = ref([
     titre: 'Chiffre d\'affaires',
     description: 'CA global et par client réalisé sur la période',
     icon: 'TrendCharts',
-    color: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+    color: '#eeeeee',
     route: '/rapports/clients/chiffre-affaires'
   },
   {
@@ -156,7 +156,7 @@ const rapports = ref([
     titre: 'Pertes, rejets et régularisations',
     description: 'État des impayés, rejets et opérations de régularisation',
     icon: 'Document',
-    color: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    color: '#eeeeee',
     route: '/rapports/clients/pertes-rejets'
   }
 ]);
@@ -192,19 +192,19 @@ const exporterRapport = (rapport) => {
 .page-header h1 {
   font-size: 28px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
-  color: #666;
+  color: #666666;
   font-size: 14px;
   margin: 0;
 }
 
 .filter-card {
   margin-bottom: 24px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid #cccccc;
 }
 
 .filter-section {
@@ -219,7 +219,7 @@ const exporterRapport = (rapport) => {
 
 .rapport-card {
   margin-bottom: 20px;
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
   transition: all 0.3s;
   cursor: pointer;
@@ -235,7 +235,7 @@ const exporterRapport = (rapport) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #ffffff;
 }
 
 .rapport-content {
@@ -245,14 +245,14 @@ const exporterRapport = (rapport) => {
 .rapport-content h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   margin: 0 0 8px 0;
   min-height: 40px;
 }
 
 .rapport-description {
   font-size: 13px;
-  color: #666;
+  color: #666666;
   margin: 0 0 16px 0;
   min-height: 40px;
   line-height: 1.5;

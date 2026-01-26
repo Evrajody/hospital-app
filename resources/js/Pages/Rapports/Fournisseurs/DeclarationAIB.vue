@@ -22,12 +22,17 @@
       </div>
 
       <!-- Résumé AIB -->
+      <!-- Summary cards commentées pour impression
       <div class="section summary-section">
         <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Total Montant HT</div>
             <div class="summary-value">{{ formatMontant(totaux.ht) }}</div>
           </div>
+      -->
+
+      <div class="section summary-section">
+        <div class="summary-grid">
           <div class="summary-box danger">
             <div class="summary-label">Total AIB</div>
             <div class="summary-value">{{ formatMontant(totaux.aib) }}</div>
@@ -177,14 +182,14 @@ const handleClose = () => window.close();
   font-size: 14px;
   font-weight: bold;
   text-align: center;
-  color: #1f2937;
+  color: #000000;
   text-transform: uppercase;
 }
 
 .motto {
   font-size: 11px;
   text-align: center;
-  color: #6b7280;
+  color: #666666;
   font-style: italic;
   margin: 4px 0;
 }
@@ -192,7 +197,7 @@ const handleClose = () => window.close();
 .separator {
   text-align: center;
   margin: 6px 0;
-  color: #9ca3af;
+  color: #666666;
 }
 
 .document-title .periode {
@@ -212,44 +217,44 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.summary-box.danger { border-left-color: #dc2626; }
+.summary-box.danger { border-left-color: #000000; }
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 .aib-cell {
-  color: #dc2626;
+  color: #000000;
   font-weight: bold;
 }
 
 .aib-total {
-  color: #dc2626 !important;
+  color: #000000 !important;
   font-size: 16px !important;
 }
 
 .note-fiscale {
   margin-top: 30px;
   padding: 15px;
-  background: #fef3c7;
-  border-left: 4px solid #f59e0b;
+  background: #eeeeee;
+  border-left: 4px solid #000000;
   font-size: 12px;
-  color: #78350f;
+  color: #000000;
   line-height: 1.6;
 }
 </style>

@@ -18,12 +18,17 @@
       </div>
 
       <!-- Statistiques globales -->
+      <!-- Summary cards commentées pour impression
       <div class="section summary-section">
         <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Nombre de factures</div>
             <div class="summary-value">{{ factures.length }}</div>
           </div>
+      -->
+
+      <!-- <div class="section summary-section">
+        <div class="summary-grid">
           <div class="summary-box">
             <div class="summary-label">Total Facturé</div>
             <div class="summary-value">{{ formatMontant(totaux.facture) }}</div>
@@ -37,7 +42,7 @@
             <div class="summary-value">{{ formatMontant(totaux.reste) }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Détail par client -->
       <div class="section" v-for="client in clientsAvecCreances" :key="client.id">
@@ -218,33 +223,33 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.summary-box.warning { border-left-color: #f59e0b; }
-.summary-box.danger { border-left-color: #dc2626; }
+.summary-box.warning { border-left-color: #000000; }
+.summary-box.danger { border-left-color: #000000; }
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 .client-header {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 15px;
   margin-bottom: 10px;
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid #000000;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -253,7 +258,7 @@ const handleClose = () => window.close();
 .client-header h3 {
   font-size: 14px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin: 0;
 }
 
@@ -265,53 +270,53 @@ const handleClose = () => window.close();
 
 .client-creance .label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
 }
 
 .client-creance .value {
   font-size: 16px;
   font-weight: bold;
-  color: #dc2626;
+  color: #000000;
 }
 
 .montant-paye {
-  color: #059669;
+  color: #000000;
 }
 
 .montant-reste {
-  color: #dc2626;
+  color: #000000;
   font-weight: bold;
 }
 
 .retard-badge {
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
 }
 
 .retard-leger {
-  background: #fef3c7;
-  color: #92400e;
+  background: #eeeeee;
+  color: #000000;
 }
 
 .retard-important {
-  background: #fed7aa;
-  color: #9a3412;
+  background: #eeeeee;
+  color: #000000;
 }
 
 .retard-grave {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #eeeeee;
+  color: #000000;
 }
 
 .grand-total {
-  background: #1f2937 !important;
-  color: white !important;
+  background: #000000 !important;
+  color: #ffffff !important;
 }
 
 .grand-total .total-label,
 .grand-total .total-cell {
-  color: white !important;
+  color: #ffffff !important;
 }
 </style>

@@ -17,12 +17,8 @@
       </div>
 
       <!-- Résumé global -->
-      <div class="section summary-section">
+      <!-- <div class="section summary-section">
         <div class="summary-grid">
-          <div class="summary-box">
-            <div class="summary-label">Nombre de fournisseurs</div>
-            <div class="summary-value">{{ fournisseurs.length }}</div>
-          </div>
           <div class="summary-box">
             <div class="summary-label">Total facturé</div>
             <div class="summary-value">{{ formatMontant(totaux.facture) }}</div>
@@ -36,7 +32,7 @@
             <div class="summary-value">{{ formatMontant(totaux.dettes) }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Liste des fournisseurs -->
       <div class="section">
@@ -143,41 +139,41 @@ const handleClose = () => window.close();
 }
 
 .summary-box {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-radius: 8px;
-  border-left: 4px solid #6b7280;
+  border-radius: 0;
+  border-left: 4px solid #666666;
   text-align: center;
 }
 
-.summary-box.success { border-left-color: #059669; }
-.summary-box.danger { border-left-color: #dc2626; }
+.summary-box.success { border-left-color: #000000; }
+.summary-box.danger { border-left-color: #000000; }
 
 .summary-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 8px;
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
 }
 
 .dette-cell {
-  color: #dc2626;
+  color: #000000;
   font-weight: bold;
 }
 
 .status-badge {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
 }
 
-.status-success { background: #d1fae5; color: #065f46; }
-.status-danger { background: #fee2e2; color: #991b1b; }
+.status-success { background: #f5f5f5; color: #000000; }
+.status-danger { background: #eeeeee; color: #000000; }
 </style>

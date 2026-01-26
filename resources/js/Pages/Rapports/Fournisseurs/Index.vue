@@ -124,7 +124,7 @@ const rapports = ref([
     titre: 'État de règlement d\'une facture',
     description: 'Détails des paiements effectués sur une facture',
     icon: 'Document',
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/etat-reglement-facture'
   },
   {
@@ -132,7 +132,7 @@ const rapports = ref([
     titre: 'Mouvement périodique fournisseur',
     description: 'Historique des factures par fournisseur sur une période',
     icon: 'TrendCharts',
-    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/mouvement-periodique'
   },
   {
@@ -140,7 +140,7 @@ const rapports = ref([
     titre: 'Situation des fournisseurs',
     description: 'Point des dettes fournisseurs en cours',
     icon: 'Wallet',
-    color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/situation-fournisseurs'
   },
   {
@@ -148,7 +148,7 @@ const rapports = ref([
     titre: 'Factures réglées',
     description: 'État périodique des factures fournisseurs réglées',
     icon: 'DocumentCopy',
-    color: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/factures-reglees'
   },
   {
@@ -156,7 +156,7 @@ const rapports = ref([
     titre: 'Déclaration AIB',
     description: 'Déclaration périodique des AIB',
     icon: 'List',
-    color: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/declaration-aib'
   },
   {
@@ -164,7 +164,7 @@ const rapports = ref([
     titre: 'Point des pièces comptables',
     description: 'Récapitulatif périodique des pièces comptables',
     icon: 'Tickets',
-    color: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/pieces-comptables'
   },
   {
@@ -172,7 +172,7 @@ const rapports = ref([
     titre: 'Situation des banques',
     description: 'État périodique des comptes bancaires',
     icon: 'CreditCard',
-    color: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/situation-banques'
   },
   {
@@ -180,7 +180,7 @@ const rapports = ref([
     titre: 'Récapitulatif des charges',
     description: 'État récapitulatif périodique des dépenses',
     icon: 'TrendCharts',
-    color: 'linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/recap-charges'
   },
   {
@@ -188,7 +188,7 @@ const rapports = ref([
     titre: 'Récapitulatif des investissements',
     description: 'État récapitulatif périodique des immobilisations',
     icon: 'TrendCharts',
-    color: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/recap-investissements'
   },
   {
@@ -196,7 +196,7 @@ const rapports = ref([
     titre: 'État du plan comptable',
     description: 'Liste complète du plan comptable',
     icon: 'List',
-    color: 'linear-gradient(135deg, #f77062 0%, #fe5196 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/plan-comptable'
   },
   {
@@ -204,7 +204,7 @@ const rapports = ref([
     titre: 'Bordereau de transmission',
     description: 'Bordereau de transmission des règlements',
     icon: 'DocumentCopy',
-    color: 'linear-gradient(135deg, #c471f5 0%, #fa71cd 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/bordereau-transmission'
   },
   {
@@ -212,7 +212,7 @@ const rapports = ref([
     titre: 'Factures et soldes',
     description: 'Détails des règlements par facture',
     icon: 'Document',
-    color: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/factures-soldes'
   },
   {
@@ -220,7 +220,7 @@ const rapports = ref([
     titre: 'Déclaration TVA',
     description: 'État de déclaration de la TVA par période',
     icon: 'List',
-    color: 'linear-gradient(135deg, #3eecac 0%, #ee74e1 100%)',
+    color: '#eeeeee',
     route: '/rapports/fournisseurs/declaration-tva'
   }
 ]);
@@ -256,19 +256,19 @@ const exporterRapport = (rapport) => {
 .page-header h1 {
   font-size: 28px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
-  color: #666;
+  color: #666666;
   font-size: 14px;
   margin: 0;
 }
 
 .filter-card {
   margin-bottom: 24px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid #cccccc;
 }
 
 .filter-section {
@@ -283,7 +283,7 @@ const exporterRapport = (rapport) => {
 
 .rapport-card {
   margin-bottom: 20px;
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
   transition: all 0.3s;
   cursor: pointer;
@@ -299,7 +299,7 @@ const exporterRapport = (rapport) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #ffffff;
 }
 
 .rapport-content {
@@ -309,14 +309,14 @@ const exporterRapport = (rapport) => {
 .rapport-content h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   margin: 0 0 8px 0;
   min-height: 40px;
 }
 
 .rapport-description {
   font-size: 13px;
-  color: #666;
+  color: #666666;
   margin: 0 0 16px 0;
   min-height: 40px;
   line-height: 1.5;

@@ -21,8 +21,8 @@
       </div>
 
       <div class="document-title-section">
-        <h1>MANDAT DE PAIEMENT</h1>
-        <div class="document-subtitle">Ordre de paiement aux fournisseurs</div>
+        <h1 style="color: black;">MANDAT DE PAIEMENT</h1>
+        <div style="color: black;" class="document-subtitle">Ordre de paiement aux fournisseurs</div>
       </div>
 
       <div class="document-date">
@@ -86,7 +86,7 @@
               <td class="label">Compte bancaire :</td>
               <td class="value">
                 <div><strong>{{ reglement.compte_bancaire.banque }}</strong></div>
-                <div style="font-size: 12px; color: #6b7280;">{{ reglement.compte_bancaire.numero }}</div>
+                <div style="font-size: 12px; color: #666666;">{{ reglement.compte_bancaire.numero }}</div>
               </td>
             </tr>
           </table>
@@ -240,14 +240,14 @@ const handleClose = () => {
   align-items: flex-start;
   margin-bottom: 40px;
   padding-bottom: 15px;
-  border-bottom: 3px double #1f2937;
+  border-bottom: 3px double #000000;
 }
 
 .republic {
   font-size: 16px;
   font-weight: bold;
   text-align: center;
-  color: #1f2937;
+  color: #000000;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -255,7 +255,7 @@ const handleClose = () => {
 .motto {
   font-size: 12px;
   text-align: center;
-  color: #6b7280;
+  color: #666666;
   font-style: italic;
   margin: 4px 0;
 }
@@ -263,7 +263,7 @@ const handleClose = () => {
 .separator {
   text-align: center;
   font-size: 14px;
-  color: #9ca3af;
+  color: #666666;
   margin: 8px 0;
 }
 
@@ -271,7 +271,7 @@ const handleClose = () => {
   font-size: 18px;
   font-weight: bold;
   text-align: center;
-  color: #1f2937;
+  color: #000000;
   margin: 10px 0 8px 0;
   text-transform: uppercase;
 }
@@ -279,13 +279,13 @@ const handleClose = () => {
 .hospital-info {
   font-size: 11px;
   text-align: center;
-  color: #6b7280;
+  color: #666666;
   line-height: 1.6;
 }
 
 .document-ref {
   text-align: right;
-  border: 2px solid #1f2937;
+  border: 2px solid #000000;
   padding: 15px;
   min-width: 120px;
 }
@@ -293,12 +293,12 @@ const handleClose = () => {
 .ref-number {
   font-size: 16px;
   font-weight: bold;
-  color: #dc2626;
+  color: #000000;
 }
 
 .ref-year {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-top: 5px;
 }
 
@@ -307,9 +307,9 @@ const handleClose = () => {
   text-align: center;
   margin: 30px 0;
   padding: 20px;
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  background: none;
   color: white;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .document-title-section h1 {
@@ -327,7 +327,7 @@ const handleClose = () => {
 .document-date {
   text-align: right;
   font-size: 14px;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 30px;
   font-weight: 500;
 }
@@ -342,22 +342,22 @@ const handleClose = () => {
 }
 
 .objet-section {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid #000000;
   margin-bottom: 30px;
 }
 
 .objet-title {
   font-size: 14px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 8px;
 }
 
 .objet-content {
   font-size: 14px;
-  color: #374151;
+  color: #333333;
   line-height: 1.6;
 }
 
@@ -365,7 +365,7 @@ const handleClose = () => {
   font-size: 14px;
   font-weight: bold;
   color: white;
-  background: #374151;
+  background: #333333;
   padding: 8px 12px;
   margin-bottom: 15px;
   text-transform: uppercase;
@@ -378,7 +378,7 @@ const handleClose = () => {
 }
 
 .info-table tr {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .info-table td {
@@ -388,12 +388,12 @@ const handleClose = () => {
 
 .info-table .label {
   width: 220px;
-  color: #6b7280;
+  color: #666666;
   font-weight: 600;
 }
 
 .info-table .value {
-  color: #1f2937;
+  color: #000000;
 }
 
 /* Montant */
@@ -402,7 +402,7 @@ const handleClose = () => {
 }
 
 .montant-box {
-  border: 3px double #1f2937;
+  border: 3px double #000000;
   padding: 25px;
 }
 
@@ -412,25 +412,25 @@ const handleClose = () => {
   align-items: center;
   margin-bottom: 15px;
   padding-bottom: 15px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid #cccccc;
 }
 
 .montant-label {
   font-size: 14px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   text-transform: uppercase;
 }
 
 .montant-value {
   font-size: 28px;
   font-weight: bold;
-  color: #dc2626;
+  color: #000000;
 }
 
 .montant-lettres {
   font-size: 13px;
-  color: #374151;
+  color: #333333;
   line-height: 1.6;
   font-style: italic;
 }
@@ -450,8 +450,8 @@ const handleClose = () => {
   flex: 1;
   text-align: center;
   padding: 15px;
-  border: 1px solid #e5e7eb;
-  background: #fafafa;
+  border: 1px solid #cccccc;
+  background: #f5f5f5;
 }
 
 .signature-box-wide {
@@ -462,7 +462,7 @@ const handleClose = () => {
 .signature-label {
   font-size: 13px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 5px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -470,7 +470,7 @@ const handleClose = () => {
 
 .signature-label-sub {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
   font-weight: normal;
   font-style: italic;
   margin-bottom: 30px;
@@ -483,23 +483,23 @@ const handleClose = () => {
 
 .signature-name {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 5px;
 }
 
 .signature-date {
   font-size: 11px;
-  color: #9ca3af;
+  color: #666666;
 }
 
 /* Note officielle */
 .official-note {
   margin-top: 40px;
   padding: 15px;
-  background: #fef3c7;
-  border-left: 4px solid #f59e0b;
+  background: #eeeeee;
+  border-left: 4px solid #000000;
   font-size: 11px;
-  color: #78350f;
+  color: #000000;
   line-height: 1.6;
 }
 
@@ -510,21 +510,21 @@ const handleClose = () => {
 
 .footer-line {
   height: 2px;
-  background: linear-gradient(to right, #1f2937, transparent);
+  background: none;
   margin-bottom: 15px;
 }
 
 .footer-content {
   text-align: center;
   font-size: 11px;
-  color: #9ca3af;
+  color: #666666;
   margin-bottom: 20px;
 }
 
 .confidential {
   margin-top: 5px;
   font-style: italic;
-  color: #dc2626;
+  color: #000000;
 }
 
 .print-button-container {

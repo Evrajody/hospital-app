@@ -260,7 +260,7 @@ const handleClose = () => {
   max-width: 210mm;
   min-height: 297mm;
   margin: 0 auto;
-  background: white;
+  background: #ffffff;
   padding: 20mm;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
@@ -272,19 +272,19 @@ const handleClose = () => {
   align-items: flex-start;
   margin-bottom: 30px;
   padding-bottom: 15px;
-  border-bottom: 3px solid #2563eb;
+  border-bottom: 3px solid #000000;
 }
 
 .hospital-name {
   font-size: 22px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 8px;
 }
 
 .hospital-info {
   font-size: 11px;
-  color: #6b7280;
+  color: #666666;
   line-height: 1.6;
 }
 
@@ -294,7 +294,7 @@ const handleClose = () => {
 
 .ref-date {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
 }
 
 /* Titre */
@@ -302,9 +302,9 @@ const handleClose = () => {
   text-align: center;
   margin: 25px 0;
   padding: 18px;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: white;
-  border-radius: 4px;
+  background: #eeeeee 0%, #000000 100%);
+  color: #ffffff;
+  border-radius: 0;
 }
 
 .document-title h1 {
@@ -327,8 +327,8 @@ const handleClose = () => {
 .section h2 {
   font-size: 13px;
   font-weight: bold;
-  color: white;
-  background: #1f2937;
+  color: #ffffff;
+  background: #000000;
   padding: 8px 12px;
   margin-bottom: 15px;
   text-transform: uppercase;
@@ -337,9 +337,9 @@ const handleClose = () => {
 
 /* Info section */
 .info-section {
-  background: #f9fafb;
+  background: #f5f5f5;
   padding: 20px;
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid #000000;
 }
 
 .info-grid {
@@ -351,19 +351,19 @@ const handleClose = () => {
 .info-item {
   display: flex;
   padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .info-item .label {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   font-weight: 600;
   min-width: 140px;
 }
 
 .info-item .value {
   font-size: 12px;
-  color: #1f2937;
+  color: #000000;
 }
 
 /* Tables */
@@ -374,12 +374,12 @@ const handleClose = () => {
 }
 
 .summary-table tr {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .summary-table .label-cell {
   padding: 10px;
-  color: #6b7280;
+  color: #666666;
   font-size: 13px;
 }
 
@@ -388,16 +388,16 @@ const handleClose = () => {
   text-align: right;
   font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
 }
 
 .summary-table .total-row {
-  background: #f3f4f6;
-  border-top: 2px solid #1f2937;
+  background: #eeeeee;
+  border-top: 2px solid #000000;
 }
 
 .summary-table .total-row .value-cell {
-  color: #2563eb;
+  color: #000000;
   font-size: 15px;
 }
 
@@ -408,8 +408,8 @@ const handleClose = () => {
 }
 
 .data-table thead {
-  background: #1f2937;
-  color: white;
+  background: #000000;
+  color: #ffffff;
 }
 
 .data-table th {
@@ -421,11 +421,11 @@ const handleClose = () => {
 }
 
 .data-table tbody tr {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .data-table tbody tr:hover {
-  background: #f9fafb;
+  background: #f5f5f5;
 }
 
 .data-table td {
@@ -438,8 +438,8 @@ const handleClose = () => {
 }
 
 .data-table tfoot {
-  background: #f3f4f6;
-  border-top: 2px solid #1f2937;
+  background: #eeeeee;
+  border-top: 2px solid #000000;
   font-weight: bold;
 }
 
@@ -451,7 +451,7 @@ const handleClose = () => {
 }
 
 .total-cell {
-  color: #2563eb;
+  color: #000000;
   font-size: 14px;
 }
 
@@ -461,9 +461,9 @@ const handleClose = () => {
 }
 
 .status-box {
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  background: #f5f5f5;
+  border: 2px solid #cccccc;
+  border-radius: 0;
   padding: 20px;
   margin-bottom: 15px;
 }
@@ -472,33 +472,33 @@ const handleClose = () => {
   display: flex;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cccccc;
 }
 
 .status-row.reste {
   border-bottom: none;
   margin-top: 10px;
   padding-top: 15px;
-  border-top: 2px solid #1f2937;
+  border-top: 2px solid #000000;
 }
 
 .status-label {
   font-size: 14px;
-  color: #6b7280;
+  color: #666666;
 }
 
 .status-value {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
 }
 
 .status-value.paid {
-  color: #059669;
+  color: #000000;
 }
 
 .status-value.unpaid {
-  color: #dc2626;
+  color: #000000;
 }
 
 .status-badge {
@@ -513,7 +513,7 @@ const handleClose = () => {
 
 .footer-line {
   height: 2px;
-  background: linear-gradient(to right, #2563eb, transparent);
+  background: #eeeeee, transparent);
   margin-bottom: 12px;
 }
 
@@ -521,7 +521,7 @@ const handleClose = () => {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #9ca3af;
+  color: #666666;
   margin-bottom: 15px;
 }
 
@@ -535,7 +535,7 @@ const handleClose = () => {
 /* Print styles */
 @media print {
   .document-container {
-    background: white;
+    background: #ffffff;
     padding: 0;
   }
 

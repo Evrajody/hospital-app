@@ -175,19 +175,19 @@ const handleClose = () => {
   align-items: flex-start;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 3px solid #2563eb;
+  border-bottom: 3px solid #000000;
 }
 
 .hospital-name {
   font-size: 24px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 8px;
 }
 
 .hospital-info {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
   line-height: 1.6;
 }
 
@@ -198,19 +198,19 @@ const handleClose = () => {
 .document-title h1 {
   font-size: 28px;
   font-weight: bold;
-  color: #2563eb;
+  color: #000000;
   margin: 0 0 8px 0;
 }
 
 .document-number {
   font-size: 14px;
-  color: #6b7280;
+  color: #666666;
 }
 
 .document-date {
   text-align: right;
   font-size: 14px;
-  color: #6b7280;
+  color: #666666;
   margin-bottom: 30px;
 }
 
@@ -226,10 +226,10 @@ const handleClose = () => {
 .section h2 {
   font-size: 16px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 15px;
   padding-bottom: 5px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid #cccccc;
 }
 
 .info-table {
@@ -238,7 +238,7 @@ const handleClose = () => {
 }
 
 .info-table tr {
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #eeeeee;
 }
 
 .info-table td {
@@ -248,12 +248,12 @@ const handleClose = () => {
 
 .info-table .label {
   width: 200px;
-  color: #6b7280;
+  color: #666666;
   font-weight: 500;
 }
 
 .info-table .value {
-  color: #1f2937;
+  color: #000000;
 }
 
 /* Montant */
@@ -262,10 +262,10 @@ const handleClose = () => {
 }
 
 .montant-box {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: none;
   color: white;
   padding: 30px;
-  border-radius: 8px;
+  border-radius: 0;
   text-align: center;
 }
 
@@ -302,29 +302,29 @@ const handleClose = () => {
 .signature-label {
   font-size: 14px;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 40px;
 }
 
 .signature-space {
   height: 60px;
-  border-bottom: 1px solid #d1d5db;
+  border-bottom: 1px solid #cccccc;
   margin-bottom: 10px;
 }
 
 .signature-name {
   font-size: 12px;
-  color: #6b7280;
+  color: #666666;
 }
 
 /* Pied de page */
 .footer {
   margin-top: 60px;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #cccccc;
   text-align: center;
   font-size: 12px;
-  color: #9ca3af;
+  color: #666666;
 }
 
 .print-button-container {
