@@ -112,7 +112,7 @@
             <div class="stat-value">{{ formatMontant(totaux.reste) }}</div>
           </div>
         </div>
-      </div> -->
+      </div> 
 
       <!-- Footer -->
       <div class="footer">
