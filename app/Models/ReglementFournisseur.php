@@ -1,0 +1,436 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Modèle ReglementFournisseur
+ * Gestion des paiements des factures fournisseurs
+ */
+class ReglementFournisseur extends Model
+{
+    use SoftDeletes;
+
+    /**
+     * Nom de la table
+     */
+    protected $table = 'reglements_fournisseurs';
+
+    /**
+     * Les attributs mass assignable
+     */
+    protected $fillable = [
+        'numero_reglement',
+        'date_reglement',
+        'facture_id',
+        'fournisseur_id',
+        'montant',
+        'mode_paiement',
+        'reference',
+        'banque',
+        'numero_compte_bancaire',
+        'compte_tresorerie_id',
+        'observations',
+        'statut',
+        'created_by',
+        'validated_by',
+        'validated_at',
+    ];
+
+    /**
+     * Les attributs castés
+     */
+    protected $casts = [
+        'date_reglement' => 'date',
+        'validated_at' => 'datetime',
+        'montant' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
+
+    /**
+     * Constantes pour les modes de paiement
+     */
+    const MODE_VIREMENT = 'virement';
+    const MODE_CHEQUE = 'cheque';
+    const MODE_ESPECES = 'especes';
+    const MODE_MOBILE_MONEY = 'mobile_money';
+    const MODE_CARTE = 'carte';
+
+    /**
+     * Constantes pour les statuts
+     */
+    const STATUT_EN_ATTENTE = 'en_attente';
+    const STATUT_VALIDE = 'valide';
+    const STATUT_ANNULE = 'annule';
+
+    // ==========================================
+    // RELATIONS
+    // ==========================================
+
+    /**
+     * Relation avec la facture
+     */
+    public function facture(): BelongsTo
+    {
+        return $this->belongsTo(FactureFournisseur::class, 'facture_id');
+    }
+
+    /**
+     * Relation avec le fournisseur
+     */
+    public function fournisseur(): BelongsTo
+    {
+        return $this->belongsTo(Fournisseur::class);
+    }
+
+    /**
+     * Relation avec le compte de trésorerie
+     */
+    public function compteTresorerie(): BelongsTo
+    {
+        return $this->belongsTo(CompteComptable::class, 'compte_tresorerie_id');
+    }
+
+    /**
+     * Relation avec l'utilisateur créateur
+     */
+    public function createur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relation avec l'utilisateur validateur
+     */
+    public function validateur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    // ==========================================
+    // SCOPES
+    // ==========================================
+
+    /**
+     * Règlements validés
+     */
+    public function scopeValide(Builder $query): Builder
+    {
+        return $query->where('statut', self::STATUT_VALIDE);
+    }
+
+    /**
+     * Règlements en attente
+     */
+    public function scopeEnAttente(Builder $query): Builder
+    {
+        return $query->where('statut', self::STATUT_EN_ATTENTE);
+    }
+
+    /**
+     * Règlements annulés
+     */
+    public function scopeAnnule(Builder $query): Builder
+    {
+        return $query->where('statut', self::STATUT_ANNULE);
+    }
+
+    /**
+     * Règlements par mode de paiement
+     */
+    public function scopeParMode(Builder $query, string $mode): Builder
+    {
+        return $query->where('mode_paiement', $mode);
+    }
+
+    /**
+     * Règlements d'un fournisseur
+     */
+    public function scopeDuFournisseur(Builder $query, int $fournisseurId): Builder
+    {
+        return $query->where('fournisseur_id', $fournisseurId);
+    }
+
+    /**
+     * Règlements d'une facture
+     */
+    public function scopeDeFacture(Builder $query, int $factureId): Builder
+    {
+        return $query->where('facture_id', $factureId);
+    }
+
+    /**
+     * Règlements sur une période
+     */
+    public function scopePeriode(Builder $query, string $debut, string $fin): Builder
+    {
+        return $query->whereBetween('date_reglement', [$debut, $fin]);
+    }
+
+    /**
+     * Recherche globale
+     */
+    public function scopeRecherche(Builder $query, string $terme): Builder
+    {
+        return $query->where(function ($q) use ($terme) {
+            $q->where('numero_reglement', 'ILIKE', "%{$terme}%")
+              ->orWhere('reference', 'ILIKE', "%{$terme}%")
+              ->orWhereHas('fournisseur', function ($q2) use ($terme) {
+                  $q2->where('nom', 'ILIKE', "%{$terme}%");
+              })
+              ->orWhereHas('facture', function ($q2) use ($terme) {
+                  $q2->where('numero_piece', 'ILIKE', "%{$terme}%");
+              });
+        });
+    }
+
+    // ==========================================
+    // ACCESSORS
+    // ==========================================
+
+    /**
+     * Obtenir le libellé du mode de paiement
+     */
+    public function getModePaiementLibelleAttribute(): string
+    {
+        return match($this->mode_paiement) {
+            self::MODE_VIREMENT => 'Virement bancaire',
+            self::MODE_CHEQUE => 'Chèque',
+            self::MODE_ESPECES => 'Espèces',
+            self::MODE_MOBILE_MONEY => 'Mobile Money',
+            self::MODE_CARTE => 'Carte bancaire',
+            default => 'Inconnu',
+        };
+    }
+
+    /**
+     * Obtenir le libellé du statut
+     */
+    public function getStatutLibelleAttribute(): string
+    {
+        return match($this->statut) {
+            self::STATUT_EN_ATTENTE => 'En attente',
+            self::STATUT_VALIDE => 'Validé',
+            self::STATUT_ANNULE => 'Annulé',
+            default => 'Inconnu',
+        };
+    }
+
+    /**
+     * Obtenir la couleur du statut
+     */
+    public function getStatutCouleurAttribute(): string
+    {
+        return match($this->statut) {
+            self::STATUT_EN_ATTENTE => 'warning',
+            self::STATUT_VALIDE => 'success',
+            self::STATUT_ANNULE => 'danger',
+            default => 'info',
+        };
+    }
+
+    /**
+     * Vérifier si le règlement est modifiable
+     */
+    public function getEstModifiableAttribute(): bool
+    {
+        return $this->statut !== self::STATUT_ANNULE;
+    }
+
+    // ==========================================
+    // MÉTHODES D'INSTANCE
+    // ==========================================
+
+    /**
+     * Valider le règlement
+     */
+    public function valider(?int $userId = null): bool
+    {
+        if ($this->statut === self::STATUT_ANNULE) {
+            return false;
+        }
+
+        $this->statut = self::STATUT_VALIDE;
+        $this->validated_by = $userId;
+        $this->validated_at = now();
+
+        return $this->save();
+    }
+
+    /**
+     * Annuler le règlement
+     */
+    public function annuler(): bool
+    {
+        if ($this->statut === self::STATUT_ANNULE) {
+            return false;
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Remettre le montant sur la facture
+            $facture = $this->facture;
+            if ($facture) {
+                // Convertir en float pour éviter les problèmes de type decimal/string
+                $montantReglement = (float) $this->montant;
+                $montantPaye = (float) $facture->montant_paye - $montantReglement;
+                $montantNet = (float) $facture->montant_net;
+
+                $facture->montant_paye = max(0, $montantPaye);
+                $facture->reste_a_payer = $montantNet - $facture->montant_paye;
+
+                // Mettre à jour le statut de la facture (tolérance 0.01 pour arrondi)
+                if ($facture->montant_paye <= 0.01) {
+                    $facture->statut = FactureFournisseur::STATUT_VALIDEE;
+                    $facture->montant_paye = 0;
+                } else {
+                    $facture->statut = FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE;
+                }
+
+                $facture->save();
+            }
+
+            $this->statut = self::STATUT_ANNULE;
+            $this->save();
+
+            DB::commit();
+            return true;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return false;
+        }
+    }
+
+    // ==========================================
+    // MÉTHODES STATIQUES
+    // ==========================================
+
+    /**
+     * Générer un numéro de règlement unique
+     */
+    public static function genererNumeroReglement(): string
+    {
+        $annee = date('Y');
+        $prefixe = 'REG/' . substr($annee, -2);
+
+        // Trouver le dernier numéro
+        $dernierNumero = self::where('numero_reglement', 'LIKE', $prefixe . '/%')
+            ->orderBy('numero_reglement', 'desc')
+            ->value('numero_reglement');
+
+        if ($dernierNumero) {
+            $parties = explode('/', $dernierNumero);
+            $sequence = (int) end($parties) + 1;
+        } else {
+            $sequence = 1;
+        }
+
+        return $prefixe . '/' . str_pad($sequence, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Obtenir les modes de paiement disponibles
+     */
+    public static function getModesPaiement(): array
+    {
+        return [
+            ['value' => self::MODE_VIREMENT, 'label' => 'Virement bancaire'],
+            ['value' => self::MODE_CHEQUE, 'label' => 'Chèque'],
+            ['value' => self::MODE_ESPECES, 'label' => 'Espèces'],
+            ['value' => self::MODE_MOBILE_MONEY, 'label' => 'Mobile Money'],
+            ['value' => self::MODE_CARTE, 'label' => 'Carte bancaire'],
+        ];
+    }
+
+    /**
+     * Obtenir les statistiques globales
+     */
+    public static function getStatistiques(?int $fournisseurId = null): array
+    {
+        $query = self::valide();
+
+        if ($fournisseurId) {
+            $query->where('fournisseur_id', $fournisseurId);
+        }
+
+        $total = $query->sum('montant');
+        $nombreReglements = $query->count();
+
+        // Règlements du mois en cours
+        $debutMois = now()->startOfMonth()->format('Y-m-d');
+        $finMois = now()->endOfMonth()->format('Y-m-d');
+
+        $queryMois = self::valide()->periode($debutMois, $finMois);
+        if ($fournisseurId) {
+            $queryMois->where('fournisseur_id', $fournisseurId);
+        }
+        $totalMois = $queryMois->sum('montant');
+
+        return [
+            'total_reglements' => (float) $total,
+            'reglements_mois' => (float) $totalMois,
+            'nombre_reglements' => $nombreReglements,
+            'montant_moyen' => $nombreReglements > 0 ? $total / $nombreReglements : 0,
+        ];
+    }
+
+    /**
+     * Convertir en tableau pour l'API
+     */
+    public function toApiArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'numero_reglement' => $this->numero_reglement,
+            'date_reglement' => $this->date_reglement?->format('Y-m-d'),
+            'facture_id' => $this->facture_id,
+            'facture' => $this->facture ? [
+                'id' => $this->facture->id,
+                'numero' => $this->facture->numero_piece,
+                'numero_piece' => $this->facture->numero_piece,
+                'date_facture' => $this->facture->date?->format('Y-m-d'),
+            ] : null,
+            'fournisseur_id' => $this->fournisseur_id,
+            'fournisseur' => $this->fournisseur ? [
+                'id' => $this->fournisseur->id,
+                'code' => 'FOUR' . str_pad($this->fournisseur->id, 3, '0', STR_PAD_LEFT),
+                'nom' => $this->fournisseur->nom,
+            ] : null,
+            'montant' => (float) $this->montant,
+            'mode_paiement' => $this->mode_paiement,
+            'mode_paiement_libelle' => $this->mode_paiement_libelle,
+            'reference' => $this->reference,
+            'banque' => $this->banque,
+            'numero_compte_bancaire' => $this->numero_compte_bancaire,
+            'compte_bancaire' => $this->banque ? [
+                'banque' => $this->banque,
+                'numero' => $this->numero_compte_bancaire,
+            ] : null,
+            'compte_tresorerie_id' => $this->compte_tresorerie_id,
+            'compte_tresorerie' => $this->compteTresorerie ? [
+                'id' => $this->compteTresorerie->id,
+                'numero' => $this->compteTresorerie->numero_compte,
+                'libelle' => $this->compteTresorerie->libelle,
+            ] : null,
+            'observations' => $this->observations,
+            'statut' => $this->statut,
+            'statut_libelle' => $this->statut_libelle,
+            'statut_couleur' => $this->statut_couleur,
+            'est_modifiable' => $this->est_modifiable,
+            'user' => $this->createur ? [
+                'name' => $this->createur->name,
+            ] : null,
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+}

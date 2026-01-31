@@ -1,0 +1,127 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable, SoftDeletes;
+
+    /**
+     * Constantes pour les rôles
+     */
+    const ROLE_ADMIN = 'admin';
+    const ROLE_COMPTABLE = 'comptable';
+    const ROLE_GESTIONNAIRE = 'gestionnaire';
+    const ROLE_USER = 'user';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',
+        'is_active',
+        'telephone',
+        'poste',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    /**
+     * Vérifier si l'utilisateur est admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
+     * Vérifier si l'utilisateur est comptable
+     */
+    public function isComptable(): bool
+    {
+        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_COMPTABLE]);
+    }
+
+    /**
+     * Vérifier si l'utilisateur est gestionnaire
+     */
+    public function isGestionnaire(): bool
+    {
+        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_GESTIONNAIRE]);
+    }
+
+    /**
+     * Obtenir le libellé du rôle
+     */
+    public function getRoleLibelleAttribute(): string
+    {
+        return match($this->role) {
+            self::ROLE_ADMIN => 'Administrateur',
+            self::ROLE_COMPTABLE => 'Comptable',
+            self::ROLE_GESTIONNAIRE => 'Gestionnaire',
+            self::ROLE_USER => 'Utilisateur',
+            default => 'Utilisateur',
+        };
+    }
+
+    /**
+     * Obtenir les rôles disponibles
+     */
+    public static function getRoles(): array
+    {
+        return [
+            ['value' => self::ROLE_ADMIN, 'label' => 'Administrateur'],
+            ['value' => self::ROLE_COMPTABLE, 'label' => 'Comptable'],
+            ['value' => self::ROLE_GESTIONNAIRE, 'label' => 'Gestionnaire'],
+            ['value' => self::ROLE_USER, 'label' => 'Utilisateur'],
+        ];
+    }
+
+    /**
+     * Scope pour les utilisateurs actifs
+     */
+    public function scopeActif($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope pour filtrer par rôle
+     */
+    public function scopeRole($query, string $role)
+    {
+        return $query->where('role', $role);
+    }
+}

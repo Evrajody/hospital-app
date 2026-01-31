@@ -17,10 +17,9 @@
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
-        <h1>Système de Gestion Administrative</h1>
+        <h1>Système de Gestion Comptable</h1>
         <p class="hero-subtitle">
-          Une solution complète et moderne pour la gestion des opérations administratives
-          et financières de l'hôpital de Ménontin
+          Une solution complète et moderne pour la gestion des opérations financières de l'hôpital de Ménontin.
         </p>
         <div class="hero-actions">
           <el-button type="primary" size="large" @click="navigateToLogin">

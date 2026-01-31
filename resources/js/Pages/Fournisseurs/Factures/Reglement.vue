@@ -35,7 +35,7 @@
                 <span class="info-label">Fournisseur :</span>
                 <div class="fournisseur-info">
                   <strong>{{ facture.fournisseur.nom }}</strong>
-                  <span class="fournisseur-code">{{ facture.fournisseur.code }}</span>
+                  <!-- <span class="fournisseur-code">{{ facture.fournisseur.code }}</span> -->
                 </div>
               </div>
 
@@ -67,6 +67,14 @@
                 <div class="montant-row total-ttc">
                   <span class="montant-label"><strong>Total TTC :</strong></span>
                   <span class="montant-value"><strong>{{ formatMontant(facture.montant_ttc) }}</strong></span>
+                </div>
+                <div class="montant-row" v-if="facture.montant_reduction > 0">
+                  <span class="montant-label">{{ facture.type_reduction_libelle || 'AIB' }} ({{ facture.taux }}%) :</span>
+                  <span class="montant-value" style="color: #f56c6c;">- {{ formatMontant(facture.montant_reduction) }}</span>
+                </div>
+                <div class="montant-row" v-if="facture.montant_net && facture.montant_net !== facture.montant_ttc">
+                  <span class="montant-label"><strong>Net à payer :</strong></span>
+                  <span class="montant-value"><strong>{{ formatMontant(facture.montant_net) }}</strong></span>
                 </div>
 
                 <el-divider style="margin: 12px 0" />
@@ -364,7 +372,14 @@ const breadcrumbs = [
 ];
 
 const resteAPayer = computed(() => {
-  return props.facture.montant_ttc - props.facture.montant_paye;
+  // Utiliser reste_a_payer de la facture, ou calculer depuis montant_net (TTC - AIB)
+  if (props.facture.reste_a_payer !== undefined && props.facture.reste_a_payer !== null) {
+    return parseFloat(props.facture.reste_a_payer) || 0;
+  }
+  // Fallback: montant_net - montant_paye
+  const montantNet = parseFloat(props.facture.montant_net) || parseFloat(props.facture.montant_ttc) || 0;
+  const montantPaye = parseFloat(props.facture.montant_paye) || 0;
+  return montantNet - montantPaye;
 });
 
 const newReste = computed(() => {
@@ -495,15 +510,55 @@ const handleCancel = () => {
 const handleSubmit = async () => {
   if (!formRef.value) return;
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
       submitting.value = true;
 
-      // TODO: Replace with actual API call when backend is ready
-      setTimeout(() => {
-        ElMessage.success('Règlement enregistré avec succès');
-        router.visit('/factures-fournisseurs');
-      }, 1000);
+      try {
+        // Format date for API
+        const dateReglement = form.date_reglement instanceof Date
+          ? form.date_reglement.toISOString().split('T')[0]
+          : form.date_reglement;
+
+        const response = await fetch('/api/reglements-fournisseurs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+          },
+          body: JSON.stringify({
+            facture_id: props.facture.id,
+            date_reglement: dateReglement,
+            montant: form.montant,
+            mode_paiement: form.mode_paiement,
+            reference: form.reference || null,
+            banque: form.compte_bancaire_id ? props.comptesBancaires.find(c => c.id === form.compte_bancaire_id)?.banque : null,
+            numero_compte_bancaire: form.compte_bancaire_id ? props.comptesBancaires.find(c => c.id === form.compte_bancaire_id)?.numero : null,
+            compte_tresorerie_id: form.compte_bancaire_id,
+            observations: form.remarques || null
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          ElMessage.success(data.message || 'Règlement enregistré avec succès');
+          router.visit(`/factures-fournisseurs/${props.facture.id}`);
+        } else {
+          ElMessage.error(data.message || 'Erreur lors de l\'enregistrement');
+          if (data.errors) {
+            Object.values(data.errors).flat().forEach(error => {
+              ElMessage.warning(error);
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        ElMessage.error('Erreur lors de l\'enregistrement du règlement');
+      } finally {
+        submitting.value = false;
+      }
     }
   });
 };

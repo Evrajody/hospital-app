@@ -15,40 +15,53 @@
 
       <!-- Statistiques rapides -->
       <el-row :gutter="20" class="stats-row">
-        <el-col :xs="24" :sm="8">
+        <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
               <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
                 <el-icon :size="24"><User /></el-icon>
               </div>
               <div class="stat-content">
-                <div class="stat-value">{{ fournisseurs.length }}</div>
+                <div class="stat-value">{{ stats.total || fournisseurs.length }}</div>
                 <div class="stat-label">Total Fournisseurs</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        <el-col :xs="24" :sm="8">
+        <el-col :xs="24" :sm="6">
+          <el-card shadow="hover">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%)">
+                <el-icon :size="24"><CircleCheck /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ stats.actifs || 0 }}</div>
+                <div class="stat-label">Fournisseurs Actifs</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
               <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
                 <el-icon :size="24"><Document /></el-icon>
               </div>
               <div class="stat-content">
-                <div class="stat-value">{{ stats.factures_en_cours }}</div>
+                <div class="stat-value">{{ stats.factures_en_cours || 0 }}</div>
                 <div class="stat-label">Factures en cours</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        <el-col :xs="24" :sm="8">
+        <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
               <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)">
                 <el-icon :size="24"><Wallet /></el-icon>
               </div>
               <div class="stat-content">
-                <div class="stat-value">{{ formatMontant(stats.dettes_total) }}</div>
+                <div class="stat-value">{{ formatMontant(stats.dettes_total || 0) }}</div>
                 <div class="stat-label">Dettes totales</div>
               </div>
             </div>
@@ -58,21 +71,22 @@
 
       <!-- Filters Card -->
       <el-card class="filter-card" shadow="never">
-        <el-form :inline="true" :model="filters" class="filter-form">
+        <el-form :inline="true" :model="localFilters" class="filter-form">
           <el-form-item label="Recherche">
             <el-input
-              v-model="filters.search"
+              v-model="localFilters.search"
               placeholder="Code, nom, compte, email, téléphone..."
               :prefix-icon="Search"
               clearable
               style="width: 350px"
-              @input="handleSearch"
+              @input="debouncedSearch"
+              @clear="handleSearch"
             />
           </el-form-item>
 
           <el-form-item label="Statut">
             <el-select
-              v-model="filters.status"
+              v-model="localFilters.status"
               placeholder="Tous"
               clearable
               style="width: 150px"
@@ -85,7 +99,7 @@
 
           <el-form-item label="Compte Comptable">
             <el-select
-              v-model="filters.compte_id"
+              v-model="localFilters.compte_id"
               placeholder="Tous les comptes"
               clearable
               filterable
@@ -133,15 +147,18 @@
           style="width: 100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column prop="code" label="Code" width="120" sortable="custom">
+          <el-table-column prop="nom" label="Raison Sociale" min-width="200" sortable="custom" />
+
+          <el-table-column prop="type_fournisseur" label="Type" width="180">
             <template #default="{ row }">
-              <el-tag type="info" size="small">{{ row.code }}</el-tag>
+              <el-tag v-if="row.type_fournisseur" size="small" type="info">
+                {{ getTypeFournisseurLabel(row.type_fournisseur) }}
+              </el-tag>
+              <el-text v-else type="info" size="small">-</el-text>
             </template>
           </el-table-column>
 
-          <el-table-column prop="nom" label="Nom du Fournisseur" min-width="200" sortable="custom" />
-
-          <el-table-column prop="compte_comptable" label="Compte Comptable" width="250">
+          <el-table-column prop="compte_comptable" label="Compte Comptable" width="220">
             <template #default="{ row }">
               <div v-if="row.compte_comptable" class="compte-cell">
                 <el-tag size="small">{{ row.compte_comptable.numero }}</el-tag>
@@ -158,6 +175,7 @@
               <el-link v-if="row.telephone" :href="`tel:${row.telephone}`" :icon="Phone">
                 {{ row.telephone }}
               </el-link>
+              <span v-else>-</span>
             </template>
           </el-table-column>
 
@@ -166,6 +184,7 @@
               <el-link v-if="row.email" :href="`mailto:${row.email}`" :icon="Message">
                 {{ row.email }}
               </el-link>
+              <span v-else>-</span>
             </template>
           </el-table-column>
 
@@ -204,8 +223,8 @@
         <!-- Pagination -->
         <div class="pagination-container">
           <el-pagination
-            v-model:current-page="pagination.current_page"
-            v-model:page-size="pagination.per_page"
+            v-model:current-page="localPagination.current_page"
+            v-model:page-size="localPagination.per_page"
             :page-sizes="[10, 20, 50, 100]"
             :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
@@ -215,11 +234,22 @@
         </div>
       </el-card>
     </div>
+
+    <!-- Modal Fournisseur -->
+    <FournisseurModal
+      v-model="showFournisseurModal"
+      :fournisseur="selectedFournisseur"
+      :comptes-fournisseurs="comptesFournisseurs"
+      :comptes-parents="comptesParents"
+      :server-errors="serverErrors"
+      :loading="modalLoading"
+      @success="handleFournisseurSuccess"
+    />
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -235,9 +265,20 @@ import {
   Message,
   User,
   Document,
-  Wallet
+  Wallet,
+  CircleCheck
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
+
+// Simple debounce function
+const debounce = (fn, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
 
 // Props
 const props = defineProps({
@@ -249,6 +290,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  comptesParents: {
+    type: Array,
+    default: () => []
+  },
   pagination: {
     type: Object,
     default: () => ({
@@ -257,6 +302,10 @@ const props = defineProps({
       total: 0
     })
   },
+  filters: {
+    type: Object,
+    default: () => ({})
+  },
   user: {
     type: Object,
     default: () => null
@@ -264,6 +313,9 @@ const props = defineProps({
   stats: {
     type: Object,
     default: () => ({
+      total: 0,
+      actifs: 0,
+      inactifs: 0,
       factures_en_cours: 0,
       dettes_total: 0
     })
@@ -272,10 +324,20 @@ const props = defineProps({
 
 // State
 const loading = ref(false);
-const filters = reactive({
-  search: '',
-  status: '',
-  compte_id: ''
+const showFournisseurModal = ref(false);
+const selectedFournisseur = ref(null);
+const serverErrors = ref(null);
+const modalLoading = ref(false);
+
+const localFilters = reactive({
+  search: props.filters?.search || '',
+  status: props.filters?.status || '',
+  compte_id: props.filters?.compte_id || ''
+});
+
+const localPagination = reactive({
+  current_page: props.pagination.current_page,
+  per_page: props.pagination.per_page
 });
 
 const breadcrumbs = [
@@ -283,40 +345,99 @@ const breadcrumbs = [
   { title: 'Fournisseurs', path: '/fournisseurs' }
 ];
 
-// Methods
-const handleSearch = () => {
-  // TODO: Implement server-side search when backend is ready
-  console.log('Searching with filters:', filters);
+// Types de fournisseurs
+const typesFournisseurs = {
+  medicaments: 'Médicaments',
+  equipements: 'Équipements',
+  consommables: 'Consommables',
+  services: 'Services',
+  maintenance: 'Maintenance',
+  autres: 'Autres'
 };
 
+// Methods
+const getTypeFournisseurLabel = (type) => {
+  return typesFournisseurs[type] || type;
+};
+
+const handleSearch = () => {
+  loading.value = true;
+  router.get('/fournisseurs', {
+    search: localFilters.search || undefined,
+    status: localFilters.status || undefined,
+    compte_id: localFilters.compte_id || undefined,
+    per_page: localPagination.per_page,
+    page: 1
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
+};
+
+const debouncedSearch = debounce(handleSearch, 300);
+
 const handleReset = () => {
-  filters.search = '';
-  filters.status = '';
-  filters.compte_id = '';
+  localFilters.search = '';
+  localFilters.status = '';
+  localFilters.compte_id = '';
   handleSearch();
 };
 
 const handleRefresh = () => {
-  router.reload({ only: ['fournisseurs', 'pagination'] });
+  loading.value = true;
+  router.reload({
+    only: ['fournisseurs', 'pagination', 'stats'],
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
 };
 
 const handleSortChange = ({ prop, order }) => {
-  // TODO: Implement server-side sorting
-  console.log('Sort changed:', prop, order);
+  loading.value = true;
+  router.get('/fournisseurs', {
+    ...localFilters,
+    per_page: localPagination.per_page,
+    page: localPagination.current_page,
+    sort: prop,
+    order: order === 'ascending' ? 'asc' : 'desc'
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
 };
 
 const handleSizeChange = (size) => {
-  // TODO: Implement pagination when backend is ready
-  console.log('Page size changed:', size);
+  localPagination.per_page = size;
+  localPagination.current_page = 1;
+  handleSearch();
 };
 
 const handlePageChange = (page) => {
-  // TODO: Implement pagination when backend is ready
-  console.log('Page changed:', page);
+  loading.value = true;
+  router.get('/fournisseurs', {
+    ...localFilters,
+    per_page: localPagination.per_page,
+    page: page
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
 };
 
 const handleCreate = () => {
-  router.visit('/fournisseurs/create');
+  serverErrors.value = null;
+  selectedFournisseur.value = null;
+  showFournisseurModal.value = true;
 };
 
 const handleView = (fournisseur) => {
@@ -324,17 +445,93 @@ const handleView = (fournisseur) => {
 };
 
 const handleEdit = (fournisseur) => {
-  router.visit(`/fournisseurs/${fournisseur.id}/edit`);
+  serverErrors.value = null;
+  selectedFournisseur.value = fournisseur;
+  showFournisseurModal.value = true;
+};
+
+const handleFournisseurSuccess = async (fournisseurData) => {
+  serverErrors.value = null;
+  modalLoading.value = true;
+
+  const isEdit = !!selectedFournisseur.value;
+  const url = isEdit
+    ? `/api/fournisseurs/${selectedFournisseur.value.id}`
+    : '/api/fournisseurs';
+
+  try {
+    const response = await fetch(url, {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify(fournisseurData)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      ElMessage.success(result.message);
+      showFournisseurModal.value = false;
+      serverErrors.value = null;
+      handleRefresh();
+    } else {
+      // Afficher les erreurs de validation dans le modal
+      if (result.errors) {
+        serverErrors.value = result.errors;
+        // Construire un message d'erreur détaillé
+        const errorMessages = [];
+        for (const [field, messages] of Object.entries(result.errors)) {
+          const fieldMessages = Array.isArray(messages) ? messages : [messages];
+          errorMessages.push(...fieldMessages);
+        }
+        ElMessage.error({
+          message: result.message || `${errorMessages.length} erreur(s) de validation`,
+          duration: 5000
+        });
+      } else {
+        ElMessage.error(result.message || 'Une erreur est survenue');
+      }
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    ElMessage.error('Erreur de connexion au serveur');
+  } finally {
+    modalLoading.value = false;
+  }
 };
 
 const handleDelete = async (id) => {
-  // TODO: Implement delete when backend is ready
-  ElMessage.success('Fournisseur supprimé avec succès');
-  handleRefresh();
+  loading.value = true;
+
+  try {
+    const response = await fetch(`/api/fournisseurs/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      ElMessage.success(result.message);
+      handleRefresh();
+    } else {
+      ElMessage.error(result.message || 'Erreur lors de la suppression');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    ElMessage.error('Erreur de connexion au serveur');
+  } finally {
+    loading.value = false;
+  }
 };
 
 const handleExport = () => {
-  // TODO: Implement export functionality
   ElMessage.info('Export en cours de développement...');
 };
 
@@ -349,7 +546,7 @@ const formatMontant = (montant) => {
 
 <script>
 export default {
-  layout: null // We're using AppLayout explicitly
+  layout: null
 };
 </script>
 

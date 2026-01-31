@@ -2,10 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\FournisseurController;
+use App\Http\Controllers\FactureFournisseurController;
+use App\Http\Controllers\ReglementFournisseurController;
 
 // Page d'accueil (Welcome)
 Route::get('/', function () {
-   
+
     return Inertia::render('Welcome');
 });
 
@@ -24,289 +27,126 @@ Route::get('/dashboard', function () {
     ]);
 })->name('dashboard');
 
-// Fournisseurs Routes
+// ==========================================
+// FOURNISSEURS ROUTES (CRUD FONCTIONNEL)
+// ==========================================
 Route::prefix('fournisseurs')->group(function () {
-    // Liste des fournisseurs
-    Route::get('/', function () {
-        // Mock data - TODO: Replace with actual database queries
-        $fournisseurs = [
-            [
-                'id' => 1,
-                'code' => 'FOUR001',
-                'nom' => 'Pharmacie Centrale du Bénin',
-                'contact' => 'M. Adamou',
-                'telephone' => '+229 21 30 45 67',
-                'email' => 'contact@pcb.bj',
-                'status' => 'actif',
-                'compte_comptable' => [
-                    'numero' => '401001',
-                    'libelle' => 'Pharmacie Centrale du Bénin'
-                ]
-            ],
-            [
-                'id' => 2,
-                'code' => 'FOUR002',
-                'nom' => 'SOBEMAP Matériel Médical',
-                'contact' => 'Mme Koffi',
-                'telephone' => '+229 21 31 22 33',
-                'email' => 'info@sobemap.bj',
-                'status' => 'actif',
-                'compte_comptable' => [
-                    'numero' => '401002',
-                    'libelle' => 'SOBEMAP Matériel Médical'
-                ]
-            ],
-            [
-                'id' => 3,
-                'code' => 'FOUR003',
-                'nom' => 'SONEB (Eau)',
-                'contact' => 'Service Client',
-                'telephone' => '+229 21 30 00 00',
-                'email' => 'clientele@soneb.bj',
-                'status' => 'actif',
-                'compte_comptable' => [
-                    'numero' => '401003',
-                    'libelle' => 'SONEB (Eau)'
-                ]
-            ]
-        ];
+    // Liste des fournisseurs (Vue)
+    Route::get('/', [FournisseurController::class, 'index'])->name('fournisseurs.index');
 
-        $comptesFournisseurs = [
-            ['id' => 1, 'numero' => '401001', 'libelle' => 'Pharmacie Centrale du Bénin'],
-            ['id' => 2, 'numero' => '401002', 'libelle' => 'SOBEMAP Matériel Médical'],
-            ['id' => 3, 'numero' => '401003', 'libelle' => 'SONEB (Eau)'],
-            ['id' => 4, 'numero' => '401004', 'libelle' => 'SBEE (Électricité)'],
-        ];
+    // Détail fournisseur (Vue)
+    Route::get('/{id}', [FournisseurController::class, 'show'])
+        ->where('id', '[0-9]+')
+        ->name('fournisseurs.show');
+});
 
-        $stats = [
-            'factures_en_cours' => 15,
-            'dettes_total' => 12500000
-        ];
+// API Fournisseurs (JSON)
+Route::prefix('api/fournisseurs')->group(function () {
+    // Créer un fournisseur
+    Route::post('/', [FournisseurController::class, 'store'])->name('api.fournisseurs.store');
 
-        return Inertia::render('Fournisseurs/Index', [
-            'fournisseurs' => $fournisseurs,
-            'comptesFournisseurs' => $comptesFournisseurs,
-            'stats' => $stats,
-            'pagination' => [
-                'current_page' => 1,
-                'per_page' => 20,
-                'total' => count($fournisseurs)
-            ],
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('fournisseurs.index');
+    // Modifier un fournisseur
+    Route::put('/{id}', [FournisseurController::class, 'update'])
+        ->where('id', '[0-9]+')
+        ->name('api.fournisseurs.update');
 
-    // Formulaire création
-    Route::get('/create', function () {
-        $comptesFournisseurs = [
-            ['id' => 1, 'numero' => '401001', 'libelle' => 'Pharmacie Centrale du Bénin'],
-            ['id' => 2, 'numero' => '401002', 'libelle' => 'SOBEMAP Matériel Médical'],
-            ['id' => 3, 'numero' => '401003', 'libelle' => 'SONEB (Eau)'],
-            ['id' => 4, 'numero' => '401004', 'libelle' => 'SBEE (Électricité)'],
-        ];
+    // Supprimer un fournisseur
+    Route::delete('/{id}', [FournisseurController::class, 'destroy'])
+        ->where('id', '[0-9]+')
+        ->name('api.fournisseurs.destroy');
 
-        $comptesParents = [
-            ['id' => 10, 'numero' => '401000', 'libelle' => 'Fournisseurs'],
-            ['id' => 11, 'numero' => '401100', 'libelle' => 'Fournisseurs - Médicaments'],
-            ['id' => 12, 'numero' => '401200', 'libelle' => 'Fournisseurs - Matériel médical'],
-            ['id' => 13, 'numero' => '401300', 'libelle' => 'Fournisseurs - Services'],
-        ];
+    // Statistiques
+    Route::get('/stats', [FournisseurController::class, 'stats'])->name('api.fournisseurs.stats');
+});
 
-        return Inertia::render('Fournisseurs/Form', [
-            'comptesFournisseurs' => $comptesFournisseurs,
-            'comptesParents' => $comptesParents,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('fournisseurs.create');
+// API Factures Fournisseurs (JSON)
+Route::prefix('api/factures-fournisseurs')->group(function () {
+    // Lister les factures
+    Route::get('/', [FactureFournisseurController::class, 'index'])->name('api.factures-fournisseurs.index');
 
-    // Formulaire édition
-    Route::get('/{id}/edit', function ($id) {
-        $fournisseur = [
-            'id' => $id,
-            'code' => 'FOUR001',
-            'nom' => 'Pharmacie Centrale du Bénin',
-            'contact' => 'M. Adamou',
-            'telephone' => '+229 21 30 45 67',
-            'email' => 'contact@pcb.bj',
-            'adresse' => 'Avenue Clozel, Cotonou',
-            'status' => 'actif',
-            'compte_comptable_id' => 1,
-            'ifu' => '0000000000000',
-            'rccm' => 'RB/COT/XX-X-XXXXX',
-            'remarques' => ''
-        ];
+    // Générer un numéro de pièce
+    Route::get('/generer-numero', [FactureFournisseurController::class, 'genererNumero'])->name('api.factures-fournisseurs.generer-numero');
 
-        $comptesFournisseurs = [
-            ['id' => 1, 'numero' => '401001', 'libelle' => 'Pharmacie Centrale du Bénin'],
-            ['id' => 2, 'numero' => '401002', 'libelle' => 'SOBEMAP Matériel Médical'],
-        ];
+    // Statistiques
+    Route::get('/stats', [FactureFournisseurController::class, 'stats'])->name('api.factures-fournisseurs.stats');
 
-        $comptesParents = [
-            ['id' => 10, 'numero' => '401000', 'libelle' => 'Fournisseurs'],
-        ];
+    // Créer une facture
+    Route::post('/', [FactureFournisseurController::class, 'store'])->name('api.factures-fournisseurs.store');
 
-        return Inertia::render('Fournisseurs/Form', [
-            'fournisseur' => $fournisseur,
-            'comptesFournisseurs' => $comptesFournisseurs,
-            'comptesParents' => $comptesParents,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('fournisseurs.edit');
+    // Voir une facture
+    Route::get('/{id}', [FactureFournisseurController::class, 'show'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.show');
 
-    // Détail fournisseur
-    Route::get('/{id}', function ($id) {
-        $fournisseur = [
-            'id' => $id,
-            'code' => 'FOUR001',
-            'nom' => 'Pharmacie Centrale du Bénin',
-            'contact' => 'M. Adamou',
-            'telephone' => '+229 21 30 45 67',
-            'email' => 'contact@pcb.bj',
-            'adresse' => 'Avenue Clozel, Cotonou',
-            'status' => 'actif',
-            'compte_comptable' => [
-                'numero' => '401001',
-                'libelle' => 'Pharmacie Centrale du Bénin'
-            ],
-            'ifu' => '0000000000001',
-            'rccm' => 'RB/COT/XX-X-00001',
-            'remarques' => 'Fournisseur principal de médicaments'
-        ];
+    // Modifier une facture
+    Route::put('/{id}', [FactureFournisseurController::class, 'update'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.update');
 
-        $factures = [
-            [
-                'id' => 1,
-                'numero' => 'PC/025/0001',
-                'date_facture' => '2025-01-15',
-                'montant_ttc' => 5950000,
-                'montant_paye' => 2000000,
-                'statut_paiement' => 'partielle'
-            ],
-            [
-                'id' => 4,
-                'numero' => 'PC/025/0004',
-                'date_facture' => '2025-01-10',
-                'montant_ttc' => 2500000,
-                'montant_paye' => 2500000,
-                'statut_paiement' => 'payee'
-            ]
-        ];
+    // Supprimer une facture
+    Route::delete('/{id}', [FactureFournisseurController::class, 'destroy'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.destroy');
 
-        $stats = [
-            'nombre_factures' => 2,
-            'montant_total' => 8450000,
-            'montant_paye' => 4500000,
-            'montant_reste' => 3950000
-        ];
+    // Valider une facture
+    Route::post('/{id}/valider', [FactureFournisseurController::class, 'valider'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.valider');
 
-        return Inertia::render('Fournisseurs/Show', [
-            'fournisseur' => $fournisseur,
-            'factures' => $factures,
-            'stats' => $stats,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('fournisseurs.show');
+    // Annuler une facture
+    Route::post('/{id}/annuler', [FactureFournisseurController::class, 'annuler'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.annuler');
+
+    // Solder une facture (marquer comme payée)
+    Route::post('/{id}/solder', [FactureFournisseurController::class, 'solder'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.solder');
+});
+
+// API Règlements Fournisseurs (JSON)
+Route::prefix('api/reglements-fournisseurs')->group(function () {
+    // Lister les règlements
+    Route::get('/', [ReglementFournisseurController::class, 'index'])->name('api.reglements-fournisseurs.index');
+
+    // Générer un numéro de règlement
+    Route::get('/generer-numero', [ReglementFournisseurController::class, 'genererNumero'])->name('api.reglements-fournisseurs.generer-numero');
+
+    // Statistiques
+    Route::get('/stats', [ReglementFournisseurController::class, 'stats'])->name('api.reglements-fournisseurs.stats');
+
+    // Créer un règlement
+    Route::post('/', [ReglementFournisseurController::class, 'store'])->name('api.reglements-fournisseurs.store');
+
+    // Voir un règlement
+    Route::get('/{id}', [ReglementFournisseurController::class, 'show'])
+        ->where('id', '[0-9]+')
+        ->name('api.reglements-fournisseurs.show');
+
+    // Modifier un règlement
+    Route::put('/{id}', [ReglementFournisseurController::class, 'update'])
+        ->where('id', '[0-9]+')
+        ->name('api.reglements-fournisseurs.update');
+
+    // Supprimer (annuler) un règlement
+    Route::delete('/{id}', [ReglementFournisseurController::class, 'destroy'])
+        ->where('id', '[0-9]+')
+        ->name('api.reglements-fournisseurs.destroy');
+
+    // Règlements d'une facture
+    Route::get('/facture/{factureId}', [ReglementFournisseurController::class, 'parFacture'])
+        ->where('factureId', '[0-9]+')
+        ->name('api.reglements-fournisseurs.par-facture');
 });
 
 // Factures Fournisseurs Routes
 Route::prefix('factures-fournisseurs')->group(function () {
-    // Liste des factures
-    Route::get('/', function () {
-        $factures = [
-            [
-                'id' => 1,
-                'numero' => 'PC/025/0001',
-                'date_facture' => '2025-01-15',
-                'reference' => 'REF-001',
-                'fournisseur' => [
-                    'id' => 1,
-                    'code' => 'FOUR001',
-                    'nom' => 'Pharmacie Centrale du Bénin'
-                ],
-                'montant_ht' => 5000000,
-                'montant_tva' => 900000,
-                'montant_aib' => 50000,
-                'montant_ttc' => 5950000,
-                'montant_paye' => 0,
-                'statut_paiement' => 'impayee'
-            ],
-            [
-                'id' => 2,
-                'numero' => 'PC/025/0002',
-                'date_facture' => '2025-01-20',
-                'reference' => 'REF-002',
-                'fournisseur' => [
-                    'id' => 2,
-                    'code' => 'FOUR002',
-                    'nom' => 'SOBEMAP Matériel Médical'
-                ],
-                'montant_ht' => 3000000,
-                'montant_tva' => 540000,
-                'montant_aib' => 90000,
-                'montant_ttc' => 3630000,
-                'montant_paye' => 2000000,
-                'statut_paiement' => 'partielle'
-            ],
-            [
-                'id' => 3,
-                'numero' => 'PC/025/0003',
-                'date_facture' => '2025-01-25',
-                'reference' => 'REF-003',
-                'fournisseur' => [
-                    'id' => 3,
-                    'code' => 'FOUR003',
-                    'nom' => 'SONEB (Eau)'
-                ],
-                'montant_ht' => 150000,
-                'montant_tva' => 27000,
-                'montant_aib' => 0,
-                'montant_ttc' => 177000,
-                'montant_paye' => 177000,
-                'statut_paiement' => 'payee'
-            ]
-        ];
+    // Liste des factures (depuis la base de données)
+    Route::get('/', [FactureFournisseurController::class, 'indexView'])
+        ->name('factures-fournisseurs.index');
 
-        $fournisseurs = [
-            ['id' => 1, 'nom' => 'Pharmacie Centrale du Bénin'],
-            ['id' => 2, 'nom' => 'SOBEMAP Matériel Médical'],
-            ['id' => 3, 'nom' => 'SONEB (Eau)']
-        ];
-
-        $stats = [
-            'total' => count($factures),
-            'montant_impaye' => 5950000,
-            'montant_partiel' => 3630000,
-            'montant_paye' => 177000
-        ];
-
-        return Inertia::render('FacturesFournisseurs/Index', [
-            'factures' => $factures,
-            'fournisseurs' => $fournisseurs,
-            'stats' => $stats,
-            'pagination' => [
-                'current_page' => 1,
-                'per_page' => 20,
-                'total' => count($factures)
-            ],
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-fournisseurs.index');
-
+    // Routes commentées - Création et édition se font maintenant via modal
+    /*
     // Formulaire création
     Route::get('/create', function () {
         $fournisseurs = [
@@ -323,7 +163,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ['id' => 5, 'numero' => '622100', 'libelle' => 'Services extérieurs'],
         ];
 
-        return Inertia::render('FacturesFournisseurs/Form', [
+        return Inertia::render('Fournisseurs/Factures/Form', [
             'fournisseurs' => $fournisseurs,
             'comptesImputation' => $comptesImputation,
             'user' => [
@@ -332,138 +172,20 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ]
         ]);
     })->name('factures-fournisseurs.create');
+    */
 
-    // Détail facture
-    Route::get('/{id}', function ($id) {
-        $facture = [
-            'id' => $id,
-            'numero' => 'PC/025/0001',
-            'date_facture' => '2025-01-15',
-            'date_echeance' => '2025-02-15',
-            'reference' => 'REF-001',
-            'fournisseur' => [
-                'id' => 1,
-                'code' => 'FOUR001',
-                'nom' => 'Pharmacie Centrale du Bénin',
-                'contact' => 'M. Adamou',
-                'telephone' => '+229 21 30 45 67',
-                'email' => 'contact@pcb.bj'
-            ],
-            'remarques' => 'Commande urgente de médicaments essentiels',
-            'lignes' => [
-                [
-                    'id' => 1,
-                    'description' => 'Paracétamol 500mg (Boîte de 1000)',
-                    'compte_imputation' => [
-                        'numero' => '601100',
-                        'libelle' => 'Achats de médicaments'
-                    ],
-                    'quantite' => 50,
-                    'prix_unitaire' => 80000,
-                    'taux_tva' => 18,
-                    'taux_aib' => 1,
-                    'taux_escompte' => 0,
-                    'montant_ht' => 4000000
-                ],
-                [
-                    'id' => 2,
-                    'description' => 'Amoxicilline 1g (Boîte de 500)',
-                    'compte_imputation' => [
-                        'numero' => '601100',
-                        'libelle' => 'Achats de médicaments'
-                    ],
-                    'quantite' => 20,
-                    'prix_unitaire' => 50000,
-                    'taux_tva' => 18,
-                    'taux_aib' => 1,
-                    'taux_escompte' => 0,
-                    'montant_ht' => 1000000
-                ]
-            ],
-            'montant_ht' => 5000000,
-            'montant_tva' => 900000,
-            'montant_aib' => 50000,
-            'montant_escompte' => 0,
-            'montant_ttc' => 5950000,
-            'montant_paye' => 2000000,
-            'statut_paiement' => 'partielle'
-        ];
+    // Détail facture (depuis la base de données)
+    Route::get('/{id}', [FactureFournisseurController::class, 'showView'])
+        ->where('id', '[0-9]+')
+        ->name('factures-fournisseurs.show');
 
-        $reglements = [
-            [
-                'id' => 1,
-                'date_reglement' => '2025-01-20',
-                'mode_paiement' => 'virement',
-                'montant' => 2000000,
-                'reference' => 'VIR-2025-001',
-                'compte_bancaire' => [
-                    'banque' => 'ORABANK',
-                    'numero' => 'BJ123456789'
-                ],
-                'remarques' => 'Premier acompte'
-            ]
-        ];
+    // Formulaire règlement (depuis la base de données)
+    Route::get('/{id}/regler', [FactureFournisseurController::class, 'reglementView'])
+        ->where('id', '[0-9]+')
+        ->name('factures-fournisseurs.regler');
 
-        return Inertia::render('FacturesFournisseurs/Show', [
-            'facture' => $facture,
-            'reglements' => $reglements,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-fournisseurs.show');
-
-    // Formulaire règlement
-    Route::get('/{id}/regler', function ($id) {
-        $facture = [
-            'id' => $id,
-            'numero' => 'PC/025/0001',
-            'date_facture' => '2025-01-15',
-            'reference' => 'REF-001',
-            'fournisseur' => [
-                'id' => 1,
-                'code' => 'FOUR001',
-                'nom' => 'Pharmacie Centrale du Bénin'
-            ],
-            'montant_ht' => 5000000,
-            'montant_tva' => 900000,
-            'montant_aib' => 50000,
-            'montant_ttc' => 5950000,
-            'montant_paye' => 2000000,
-            'statut_paiement' => 'partielle'
-        ];
-
-        $reglements = [
-            [
-                'id' => 1,
-                'date_reglement' => '2025-01-20',
-                'mode_paiement' => 'virement',
-                'montant' => 2000000,
-                'reference' => 'VIR-2025-001',
-                'compte_bancaire' => [
-                    'banque' => 'ORABANK',
-                    'numero' => 'BJ123456789'
-                ]
-            ]
-        ];
-
-        $comptesBancaires = [
-            ['id' => 1, 'banque' => 'ORABANK', 'numero' => 'BJ123456789', 'libelle' => 'Compte Courant'],
-            ['id' => 2, 'banque' => 'BOA BENIN', 'numero' => 'BJ987654321', 'libelle' => 'Compte Dépenses'],
-        ];
-
-        return Inertia::render('FacturesFournisseurs/Reglement', [
-            'facture' => $facture,
-            'reglements' => $reglements,
-            'comptesBancaires' => $comptesBancaires,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-fournisseurs.regler');
-
+    // Routes commentées - Édition se fait maintenant via modal
+    /*
     // Formulaire édition
     Route::get('/{id}/edit', function ($id) {
         // Facture existante avec ses lignes
@@ -523,7 +245,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ['id' => 5, 'numero' => '622100', 'libelle' => 'Services extérieurs'],
         ];
 
-        return Inertia::render('FacturesFournisseurs/Form', [
+        return Inertia::render('Fournisseurs/Factures/Form', [
             'facture' => $facture,
             'fournisseurs' => $fournisseurs,
             'comptesImputation' => $comptesImputation,
@@ -533,128 +255,14 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ]
         ]);
     })->name('factures-fournisseurs.edit');
+    */
 });
 
 // Règlements Fournisseurs Routes
 Route::prefix('reglements-fournisseurs')->group(function () {
-    Route::get('/', function () {
-        $reglements = [
-            [
-                'id' => 1,
-                'date_reglement' => '2025-01-20',
-                'facture' => [
-                    'id' => 1,
-                    'numero' => 'PC/025/0001'
-                ],
-                'fournisseur' => [
-                    'id' => 1,
-                    'code' => 'FOUR001',
-                    'nom' => 'Pharmacie Centrale du Bénin'
-                ],
-                'mode_paiement' => 'virement',
-                'reference' => 'VIR-2025-001',
-                'compte_bancaire' => [
-                    'banque' => 'ORABANK',
-                    'numero' => 'BJ123456789'
-                ],
-                'montant' => 2000000,
-                'user' => [
-                    'name' => 'Admin User'
-                ]
-            ],
-            [
-                'id' => 2,
-                'date_reglement' => '2025-01-22',
-                'facture' => [
-                    'id' => 2,
-                    'numero' => 'PC/025/0002'
-                ],
-                'fournisseur' => [
-                    'id' => 2,
-                    'code' => 'FOUR002',
-                    'nom' => 'SOBEMAP Matériel Médical'
-                ],
-                'mode_paiement' => 'cheque',
-                'reference' => 'CHQ-2025-005',
-                'compte_bancaire' => [
-                    'banque' => 'BOA BENIN',
-                    'numero' => 'BJ987654321'
-                ],
-                'montant' => 1500000,
-                'user' => [
-                    'name' => 'Admin User'
-                ]
-            ],
-            [
-                'id' => 3,
-                'date_reglement' => '2025-01-25',
-                'facture' => [
-                    'id' => 3,
-                    'numero' => 'PC/025/0003'
-                ],
-                'fournisseur' => [
-                    'id' => 3,
-                    'code' => 'FOUR003',
-                    'nom' => 'SONEB (Eau)'
-                ],
-                'mode_paiement' => 'especes',
-                'reference' => null,
-                'compte_bancaire' => null,
-                'montant' => 177000,
-                'user' => [
-                    'name' => 'Admin User'
-                ]
-            ],
-            [
-                'id' => 4,
-                'date_reglement' => '2025-01-26',
-                'facture' => [
-                    'id' => 2,
-                    'numero' => 'PC/025/0002'
-                ],
-                'fournisseur' => [
-                    'id' => 2,
-                    'code' => 'FOUR002',
-                    'nom' => 'SOBEMAP Matériel Médical'
-                ],
-                'mode_paiement' => 'mobile_money',
-                'reference' => 'MM-2025-123',
-                'compte_bancaire' => null,
-                'montant' => 500000,
-                'user' => [
-                    'name' => 'Admin User'
-                ]
-            ]
-        ];
-
-        $fournisseurs = [
-            ['id' => 1, 'nom' => 'Pharmacie Centrale du Bénin'],
-            ['id' => 2, 'nom' => 'SOBEMAP Matériel Médical'],
-            ['id' => 3, 'nom' => 'SONEB (Eau)']
-        ];
-
-        $stats = [
-            'total_reglements' => 4177000,
-            'reglements_mois' => 4177000,
-            'nombre_reglements' => count($reglements),
-            'montant_moyen' => 4177000 / count($reglements)
-        ];
-
-        return Inertia::render('ReglementsFournisseurs/Index', [
-            'reglements' => $reglements,
-            'fournisseurs' => $fournisseurs,
-            'stats' => $stats,
-            'pagination' => [
-                'current_page' => 1,
-                'per_page' => 20,
-                'total' => count($reglements)
-            ],
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('reglements-fournisseurs.index');
+    // Liste des règlements (depuis la base de données)
+    Route::get('/', [ReglementFournisseurController::class, 'indexView'])
+        ->name('reglements-fournisseurs.index');
 
     // Documents de règlement
     Route::get('/{id}/recu', function ($id) {

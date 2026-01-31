@@ -16,7 +16,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
+        // Créer les utilisateurs en premier (référencés par d'autres tables)
+        $this->call(UserSeeder::class);
 
-      $this->call(PlanComptableOhadaSeeder::class);
+        // Plan comptable OHADA
+        $this->call(PlanComptableOhadaSeeder::class);
+
+        // Fournisseurs et factures de test
+        // $this->call(FournisseurFactureSeeder::class);
+
+        // Règlements fournisseurs de test
+        // $this->call(ReglementFournisseurSeeder::class);
     }
 }

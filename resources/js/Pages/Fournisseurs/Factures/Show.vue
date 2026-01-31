@@ -29,21 +29,21 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item
-                  v-if="facture.statut_paiement !== 'payee' && facture.statut_paiement !== 'soldee'"
+                  v-if="!estSoldee"
                   command="pay"
                   :icon="Money"
                 >
                   Enregistrer un règlement
                 </el-dropdown-item>
                 <el-dropdown-item
-                  v-if="facture.statut_paiement !== 'soldee'"
+                  v-if="!estSoldee"
                   command="marquer_soldee"
                   :icon="CircleCheck"
                   divided
                 >
                   Marquer comme soldée
                 </el-dropdown-item>
-                <el-dropdown-item command="edit" :icon="Edit">
+                <el-dropdown-item v-if="!estSoldee" command="edit" :icon="Edit">
                   Modifier
                 </el-dropdown-item>
                 <el-dropdown-item command="duplicate" :icon="CopyDocument">
@@ -61,6 +61,17 @@
         </div>
       </div>
 
+      <!-- FactureFournisseurModal for editing -->
+      <FactureFournisseurModal
+        v-model="showFactureModal"
+        :facture="selectedFacture"
+        :fournisseurs="fournisseurs"
+        :imputations="imputations"
+        :comptes="comptes"
+        :types-reduction="typesReduction"
+        @success="handleFactureSuccess"
+      />
+
       <el-row :gutter="20">
         <!-- Left Column: Invoice Details -->
         <el-col :span="16">
@@ -74,25 +85,36 @@
             </template>
 
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="N° Facture">
-                <el-tag type="primary">{{ facture.numero }}</el-tag>
+              <el-descriptions-item label="N° Pièce">
+                <el-tag type="primary">{{ facture.numero_piece || facture.numero }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="Référence">
-                {{ facture.reference || '-' }}
+              <el-descriptions-item label="Date">
+                {{ formatDate(facture.date || facture.date_facture) }}
               </el-descriptions-item>
-              <el-descriptions-item label="Date Facture">
-                {{ formatDate(facture.date_facture) }}
+              <el-descriptions-item label="Référence Facture / N° B.C" :span="2">
+                {{ facture.reference_facture || facture.reference || '-' }}
               </el-descriptions-item>
-              <el-descriptions-item label="Date Échéance">
-                {{ facture.date_echeance ? formatDate(facture.date_echeance) : '-' }}
+              <el-descriptions-item label="Imputation">
+                <div v-if="facture.imputation" class="compte-info">
+                  <el-tag size="small" type="info">{{ facture.imputation.code }}</el-tag>
+                  <span>{{ facture.imputation.libelle }}</span>
+                </div>
+                <span v-else>-</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="Compte">
+                <div v-if="facture.compte" class="compte-info">
+                  <el-tag size="small" type="info">{{ facture.compte.numero }}</el-tag>
+                  <span>{{ facture.compte.libelle }}</span>
+                </div>
+                <span v-else>-</span>
               </el-descriptions-item>
               <el-descriptions-item label="Fournisseur" :span="2">
                 <div class="fournisseur-info">
                   <div>
                     <strong>{{ facture.fournisseur.nom }}</strong>
-                    <el-tag size="small" type="info" style="margin-left: 8px;">
+                    <!-- <el-tag size="small" type="info" style="margin-left: 8px;">
                       {{ facture.fournisseur.code }}
-                    </el-tag>
+                    </el-tag> -->
                   </div>
                   <div class="fournisseur-details">
                     <span v-if="facture.fournisseur.contact">
@@ -110,81 +132,44 @@
                   </div>
                 </div>
               </el-descriptions-item>
-              <el-descriptions-item v-if="facture.remarques" label="Remarques" :span="2">
-                {{ facture.remarques }}
+              <el-descriptions-item label="Libellé facture" :span="2">
+                {{ facture.libelle || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item v-if="facture.observations" label="Observations" :span="2">
+                {{ facture.observations }}
               </el-descriptions-item>
             </el-descriptions>
           </el-card>
 
-          <!-- Invoice Lines Card -->
+          <!-- Montants Card -->
           <el-card shadow="never" class="section-card">
             <template #header>
               <div class="card-header-custom">
-                <el-icon :size="20"><List /></el-icon>
-                <span>Lignes de Facture ({{ facture.lignes.length }})</span>
+                <el-icon :size="20"><Money /></el-icon>
+                <span>Montants</span>
               </div>
             </template>
 
-            <el-table :data="facture.lignes" border style="width: 100%">
-              <el-table-column type="index" label="#" width="50" align="center" />
-
-              <el-table-column label="Description" min-width="200">
-                <template #default="{ row }">
-                  <div>
-                    <div class="ligne-description">{{ row.description }}</div>
-                    <div v-if="row.compte_imputation" class="ligne-compte">
-                      <el-icon><Notebook /></el-icon>
-                      {{ row.compte_imputation.numero }} - {{ row.compte_imputation.libelle }}
-                    </div>
-                  </div>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Qté" width="80" align="center">
-                <template #default="{ row }">
-                  {{ row.quantite }}
-                </template>
-              </el-table-column>
-
-              <el-table-column label="P.U." width="130" align="right">
-                <template #default="{ row }">
-                  {{ formatMontant(row.prix_unitaire) }}
-                </template>
-              </el-table-column>
-
-              <el-table-column label="TVA" width="80" align="center">
-                <template #default="{ row }">
-                  <el-tag v-if="row.taux_tva > 0" size="small" type="info">
-                    {{ row.taux_tva }}%
-                  </el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="AIB" width="80" align="center">
-                <template #default="{ row }">
-                  <el-tag v-if="row.taux_aib > 0" size="small" type="warning">
-                    {{ row.taux_aib }}%
-                  </el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Escompte" width="100" align="center">
-                <template #default="{ row }">
-                  <el-tag v-if="row.taux_escompte > 0" size="small" type="success">
-                    {{ row.taux_escompte }}%
-                  </el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Montant HT" width="140" align="right">
-                <template #default="{ row }">
-                  <strong>{{ formatMontant(row.montant_ht) }}</strong>
-                </template>
-              </el-table-column>
-            </el-table>
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="Montant Facture">
+                <strong>{{ formatMontant(facture.montant_facture) }}</strong>
+              </el-descriptions-item>
+              <el-descriptions-item label="Montant M.O.">
+                {{ formatMontant(facture.montant_mo) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Avoir" v-if="facture.avoir && facture.avoir > 0">
+                {{ formatMontant(facture.avoir) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Type de réduction" v-if="facture.type_reduction">
+                <el-tag size="small" type="success">{{ getTypeReductionLabel(facture.type_reduction) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="Taux" v-if="facture.taux && facture.taux > 0">
+                {{ facture.taux }}%
+              </el-descriptions-item>
+              <el-descriptions-item label="Montant (Taux × M.O.)" v-if="facture.taux && facture.taux > 0">
+                {{ formatMontant(montantTaux) }}
+              </el-descriptions-item>
+            </el-descriptions>
           </el-card>
         </el-col>
 
@@ -221,6 +206,14 @@
                 <span class="total-label"><strong>Total TTC :</strong></span>
                 <span class="total-value total-ttc"><strong>{{ formatMontant(facture.montant_ttc) }}</strong></span>
               </div>
+              <div class="total-row" v-if="facture.montant_reduction > 0 || facture.montant_aib > 0">
+                <span class="total-label">{{ facture.type_reduction_libelle || 'AIB' }} ({{ facture.taux || 0 }}%) :</span>
+                <span class="total-value" style="color: #f56c6c;">- {{ formatMontant(facture.montant_reduction || facture.montant_aib) }}</span>
+              </div>
+              <div class="total-row" v-if="montantNetAPayer !== facture.montant_ttc">
+                <span class="total-label"><strong>Net à payer :</strong></span>
+                <span class="total-value" style="color: #059669;"><strong>{{ formatMontant(montantNetAPayer) }}</strong></span>
+              </div>
 
               <el-divider style="margin: 12px 0" />
 
@@ -231,8 +224,8 @@
 
               <div class="total-row reste-row">
                 <span class="total-label"><strong>Reste à payer :</strong></span>
-                <span class="total-value total-reste">
-                  <strong>{{ formatMontant(resteAPayer) }}</strong>
+                <span class="total-value total-reste" :class="{ 'soldee': estSoldee }">
+                  <strong>{{ estSoldee ? 'Soldée' : formatMontant(resteAPayer) }}</strong>
                 </span>
               </div>
 
@@ -244,7 +237,7 @@
               />
 
               <el-button
-                v-if="facture.statut_paiement !== 'payee' && facture.statut_paiement !== 'soldee'"
+                v-if="!estSoldee"
                 type="primary"
                 size="large"
                 style="width: 100%; margin-top: 16px;"
@@ -255,7 +248,7 @@
               </el-button>
 
               <el-button
-                v-if="facture.statut_paiement !== 'soldee'"
+                v-if="!estSoldee"
                 type="success"
                 size="large"
                 plain
@@ -265,6 +258,20 @@
                 <el-icon><CircleCheck /></el-icon>
                 Marquer comme soldée
               </el-button>
+
+              <el-alert
+                v-if="estSoldee"
+                type="success"
+                :closable="false"
+                style="margin-top: 16px;"
+              >
+                <template #title>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <el-icon><CircleCheck /></el-icon>
+                    Facture soldée
+                  </div>
+                </template>
+              </el-alert>
             </div>
           </el-card>
 
@@ -301,8 +308,8 @@
                       <el-icon><CreditCard /></el-icon>
                       {{ reglement.compte_bancaire.banque }}
                     </div>
-                    <div v-if="reglement.remarques" class="reglement-remarques">
-                      {{ reglement.remarques }}
+                    <div v-if="reglement.observations" class="reglement-remarques">
+                      {{ reglement.observations }}
                     </div>
                   </div>
                   <el-divider style="margin: 12px 0" />
@@ -334,7 +341,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -358,6 +365,7 @@ import {
   CircleCheck
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 
 // Props
 const props = defineProps({
@@ -369,11 +377,31 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  fournisseurs: {
+    type: Array,
+    default: () => []
+  },
+  imputations: {
+    type: Array,
+    default: () => []
+  },
+  comptes: {
+    type: Array,
+    default: () => []
+  },
+  typesReduction: {
+    type: Array,
+    default: () => []
+  },
   user: {
     type: Object,
     default: () => null
   }
 });
+
+// State for modal
+const showFactureModal = ref(false);
+const selectedFacture = ref(null);
 
 // Computed
 const breadcrumbs = [
@@ -382,13 +410,36 @@ const breadcrumbs = [
   { title: props.facture.numero, path: '' }
 ];
 
+// Montant net à payer (TTC - réductions/AIB)
+const montantNetAPayer = computed(() => {
+  if (props.facture.montant_net !== undefined && props.facture.montant_net !== null) {
+    return parseFloat(props.facture.montant_net) || 0;
+  }
+  return parseFloat(props.facture.montant_ttc) || 0;
+});
+
 const resteAPayer = computed(() => {
-  return props.facture.montant_ttc - props.facture.montant_paye;
+  // Utiliser reste_a_payer de la facture si disponible
+  if (props.facture.reste_a_payer !== undefined && props.facture.reste_a_payer !== null) {
+    return parseFloat(props.facture.reste_a_payer) || 0;
+  }
+  // Sinon calculer depuis montant_net
+  const montantPaye = parseFloat(props.facture.montant_paye) || 0;
+  return montantNetAPayer.value - montantPaye;
 });
 
 const pourcentagePaye = computed(() => {
-  if (props.facture.montant_ttc === 0) return 0;
-  return Math.round((props.facture.montant_paye / props.facture.montant_ttc) * 100);
+  if (montantNetAPayer.value === 0) return 0;
+  const montantPaye = parseFloat(props.facture.montant_paye) || 0;
+  return Math.round((montantPaye / montantNetAPayer.value) * 100);
+});
+
+// Vérifier si la facture est complètement payée ou soldée
+const estSoldee = computed(() => {
+  return props.facture.statut === 'payee' ||
+         props.facture.statut === 'soldee' ||
+         props.facture.statut_paiement === 'payee' ||
+         props.facture.statut_paiement === 'soldee';
 });
 
 const progressColor = computed(() => {
@@ -452,6 +503,24 @@ const getModeLabel = (mode) => {
   return labels[mode] || mode;
 };
 
+const getTypeReductionLabel = (type) => {
+  const labels = {
+    aib: 'AIB',
+    escompte: 'Escompte',
+    remise: 'Remise',
+    ristourne: 'Ristourne',
+    rabais: 'Rabais'
+  };
+  return labels[type] || type || 'Réduction';
+};
+
+// Montant du taux appliqué
+const montantTaux = computed(() => {
+  const taux = parseFloat(props.facture.taux) || 0;
+  const montantMO = parseFloat(props.facture.montant_mo) || 0;
+  return (taux / 100) * montantMO;
+});
+
 const handleBack = () => {
   router.visit('/factures-fournisseurs');
 };
@@ -465,7 +534,7 @@ const handleAction = (command) => {
       ElMessageBox.confirm(
         `Êtes-vous sûr de vouloir marquer cette facture comme soldée ?
 
-Cette action clôturera définitivement la facture, même si le montant payé (${formatMontant(props.facture.montant_paye)}) ne correspond pas exactement au montant total (${formatMontant(props.facture.montant_ttc)}).`,
+Cette action clôturera définitivement la facture, même si le montant payé (${formatMontant(props.facture.montant_paye)}) ne correspond pas exactement au montant net (${formatMontant(montantNetAPayer.value)}).`,
         'Marquer comme soldée',
         {
           confirmButtonText: 'Oui, solder la facture',
@@ -473,16 +542,36 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
           type: 'warning',
           dangerouslyUseHTMLString: false
         }
-      ).then(() => {
-        // TODO: Appel API pour marquer la facture comme soldée
-        ElMessage.success('Facture marquée comme soldée avec succès');
-        router.reload({ only: ['facture'] });
+      ).then(async () => {
+        try {
+          const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}/solder`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            ElMessage.success(result.message || 'Facture marquée comme soldée avec succès');
+            router.reload({ only: ['facture'] });
+          } else {
+            ElMessage.error(result.message || 'Erreur lors du marquage de la facture');
+          }
+        } catch (error) {
+          console.error('Erreur:', error);
+          ElMessage.error('Erreur de connexion au serveur');
+        }
       }).catch(() => {
         // User cancelled
       });
       break;
     case 'edit':
-      router.visit(`/factures-fournisseurs/${props.facture.id}/edit`);
+      selectedFacture.value = props.facture;
+      showFactureModal.value = true;
       break;
     case 'duplicate':
       ElMessage.info('Duplication en cours de développement...');
@@ -505,6 +594,11 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
       });
       break;
   }
+};
+
+const handleFactureSuccess = () => {
+  // Rafraîchir la page pour afficher les modifications
+  router.reload({ only: ['facture', 'reglements'] });
 };
 
 const handlePrintRecu = (reglement) => {
@@ -669,6 +763,10 @@ const handlePrintImputation = (reglement) => {
 .total-reste {
   color: #dc2626;
   font-size: 18px;
+}
+
+.total-reste.soldee {
+  color: #059669;
 }
 
 .reglement-item {

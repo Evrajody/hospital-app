@@ -182,7 +182,7 @@
             <template #default="{ row }">
               <div class="fournisseur-cell">
                 <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
-                <div class="fournisseur-code">{{ row.fournisseur.code }}</div>
+                <!-- <div class="fournisseur-code">{{ row.fournisseur.code }}</div> -->
               </div>
             </template>
           </el-table-column>
@@ -472,7 +472,26 @@ const getModeLabel = (mode) => {
 };
 
 const handleSearch = () => {
-  console.log('Searching with filters:', filters);
+  const params = new URLSearchParams();
+
+  if (filters.search) {
+    params.append('search', filters.search);
+  }
+  if (filters.fournisseur_id) {
+    params.append('fournisseur_id', filters.fournisseur_id);
+  }
+  if (filters.mode_paiement) {
+    params.append('mode_paiement', filters.mode_paiement);
+  }
+  if (filters.date_range && filters.date_range.length === 2) {
+    params.append('date_debut', filters.date_range[0].toISOString().split('T')[0]);
+    params.append('date_fin', filters.date_range[1].toISOString().split('T')[0]);
+  }
+
+  router.visit(`/reglements-fournisseurs?${params.toString()}`, {
+    preserveState: true,
+    only: ['reglements', 'stats', 'pagination']
+  });
 };
 
 const handleReset = () => {
@@ -488,15 +507,35 @@ const handleRefresh = () => {
 };
 
 const handleSortChange = ({ prop, order }) => {
-  console.log('Sort changed:', prop, order);
+  const params = new URLSearchParams(window.location.search);
+  params.set('sort', prop);
+  params.set('order', order === 'ascending' ? 'asc' : 'desc');
+
+  router.visit(`/reglements-fournisseurs?${params.toString()}`, {
+    preserveState: true,
+    only: ['reglements']
+  });
 };
 
 const handleSizeChange = (size) => {
-  console.log('Page size changed:', size);
+  const params = new URLSearchParams(window.location.search);
+  params.set('per_page', size);
+  params.set('page', '1');
+
+  router.visit(`/reglements-fournisseurs?${params.toString()}`, {
+    preserveState: true,
+    only: ['reglements', 'pagination']
+  });
 };
 
 const handlePageChange = (page) => {
-  console.log('Page changed:', page);
+  const params = new URLSearchParams(window.location.search);
+  params.set('page', page);
+
+  router.visit(`/reglements-fournisseurs?${params.toString()}`, {
+    preserveState: true,
+    only: ['reglements', 'pagination']
+  });
 };
 
 const handleNewPayment = () => {
@@ -554,16 +593,35 @@ const handleMoreActions = async (command, reglement) => {
       break;
     case 'delete':
       ElMessageBox.confirm(
-        'Êtes-vous sûr de vouloir supprimer ce règlement ?',
+        'Êtes-vous sûr de vouloir annuler ce règlement ? Le montant sera réintégré sur la facture.',
         'Confirmation',
         {
-          confirmButtonText: 'Supprimer',
-          cancelButtonText: 'Annuler',
+          confirmButtonText: 'Annuler le règlement',
+          cancelButtonText: 'Non, garder',
           type: 'warning'
         }
-      ).then(() => {
-        ElMessage.success('Règlement supprimé avec succès');
-        handleRefresh();
+      ).then(async () => {
+        try {
+          const response = await fetch(`/api/reglements-fournisseurs/${reglement.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            ElMessage.success(data.message || 'Règlement annulé avec succès');
+            handleRefresh();
+          } else {
+            ElMessage.error(data.message || 'Erreur lors de l\'annulation');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          ElMessage.error('Erreur lors de l\'annulation du règlement');
+        }
       });
       break;
   }
