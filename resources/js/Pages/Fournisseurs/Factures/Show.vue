@@ -61,6 +61,17 @@
         </div>
       </div>
 
+      <!-- FactureFournisseurModal for editing -->
+      <FactureFournisseurModal
+        v-model="showFactureModal"
+        :facture="selectedFacture"
+        :fournisseurs="fournisseurs"
+        :imputations="imputations"
+        :comptes="comptes"
+        :types-reduction="typesReduction"
+        @success="handleFactureSuccess"
+      />
+
       <el-row :gutter="20">
         <!-- Left Column: Invoice Details -->
         <el-col :span="16">
@@ -74,25 +85,36 @@
             </template>
 
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="N° Facture">
-                <el-tag type="primary">{{ facture.numero }}</el-tag>
+              <el-descriptions-item label="N° Pièce">
+                <el-tag type="primary">{{ facture.numero_piece || facture.numero }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="Référence">
-                {{ facture.reference || '-' }}
+              <el-descriptions-item label="Date">
+                {{ formatDate(facture.date || facture.date_facture) }}
               </el-descriptions-item>
-              <el-descriptions-item label="Date Facture">
-                {{ formatDate(facture.date_facture) }}
+              <el-descriptions-item label="Référence Facture / N° B.C" :span="2">
+                {{ facture.reference_facture || facture.reference || '-' }}
               </el-descriptions-item>
-              <el-descriptions-item label="Date Échéance">
-                {{ facture.date_echeance ? formatDate(facture.date_echeance) : '-' }}
+              <el-descriptions-item label="Imputation">
+                <div v-if="facture.imputation" class="compte-info">
+                  <el-tag size="small" type="info">{{ facture.imputation.code }}</el-tag>
+                  <span>{{ facture.imputation.libelle }}</span>
+                </div>
+                <span v-else>-</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="Compte">
+                <div v-if="facture.compte" class="compte-info">
+                  <el-tag size="small" type="info">{{ facture.compte.numero }}</el-tag>
+                  <span>{{ facture.compte.libelle }}</span>
+                </div>
+                <span v-else>-</span>
               </el-descriptions-item>
               <el-descriptions-item label="Fournisseur" :span="2">
                 <div class="fournisseur-info">
                   <div>
                     <strong>{{ facture.fournisseur.nom }}</strong>
-                    <el-tag size="small" type="info" style="margin-left: 8px;">
+                    <!-- <el-tag size="small" type="info" style="margin-left: 8px;">
                       {{ facture.fournisseur.code }}
-                    </el-tag>
+                    </el-tag> -->
                   </div>
                   <div class="fournisseur-details">
                     <span v-if="facture.fournisseur.contact">
@@ -110,81 +132,44 @@
                   </div>
                 </div>
               </el-descriptions-item>
-              <el-descriptions-item v-if="facture.remarques" label="Remarques" :span="2">
-                {{ facture.remarques }}
+              <el-descriptions-item label="Libellé facture" :span="2">
+                {{ facture.libelle || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item v-if="facture.observations" label="Observations" :span="2">
+                {{ facture.observations }}
               </el-descriptions-item>
             </el-descriptions>
           </el-card>
 
-          <!-- Invoice Lines Card -->
+          <!-- Montants Card -->
           <el-card shadow="never" class="section-card">
             <template #header>
               <div class="card-header-custom">
-                <el-icon :size="20"><List /></el-icon>
-                <span>Lignes de Facture ({{ facture.lignes.length }})</span>
+                <el-icon :size="20"><Money /></el-icon>
+                <span>Montants</span>
               </div>
             </template>
 
-            <el-table :data="facture.lignes" border style="width: 100%">
-              <el-table-column type="index" label="#" width="50" align="center" />
-
-              <el-table-column label="Description" min-width="200">
-                <template #default="{ row }">
-                  <div>
-                    <div class="ligne-description">{{ row.description }}</div>
-                    <div v-if="row.compte_imputation" class="ligne-compte">
-                      <el-icon><Notebook /></el-icon>
-                      {{ row.compte_imputation.numero }} - {{ row.compte_imputation.libelle }}
-                    </div>
-                  </div>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Qté" width="80" align="center">
-                <template #default="{ row }">
-                  {{ row.quantite }}
-                </template>
-              </el-table-column>
-
-              <el-table-column label="P.U." width="130" align="right">
-                <template #default="{ row }">
-                  {{ formatMontant(row.prix_unitaire) }}
-                </template>
-              </el-table-column>
-
-              <el-table-column label="TVA" width="80" align="center">
-                <template #default="{ row }">
-                  <el-tag v-if="row.taux_tva > 0" size="small" type="info">
-                    {{ row.taux_tva }}%
-                  </el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="AIB" width="80" align="center">
-                <template #default="{ row }">
-                  <el-tag v-if="row.taux_aib > 0" size="small" type="warning">
-                    {{ row.taux_aib }}%
-                  </el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Escompte" width="100" align="center">
-                <template #default="{ row }">
-                  <el-tag v-if="row.taux_escompte > 0" size="small" type="success">
-                    {{ row.taux_escompte }}%
-                  </el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Montant HT" width="140" align="right">
-                <template #default="{ row }">
-                  <strong>{{ formatMontant(row.montant_ht) }}</strong>
-                </template>
-              </el-table-column>
-            </el-table>
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="Montant Facture">
+                <strong>{{ formatMontant(facture.montant_facture) }}</strong>
+              </el-descriptions-item>
+              <el-descriptions-item label="Montant M.O.">
+                {{ formatMontant(facture.montant_mo) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Avoir" v-if="facture.avoir && facture.avoir > 0">
+                {{ formatMontant(facture.avoir) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Type de réduction" v-if="facture.type_reduction">
+                <el-tag size="small" type="success">{{ getTypeReductionLabel(facture.type_reduction) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="Taux" v-if="facture.taux && facture.taux > 0">
+                {{ facture.taux }}%
+              </el-descriptions-item>
+              <el-descriptions-item label="Montant (Taux × M.O.)" v-if="facture.taux && facture.taux > 0">
+                {{ formatMontant(montantTaux) }}
+              </el-descriptions-item>
+            </el-descriptions>
           </el-card>
         </el-col>
 
@@ -301,8 +286,8 @@
                       <el-icon><CreditCard /></el-icon>
                       {{ reglement.compte_bancaire.banque }}
                     </div>
-                    <div v-if="reglement.remarques" class="reglement-remarques">
-                      {{ reglement.remarques }}
+                    <div v-if="reglement.observations" class="reglement-remarques">
+                      {{ reglement.observations }}
                     </div>
                   </div>
                   <el-divider style="margin: 12px 0" />
@@ -334,7 +319,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -358,6 +343,7 @@ import {
   CircleCheck
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 
 // Props
 const props = defineProps({
@@ -369,11 +355,31 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  fournisseurs: {
+    type: Array,
+    default: () => []
+  },
+  imputations: {
+    type: Array,
+    default: () => []
+  },
+  comptes: {
+    type: Array,
+    default: () => []
+  },
+  typesReduction: {
+    type: Array,
+    default: () => []
+  },
   user: {
     type: Object,
     default: () => null
   }
 });
+
+// State for modal
+const showFactureModal = ref(false);
+const selectedFacture = ref(null);
 
 // Computed
 const breadcrumbs = [
@@ -482,7 +488,8 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
       });
       break;
     case 'edit':
-      router.visit(`/factures-fournisseurs/${props.facture.id}/edit`);
+      selectedFacture.value = props.facture;
+      showFactureModal.value = true;
       break;
     case 'duplicate':
       ElMessage.info('Duplication en cours de développement...');
@@ -505,6 +512,11 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
       });
       break;
   }
+};
+
+const handleFactureSuccess = () => {
+  // Rafraîchir la page pour afficher les modifications
+  router.reload({ only: ['facture', 'reglements'] });
 };
 
 const handlePrintRecu = (reglement) => {

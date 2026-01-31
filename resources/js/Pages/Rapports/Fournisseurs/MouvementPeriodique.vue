@@ -92,9 +92,10 @@
         </table>
       </div>
 
-      <!-- Statistiques -->
-     Situation des banques
-        <div class="stats-grid">
+    <!-- Statistiques -->
+    <div class="section stats-section">
+      <h2>Situation des banques</h2>
+      <div class="stats-grid">
           <div class="stat-box">
             <div class="stat-label">Nombre de factures</div>
             <div class="stat-value">{{ factures.length }}</div>

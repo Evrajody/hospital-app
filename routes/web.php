@@ -78,6 +78,13 @@ Route::prefix('fournisseurs')->group(function () {
             ['id' => 4, 'numero' => '401004', 'libelle' => 'SBEE (Électricité)'],
         ];
 
+        $comptesParents = [
+            ['id' => 10, 'numero' => '401000', 'libelle' => 'Fournisseurs'],
+            ['id' => 11, 'numero' => '401100', 'libelle' => 'Fournisseurs - Médicaments'],
+            ['id' => 12, 'numero' => '401200', 'libelle' => 'Fournisseurs - Matériel médical'],
+            ['id' => 13, 'numero' => '401300', 'libelle' => 'Fournisseurs - Services'],
+        ];
+
         $stats = [
             'factures_en_cours' => 15,
             'dettes_total' => 12500000
@@ -86,6 +93,7 @@ Route::prefix('fournisseurs')->group(function () {
         return Inertia::render('Fournisseurs/Index', [
             'fournisseurs' => $fournisseurs,
             'comptesFournisseurs' => $comptesFournisseurs,
+            'comptesParents' => $comptesParents,
             'stats' => $stats,
             'pagination' => [
                 'current_page' => 1,
@@ -99,6 +107,8 @@ Route::prefix('fournisseurs')->group(function () {
         ]);
     })->name('fournisseurs.index');
 
+    // Routes commentées - Création et édition se font maintenant via modal
+    /*
     // Formulaire création
     Route::get('/create', function () {
         $comptesFournisseurs = [
@@ -161,6 +171,7 @@ Route::prefix('fournisseurs')->group(function () {
             ]
         ]);
     })->name('fournisseurs.edit');
+    */
 
     // Détail fournisseur
     Route::get('/{id}', function ($id) {
@@ -179,7 +190,7 @@ Route::prefix('fournisseurs')->group(function () {
             ],
             'ifu' => '0000000000001',
             'rccm' => 'RB/COT/XX-X-00001',
-            'remarques' => 'Fournisseur principal de médicaments'
+            'observations' => 'Fournisseur principal de médicaments'
         ];
 
         $factures = [
@@ -208,10 +219,48 @@ Route::prefix('fournisseurs')->group(function () {
             'montant_reste' => 3950000
         ];
 
+        $comptesFournisseurs = [
+            ['id' => 1, 'numero' => '401001', 'libelle' => 'Pharmacie Centrale du Bénin'],
+            ['id' => 2, 'numero' => '401002', 'libelle' => 'SOBEMAP Matériel Médical'],
+            ['id' => 3, 'numero' => '401003', 'libelle' => 'SONEB (Eau)'],
+            ['id' => 4, 'numero' => '401004', 'libelle' => 'SBEE (Électricité)'],
+        ];
+
+        $comptesParents = [
+            ['id' => 10, 'numero' => '401000', 'libelle' => 'Fournisseurs'],
+            ['id' => 11, 'numero' => '401100', 'libelle' => 'Fournisseurs - Médicaments'],
+            ['id' => 12, 'numero' => '401200', 'libelle' => 'Fournisseurs - Matériel médical'],
+            ['id' => 13, 'numero' => '401300', 'libelle' => 'Fournisseurs - Services'],
+        ];
+
+        $imputations = [
+            ['id' => 1, 'code' => '601100', 'libelle' => 'Achats de médicaments'],
+            ['id' => 2, 'code' => '601200', 'libelle' => 'Achats de matériel médical'],
+            ['id' => 3, 'code' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
+            ['id' => 4, 'code' => '605100', 'libelle' => 'Eau et électricité'],
+        ];
+
+        $comptes = [
+            ['id' => 1, 'numero' => '601100', 'libelle' => 'Achats de médicaments'],
+            ['id' => 2, 'numero' => '601200', 'libelle' => 'Achats de matériel médical'],
+            ['id' => 3, 'numero' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
+        ];
+
+        $typesReduction = [
+            ['label' => 'Contribution Nationale', 'value' => 'escompte'],
+            ['label' => 'Acomptes sur prestations', 'value' => 'acomptes'],
+            ['label' => 'Escomptes', 'value' => 'escomptes']
+        ];
+
         return Inertia::render('Fournisseurs/Show', [
             'fournisseur' => $fournisseur,
             'factures' => $factures,
             'stats' => $stats,
+            'comptesFournisseurs' => $comptesFournisseurs,
+            'comptesParents' => $comptesParents,
+            'imputations' => $imputations,
+            'comptes' => $comptes,
+            'typesReduction' => $typesReduction,
             'user' => [
                 'name' => 'Utilisateur Test',
                 'email' => 'test@example.com'
@@ -284,6 +333,25 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ['id' => 3, 'nom' => 'SONEB (Eau)']
         ];
 
+        $imputations = [
+            ['id' => 1, 'code' => '601100', 'libelle' => 'Achats de médicaments'],
+            ['id' => 2, 'code' => '601200', 'libelle' => 'Achats de matériel médical'],
+            ['id' => 3, 'code' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
+            ['id' => 4, 'code' => '605100', 'libelle' => 'Eau et électricité'],
+        ];
+
+        $comptes = [
+            ['id' => 1, 'numero' => '601100', 'libelle' => 'Achats de médicaments'],
+            ['id' => 2, 'numero' => '601200', 'libelle' => 'Achats de matériel médical'],
+            ['id' => 3, 'numero' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
+        ];
+
+        $typesReduction = [
+            ['label' => 'Contribution Nationale', 'value' => 'escompte'],
+            ['label' => 'Acomptes sur prestations', 'value' => 'acomptes'],
+            ['label' => 'Escomptes', 'value' => 'escomptes']
+        ];
+
         $stats = [
             'total' => count($factures),
             'montant_impaye' => 5950000,
@@ -291,9 +359,12 @@ Route::prefix('factures-fournisseurs')->group(function () {
             'montant_paye' => 177000
         ];
 
-        return Inertia::render('FacturesFournisseurs/Index', [
+        return Inertia::render('Fournisseurs/Factures/Index', [
             'factures' => $factures,
             'fournisseurs' => $fournisseurs,
+            'imputations' => $imputations,
+            'comptes' => $comptes,
+            'typesReduction' => $typesReduction,
             'stats' => $stats,
             'pagination' => [
                 'current_page' => 1,
@@ -307,6 +378,8 @@ Route::prefix('factures-fournisseurs')->group(function () {
         ]);
     })->name('factures-fournisseurs.index');
 
+    // Routes commentées - Création et édition se font maintenant via modal
+    /*
     // Formulaire création
     Route::get('/create', function () {
         $fournisseurs = [
@@ -323,7 +396,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ['id' => 5, 'numero' => '622100', 'libelle' => 'Services extérieurs'],
         ];
 
-        return Inertia::render('FacturesFournisseurs/Form', [
+        return Inertia::render('Fournisseurs/Factures/Form', [
             'fournisseurs' => $fournisseurs,
             'comptesImputation' => $comptesImputation,
             'user' => [
@@ -332,6 +405,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ]
         ]);
     })->name('factures-fournisseurs.create');
+    */
 
     // Détail facture
     Route::get('/{id}', function ($id) {
@@ -349,7 +423,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
                 'telephone' => '+229 21 30 45 67',
                 'email' => 'contact@pcb.bj'
             ],
-            'remarques' => 'Commande urgente de médicaments essentiels',
+            'observations' => 'Commande urgente de médicaments essentiels',
             'lignes' => [
                 [
                     'id' => 1,
@@ -400,13 +474,42 @@ Route::prefix('factures-fournisseurs')->group(function () {
                     'banque' => 'ORABANK',
                     'numero' => 'BJ123456789'
                 ],
-                'remarques' => 'Premier acompte'
+                'observations' => 'Premier acompte'
             ]
         ];
 
-        return Inertia::render('FacturesFournisseurs/Show', [
+        $fournisseurs = [
+            ['id' => 1, 'code' => 'FOUR001', 'nom' => 'Pharmacie Centrale du Bénin'],
+            ['id' => 2, 'code' => 'FOUR002', 'nom' => 'SOBEMAP Matériel Médical'],
+            ['id' => 3, 'code' => 'FOUR003', 'nom' => 'SONEB (Eau)']
+        ];
+
+        $imputations = [
+            ['id' => 1, 'code' => '601100', 'libelle' => 'Achats de médicaments'],
+            ['id' => 2, 'code' => '601200', 'libelle' => 'Achats de matériel médical'],
+            ['id' => 3, 'code' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
+            ['id' => 4, 'code' => '605100', 'libelle' => 'Eau et électricité'],
+        ];
+
+        $comptes = [
+            ['id' => 1, 'numero' => '601100', 'libelle' => 'Achats de médicaments'],
+            ['id' => 2, 'numero' => '601200', 'libelle' => 'Achats de matériel médical'],
+            ['id' => 3, 'numero' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
+        ];
+
+        $typesReduction = [
+            ['label' => 'Contribution Nationale', 'value' => 'escompte'],
+            ['label' => 'Acomptes sur prestations', 'value' => 'acomptes'],
+            ['label' => 'Escomptes', 'value' => 'escomptes']
+        ];
+
+        return Inertia::render('Fournisseurs/Factures/Show', [
             'facture' => $facture,
             'reglements' => $reglements,
+            'fournisseurs' => $fournisseurs,
+            'imputations' => $imputations,
+            'comptes' => $comptes,
+            'typesReduction' => $typesReduction,
             'user' => [
                 'name' => 'Utilisateur Test',
                 'email' => 'test@example.com'
@@ -453,7 +556,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ['id' => 2, 'banque' => 'BOA BENIN', 'numero' => 'BJ987654321', 'libelle' => 'Compte Dépenses'],
         ];
 
-        return Inertia::render('FacturesFournisseurs/Reglement', [
+        return Inertia::render('Fournisseurs/Factures/Reglement', [
             'facture' => $facture,
             'reglements' => $reglements,
             'comptesBancaires' => $comptesBancaires,
@@ -464,6 +567,8 @@ Route::prefix('factures-fournisseurs')->group(function () {
         ]);
     })->name('factures-fournisseurs.regler');
 
+    // Routes commentées - Édition se fait maintenant via modal
+    /*
     // Formulaire édition
     Route::get('/{id}/edit', function ($id) {
         // Facture existante avec ses lignes
@@ -523,7 +628,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ['id' => 5, 'numero' => '622100', 'libelle' => 'Services extérieurs'],
         ];
 
-        return Inertia::render('FacturesFournisseurs/Form', [
+        return Inertia::render('Fournisseurs/Factures/Form', [
             'facture' => $facture,
             'fournisseurs' => $fournisseurs,
             'comptesImputation' => $comptesImputation,
@@ -533,6 +638,7 @@ Route::prefix('factures-fournisseurs')->group(function () {
             ]
         ]);
     })->name('factures-fournisseurs.edit');
+    */
 });
 
 // Règlements Fournisseurs Routes

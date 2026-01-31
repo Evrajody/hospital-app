@@ -182,7 +182,7 @@
             <template #default="{ row }">
               <div class="fournisseur-cell">
                 <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
-                <div class="fournisseur-code">{{ row.fournisseur.code }}</div>
+                <!-- <div class="fournisseur-code">{{ row.fournisseur.code }}</div> -->
               </div>
             </template>
           </el-table-column>

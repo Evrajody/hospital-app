@@ -133,13 +133,13 @@
           style="width: 100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column prop="code" label="Code" width="120" sortable="custom">
+          <!-- <el-table-column prop="code" label="Code" width="120" sortable="custom">
             <template #default="{ row }">
               <el-tag type="info" size="small">{{ row.code }}</el-tag>
             </template>
-          </el-table-column>
+          </el-table-column> -->
 
-          <el-table-column prop="nom" label="Nom du Fournisseur" min-width="200" sortable="custom" />
+          <el-table-column prop="nom" label="Raison Sociale" min-width="200" sortable="custom" />
 
           <el-table-column prop="compte_comptable" label="Compte Comptable" width="250">
             <template #default="{ row }">
@@ -215,6 +215,15 @@
         </div>
       </el-card>
     </div>
+
+    <!-- Modal Fournisseur -->
+    <FournisseurModal
+      v-model="showFournisseurModal"
+      :fournisseur="selectedFournisseur"
+      :comptes-fournisseurs="comptesFournisseurs"
+      :comptes-parents="comptesParents"
+      @success="handleFournisseurSuccess"
+    />
   </AppLayout>
 </template>
 
@@ -238,6 +247,7 @@ import {
   Wallet
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
 
 // Props
 const props = defineProps({
@@ -246,6 +256,10 @@ const props = defineProps({
     default: () => []
   },
   comptesFournisseurs: {
+    type: Array,
+    default: () => []
+  },
+  comptesParents: {
     type: Array,
     default: () => []
   },
@@ -272,6 +286,9 @@ const props = defineProps({
 
 // State
 const loading = ref(false);
+const showFournisseurModal = ref(false);
+const selectedFournisseur = ref(null);
+
 const filters = reactive({
   search: '',
   status: '',
@@ -316,7 +333,8 @@ const handlePageChange = (page) => {
 };
 
 const handleCreate = () => {
-  router.visit('/fournisseurs/create');
+  selectedFournisseur.value = null;
+  showFournisseurModal.value = true;
 };
 
 const handleView = (fournisseur) => {
@@ -324,7 +342,14 @@ const handleView = (fournisseur) => {
 };
 
 const handleEdit = (fournisseur) => {
-  router.visit(`/fournisseurs/${fournisseur.id}/edit`);
+  selectedFournisseur.value = fournisseur;
+  showFournisseurModal.value = true;
+};
+
+const handleFournisseurSuccess = (fournisseur) => {
+  // TODO: Implement server-side save
+  console.log('Fournisseur saved:', fournisseur);
+  handleRefresh();
 };
 
 const handleDelete = async (id) => {

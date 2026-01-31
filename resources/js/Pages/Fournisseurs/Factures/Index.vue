@@ -283,6 +283,17 @@
         </div>
       </el-card>
     </div>
+
+    <!-- Modal Facture Fournisseur -->
+    <FactureFournisseurModal
+      v-model="showFactureModal"
+      :facture="selectedFacture"
+      :fournisseurs="fournisseurs"
+      :imputations="imputations"
+      :comptes="comptes"
+      :types-reduction="typesReduction"
+      @success="handleFactureSuccess"
+    />
   </AppLayout>
 </template>
 
@@ -309,6 +320,7 @@ import {
   CopyDocument
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 
 // Props
 const props = defineProps({
@@ -319,6 +331,22 @@ const props = defineProps({
   fournisseurs: {
     type: Array,
     default: () => []
+  },
+  imputations: {
+    type: Array,
+    default: () => []
+  },
+  comptes: {
+    type: Array,
+    default: () => []
+  },
+  typesReduction: {
+    type: Array,
+    default: () => [
+      { label: 'Escompte', value: 'escompte' },
+      { label: 'AIB (Acompte d\'Impôt sur Bénéfice)', value: 'aib' },
+      { label: 'Remise commerciale', value: 'remise' }
+    ]
   },
   stats: {
     type: Object,
@@ -345,6 +373,9 @@ const props = defineProps({
 
 // State
 const loading = ref(false);
+const showFactureModal = ref(false);
+const selectedFacture = ref(null);
+
 const filters = reactive({
   search: '',
   fournisseur_id: null,
@@ -423,7 +454,8 @@ const handlePageChange = (page) => {
 };
 
 const handleCreate = () => {
-  router.visit('/factures-fournisseurs/create');
+  selectedFacture.value = null;
+  showFactureModal.value = true;
 };
 
 const handleView = (facture) => {
@@ -434,10 +466,17 @@ const handlePay = (facture) => {
   router.visit(`/factures-fournisseurs/${facture.id}/regler`);
 };
 
+const handleFactureSuccess = (facture) => {
+  // TODO: Implement server-side save
+  console.log('Facture saved:', facture);
+  handleRefresh();
+};
+
 const handleMoreActions = async (command, facture) => {
   switch (command) {
     case 'edit':
-      router.visit(`/factures-fournisseurs/${facture.id}/edit`);
+      selectedFacture.value = facture;
+      showFactureModal.value = true;
       break;
     case 'duplicate':
       ElMessage.info('Duplication en cours de développement...');

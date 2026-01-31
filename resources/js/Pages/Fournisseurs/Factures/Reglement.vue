@@ -35,7 +35,7 @@
                 <span class="info-label">Fournisseur :</span>
                 <div class="fournisseur-info">
                   <strong>{{ facture.fournisseur.nom }}</strong>
-                  <span class="fournisseur-code">{{ facture.fournisseur.code }}</span>
+                  <!-- <span class="fournisseur-code">{{ facture.fournisseur.code }}</span> -->
                 </div>
               </div>
 

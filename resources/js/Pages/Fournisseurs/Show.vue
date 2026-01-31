@@ -9,7 +9,7 @@
           </el-tag>
           <div>
             <h1 class="page-title">{{ fournisseur.nom }}</h1>
-            <p class="page-subtitle">{{ fournisseur.code }}</p>
+            <!-- <p class="page-subtitle">{{ fournisseur.code }}</p> -->
           </div>
         </div>
 
@@ -29,6 +29,26 @@
         </div>
       </div>
 
+      <!-- FournisseurModal for editing -->
+      <FournisseurModal
+        v-model="showFournisseurModal"
+        :fournisseur="selectedFournisseur"
+        :comptes-fournisseurs="comptesFournisseurs"
+        :comptes-parents="comptesParents"
+        @success="handleFournisseurSuccess"
+      />
+
+      <!-- FactureFournisseurModal for creating new facture -->
+      <FactureFournisseurModal
+        v-model="showFactureModal"
+        :facture="null"
+        :fournisseurs="[fournisseur]"
+        :imputations="imputations"
+        :comptes="comptes"
+        :types-reduction="typesReduction"
+        @success="handleFactureSuccess"
+      />
+
       <el-row :gutter="20">
         <!-- Left Column: Fournisseur Info -->
         <el-col :span="12">
@@ -42,10 +62,10 @@
             </template>
 
             <el-descriptions :column="1" border>
-              <el-descriptions-item label="Code">
+              <!-- <el-descriptions-item label="Code">
                 <el-tag type="info">{{ fournisseur.code }}</el-tag>
-              </el-descriptions-item>
-              <el-descriptions-item label="Nom">
+              </el-descriptions-item> -->
+              <el-descriptions-item label="Raison Sociale">
                 <strong>{{ fournisseur.nom }}</strong>
               </el-descriptions-item>
               <el-descriptions-item label="Compte Comptable">
@@ -107,11 +127,11 @@
               <el-descriptions-item label="IFU">
                 {{ fournisseur.ifu || '-' }}
               </el-descriptions-item>
-              <el-descriptions-item label="RCCM">
+              <!-- <el-descriptions-item label="RCCM">
                 {{ fournisseur.rccm || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="Remarques" v-if="fournisseur.remarques">
-                {{ fournisseur.remarques }}
+              </el-descriptions-item> -->
+              <el-descriptions-item label="Observations" v-if="fournisseur.observations">
+                {{ fournisseur.observations }}
               </el-descriptions-item>
             </el-descriptions>
           </el-card>
@@ -233,7 +253,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -251,6 +271,8 @@ import {
   Tickets
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
+import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 
 // Props
 const props = defineProps({
@@ -271,11 +293,36 @@ const props = defineProps({
       montant_reste: 0
     })
   },
+  comptesFournisseurs: {
+    type: Array,
+    default: () => []
+  },
+  comptesParents: {
+    type: Array,
+    default: () => []
+  },
+  imputations: {
+    type: Array,
+    default: () => []
+  },
+  comptes: {
+    type: Array,
+    default: () => []
+  },
+  typesReduction: {
+    type: Array,
+    default: () => []
+  },
   user: {
     type: Object,
     default: () => null
   }
 });
+
+// State for modals
+const showFournisseurModal = ref(false);
+const selectedFournisseur = ref(null);
+const showFactureModal = ref(false);
 
 // Computed
 const breadcrumbs = [
@@ -329,7 +376,8 @@ const handleBack = () => {
 };
 
 const handleEdit = () => {
-  router.visit(`/fournisseurs/${props.fournisseur.id}/edit`);
+  selectedFournisseur.value = props.fournisseur;
+  showFournisseurModal.value = true;
 };
 
 const handleDelete = () => {
@@ -349,11 +397,21 @@ const handleDelete = () => {
 };
 
 const handleNewFacture = () => {
-  router.visit(`/factures-fournisseurs/create?fournisseur_id=${props.fournisseur.id}`);
+  showFactureModal.value = true;
 };
 
 const handleViewFacture = (facture) => {
   router.visit(`/factures-fournisseurs/${facture.id}`);
+};
+
+const handleFournisseurSuccess = () => {
+  // Rafraîchir la page pour afficher les modifications
+  router.reload({ only: ['fournisseur', 'stats'] });
+};
+
+const handleFactureSuccess = () => {
+  // Rafraîchir la liste des factures
+  router.reload({ only: ['factures', 'stats'] });
 };
 </script>
 
