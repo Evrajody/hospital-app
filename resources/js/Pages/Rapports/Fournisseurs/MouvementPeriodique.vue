@@ -92,10 +92,10 @@
         </table>
       </div>
 
-    <!-- Statistiques -->
-    <div class="section stats-section">
-      <h2>Situation des banques</h2>
-      <div class="stats-grid">
+      <div>
+        <!-- Statistiques -->
+        Situation des banques
+        <div class="stats-grid">
           <div class="stat-box">
             <div class="stat-label">Nombre de factures</div>
             <div class="stat-value">{{ factures.length }}</div>
@@ -113,7 +113,7 @@
             <div class="stat-value">{{ formatMontant(totaux.reste) }}</div>
           </div>
         </div>
-      </div> 
+      </div>
 
       <!-- Footer -->
       <div class="footer">
@@ -202,9 +202,20 @@ const handleClose = () => window.close();
   text-transform: uppercase;
 }
 
-.status-success { background: #f5f5f5; color: #000000; }
-.status-warning { background: #eeeeee; color: #000000; }
-.status-danger { background: #eeeeee; color: #000000; }
+.status-success {
+  background: #f5f5f5;
+  color: #000000;
+}
+
+.status-warning {
+  background: #eeeeee;
+  color: #000000;
+}
+
+.status-danger {
+  background: #eeeeee;
+  color: #000000;
+}
 
 .stats-section {
   margin-top: 30px;
@@ -224,8 +235,13 @@ const handleClose = () => window.close();
   text-align: center;
 }
 
-.stat-box.success { border-left-color: #000000; }
-.stat-box.danger { border-left-color: #000000; }
+.stat-box.success {
+  border-left-color: #000000;
+}
+
+.stat-box.danger {
+  border-left-color: #000000;
+}
 
 .stat-label {
   font-size: 12px;
@@ -240,9 +256,23 @@ const handleClose = () => window.close();
 }
 
 @media print {
-  .document-container { background: #ffffff; padding: 0; }
-  .document-page { box-shadow: none; padding: 15mm; margin: 0; }
-  .no-print { display: none !important; }
-  @page { margin: 15mm; }
+  .document-container {
+    background: #ffffff;
+    padding: 0;
+  }
+
+  .document-page {
+    box-shadow: none;
+    padding: 15mm;
+    margin: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    margin: 15mm;
+  }
 }
 </style>
