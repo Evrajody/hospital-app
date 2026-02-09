@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
  * @property int $id
  * @property string $nom
  * @property string|null $type_fournisseur
- * @property string $status
  * @property string|null $contact
  * @property string|null $fonction_contact
  * @property string|null $telephone
@@ -28,13 +27,6 @@ use Illuminate\Support\Facades\DB;
  * @property int|null $compte_comptable_id
  * @property string|null $ifu
  * @property string|null $rccm
- * @property string|null $regime_fiscal
- * @property string $taux_aib
- * @property bool $assujetti_tva
- * @property \Carbon\Carbon|null $date_debut_relation
- * @property int $delai_paiement
- * @property string $mode_paiement_prefere
- * @property float|null $plafond_credit
  * @property string|null $observations
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
@@ -57,7 +49,6 @@ class Fournisseur extends Model
     protected $fillable = [
         'nom',
         'type_fournisseur',
-        'status',
         'contact',
         'fonction_contact',
         'telephone',
@@ -70,13 +61,6 @@ class Fournisseur extends Model
         'compte_comptable_id',
         'ifu',
         'rccm',
-        'regime_fiscal',
-        'taux_aib',
-        'assujetti_tva',
-        'date_debut_relation',
-        'delai_paiement',
-        'mode_paiement_prefere',
-        'plafond_credit',
         'observations',
     ];
 
@@ -84,10 +68,6 @@ class Fournisseur extends Model
      * Les attributs castés
      */
     protected $casts = [
-        'assujetti_tva' => 'boolean',
-        'date_debut_relation' => 'date',
-        'delai_paiement' => 'integer',
-        'plafond_credit' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -102,22 +82,6 @@ class Fournisseur extends Model
     const TYPE_SERVICES = 'services';
     const TYPE_MAINTENANCE = 'maintenance';
     const TYPE_AUTRES = 'autres';
-
-    /**
-     * Constantes pour les régimes fiscaux
-     */
-    const REGIME_REEL_NORMAL = 'reel_normal';
-    const REGIME_REEL_SIMPLIFIE = 'reel_simplifie';
-    const REGIME_MICRO = 'micro';
-    const REGIME_EXONERE = 'exonere';
-
-    /**
-     * Constantes pour les modes de paiement
-     */
-    const PAIEMENT_VIREMENT = 'virement';
-    const PAIEMENT_CHEQUE = 'cheque';
-    const PAIEMENT_ESPECES = 'especes';
-    const PAIEMENT_MOBILE_MONEY = 'mobile_money';
 
     // ==========================================
     // RELATIONS
@@ -142,22 +106,6 @@ class Fournisseur extends Model
     // ==========================================
     // SCOPES
     // ==========================================
-
-    /**
-     * Filtrer par statut
-     */
-    public function scopeActif(Builder $query): Builder
-    {
-        return $query->where('status', 'actif');
-    }
-
-    /**
-     * Filtrer par statut inactif
-     */
-    public function scopeInactif(Builder $query): Builder
-    {
-        return $query->where('status', 'inactif');
-    }
 
     /**
      * Filtrer par type de fournisseur
@@ -218,48 +166,6 @@ class Fournisseur extends Model
     }
 
     /**
-     * Obtenir le libellé du régime fiscal
-     */
-    public function getRegimeFiscalLibelleAttribute(): string
-    {
-        return match($this->regime_fiscal) {
-            self::REGIME_REEL_NORMAL => 'Réel Normal',
-            self::REGIME_REEL_SIMPLIFIE => 'Réel Simplifié',
-            self::REGIME_MICRO => 'Micro-entreprise',
-            self::REGIME_EXONERE => 'Exonéré',
-            default => 'Non défini',
-        };
-    }
-
-    /**
-     * Obtenir le libellé du mode de paiement préféré
-     */
-    public function getModePaiementLibelleAttribute(): string
-    {
-        return match($this->mode_paiement_prefere) {
-            self::PAIEMENT_VIREMENT => 'Virement bancaire',
-            self::PAIEMENT_CHEQUE => 'Chèque',
-            self::PAIEMENT_ESPECES => 'Espèces',
-            self::PAIEMENT_MOBILE_MONEY => 'Mobile Money',
-            default => 'Non défini',
-        };
-    }
-
-    /**
-     * Obtenir le libellé du taux AIB
-     */
-    public function getTauxAibLibelleAttribute(): string
-    {
-        return match($this->taux_aib) {
-            '0' => '0% - Exonéré',
-            '1' => '1% - Standard',
-            '3' => '3% - Sans IFU',
-            '5' => '5% - Importateurs',
-            default => $this->taux_aib . '%',
-        };
-    }
-
-    /**
      * Obtenir le nom du pays
      */
     public function getPaysNomAttribute(): string
@@ -289,8 +195,6 @@ class Fournisseur extends Model
     public static function getStatistiques(): array
     {
         $total = self::count();
-        $actifs = self::actif()->count();
-        $inactifs = self::inactif()->count();
 
         // Statistiques par type
         $parType = self::select('type_fournisseur', DB::raw('COUNT(*) as count'))
@@ -304,8 +208,6 @@ class Fournisseur extends Model
 
         return [
             'total' => $total,
-            'actifs' => $actifs,
-            'inactifs' => $inactifs,
             'par_type' => $parType,
             'factures_en_cours' => $facturesEnCours,
             'dettes_total' => $dettesTotal,
@@ -327,56 +229,9 @@ class Fournisseur extends Model
         ];
     }
 
-    /**
-     * Obtenir les régimes fiscaux
-     */
-    public static function getRegimesFiscaux(): array
-    {
-        return [
-            ['value' => self::REGIME_REEL_NORMAL, 'label' => 'Réel Normal'],
-            ['value' => self::REGIME_REEL_SIMPLIFIE, 'label' => 'Réel Simplifié'],
-            ['value' => self::REGIME_MICRO, 'label' => 'Micro-entreprise'],
-            ['value' => self::REGIME_EXONERE, 'label' => 'Exonéré'],
-        ];
-    }
-
-    /**
-     * Obtenir les modes de paiement
-     */
-    public static function getModesPaiement(): array
-    {
-        return [
-            ['value' => self::PAIEMENT_VIREMENT, 'label' => 'Virement bancaire'],
-            ['value' => self::PAIEMENT_CHEQUE, 'label' => 'Chèque'],
-            ['value' => self::PAIEMENT_ESPECES, 'label' => 'Espèces'],
-            ['value' => self::PAIEMENT_MOBILE_MONEY, 'label' => 'Mobile Money'],
-        ];
-    }
-
-    /**
-     * Obtenir les taux AIB disponibles
-     */
-    public static function getTauxAib(): array
-    {
-        return [
-            ['value' => '0', 'label' => '0% - Exonéré'],
-            ['value' => '1', 'label' => '1% - Standard'],
-            ['value' => '3', 'label' => '3% - Sans IFU'],
-            ['value' => '5', 'label' => '5% - Importateurs'],
-        ];
-    }
-
     // ==========================================
     // MÉTHODES D'INSTANCE
     // ==========================================
-
-    /**
-     * Vérifier si le fournisseur est actif
-     */
-    public function estActif(): bool
-    {
-        return $this->status === 'actif';
-    }
 
     /**
      * Vérifier si le fournisseur a un compte comptable
@@ -404,7 +259,6 @@ class Fournisseur extends Model
             'nom' => $this->nom,
             'type_fournisseur' => $this->type_fournisseur,
             'type_fournisseur_libelle' => $this->type_fournisseur_libelle,
-            'status' => $this->status,
             'contact' => $this->contact,
             'fonction_contact' => $this->fonction_contact,
             'telephone' => $this->telephone,
@@ -423,16 +277,6 @@ class Fournisseur extends Model
             ] : null,
             'ifu' => $this->ifu,
             'rccm' => $this->rccm,
-            'regime_fiscal' => $this->regime_fiscal,
-            'regime_fiscal_libelle' => $this->regime_fiscal_libelle,
-            'taux_aib' => $this->taux_aib,
-            'taux_aib_libelle' => $this->taux_aib_libelle,
-            'assujetti_tva' => $this->assujetti_tva,
-            'date_debut_relation' => $this->date_debut_relation?->format('Y-m-d'),
-            'delai_paiement' => $this->delai_paiement,
-            'mode_paiement_prefere' => $this->mode_paiement_prefere,
-            'mode_paiement_libelle' => $this->mode_paiement_libelle,
-            'plafond_credit' => $this->plafond_credit,
             'observations' => $this->observations,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),

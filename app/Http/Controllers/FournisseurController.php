@@ -28,11 +28,6 @@ class FournisseurController extends Controller
             $query->recherche($request->search);
         }
 
-        // Filtre par statut
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
         // Filtre par compte comptable
         if ($request->filled('compte_id')) {
             $query->where('compte_comptable_id', $request->compte_id);
@@ -99,7 +94,6 @@ class FournisseurController extends Controller
             ],
             'filters' => [
                 'search' => $request->search,
-                'status' => $request->status,
                 'compte_id' => $request->compte_id,
                 'type' => $request->type,
             ],
@@ -139,7 +133,7 @@ class FournisseurController extends Controller
                 'reste_a_payer' => (float) $facture->reste_a_payer,
                 'statut' => $facture->statut,
                 'statut_paiement' => $this->getStatutPaiement($facture),
-                'date_echeance' => $facture->date_echeance?->format('Y-m-d'),
+                'date_facture_bc' => $facture->date_facture_bc?->format('Y-m-d'),
                 'observations' => $facture->observations,
             ];
         });
@@ -321,7 +315,6 @@ class FournisseurController extends Controller
             $fournisseur = Fournisseur::create([
                 'nom' => $request->nom,
                 'type_fournisseur' => $request->type_fournisseur,
-                'status' => $request->status ?? 'actif',
                 'contact' => $request->contact,
                 'fonction_contact' => $request->fonction_contact,
                 'telephone' => $request->telephone,
@@ -334,13 +327,6 @@ class FournisseurController extends Controller
                 'compte_comptable_id' => $compteComptableId,
                 'ifu' => $request->ifu,
                 'rccm' => $request->rccm,
-                'regime_fiscal' => $request->regime_fiscal,
-                'taux_aib' => $request->taux_aib ?? '1',
-                'assujetti_tva' => $request->assujetti_tva ?? true,
-                'date_debut_relation' => $request->date_debut_relation,
-                'delai_paiement' => $request->delai_paiement ?? 30,
-                'mode_paiement_prefere' => $request->mode_paiement_prefere ?? 'virement',
-                'plafond_credit' => $request->plafond_credit,
                 'observations' => $request->observations,
             ]);
 
@@ -416,7 +402,6 @@ class FournisseurController extends Controller
             $fournisseur->update([
                 'nom' => $request->nom ?? $fournisseur->nom,
                 'type_fournisseur' => $request->type_fournisseur,
-                'status' => $request->status ?? $fournisseur->status,
                 'contact' => $request->contact,
                 'fonction_contact' => $request->fonction_contact,
                 'telephone' => $request->telephone,
@@ -429,13 +414,6 @@ class FournisseurController extends Controller
                 'compte_comptable_id' => $compteComptableId,
                 'ifu' => $request->ifu,
                 'rccm' => $request->rccm,
-                'regime_fiscal' => $request->regime_fiscal,
-                'taux_aib' => $request->taux_aib ?? $fournisseur->taux_aib,
-                'assujetti_tva' => $request->assujetti_tva ?? $fournisseur->assujetti_tva,
-                'date_debut_relation' => $request->date_debut_relation,
-                'delai_paiement' => $request->delai_paiement ?? $fournisseur->delai_paiement,
-                'mode_paiement_prefere' => $request->mode_paiement_prefere ?? $fournisseur->mode_paiement_prefere,
-                'plafond_credit' => $request->plafond_credit,
                 'observations' => $request->observations,
             ]);
 
@@ -516,7 +494,6 @@ class FournisseurController extends Controller
             'type_fournisseur' => ['nullable', 'string', Rule::in([
                 'medicaments', 'equipements', 'consommables', 'services', 'maintenance', 'autres'
             ])],
-            'status' => ['nullable', 'string', Rule::in(['actif', 'inactif'])],
             'contact' => ['nullable', 'string', 'max:255'],
             'fonction_contact' => ['nullable', 'string', 'max:100'],
             'telephone' => ['nullable', 'string', 'max:30'],
@@ -529,17 +506,6 @@ class FournisseurController extends Controller
             'compte_comptable_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'ifu' => ['nullable', 'string', 'size:13', 'regex:/^\d{13}$/'],
             'rccm' => ['nullable', 'string', 'max:50'],
-            'regime_fiscal' => ['nullable', 'string', Rule::in([
-                'reel_normal', 'reel_simplifie', 'micro', 'exonere'
-            ])],
-            'taux_aib' => ['nullable', 'string', Rule::in(['0', '1', '3', '5'])],
-            'assujetti_tva' => ['nullable', 'boolean'],
-            'date_debut_relation' => ['nullable', 'date'],
-            'delai_paiement' => ['nullable', 'integer', 'min:0'],
-            'mode_paiement_prefere' => ['nullable', 'string', Rule::in([
-                'virement', 'cheque', 'especes', 'mobile_money'
-            ])],
-            'plafond_credit' => ['nullable', 'numeric', 'min:0'],
             'observations' => ['nullable', 'string'],
             'create_compte' => ['nullable', 'boolean'],
             'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^401\d{3,}$/'],

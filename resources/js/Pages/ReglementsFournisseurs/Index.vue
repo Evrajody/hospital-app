@@ -111,9 +111,7 @@
             >
               <el-option label="Espèces" value="especes" />
               <el-option label="Chèque" value="cheque" />
-              <el-option label="Virement" value="virement" />
-              <el-option label="Carte" value="carte" />
-              <el-option label="Mobile Money" value="mobile_money" />
+              <el-option label="Virement bancaire" value="virement" />
             </el-select>
           </el-form-item>
 
@@ -357,6 +355,43 @@
           </div>
         </template>
       </el-dialog>
+
+      <!-- Modal Sélection Facture -->
+      <el-dialog
+        v-model="selectFactureDialogVisible"
+        title="Sélectionner une Facture"
+        width="600px"
+        :close-on-click-modal="false"
+      >
+        <el-form label-position="top">
+          <el-form-item label="Facture à régler">
+            <el-select
+              v-model="selectedFactureId"
+              placeholder="Sélectionner une facture"
+              filterable
+              style="width: 100%"
+              size="large"
+            >
+              <el-option
+                v-for="facture in facturesImpayees"
+                :key="facture.id"
+                :label="`${facture.numero} - ${facture.libelle}`"
+                :value="facture.id"
+              >
+                <span>{{ facture.numero }} - {{ facture.libelle }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <el-button @click="selectFactureDialogVisible = false">Annuler</el-button>
+          <el-button type="primary" @click="confirmSelectFacture" :disabled="!selectedFactureId">
+            <el-icon><Money /></el-icon>
+            Procéder au règlement
+          </el-button>
+        </template>
+      </el-dialog>
     </div>
   </AppLayout>
 </template>
@@ -397,6 +432,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  facturesImpayees: {
+    type: Array,
+    default: () => []
+  },
   stats: {
     type: Object,
     default: () => ({
@@ -424,6 +463,8 @@ const props = defineProps({
 const loading = ref(false);
 const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
+const selectFactureDialogVisible = ref(false);
+const selectedFactureId = ref(null);
 const filters = reactive({
   search: '',
   fournisseur_id: null,
@@ -539,8 +580,15 @@ const handlePageChange = (page) => {
 };
 
 const handleNewPayment = () => {
-  // Redirect to factures list to select a facture to pay
-  router.visit('/factures-fournisseurs');
+  selectedFactureId.value = null;
+  selectFactureDialogVisible.value = true;
+};
+
+const confirmSelectFacture = () => {
+  if (selectedFactureId.value) {
+    selectFactureDialogVisible.value = false;
+    router.visit(`/factures-fournisseurs/${selectedFactureId.value}/regler`);
+  }
 };
 
 const handleView = (reglement) => {
@@ -877,5 +925,45 @@ export default {
 :deep(.el-descriptions__label) {
   font-weight: 600;
   width: 180px;
+}
+
+/* Facture Selection Modal */
+.facture-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.facture-option-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.facture-numero {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.facture-libelle {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.facture-option-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.facture-montant {
+  font-weight: 600;
+  color: #059669;
 }
 </style>

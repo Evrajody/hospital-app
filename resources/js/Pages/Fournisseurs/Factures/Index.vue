@@ -170,9 +170,15 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_facture" label="Date" width="120" sortable="custom">
+          <el-table-column prop="date_facture" label="Date" width="110" sortable="custom">
             <template #default="{ row }">
               {{ formatDate(row.date_facture) }}
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120">
+            <template #default="{ row }">
+              {{ row.date_facture_bc ? formatDate(row.date_facture_bc) : '-' }}
             </template>
           </el-table-column>
 
@@ -180,7 +186,7 @@
             <template #default="{ row }">
               <div class="fournisseur-cell">
                 <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
-                <div class="fournisseur-code">{{ row.fournisseur.code }}</div>
+                <!-- <div class="fournisseur-code">{{ row.fournisseur.code }}</div> -->
               </div>
             </template>
           </el-table-column>
@@ -466,10 +472,37 @@ const handlePay = (facture) => {
   router.visit(`/factures-fournisseurs/${facture.id}/regler`);
 };
 
-const handleFactureSuccess = (facture) => {
-  // TODO: Implement server-side save
-  console.log('Facture saved:', facture);
-  handleRefresh();
+const handleFactureSuccess = async (factureData) => {
+  const isEdit = !!selectedFacture.value;
+  const url = isEdit
+    ? `/api/factures-fournisseurs/${selectedFacture.value.id}`
+    : '/api/factures-fournisseurs';
+
+  try {
+    const response = await fetch(url, {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify(factureData)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      ElMessage.success(result.message || (isEdit ? 'Facture modifiée avec succès' : 'Facture créée avec succès'));
+      showFactureModal.value = false;
+      selectedFacture.value = null;
+      handleRefresh();
+    } else {
+      ElMessage.error(result.message || 'Une erreur est survenue');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde:', error);
+    ElMessage.error('Erreur de connexion au serveur');
+  }
 };
 
 const handleMoreActions = async (command, facture) => {

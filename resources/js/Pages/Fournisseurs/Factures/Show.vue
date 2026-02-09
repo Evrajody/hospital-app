@@ -160,7 +160,7 @@
               <el-descriptions-item label="Avoir" v-if="facture.avoir && facture.avoir > 0">
                 {{ formatMontant(facture.avoir) }}
               </el-descriptions-item>
-              <el-descriptions-item label="Type de réduction" v-if="facture.type_reduction">
+              <el-descriptions-item label="Escompte / AIB" v-if="facture.type_reduction">
                 <el-tag size="small" type="success">{{ getTypeReductionLabel(facture.type_reduction) }}</el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="Taux" v-if="facture.taux && facture.taux > 0">
@@ -511,7 +511,7 @@ const getTypeReductionLabel = (type) => {
     ristourne: 'Ristourne',
     rabais: 'Rabais'
   };
-  return labels[type] || type || 'Réduction';
+  return labels[type] || type || 'Escompte/AIB';
 };
 
 // Montant du taux appliqué
@@ -596,9 +596,33 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
   }
 };
 
-const handleFactureSuccess = () => {
-  // Rafraîchir la page pour afficher les modifications
-  router.reload({ only: ['facture', 'reglements'] });
+const handleFactureSuccess = async (factureData) => {
+  const url = `/api/factures-fournisseurs/${props.facture.id}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify(factureData)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      ElMessage.success(result.message || 'Facture modifiée avec succès');
+      showFactureModal.value = false;
+      router.reload({ only: ['facture', 'reglements'] });
+    } else {
+      ElMessage.error(result.message || 'Une erreur est survenue');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde:', error);
+    ElMessage.error('Erreur de connexion au serveur');
+  }
 };
 
 const handlePrintRecu = (reglement) => {

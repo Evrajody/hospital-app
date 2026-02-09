@@ -48,6 +48,9 @@ class CompteComptable extends Model
         'niveau',
         'type_compte',
         'utilisable',
+        'is_custom',
+        'parent_id',
+        'created_by',
     ];
 
     /**
@@ -57,6 +60,9 @@ class CompteComptable extends Model
         'classe' => 'integer',
         'niveau' => 'integer',
         'utilisable' => 'boolean',
+        'is_custom' => 'boolean',
+        'parent_id' => 'integer',
+        'created_by' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -69,6 +75,7 @@ class CompteComptable extends Model
         'est_racine',
         'type_compte_libelle',
         'classe_libelle',
+        'is_custom',
     ];
 
     /**
@@ -139,6 +146,30 @@ class CompteComptable extends Model
             ->where('numero_compte', 'LIKE', $this->numero_compte . '%')
             ->where('numero_compte', '!=', $this->numero_compte)
             ->orderBy('numero_compte');
+    }
+
+    /**
+     * Obtenir le compte parent direct (via parent_id pour les comptes personnalisés)
+     */
+    public function parentCompte()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * Obtenir les comptes enfants (via parent_id)
+     */
+    public function comptesEnfants()
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
+
+    /**
+     * Obtenir l'utilisateur qui a créé le compte
+     */
+    public function createdByUser()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
     /**
@@ -376,6 +407,22 @@ class CompteComptable extends Model
     public function scopeProduits(Builder $query): Builder
     {
         return $query->where('classe', self::CLASSE_PRODUITS);
+    }
+
+    /**
+     * Filtrer uniquement les comptes personnalisés
+     */
+    public function scopeCustom(Builder $query): Builder
+    {
+        return $query->where('is_custom', true);
+    }
+
+    /**
+     * Filtrer uniquement les comptes OHADA standard
+     */
+    public function scopeStandard(Builder $query): Builder
+    {
+        return $query->where('is_custom', false);
     }
 
     // ==========================================

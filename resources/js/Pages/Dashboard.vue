@@ -176,31 +176,7 @@
         </el-col>
       </el-row>
 
-      <!-- Quick Actions -->
-      <el-row :gutter="20" class="content-row">
-        <el-col :span="24">
-          <el-card shadow="hover">
-            <template #header>
-              <h3>Actions rapides</h3>
-            </template>
-
-            <div class="quick-actions">
-              <el-button type="primary" :icon="Plus" @click="navigate('/factures-fournisseurs/create')">
-                Nouvelle facture fournisseur
-              </el-button>
-              <el-button type="success" :icon="Plus" @click="navigate('/factures-clients/create')">
-                Nouvelle facture client
-              </el-button>
-              <el-button type="warning" :icon="DocumentCopy" @click="navigate('/rapports')">
-                Générer un rapport
-              </el-button>
-              <el-button :icon="CreditCard" @click="navigate('/banques/approvisionner')">
-                Approvisionner une banque
-              </el-button>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+    
     </div>
   </AppLayout>
 </template>

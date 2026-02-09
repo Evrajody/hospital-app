@@ -28,7 +28,7 @@
             </div>
           </el-card>
         </el-col>
-        <el-col :xs="24" :sm="6">
+        <!-- <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
               <div class="stat-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%)">
@@ -40,7 +40,7 @@
               </div>
             </div>
           </el-card>
-        </el-col>
+        </el-col> -->
         <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
@@ -82,19 +82,6 @@
               @input="debouncedSearch"
               @clear="handleSearch"
             />
-          </el-form-item>
-
-          <el-form-item label="Statut">
-            <el-select
-              v-model="localFilters.status"
-              placeholder="Tous"
-              clearable
-              style="width: 150px"
-              @change="handleSearch"
-            >
-              <el-option label="Actif" value="actif" />
-              <el-option label="Inactif" value="inactif" />
-            </el-select>
           </el-form-item>
 
           <el-form-item label="Compte Comptable">
@@ -185,14 +172,6 @@
                 {{ row.email }}
               </el-link>
               <span v-else>-</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="status" label="Statut" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.status === 'actif' ? 'success' : 'info'" size="small">
-                {{ row.status === 'actif' ? 'Actif' : 'Inactif' }}
-              </el-tag>
             </template>
           </el-table-column>
 
@@ -331,7 +310,6 @@ const modalLoading = ref(false);
 
 const localFilters = reactive({
   search: props.filters?.search || '',
-  status: props.filters?.status || '',
   compte_id: props.filters?.compte_id || ''
 });
 
@@ -364,7 +342,6 @@ const handleSearch = () => {
   loading.value = true;
   router.get('/fournisseurs', {
     search: localFilters.search || undefined,
-    status: localFilters.status || undefined,
     compte_id: localFilters.compte_id || undefined,
     per_page: localPagination.per_page,
     page: 1
@@ -381,7 +358,6 @@ const debouncedSearch = debounce(handleSearch, 300);
 
 const handleReset = () => {
   localFilters.search = '';
-  localFilters.status = '';
   localFilters.compte_id = '';
   handleSearch();
 };

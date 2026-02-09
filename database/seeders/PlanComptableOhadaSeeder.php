@@ -4,1210 +4,161 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class PlanComptableOhadaSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * Plan Comptable SYSCOHADA (Système Comptable OHADA)
+     * Charge le Plan Comptable OHADA depuis le fichier Excel
      */
     public function run(): void
     {
-        $this->command->info('Importation du Plan Comptable SYSCOHADA...');
+        $filePath = base_path('docs/Plan-comptable-général-1.xlsx');
 
-        // Vider la table si elle existe déjà
-        DB::table('plan_comptable_ohada')->truncate();
-
-        $comptes = $this->getComptesOhada();
-
-        // Insérer par lots de 100
-        $chunks = array_chunk($comptes, 100);
-        $total = 0;
-
-        foreach ($chunks as $chunk) {
-            DB::table('plan_comptable_ohada')->insert($chunk);
-            $total += count($chunk);
+        if (!file_exists($filePath)) {
+            $this->command->error("Fichier Excel non trouvé: $filePath");
+            return;
         }
 
-        $this->command->info("✓ {$total} comptes comptables importés avec succès!");
+        $this->command->info('Chargement du fichier Excel...');
 
-        // Afficher les statistiques
-        $this->afficherStatistiques();
-    }
+        $spreadsheet = IOFactory::load($filePath);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highestRow = $sheet->getHighestRow();
 
-    /**
-     * Retourne tous les comptes du Plan Comptable SYSCOHADA
-     */
-    private function getComptesOhada(): array
-    {
-        $now = now();
+        $this->command->info("Nombre de lignes: $highestRow");
+
         $comptes = [];
+        $skipped = 0;
+
+        for ($row = 6; $row <= $highestRow; $row++) {
+            $numeroCompte = $sheet->getCell('B' . $row)->getValue();
+            $libelle = $sheet->getCell('C' . $row)->getValue();
+
+            // Skip if no numeric account number
+            if ($numeroCompte === null || !is_numeric($numeroCompte)) {
+                $skipped++;
+                continue;
+            }
+
+            // Convert to string to preserve leading zeros (if any)
+            $numeroCompte = (string) $numeroCompte;
+
+            // Skip if no libelle
+            if (empty(trim((string) $libelle))) {
+                $skipped++;
+                continue;
+            }
+
+            // Determine classe (first digit)
+            $classe = (int) substr($numeroCompte, 0, 1);
+
+            // Determine niveau (based on account number length)
+            $length = strlen($numeroCompte);
+            $niveau = match($length) {
+                2 => 1,      // 10, 11, 12...
+                3 => 2,      // 101, 102, 103...
+                4 => 3,      // 1011, 1012...
+                5 => 4,      // 10111, 10112...
+                default => min($length - 1, 5)  // cap at 5
+            };
+
+            // Determine type_compte based on classe
+            $typeCompte = $this->getTypeCompte($classe);
+
+            // Determine if account is directly usable (usually leaf accounts with 4+ digits)
+            $utilisable = $length >= 4;
 
-        // ============================================================
-        // CLASSE 1 : COMPTES DE RESSOURCES DURABLES
-        // ============================================================
-        $classe1 = [
-            // Niveau 1 - Classe
-            ['1', 'COMPTES DE RESSOURCES DURABLES', 1, 'PASSIF'],
-
-            // Niveau 2 - Comptes principaux
-            ['10', 'Capital', 2, 'PASSIF'],
-            ['101', 'Capital social', 3, 'PASSIF'],
-            ['1011', 'Capital souscrit, non appelé', 4, 'PASSIF'],
-            ['1012', 'Capital souscrit, appelé, non versé', 4, 'PASSIF'],
-            ['1013', 'Capital souscrit, appelé, versé, non amorti', 4, 'PASSIF'],
-            ['1014', 'Capital souscrit, appelé, versé, amorti', 4, 'PASSIF'],
-            ['102', 'Capital par dotation', 3, 'PASSIF'],
-            ['103', 'Capital personnel', 3, 'PASSIF'],
-            ['104', 'Compte de l\'exploitant', 3, 'PASSIF'],
-            ['1041', 'Apports temporaires', 4, 'PASSIF'],
-            ['1042', 'Opérations courantes', 4, 'PASSIF'],
-            ['1043', 'Rémunérations, impôts et autres charges personnelles', 4, 'PASSIF'],
-            ['105', 'Primes liées au capital social', 3, 'PASSIF'],
-            ['1051', 'Primes d\'émission', 4, 'PASSIF'],
-            ['1052', 'Primes d\'apport', 4, 'PASSIF'],
-            ['1053', 'Primes de fusion', 4, 'PASSIF'],
-            ['1054', 'Primes de conversion', 4, 'PASSIF'],
-            ['106', 'Écarts de réévaluation', 3, 'PASSIF'],
-            ['1061', 'Écarts de réévaluation légale', 4, 'PASSIF'],
-            ['1062', 'Écarts de réévaluation libre', 4, 'PASSIF'],
-            ['109', 'Actionnaires, capital souscrit non appelé', 3, 'ACTIF'],
-
-            ['11', 'Réserves', 2, 'PASSIF'],
-            ['111', 'Réserve légale', 3, 'PASSIF'],
-            ['112', 'Réserves statutaires ou contractuelles', 3, 'PASSIF'],
-            ['113', 'Réserves réglementées', 3, 'PASSIF'],
-            ['1131', 'Réserves de plus-values nettes à long terme', 4, 'PASSIF'],
-            ['1132', 'Réserves consécutives à l\'octroi de subventions d\'investissement', 4, 'PASSIF'],
-            ['1133', 'Réserves spéciales de réévaluation', 4, 'PASSIF'],
-            ['118', 'Autres réserves', 3, 'PASSIF'],
-            ['1181', 'Réserves facultatives', 4, 'PASSIF'],
-            ['1188', 'Réserves diverses', 4, 'PASSIF'],
-
-            ['12', 'Report à nouveau', 2, 'PASSIF'],
-            ['121', 'Report à nouveau créditeur', 3, 'PASSIF'],
-            ['129', 'Report à nouveau débiteur', 3, 'ACTIF'],
-
-            ['13', 'Résultat net de l\'exercice', 2, 'PASSIF'],
-            ['130', 'Résultat en instance d\'affectation', 3, 'PASSIF'],
-            ['131', 'Résultat net : bénéfice', 3, 'PASSIF'],
-            ['139', 'Résultat net : perte', 3, 'ACTIF'],
-
-            ['14', 'Subventions d\'investissement', 2, 'PASSIF'],
-            ['141', 'Subventions d\'équipement', 3, 'PASSIF'],
-            ['1411', 'État', 4, 'PASSIF'],
-            ['1412', 'Régions', 4, 'PASSIF'],
-            ['1413', 'Départements', 4, 'PASSIF'],
-            ['1414', 'Communes et collectivités publiques décentralisées', 4, 'PASSIF'],
-            ['1415', 'Entreprises publiques ou mixtes', 4, 'PASSIF'],
-            ['1416', 'Entreprises privées', 4, 'PASSIF'],
-            ['1417', 'Organismes internationaux', 4, 'PASSIF'],
-            ['1418', 'Autres', 4, 'PASSIF'],
-            ['148', 'Autres subventions d\'investissement', 3, 'PASSIF'],
-
-            ['15', 'Provisions réglementées et fonds assimilés', 2, 'PASSIF'],
-            ['151', 'Amortissements dérogatoires', 3, 'PASSIF'],
-            ['152', 'Plus-values de cession à réinvestir', 3, 'PASSIF'],
-            ['153', 'Fonds réglementés', 3, 'PASSIF'],
-            ['155', 'Provisions réglementées relatives aux immobilisations', 3, 'PASSIF'],
-            ['156', 'Provisions réglementées relatives aux stocks', 3, 'PASSIF'],
-            ['157', 'Provisions pour investissement', 3, 'PASSIF'],
-            ['158', 'Autres provisions et fonds réglementés', 3, 'PASSIF'],
-
-            ['16', 'Emprunts et dettes assimilées', 2, 'PASSIF'],
-            ['161', 'Emprunts obligataires', 3, 'PASSIF'],
-            ['1611', 'Emprunts obligataires ordinaires', 4, 'PASSIF'],
-            ['1612', 'Emprunts obligataires convertibles', 4, 'PASSIF'],
-            ['1618', 'Autres emprunts obligataires', 4, 'PASSIF'],
-            ['162', 'Emprunts et dettes auprès des établissements de crédit', 3, 'PASSIF'],
-            ['163', 'Avances reçues de l\'État', 3, 'PASSIF'],
-            ['164', 'Avances reçues et comptes courants bloqués', 3, 'PASSIF'],
-            ['165', 'Dépôts et cautionnements reçus', 3, 'PASSIF'],
-            ['1651', 'Dépôts', 4, 'PASSIF'],
-            ['1652', 'Cautionnements', 4, 'PASSIF'],
-            ['166', 'Intérêts courus', 3, 'PASSIF'],
-            ['1661', 'Sur emprunts obligataires', 4, 'PASSIF'],
-            ['1662', 'Sur emprunts et dettes auprès des établissements de crédit', 4, 'PASSIF'],
-            ['1663', 'Sur avances reçues de l\'État', 4, 'PASSIF'],
-            ['1664', 'Sur avances reçues et comptes courants bloqués', 4, 'PASSIF'],
-            ['1665', 'Sur dépôts et cautionnements reçus', 4, 'PASSIF'],
-            ['1668', 'Sur autres emprunts et dettes', 4, 'PASSIF'],
-            ['168', 'Autres emprunts et dettes', 3, 'PASSIF'],
-
-            ['17', 'Dettes de crédit-bail et contrats assimilés', 2, 'PASSIF'],
-            ['172', 'Emprunts équivalents de crédit-bail immobilier', 3, 'PASSIF'],
-            ['173', 'Emprunts équivalents de crédit-bail mobilier', 3, 'PASSIF'],
-            ['176', 'Intérêts courus', 3, 'PASSIF'],
-            ['178', 'Emprunts équivalents d\'autres contrats', 3, 'PASSIF'],
-
-            ['18', 'Dettes liées à des participations et comptes de liaison', 2, 'PASSIF'],
-            ['181', 'Dettes liées à des participations (groupe)', 3, 'PASSIF'],
-            ['182', 'Dettes liées à des participations (hors groupe)', 3, 'PASSIF'],
-            ['183', 'Intérêts courus sur dettes liées à des participations', 3, 'PASSIF'],
-            ['184', 'Comptes permanents bloqués des établissements et succursales', 3, 'PASSIF'],
-            ['185', 'Comptes permanents non bloqués des établissements et succursales', 3, 'PASSIF'],
-            ['186', 'Comptes de liaison charges', 3, 'PASSIF'],
-            ['187', 'Comptes de liaison produits', 3, 'PASSIF'],
-
-            ['19', 'Provisions financières pour risques et charges', 2, 'PASSIF'],
-            ['191', 'Provisions pour litiges', 3, 'PASSIF'],
-            ['192', 'Provisions pour garanties données aux clients', 3, 'PASSIF'],
-            ['193', 'Provisions pour pertes sur marchés à achèvement futur', 3, 'PASSIF'],
-            ['194', 'Provisions pour pertes de change', 3, 'PASSIF'],
-            ['195', 'Provisions pour impôts', 3, 'PASSIF'],
-            ['196', 'Provisions pour pensions et obligations similaires', 3, 'PASSIF'],
-            ['197', 'Provisions pour charges à répartir sur plusieurs exercices', 3, 'PASSIF'],
-            ['1971', 'Provisions pour grosses réparations', 4, 'PASSIF'],
-            ['198', 'Autres provisions financières pour risques et charges', 3, 'PASSIF'],
-        ];
-
-        // ============================================================
-        // CLASSE 2 : COMPTES D'ACTIF IMMOBILISÉ
-        // ============================================================
-        $classe2 = [
-            ['2', 'COMPTES D\'ACTIF IMMOBILISÉ', 1, 'ACTIF'],
-
-            ['20', 'Charges immobilisées', 2, 'ACTIF'],
-            ['201', 'Frais d\'établissement', 3, 'ACTIF'],
-            ['2011', 'Frais de constitution', 4, 'ACTIF'],
-            ['2012', 'Frais de prospection', 4, 'ACTIF'],
-            ['2013', 'Frais de publicité et de lancement', 4, 'ACTIF'],
-            ['2014', 'Frais de fonctionnement antérieurs au démarrage', 4, 'ACTIF'],
-            ['2015', 'Frais de modification du capital', 4, 'ACTIF'],
-            ['2016', 'Frais d\'entrée à la bourse', 4, 'ACTIF'],
-            ['2017', 'Frais de restructuration', 4, 'ACTIF'],
-            ['2018', 'Frais divers d\'établissement', 4, 'ACTIF'],
-            ['202', 'Charges à répartir sur plusieurs exercices', 3, 'ACTIF'],
-            ['2021', 'Charges différées', 4, 'ACTIF'],
-            ['2022', 'Frais d\'acquisition d\'immobilisations', 4, 'ACTIF'],
-            ['2026', 'Frais d\'émission des emprunts', 4, 'ACTIF'],
-            ['2028', 'Charges à étaler', 4, 'ACTIF'],
-            ['206', 'Primes de remboursement des obligations', 3, 'ACTIF'],
-
-            ['21', 'Immobilisations incorporelles', 2, 'ACTIF'],
-            ['211', 'Frais de recherche et de développement', 3, 'ACTIF'],
-            ['212', 'Brevets, licences, concessions et droits similaires', 3, 'ACTIF'],
-            ['2121', 'Brevets', 4, 'ACTIF'],
-            ['2122', 'Licences', 4, 'ACTIF'],
-            ['2123', 'Concessions', 4, 'ACTIF'],
-            ['2128', 'Autres droits similaires', 4, 'ACTIF'],
-            ['213', 'Logiciels', 3, 'ACTIF'],
-            ['214', 'Marques', 3, 'ACTIF'],
-            ['215', 'Fonds commercial', 3, 'ACTIF'],
-            ['216', 'Droit au bail', 3, 'ACTIF'],
-            ['217', 'Investissements de création', 3, 'ACTIF'],
-            ['218', 'Autres droits et valeurs incorporels', 3, 'ACTIF'],
-            ['219', 'Immobilisations incorporelles en cours', 3, 'ACTIF'],
-
-            ['22', 'Terrains', 2, 'ACTIF'],
-            ['221', 'Terrains agricoles et forestiers', 3, 'ACTIF'],
-            ['222', 'Terrains nus', 3, 'ACTIF'],
-            ['223', 'Terrains bâtis', 3, 'ACTIF'],
-            ['224', 'Travaux de mise en valeur des terrains', 3, 'ACTIF'],
-            ['225', 'Terrains de gisement', 3, 'ACTIF'],
-            ['226', 'Terrains aménagés', 3, 'ACTIF'],
-            ['227', 'Terrains mis en concession', 3, 'ACTIF'],
-            ['228', 'Autres terrains', 3, 'ACTIF'],
-            ['229', 'Aménagements de terrains en cours', 3, 'ACTIF'],
-
-            ['23', 'Bâtiments, installations techniques et agencements', 2, 'ACTIF'],
-            ['231', 'Bâtiments industriels', 3, 'ACTIF'],
-            ['2311', 'Bâtiments industriels sur sol propre', 4, 'ACTIF'],
-            ['2312', 'Bâtiments industriels sur sol d\'autrui', 4, 'ACTIF'],
-            ['232', 'Bâtiments administratifs et commerciaux', 3, 'ACTIF'],
-            ['2321', 'Bâtiments administratifs et commerciaux sur sol propre', 4, 'ACTIF'],
-            ['2322', 'Bâtiments administratifs et commerciaux sur sol d\'autrui', 4, 'ACTIF'],
-            ['233', 'Ouvrages d\'infrastructure', 3, 'ACTIF'],
-            ['234', 'Installations techniques', 3, 'ACTIF'],
-            ['2341', 'Installations complexes spécialisées', 4, 'ACTIF'],
-            ['2342', 'Installations à caractère spécifique', 4, 'ACTIF'],
-            ['235', 'Aménagements de bureaux', 3, 'ACTIF'],
-            ['237', 'Bâtiments industriels, administratifs et commerciaux mis en concession', 3, 'ACTIF'],
-            ['238', 'Autres installations et agencements', 3, 'ACTIF'],
-            ['239', 'Bâtiments et installations en cours', 3, 'ACTIF'],
-
-            ['24', 'Matériel', 2, 'ACTIF'],
-            ['241', 'Matériel et outillage industriel et commercial', 3, 'ACTIF'],
-            ['2411', 'Matériel industriel', 4, 'ACTIF'],
-            ['2412', 'Outillage industriel', 4, 'ACTIF'],
-            ['2413', 'Matériel commercial', 4, 'ACTIF'],
-            ['2414', 'Outillage commercial', 4, 'ACTIF'],
-            ['242', 'Matériel et outillage agricole', 3, 'ACTIF'],
-            ['243', 'Matériel d\'emballage récupérable et identifiable', 3, 'ACTIF'],
-            ['244', 'Matériel et mobilier de bureau', 3, 'ACTIF'],
-            ['2441', 'Matériel de bureau', 4, 'ACTIF'],
-            ['2442', 'Matériel informatique', 4, 'ACTIF'],
-            ['2443', 'Matériel bureautique', 4, 'ACTIF'],
-            ['2444', 'Mobilier de bureau', 4, 'ACTIF'],
-            ['245', 'Matériel de transport', 3, 'ACTIF'],
-            ['2451', 'Matériel automobile', 4, 'ACTIF'],
-            ['2452', 'Matériel ferroviaire', 4, 'ACTIF'],
-            ['2453', 'Matériel fluvial, lagunaire', 4, 'ACTIF'],
-            ['2454', 'Matériel naval', 4, 'ACTIF'],
-            ['2455', 'Matériel aérien', 4, 'ACTIF'],
-            ['2458', 'Autres matériels de transport', 4, 'ACTIF'],
-            ['246', 'Immobilisations animales et agricoles', 3, 'ACTIF'],
-            ['2461', 'Cheptel, animaux de trait', 4, 'ACTIF'],
-            ['2462', 'Cheptel, animaux reproducteurs', 4, 'ACTIF'],
-            ['2468', 'Autres immobilisations animales et agricoles', 4, 'ACTIF'],
-            ['247', 'Agencements et aménagements du matériel', 3, 'ACTIF'],
-            ['248', 'Autres matériels', 3, 'ACTIF'],
-            ['2481', 'Collections et oeuvres d\'art', 4, 'ACTIF'],
-            ['2488', 'Autres matériels', 4, 'ACTIF'],
-            ['249', 'Matériel en cours', 3, 'ACTIF'],
-
-            ['25', 'Avances et acomptes versés sur immobilisations', 2, 'ACTIF'],
-            ['251', 'Avances et acomptes versés sur immobilisations incorporelles', 3, 'ACTIF'],
-            ['252', 'Avances et acomptes versés sur immobilisations corporelles', 3, 'ACTIF'],
-
-            ['26', 'Titres de participation', 2, 'ACTIF'],
-            ['261', 'Titres de participation dans des sociétés sous contrôle exclusif', 3, 'ACTIF'],
-            ['262', 'Titres de participation dans des sociétés sous contrôle conjoint', 3, 'ACTIF'],
-            ['263', 'Titres de participation dans des sociétés conférant une influence notable', 3, 'ACTIF'],
-            ['264', 'Titres de participation dans des entreprises liées', 3, 'ACTIF'],
-            ['265', 'Participations dans des organismes professionnels', 3, 'ACTIF'],
-            ['266', 'Parts dans des GIE', 3, 'ACTIF'],
-            ['268', 'Autres titres de participation', 3, 'ACTIF'],
-
-            ['27', 'Autres immobilisations financières', 2, 'ACTIF'],
-            ['271', 'Prêts et créances non commerciales', 3, 'ACTIF'],
-            ['2711', 'Prêts participatifs', 4, 'ACTIF'],
-            ['2712', 'Prêts aux associés', 4, 'ACTIF'],
-            ['2713', 'Billets de fonds', 4, 'ACTIF'],
-            ['2714', 'Prêts au personnel', 4, 'ACTIF'],
-            ['2718', 'Autres prêts', 4, 'ACTIF'],
-            ['272', 'Prêts au personnel', 3, 'ACTIF'],
-            ['273', 'Créances sur l\'État', 3, 'ACTIF'],
-            ['274', 'Titres immobilisés', 3, 'ACTIF'],
-            ['2741', 'Titres immobilisés (droit de propriété)', 4, 'ACTIF'],
-            ['2742', 'Titres immobilisés (droit de créance)', 4, 'ACTIF'],
-            ['275', 'Dépôts et cautionnements versés', 3, 'ACTIF'],
-            ['2751', 'Dépôts pour loyers d\'avance', 4, 'ACTIF'],
-            ['2752', 'Dépôts pour l\'électricité', 4, 'ACTIF'],
-            ['2753', 'Dépôts pour l\'eau', 4, 'ACTIF'],
-            ['2754', 'Dépôts pour le téléphone', 4, 'ACTIF'],
-            ['2755', 'Dépôts pour le gaz', 4, 'ACTIF'],
-            ['2758', 'Autres dépôts et cautionnements versés', 4, 'ACTIF'],
-            ['276', 'Intérêts courus', 3, 'ACTIF'],
-            ['277', 'Créances rattachées à des participations et avances à des GIE', 3, 'ACTIF'],
-            ['2771', 'Créances rattachées à des participations (groupe)', 4, 'ACTIF'],
-            ['2772', 'Créances rattachées à des participations (hors groupe)', 4, 'ACTIF'],
-            ['2773', 'Créances rattachées à des sociétés en participation', 4, 'ACTIF'],
-            ['2774', 'Avances à des GIE', 4, 'ACTIF'],
-            ['278', 'Immobilisations financières diverses', 3, 'ACTIF'],
-
-            ['28', 'Amortissements', 2, 'ACTIF'],
-            ['280', 'Amortissements des charges immobilisées', 3, 'ACTIF'],
-            ['2801', 'Amortissements des frais d\'établissement', 4, 'ACTIF'],
-            ['2802', 'Amortissements des charges à répartir', 4, 'ACTIF'],
-            ['2806', 'Amortissements des primes de remboursement des obligations', 4, 'ACTIF'],
-            ['281', 'Amortissements des immobilisations incorporelles', 3, 'ACTIF'],
-            ['2811', 'Amortissements des frais de recherche et de développement', 4, 'ACTIF'],
-            ['2812', 'Amortissements des brevets, licences, concessions', 4, 'ACTIF'],
-            ['2813', 'Amortissements des logiciels', 4, 'ACTIF'],
-            ['2814', 'Amortissements des marques', 4, 'ACTIF'],
-            ['2815', 'Amortissements du fonds commercial', 4, 'ACTIF'],
-            ['2816', 'Amortissements du droit au bail', 4, 'ACTIF'],
-            ['2818', 'Amortissements des autres droits et valeurs incorporels', 4, 'ACTIF'],
-            ['282', 'Amortissements des terrains', 3, 'ACTIF'],
-            ['283', 'Amortissements des bâtiments, installations techniques', 3, 'ACTIF'],
-            ['2831', 'Amortissements des bâtiments industriels', 4, 'ACTIF'],
-            ['2832', 'Amortissements des bâtiments administratifs et commerciaux', 4, 'ACTIF'],
-            ['2833', 'Amortissements des ouvrages d\'infrastructure', 4, 'ACTIF'],
-            ['2834', 'Amortissements des installations techniques', 4, 'ACTIF'],
-            ['2835', 'Amortissements des aménagements de bureaux', 4, 'ACTIF'],
-            ['2838', 'Amortissements des autres installations et agencements', 4, 'ACTIF'],
-            ['284', 'Amortissements du matériel', 3, 'ACTIF'],
-            ['2841', 'Amortissements du matériel et outillage industriel', 4, 'ACTIF'],
-            ['2842', 'Amortissements du matériel et outillage agricole', 4, 'ACTIF'],
-            ['2843', 'Amortissements du matériel d\'emballage', 4, 'ACTIF'],
-            ['2844', 'Amortissements du matériel et mobilier de bureau', 4, 'ACTIF'],
-            ['2845', 'Amortissements du matériel de transport', 4, 'ACTIF'],
-            ['2846', 'Amortissements des immobilisations animales et agricoles', 4, 'ACTIF'],
-            ['2848', 'Amortissements des autres matériels', 4, 'ACTIF'],
-
-            ['29', 'Provisions pour dépréciation', 2, 'PASSIF'],
-            ['291', 'Provisions pour dépréciation des immobilisations incorporelles', 3, 'PASSIF'],
-            ['292', 'Provisions pour dépréciation des terrains', 3, 'PASSIF'],
-            ['293', 'Provisions pour dépréciation des bâtiments', 3, 'PASSIF'],
-            ['294', 'Provisions pour dépréciation du matériel', 3, 'PASSIF'],
-            ['295', 'Provisions pour dépréciation des avances et acomptes versés', 3, 'PASSIF'],
-            ['296', 'Provisions pour dépréciation des titres de participation', 3, 'PASSIF'],
-            ['297', 'Provisions pour dépréciation des autres immobilisations financières', 3, 'PASSIF'],
-        ];
-
-        // ============================================================
-        // CLASSE 3 : COMPTES DE STOCKS
-        // ============================================================
-        $classe3 = [
-            ['3', 'COMPTES DE STOCKS', 1, 'ACTIF'],
-
-            ['31', 'Marchandises', 2, 'ACTIF'],
-            ['311', 'Marchandises A', 3, 'ACTIF'],
-            ['312', 'Marchandises B', 3, 'ACTIF'],
-            ['318', 'Marchandises hors activités ordinaires', 3, 'ACTIF'],
-
-            ['32', 'Matières premières et fournitures liées', 2, 'ACTIF'],
-            ['321', 'Matières premières', 3, 'ACTIF'],
-            ['322', 'Matières et fournitures consommables', 3, 'ACTIF'],
-            ['3221', 'Combustibles', 4, 'ACTIF'],
-            ['3222', 'Produits d\'entretien', 4, 'ACTIF'],
-            ['3223', 'Fournitures d\'atelier et d\'usine', 4, 'ACTIF'],
-            ['3224', 'Fournitures de magasin', 4, 'ACTIF'],
-            ['3225', 'Fournitures de bureau', 4, 'ACTIF'],
-            ['3228', 'Autres matières et fournitures consommables', 4, 'ACTIF'],
-            ['323', 'Emballages', 3, 'ACTIF'],
-            ['3231', 'Emballages perdus', 4, 'ACTIF'],
-            ['3232', 'Emballages récupérables non identifiables', 4, 'ACTIF'],
-            ['3233', 'Emballages à usage mixte', 4, 'ACTIF'],
-
-            ['33', 'Autres approvisionnements', 2, 'ACTIF'],
-            ['331', 'Matières consommables', 3, 'ACTIF'],
-            ['332', 'Fournitures consommables', 3, 'ACTIF'],
-            ['333', 'Emballages commerciaux', 3, 'ACTIF'],
-
-            ['34', 'Produits en cours', 2, 'ACTIF'],
-            ['341', 'Produits en cours', 3, 'ACTIF'],
-            ['342', 'Travaux en cours', 3, 'ACTIF'],
-            ['343', 'Produits intermédiaires en cours', 3, 'ACTIF'],
-            ['344', 'Produits résiduels en cours', 3, 'ACTIF'],
-            ['345', 'Services en cours', 3, 'ACTIF'],
-
-            ['35', 'Services en cours', 2, 'ACTIF'],
-            ['351', 'Études en cours', 3, 'ACTIF'],
-            ['352', 'Prestations de services en cours', 3, 'ACTIF'],
-
-            ['36', 'Produits finis', 2, 'ACTIF'],
-            ['361', 'Produits finis A', 3, 'ACTIF'],
-            ['362', 'Produits finis B', 3, 'ACTIF'],
-            ['363', 'Produits intermédiaires A', 3, 'ACTIF'],
-            ['364', 'Produits intermédiaires B', 3, 'ACTIF'],
-            ['365', 'Produits résiduels A', 3, 'ACTIF'],
-            ['366', 'Produits résiduels B', 3, 'ACTIF'],
-
-            ['37', 'Produits intermédiaires et résiduels', 2, 'ACTIF'],
-            ['371', 'Produits intermédiaires', 3, 'ACTIF'],
-            ['372', 'Produits résiduels', 3, 'ACTIF'],
-
-            ['38', 'Stocks en cours de route, en consignation ou en dépôt', 2, 'ACTIF'],
-            ['381', 'Marchandises en cours de route', 3, 'ACTIF'],
-            ['382', 'Matières premières en cours de route', 3, 'ACTIF'],
-            ['383', 'Autres approvisionnements en cours de route', 3, 'ACTIF'],
-            ['385', 'Stocks en consignation ou en dépôt', 3, 'ACTIF'],
-            ['386', 'Stocks provenant d\'immobilisations', 3, 'ACTIF'],
-
-            ['39', 'Dépréciations des stocks', 2, 'PASSIF'],
-            ['391', 'Dépréciations des stocks de marchandises', 3, 'PASSIF'],
-            ['392', 'Dépréciations des stocks de matières premières', 3, 'PASSIF'],
-            ['393', 'Dépréciations des stocks d\'autres approvisionnements', 3, 'PASSIF'],
-            ['394', 'Dépréciations des produits en cours', 3, 'PASSIF'],
-            ['395', 'Dépréciations des services en cours', 3, 'PASSIF'],
-            ['396', 'Dépréciations des stocks de produits finis', 3, 'PASSIF'],
-            ['397', 'Dépréciations des stocks de produits intermédiaires et résiduels', 3, 'PASSIF'],
-            ['398', 'Dépréciations des stocks en cours de route, en consignation ou en dépôt', 3, 'PASSIF'],
-        ];
-
-        // ============================================================
-        // CLASSE 4 : COMPTES DE TIERS
-        // ============================================================
-        $classe4 = [
-            ['4', 'COMPTES DE TIERS', 1, 'SPECIAL'],
-
-            ['40', 'Fournisseurs et comptes rattachés', 2, 'PASSIF'],
-            ['401', 'Fournisseurs', 3, 'PASSIF'],
-            ['4011', 'Fournisseurs', 4, 'PASSIF'],
-            ['4012', 'Fournisseurs - en monnaie étrangère', 4, 'PASSIF'],
-            ['4017', 'Fournisseurs - retenues de garantie', 4, 'PASSIF'],
-            ['402', 'Fournisseurs, effets à payer', 3, 'PASSIF'],
-            ['408', 'Fournisseurs, factures non parvenues', 3, 'PASSIF'],
-            ['4081', 'Fournisseurs', 4, 'PASSIF'],
-            ['4086', 'Fournisseurs d\'immobilisations', 4, 'PASSIF'],
-            ['4091', 'Fournisseurs, avances et acomptes versés', 4, 'ACTIF'],
-            ['4094', 'Fournisseurs, créances pour emballages et matériel à rendre', 4, 'ACTIF'],
-            ['4098', 'Rabais, remises, ristournes à obtenir et autres avoirs non encore reçus', 4, 'ACTIF'],
-
-            ['41', 'Clients et comptes rattachés', 2, 'ACTIF'],
-            ['411', 'Clients', 3, 'ACTIF'],
-            ['4111', 'Clients', 4, 'ACTIF'],
-            ['4112', 'Clients - en monnaie étrangère', 4, 'ACTIF'],
-            ['4117', 'Clients - retenues de garantie', 4, 'ACTIF'],
-            ['412', 'Clients, effets à recevoir en portefeuille', 3, 'ACTIF'],
-            ['413', 'Clients, effets à recevoir contre acceptation', 3, 'ACTIF'],
-            ['414', 'Créances sur travaux non encore facturables', 3, 'ACTIF'],
-            ['415', 'Clients, effets escomptés non échus', 3, 'ACTIF'],
-            ['416', 'Créances clients litigieuses ou douteuses', 3, 'ACTIF'],
-            ['418', 'Clients, produits non encore facturés', 3, 'ACTIF'],
-            ['4181', 'Clients, factures à établir', 4, 'ACTIF'],
-            ['4186', 'Clients - intérêts courus', 4, 'ACTIF'],
-            ['419', 'Clients créditeurs', 3, 'PASSIF'],
-            ['4191', 'Clients, avances et acomptes reçus', 4, 'PASSIF'],
-            ['4194', 'Clients, dettes pour emballages et matériel consignés', 4, 'PASSIF'],
-            ['4198', 'Rabais, remises, ristournes à accorder et autres avoirs à établir', 4, 'PASSIF'],
-
-            ['42', 'Personnel', 2, 'PASSIF'],
-            ['421', 'Personnel, avances et acomptes', 3, 'ACTIF'],
-            ['4211', 'Personnel, avances', 4, 'ACTIF'],
-            ['4212', 'Personnel, acomptes', 4, 'ACTIF'],
-            ['4213', 'Frais avancés et fournitures au personnel', 4, 'ACTIF'],
-            ['422', 'Personnel, rémunérations dues', 3, 'PASSIF'],
-            ['4221', 'Personnel, rémunérations dues', 4, 'PASSIF'],
-            ['4222', 'Personnel - participation aux bénéfices', 4, 'PASSIF'],
-            ['423', 'Personnel, oppositions, saisies-arrêts', 3, 'PASSIF'],
-            ['424', 'Personnel, oeuvres sociales internes', 3, 'PASSIF'],
-            ['4241', 'Assistances médicales', 4, 'PASSIF'],
-            ['4242', 'Allocations familiales', 4, 'PASSIF'],
-            ['4248', 'Autres oeuvres sociales internes', 4, 'PASSIF'],
-            ['425', 'Représentants du personnel', 3, 'PASSIF'],
-            ['4251', 'Comité d\'entreprise', 4, 'PASSIF'],
-            ['4252', 'Délégués du personnel', 4, 'PASSIF'],
-            ['4258', 'Autres représentants du personnel', 4, 'PASSIF'],
-            ['426', 'Personnel, participation aux bénéfices', 3, 'PASSIF'],
-            ['428', 'Personnel, charges à payer et produits à recevoir', 3, 'PASSIF'],
-            ['4281', 'Dettes provisionnées pour congés à payer', 4, 'PASSIF'],
-            ['4286', 'Autres charges à payer', 4, 'PASSIF'],
-            ['4287', 'Produits à recevoir', 4, 'ACTIF'],
-
-            ['43', 'Organismes sociaux', 2, 'PASSIF'],
-            ['431', 'Sécurité sociale', 3, 'PASSIF'],
-            ['4311', 'Prestations familiales', 4, 'PASSIF'],
-            ['4312', 'Accidents du travail', 4, 'PASSIF'],
-            ['4313', 'Caisse de retraite obligatoire', 4, 'PASSIF'],
-            ['4314', 'Caisse de retraite facultative', 4, 'PASSIF'],
-            ['4318', 'Autres cotisations sociales', 4, 'PASSIF'],
-            ['432', 'Caisses de retraite complémentaire', 3, 'PASSIF'],
-            ['433', 'Autres organismes sociaux', 3, 'PASSIF'],
-            ['438', 'Organismes sociaux, charges à payer et produits à recevoir', 3, 'PASSIF'],
-            ['4381', 'Charges sociales sur gratifications à payer', 4, 'PASSIF'],
-            ['4382', 'Charges sociales sur congés à payer', 4, 'PASSIF'],
-            ['4386', 'Autres charges à payer', 4, 'PASSIF'],
-            ['4387', 'Produits à recevoir', 4, 'ACTIF'],
-
-            ['44', 'État et collectivités publiques', 2, 'SPECIAL'],
-            ['441', 'État, impôts sur les bénéfices', 3, 'PASSIF'],
-            ['4411', 'Impôts sur les bénéfices de l\'exercice', 4, 'PASSIF'],
-            ['4412', 'Acomptes sur impôts sur les bénéfices', 4, 'ACTIF'],
-            ['4413', 'Impôts sur les bénéfices - exercices antérieurs', 4, 'PASSIF'],
-            ['442', 'État, autres impôts et taxes', 3, 'PASSIF'],
-            ['4421', 'Impôts et taxes d\'État', 4, 'PASSIF'],
-            ['4422', 'Impôts et taxes des collectivités locales', 4, 'PASSIF'],
-            ['4423', 'Droits de douane', 4, 'PASSIF'],
-            ['4424', 'TVA due ou régularisation de TVA', 4, 'PASSIF'],
-            ['4425', 'TVA récupérable', 4, 'ACTIF'],
-            ['4426', 'Taxes spéciales de consommation', 4, 'PASSIF'],
-            ['4428', 'Autres impôts et taxes', 4, 'PASSIF'],
-            ['443', 'État, T.V.A. facturée', 3, 'PASSIF'],
-            ['4431', 'TVA facturée sur ventes', 4, 'PASSIF'],
-            ['4432', 'TVA facturée sur prestations de services', 4, 'PASSIF'],
-            ['4433', 'TVA facturée sur travaux', 4, 'PASSIF'],
-            ['4434', 'TVA facturée sur production livrée à soi-même', 4, 'PASSIF'],
-            ['4435', 'TVA sur factures à établir', 4, 'PASSIF'],
-            ['444', 'État, T.V.A. due ou crédit de T.V.A.', 3, 'SPECIAL'],
-            ['4441', 'État, TVA due', 4, 'PASSIF'],
-            ['4449', 'État, crédit de TVA à reporter', 4, 'ACTIF'],
-            ['445', 'État, T.V.A. récupérable', 3, 'ACTIF'],
-            ['4451', 'TVA récupérable sur immobilisations', 4, 'ACTIF'],
-            ['4452', 'TVA récupérable sur achats', 4, 'ACTIF'],
-            ['4453', 'TVA récupérable sur transports', 4, 'ACTIF'],
-            ['4454', 'TVA récupérable sur services extérieurs', 4, 'ACTIF'],
-            ['4455', 'TVA récupérable sur charges de gestion courante', 4, 'ACTIF'],
-            ['4456', 'TVA transférée par d\'autres entreprises', 4, 'ACTIF'],
-            ['4459', 'TVA à régulariser', 4, 'ACTIF'],
-            ['446', 'État, autres taxes sur le chiffre d\'affaires', 3, 'PASSIF'],
-            ['447', 'État, impôts retenus à la source', 3, 'PASSIF'],
-            ['4471', 'Impôt général sur le revenu', 4, 'PASSIF'],
-            ['4472', 'Taxes sur salaires', 4, 'PASSIF'],
-            ['4473', 'Contribution nationale', 4, 'PASSIF'],
-            ['4474', 'AIB (Acompte sur Impôt sur les Bénéfices)', 4, 'PASSIF'],
-            ['4478', 'Autres impôts et taxes', 4, 'PASSIF'],
-            ['448', 'État, charges à payer et produits à recevoir', 3, 'SPECIAL'],
-            ['4486', 'Charges à payer', 4, 'PASSIF'],
-            ['4487', 'Produits à recevoir', 4, 'ACTIF'],
-            ['449', 'État, créances et dettes diverses', 3, 'SPECIAL'],
-            ['4491', 'État, subventions d\'exploitation à recevoir', 4, 'ACTIF'],
-            ['4492', 'État, subventions d\'équipement à recevoir', 4, 'ACTIF'],
-            ['4493', 'État, subventions d\'équilibre à recevoir', 4, 'ACTIF'],
-            ['4494', 'État, autres subventions à recevoir', 4, 'ACTIF'],
-            ['4495', 'État, fonds à recevoir', 4, 'ACTIF'],
-            ['4496', 'État, fonds de dotation à recevoir', 4, 'ACTIF'],
-            ['4499', 'État, autres créances', 4, 'ACTIF'],
-
-            ['45', 'Organismes internationaux', 2, 'SPECIAL'],
-            ['451', 'Opérations avec les organismes africains', 3, 'SPECIAL'],
-            ['452', 'Opérations avec les autres organismes internationaux', 3, 'SPECIAL'],
-            ['458', 'Organismes internationaux, charges à payer et produits à recevoir', 3, 'SPECIAL'],
-
-            ['46', 'Associés et groupe', 2, 'SPECIAL'],
-            ['461', 'Associés, opérations sur le capital', 3, 'SPECIAL'],
-            ['4611', 'Associés, apports en nature', 4, 'ACTIF'],
-            ['4612', 'Associés, apports en numéraire', 4, 'ACTIF'],
-            ['4613', 'Actionnaires, capital souscrit appelé non versé', 4, 'ACTIF'],
-            ['4614', 'Associés, capital appelé non versé', 4, 'ACTIF'],
-            ['4615', 'Associés défaillants', 4, 'ACTIF'],
-            ['4616', 'Actionnaires défaillants', 4, 'ACTIF'],
-            ['4617', 'Associés, versements anticipés', 4, 'PASSIF'],
-            ['4618', 'Associés, autres apports', 4, 'SPECIAL'],
-            ['462', 'Associés, comptes courants', 3, 'PASSIF'],
-            ['4621', 'Principal', 4, 'PASSIF'],
-            ['4622', 'Intérêts courus', 4, 'PASSIF'],
-            ['463', 'Associés, opérations faites en commun et en GIE', 3, 'SPECIAL'],
-            ['4631', 'Opérations courantes', 4, 'SPECIAL'],
-            ['4632', 'Opérations financières', 4, 'SPECIAL'],
-            ['464', 'Associés, dividendes à payer', 3, 'PASSIF'],
-            ['465', 'Associés, dividendes à recevoir', 3, 'ACTIF'],
-            ['466', 'Groupe, comptes courants', 3, 'SPECIAL'],
-            ['4661', 'Groupe, comptes courants (sociétés du groupe)', 4, 'SPECIAL'],
-            ['4662', 'Intérêts courus', 4, 'SPECIAL'],
-            ['467', 'Actionnaires, restant dû sur capital appelé', 3, 'ACTIF'],
-
-            ['47', 'Débiteurs et créditeurs divers', 2, 'SPECIAL'],
-            ['471', 'Comptes d\'attente', 3, 'SPECIAL'],
-            ['4711', 'Débiteurs divers', 4, 'ACTIF'],
-            ['4712', 'Créditeurs divers', 4, 'PASSIF'],
-            ['4718', 'Autres comptes d\'attente', 4, 'SPECIAL'],
-            ['472', 'Versements restant à effectuer sur titres non libérés', 3, 'PASSIF'],
-            ['474', 'Répartition périodique des produits et des charges', 3, 'SPECIAL'],
-            ['4746', 'Charges', 4, 'ACTIF'],
-            ['4747', 'Produits', 4, 'PASSIF'],
-            ['475', 'Créditeurs du passif circulant', 3, 'PASSIF'],
-            ['4751', 'Compte transitoire lié à la participation des salariés', 4, 'PASSIF'],
-            ['4758', 'Autres créditeurs', 4, 'PASSIF'],
-            ['476', 'Charges constatées d\'avance', 3, 'ACTIF'],
-            ['477', 'Produits constatés d\'avance', 3, 'PASSIF'],
-            ['478', 'Écarts de conversion - actif', 3, 'ACTIF'],
-            ['4781', 'Diminution des créances', 4, 'ACTIF'],
-            ['4782', 'Augmentation des dettes', 4, 'ACTIF'],
-            ['479', 'Écarts de conversion - passif', 3, 'PASSIF'],
-            ['4791', 'Augmentation des créances', 4, 'PASSIF'],
-            ['4792', 'Diminution des dettes', 4, 'PASSIF'],
-
-            ['48', 'Créances et dettes hors activités ordinaires (H.A.O.)', 2, 'SPECIAL'],
-            ['481', 'Fournisseurs d\'investissements', 3, 'PASSIF'],
-            ['4811', 'Fournisseurs d\'immobilisations incorporelles', 4, 'PASSIF'],
-            ['4812', 'Fournisseurs d\'immobilisations corporelles', 4, 'PASSIF'],
-            ['4817', 'Fournisseurs d\'investissements, retenues de garantie', 4, 'PASSIF'],
-            ['482', 'Fournisseurs d\'investissements, effets à payer', 3, 'PASSIF'],
-            ['483', 'Dettes sur acquisitions de titres de placement', 3, 'PASSIF'],
-            ['484', 'Autres dettes H.A.O.', 3, 'PASSIF'],
-            ['485', 'Créances sur cessions d\'immobilisations', 3, 'ACTIF'],
-            ['486', 'Créances sur cessions de titres de placement', 3, 'ACTIF'],
-            ['488', 'Autres créances H.A.O.', 3, 'ACTIF'],
-
-            ['49', 'Dépréciations et provisions pour risques à court terme (Tiers)', 2, 'PASSIF'],
-            ['490', 'Dépréciations des comptes fournisseurs', 3, 'PASSIF'],
-            ['491', 'Dépréciations des comptes clients', 3, 'PASSIF'],
-            ['4911', 'Créances sur ventes de biens et services', 4, 'PASSIF'],
-            ['4912', 'Créances sur travaux et services', 4, 'PASSIF'],
-            ['4919', 'Créances sur autres ventes', 4, 'PASSIF'],
-            ['492', 'Dépréciations des comptes personnel', 3, 'PASSIF'],
-            ['493', 'Dépréciations des comptes organismes sociaux', 3, 'PASSIF'],
-            ['494', 'Dépréciations des comptes État et collectivités publiques', 3, 'PASSIF'],
-            ['495', 'Dépréciations des comptes organismes internationaux', 3, 'PASSIF'],
-            ['496', 'Dépréciations des comptes associés et groupe', 3, 'PASSIF'],
-            ['497', 'Dépréciations des comptes débiteurs divers', 3, 'PASSIF'],
-            ['498', 'Dépréciations des comptes créances H.A.O.', 3, 'PASSIF'],
-            ['499', 'Provisions pour risques à court terme', 3, 'PASSIF'],
-            ['4991', 'Sur opérations d\'exploitation', 4, 'PASSIF'],
-            ['4998', 'Autres provisions pour risques à court terme', 4, 'PASSIF'],
-        ];
-
-        // ============================================================
-        // CLASSE 5 : COMPTES DE TRÉSORERIE
-        // ============================================================
-        $classe5 = [
-            ['5', 'COMPTES DE TRÉSORERIE', 1, 'ACTIF'],
-
-            ['50', 'Titres de placement', 2, 'ACTIF'],
-            ['501', 'Titres du Trésor et bons de caisse à court terme', 3, 'ACTIF'],
-            ['502', 'Actions', 3, 'ACTIF'],
-            ['503', 'Obligations', 3, 'ACTIF'],
-            ['504', 'Bons de souscription', 3, 'ACTIF'],
-            ['505', 'Titres négociables hors région', 3, 'ACTIF'],
-            ['506', 'Intérêts courus', 3, 'ACTIF'],
-            ['508', 'Autres titres de placement', 3, 'ACTIF'],
-
-            ['51', 'Valeurs à encaisser', 2, 'ACTIF'],
-            ['511', 'Effets à encaisser', 3, 'ACTIF'],
-            ['5111', 'Effets à l\'encaissement', 4, 'ACTIF'],
-            ['5112', 'Effets à l\'escompte', 4, 'ACTIF'],
-            ['5113', 'Effets impayés', 4, 'ACTIF'],
-            ['512', 'Effets à l\'encaissement', 3, 'ACTIF'],
-            ['513', 'Chèques à encaisser', 3, 'ACTIF'],
-            ['514', 'Chèques à l\'encaissement', 3, 'ACTIF'],
-            ['515', 'Cartes de crédit à encaisser', 3, 'ACTIF'],
-            ['518', 'Autres valeurs à encaisser', 3, 'ACTIF'],
-
-            ['52', 'Banques', 2, 'ACTIF'],
-            ['521', 'Banques locales', 3, 'ACTIF'],
-            ['5211', 'Banque A', 4, 'ACTIF'],
-            ['5212', 'Banque B', 4, 'ACTIF'],
-            ['5218', 'Autres banques locales', 4, 'ACTIF'],
-            ['522', 'Banques autres États UEMOA', 3, 'ACTIF'],
-            ['523', 'Banques autres États zone franc', 3, 'ACTIF'],
-            ['524', 'Banques hors zone franc', 3, 'ACTIF'],
-            ['525', 'Trésor national', 3, 'ACTIF'],
-            ['526', 'Chèques postaux (CCP)', 3, 'ACTIF'],
-            ['527', 'Organismes financiers divers', 3, 'ACTIF'],
-            ['528', 'Autres organismes financiers', 3, 'ACTIF'],
-
-            ['53', 'Établissements financiers et assimilés', 2, 'ACTIF'],
-            ['531', 'Chèques postaux', 3, 'ACTIF'],
-            ['532', 'Trésor', 3, 'ACTIF'],
-            ['533', 'Sociétés de bourse', 3, 'ACTIF'],
-            ['538', 'Autres organismes financiers', 3, 'ACTIF'],
-
-            ['54', 'Instruments de trésorerie', 2, 'ACTIF'],
-            ['541', 'Options de taux d\'intérêt', 3, 'ACTIF'],
-            ['542', 'Options de taux de change', 3, 'ACTIF'],
-            ['543', 'Options de cours de matières premières', 3, 'ACTIF'],
-            ['544', 'Instruments de marchés à terme', 3, 'ACTIF'],
-            ['545', 'Avoirs en or', 3, 'ACTIF'],
-            ['548', 'Autres instruments de trésorerie', 3, 'ACTIF'],
-
-            ['55', 'Instruments de monnaie électronique', 2, 'ACTIF'],
-            ['551', 'Porte-monnaie électronique', 3, 'ACTIF'],
-            ['552', 'Mobile money', 3, 'ACTIF'],
-            ['5521', 'MTN Mobile Money', 4, 'ACTIF'],
-            ['5522', 'Moov Money', 4, 'ACTIF'],
-            ['5523', 'Orange Money', 4, 'ACTIF'],
-            ['5528', 'Autres opérateurs Mobile Money', 4, 'ACTIF'],
-            ['558', 'Autres instruments de monnaie électronique', 3, 'ACTIF'],
-
-            ['56', 'Banques, crédits de trésorerie et d\'escompte', 2, 'PASSIF'],
-            ['561', 'Crédits de trésorerie', 3, 'PASSIF'],
-            ['564', 'Escompte de crédits ordinaires', 3, 'PASSIF'],
-            ['565', 'Escompte de crédits documentaires', 3, 'PASSIF'],
-            ['566', 'Intérêts courus', 3, 'PASSIF'],
-
-            ['57', 'Caisse', 2, 'ACTIF'],
-            ['571', 'Caisse siège social', 3, 'ACTIF'],
-            ['5711', 'Caisse principale', 4, 'ACTIF'],
-            ['5712', 'Caisse secondaire', 4, 'ACTIF'],
-            ['5718', 'Autres caisses siège social', 4, 'ACTIF'],
-            ['572', 'Caisse succursale A', 3, 'ACTIF'],
-            ['573', 'Caisse succursale B', 3, 'ACTIF'],
-            ['574', 'Régies d\'avances', 3, 'ACTIF'],
-
-            ['58', 'Virements internes', 2, 'ACTIF'],
-            ['581', 'Virements de fonds', 3, 'ACTIF'],
-            ['585', 'Virements de fonds de caisse', 3, 'ACTIF'],
-            ['588', 'Autres virements internes', 3, 'ACTIF'],
-
-            ['59', 'Dépréciations et provisions pour risques à court terme', 2, 'PASSIF'],
-            ['590', 'Dépréciations des titres de placement', 3, 'PASSIF'],
-            ['591', 'Dépréciations des valeurs à encaisser', 3, 'PASSIF'],
-            ['592', 'Dépréciations des comptes banques', 3, 'PASSIF'],
-            ['593', 'Dépréciations des établissements financiers', 3, 'PASSIF'],
-            ['594', 'Dépréciations des instruments de trésorerie', 3, 'PASSIF'],
-            ['599', 'Provisions pour risques à court terme', 3, 'PASSIF'],
-        ];
-
-        // ============================================================
-        // CLASSE 6 : COMPTES DE CHARGES
-        // ============================================================
-        $classe6 = [
-            ['6', 'COMPTES DE CHARGES DES ACTIVITÉS ORDINAIRES', 1, 'CHARGE'],
-
-            ['60', 'Achats et variations de stocks', 2, 'CHARGE'],
-            ['601', 'Achats de marchandises', 3, 'CHARGE'],
-            ['6011', 'Marchandises A', 4, 'CHARGE'],
-            ['6012', 'Marchandises B', 4, 'CHARGE'],
-            ['6019', 'Rabais, remises et ristournes obtenus sur achats de marchandises', 4, 'CHARGE'],
-            ['602', 'Achats de matières premières et fournitures liées', 3, 'CHARGE'],
-            ['6021', 'Matières premières', 4, 'CHARGE'],
-            ['6022', 'Matières et fournitures consommables', 4, 'CHARGE'],
-            ['6023', 'Emballages', 4, 'CHARGE'],
-            ['6029', 'Rabais, remises et ristournes obtenus', 4, 'CHARGE'],
-            ['603', 'Variations des stocks de biens achetés', 3, 'CHARGE'],
-            ['6031', 'Variations des stocks de marchandises', 4, 'CHARGE'],
-            ['6032', 'Variations des stocks de matières premières', 4, 'CHARGE'],
-            ['6033', 'Variations des stocks d\'autres approvisionnements', 4, 'CHARGE'],
-            ['604', 'Achats stockés de matières et fournitures consommables', 3, 'CHARGE'],
-            ['6041', 'Matières consommables', 4, 'CHARGE'],
-            ['6042', 'Matières combustibles', 4, 'CHARGE'],
-            ['6043', 'Produits d\'entretien', 4, 'CHARGE'],
-            ['6044', 'Fournitures d\'atelier et d\'usine', 4, 'CHARGE'],
-            ['6045', 'Fournitures de magasin', 4, 'CHARGE'],
-            ['6046', 'Fournitures de bureau', 4, 'CHARGE'],
-            ['6047', 'Fournitures médicales et pharmaceutiques', 4, 'CHARGE'],
-            ['6048', 'Autres matières et fournitures consommables', 4, 'CHARGE'],
-            ['605', 'Autres achats', 3, 'CHARGE'],
-            ['6051', 'Fournitures non stockables - eau', 4, 'CHARGE'],
-            ['6052', 'Fournitures non stockables - électricité', 4, 'CHARGE'],
-            ['6053', 'Fournitures non stockables - autres énergies', 4, 'CHARGE'],
-            ['6054', 'Fournitures d\'entretien non stockables', 4, 'CHARGE'],
-            ['6055', 'Fournitures de bureau non stockables', 4, 'CHARGE'],
-            ['6056', 'Achats de petit équipement et outillage', 4, 'CHARGE'],
-            ['6057', 'Achats d\'études et prestations de services', 4, 'CHARGE'],
-            ['6058', 'Achats de travaux, matériels et équipements', 4, 'CHARGE'],
-            ['6059', 'Rabais, remises et ristournes obtenus sur autres achats', 4, 'CHARGE'],
-            ['608', 'Achats d\'emballages', 3, 'CHARGE'],
-            ['6081', 'Emballages perdus', 4, 'CHARGE'],
-            ['6082', 'Emballages récupérables non identifiables', 4, 'CHARGE'],
-            ['6083', 'Emballages à usage mixte', 4, 'CHARGE'],
-
-            ['61', 'Transports', 2, 'CHARGE'],
-            ['611', 'Transports sur achats', 3, 'CHARGE'],
-            ['612', 'Transports sur ventes', 3, 'CHARGE'],
-            ['613', 'Transports pour le compte de tiers', 3, 'CHARGE'],
-            ['614', 'Transports du personnel', 3, 'CHARGE'],
-            ['616', 'Transports de plis', 3, 'CHARGE'],
-            ['618', 'Autres frais de transports', 3, 'CHARGE'],
-
-            ['62', 'Services extérieurs A', 2, 'CHARGE'],
-            ['621', 'Sous-traitance générale', 3, 'CHARGE'],
-            ['622', 'Locations et charges locatives', 3, 'CHARGE'],
-            ['6221', 'Locations de terrains', 4, 'CHARGE'],
-            ['6222', 'Locations de bâtiments', 4, 'CHARGE'],
-            ['6223', 'Locations de matériels et outillages', 4, 'CHARGE'],
-            ['6224', 'Malis sur emballages', 4, 'CHARGE'],
-            ['6225', 'Locations de matériel de transport', 4, 'CHARGE'],
-            ['6228', 'Locations et charges locatives diverses', 4, 'CHARGE'],
-            ['623', 'Redevances de crédit-bail et contrats assimilés', 3, 'CHARGE'],
-            ['6231', 'Crédit-bail mobilier', 4, 'CHARGE'],
-            ['6232', 'Crédit-bail immobilier', 4, 'CHARGE'],
-            ['6233', 'Contrats assimilés', 4, 'CHARGE'],
-            ['624', 'Entretien, réparations et maintenance', 3, 'CHARGE'],
-            ['6241', 'Entretien et réparations des biens immobiliers', 4, 'CHARGE'],
-            ['6242', 'Entretien et réparations des biens mobiliers', 4, 'CHARGE'],
-            ['6243', 'Maintenance', 4, 'CHARGE'],
-            ['6248', 'Autres entretiens et réparations', 4, 'CHARGE'],
-            ['625', 'Primes d\'assurance', 3, 'CHARGE'],
-            ['6251', 'Assurances multirisques', 4, 'CHARGE'],
-            ['6252', 'Assurances matériel de transport', 4, 'CHARGE'],
-            ['6253', 'Assurances risques d\'exploitation', 4, 'CHARGE'],
-            ['6254', 'Assurances responsabilité du dirigeant', 4, 'CHARGE'],
-            ['6255', 'Assurances transport sur achats', 4, 'CHARGE'],
-            ['6256', 'Assurances transport sur ventes', 4, 'CHARGE'],
-            ['6258', 'Autres primes d\'assurance', 4, 'CHARGE'],
-            ['626', 'Études, recherches et documentation', 3, 'CHARGE'],
-            ['6261', 'Études et recherches', 4, 'CHARGE'],
-            ['6265', 'Documentation générale', 4, 'CHARGE'],
-            ['6266', 'Documentation technique', 4, 'CHARGE'],
-            ['627', 'Publicité, publications, relations publiques', 3, 'CHARGE'],
-            ['6271', 'Annonces, insertions', 4, 'CHARGE'],
-            ['6272', 'Catalogues, imprimés publicitaires', 4, 'CHARGE'],
-            ['6273', 'Échantillons', 4, 'CHARGE'],
-            ['6274', 'Foires et expositions', 4, 'CHARGE'],
-            ['6275', 'Publications', 4, 'CHARGE'],
-            ['6276', 'Cadeaux à la clientèle', 4, 'CHARGE'],
-            ['6277', 'Frais de colloques, séminaires, conférences', 4, 'CHARGE'],
-            ['6278', 'Autres charges de publicité et relations publiques', 4, 'CHARGE'],
-            ['628', 'Frais de télécommunications', 3, 'CHARGE'],
-            ['6281', 'Frais de téléphone', 4, 'CHARGE'],
-            ['6282', 'Frais de télex et télécopie', 4, 'CHARGE'],
-            ['6283', 'Frais d\'internet', 4, 'CHARGE'],
-            ['6288', 'Autres frais de télécommunications', 4, 'CHARGE'],
-
-            ['63', 'Services extérieurs B', 2, 'CHARGE'],
-            ['631', 'Frais bancaires', 3, 'CHARGE'],
-            ['6311', 'Frais sur effets', 4, 'CHARGE'],
-            ['6312', 'Frais sur comptes', 4, 'CHARGE'],
-            ['6313', 'Locations de coffres', 4, 'CHARGE'],
-            ['6314', 'Commissions sur cartes de crédit', 4, 'CHARGE'],
-            ['6315', 'Commissions sur opérations de bourse', 4, 'CHARGE'],
-            ['6316', 'Frais d\'achat et de vente des titres', 4, 'CHARGE'],
-            ['6318', 'Autres frais bancaires', 4, 'CHARGE'],
-            ['632', 'Rémunérations d\'intermédiaires et honoraires', 3, 'CHARGE'],
-            ['6321', 'Commissions et courtages sur achats', 4, 'CHARGE'],
-            ['6322', 'Commissions et courtages sur ventes', 4, 'CHARGE'],
-            ['6323', 'Commissions et courtages sur autres opérations', 4, 'CHARGE'],
-            ['6324', 'Honoraires', 4, 'CHARGE'],
-            ['6325', 'Frais d\'actes et de contentieux', 4, 'CHARGE'],
-            ['6328', 'Divers frais', 4, 'CHARGE'],
-            ['633', 'Frais de formation du personnel', 3, 'CHARGE'],
-            ['634', 'Redevances pour brevets, licences, logiciels, concessions', 3, 'CHARGE'],
-            ['6341', 'Redevances pour brevets, licences', 4, 'CHARGE'],
-            ['6342', 'Redevances pour logiciels', 4, 'CHARGE'],
-            ['6343', 'Redevances pour concessions', 4, 'CHARGE'],
-            ['6344', 'Redevances pour droits et valeurs similaires', 4, 'CHARGE'],
-            ['635', 'Cotisations', 3, 'CHARGE'],
-            ['6351', 'Cotisations', 4, 'CHARGE'],
-            ['636', 'Dons', 3, 'CHARGE'],
-            ['6361', 'Dons', 4, 'CHARGE'],
-            ['637', 'Rémunérations du personnel extérieur à l\'entreprise', 3, 'CHARGE'],
-            ['6371', 'Personnel intérimaire', 4, 'CHARGE'],
-            ['6372', 'Personnel détaché ou prêté à l\'entreprise', 4, 'CHARGE'],
-            ['638', 'Autres charges externes', 3, 'CHARGE'],
-            ['6381', 'Frais de recrutement', 4, 'CHARGE'],
-            ['6382', 'Frais de déménagement', 4, 'CHARGE'],
-            ['6383', 'Réceptions', 4, 'CHARGE'],
-            ['6384', 'Missions', 4, 'CHARGE'],
-            ['6385', 'Frais de procédures', 4, 'CHARGE'],
-            ['6388', 'Autres', 4, 'CHARGE'],
-
-            ['64', 'Impôts et taxes', 2, 'CHARGE'],
-            ['641', 'Impôts et taxes directs', 3, 'CHARGE'],
-            ['6411', 'Impôts fonciers et taxes annexes', 4, 'CHARGE'],
-            ['6412', 'Patentes, licences et taxes annexes', 4, 'CHARGE'],
-            ['6413', 'Taxes sur appointements et salaires', 4, 'CHARGE'],
-            ['6414', 'Taxes d\'apprentissage', 4, 'CHARGE'],
-            ['6415', 'Formation professionnelle continue', 4, 'CHARGE'],
-            ['6418', 'Autres impôts et taxes directs', 4, 'CHARGE'],
-            ['645', 'Impôts et taxes indirects', 3, 'CHARGE'],
-            ['646', 'Droits d\'enregistrement', 3, 'CHARGE'],
-            ['6461', 'Droits de mutation', 4, 'CHARGE'],
-            ['6462', 'Droits de timbre', 4, 'CHARGE'],
-            ['6463', 'Taxes sur les véhicules', 4, 'CHARGE'],
-            ['6464', 'Vignettes', 4, 'CHARGE'],
-            ['6468', 'Autres droits', 4, 'CHARGE'],
-            ['647', 'Pénalités et amendes fiscales', 3, 'CHARGE'],
-            ['6471', 'Pénalités d\'assiette, impôts directs', 4, 'CHARGE'],
-            ['6472', 'Pénalités d\'assiette, impôts indirects', 4, 'CHARGE'],
-            ['6473', 'Pénalités de recouvrement, impôts directs', 4, 'CHARGE'],
-            ['6474', 'Pénalités de recouvrement, impôts indirects', 4, 'CHARGE'],
-            ['6478', 'Autres pénalités et amendes fiscales', 4, 'CHARGE'],
-            ['648', 'Autres impôts et taxes', 3, 'CHARGE'],
-
-            ['65', 'Autres charges', 2, 'CHARGE'],
-            ['651', 'Pertes sur créances clients et autres débiteurs', 3, 'CHARGE'],
-            ['6511', 'Pertes sur créances clients', 4, 'CHARGE'],
-            ['6515', 'Pertes sur autres créances', 4, 'CHARGE'],
-            ['652', 'Quote-part de résultat sur opérations faites en commun', 3, 'CHARGE'],
-            ['6521', 'Quote-part de pertes sur opérations faites en commun', 4, 'CHARGE'],
-            ['653', 'Quote-part de résultat sur opérations faites en commun', 3, 'CHARGE'],
-            ['654', 'Valeurs comptables des cessions courantes d\'immobilisations', 3, 'CHARGE'],
-            ['658', 'Charges diverses', 3, 'CHARGE'],
-            ['6581', 'Jetons de présence et autres rémunérations d\'administrateurs', 4, 'CHARGE'],
-            ['6582', 'Dons', 4, 'CHARGE'],
-            ['6583', 'Mécénat', 4, 'CHARGE'],
-            ['6588', 'Autres charges diverses', 4, 'CHARGE'],
-            ['659', 'Charges provisionnées d\'exploitation', 3, 'CHARGE'],
-            ['6591', 'Sur risques à court terme', 4, 'CHARGE'],
-            ['6593', 'Sur stocks', 4, 'CHARGE'],
-            ['6594', 'Sur créances', 4, 'CHARGE'],
-            ['6598', 'Autres charges provisionnées', 4, 'CHARGE'],
-
-            ['66', 'Charges de personnel', 2, 'CHARGE'],
-            ['661', 'Rémunérations directes versées au personnel national', 3, 'CHARGE'],
-            ['6611', 'Appointements, salaires et commissions', 4, 'CHARGE'],
-            ['6612', 'Primes et gratifications', 4, 'CHARGE'],
-            ['6613', 'Congés payés', 4, 'CHARGE'],
-            ['6614', 'Indemnités de préavis, licenciement et recherche d\'embauche', 4, 'CHARGE'],
-            ['6615', 'Indemnités de maladie versées aux travailleurs', 4, 'CHARGE'],
-            ['6616', 'Supplément familial', 4, 'CHARGE'],
-            ['6617', 'Avantages en nature', 4, 'CHARGE'],
-            ['6618', 'Autres rémunérations directes', 4, 'CHARGE'],
-            ['662', 'Rémunérations directes versées au personnel non national', 3, 'CHARGE'],
-            ['6621', 'Appointements, salaires et commissions', 4, 'CHARGE'],
-            ['6622', 'Primes et gratifications', 4, 'CHARGE'],
-            ['6623', 'Congés payés', 4, 'CHARGE'],
-            ['6624', 'Indemnités de préavis, licenciement et recherche d\'embauche', 4, 'CHARGE'],
-            ['6625', 'Indemnités de maladie versées aux travailleurs', 4, 'CHARGE'],
-            ['6626', 'Supplément familial', 4, 'CHARGE'],
-            ['6627', 'Avantages en nature', 4, 'CHARGE'],
-            ['6628', 'Autres rémunérations directes', 4, 'CHARGE'],
-            ['663', 'Indemnités forfaitaires versées au personnel', 3, 'CHARGE'],
-            ['6631', 'Indemnités de logement', 4, 'CHARGE'],
-            ['6632', 'Indemnités de représentation', 4, 'CHARGE'],
-            ['6633', 'Indemnités d\'expatriation', 4, 'CHARGE'],
-            ['6634', 'Indemnités de transport', 4, 'CHARGE'],
-            ['6635', 'Indemnités de fonction', 4, 'CHARGE'],
-            ['6636', 'Indemnités de responsabilité', 4, 'CHARGE'],
-            ['6638', 'Autres indemnités et avantages divers', 4, 'CHARGE'],
-            ['664', 'Charges sociales', 3, 'CHARGE'],
-            ['6641', 'Charges sociales sur rémunérations du personnel national', 4, 'CHARGE'],
-            ['6642', 'Charges sociales sur rémunérations du personnel non national', 4, 'CHARGE'],
-            ['666', 'Charges sociales sur rémunérations du dirigeant', 3, 'CHARGE'],
-            ['667', 'Rémunération transférée de personnel extérieur', 3, 'CHARGE'],
-            ['668', 'Autres charges sociales', 3, 'CHARGE'],
-            ['6681', 'Versements aux syndicats', 4, 'CHARGE'],
-            ['6682', 'Versements aux comités d\'entreprise, d\'établissement', 4, 'CHARGE'],
-            ['6683', 'Versements aux comités d\'hygiène et sécurité', 4, 'CHARGE'],
-            ['6684', 'Versements aux autres oeuvres sociales', 4, 'CHARGE'],
-            ['6685', 'Versements aux mutuelles', 4, 'CHARGE'],
-            ['6688', 'Autres charges sociales', 4, 'CHARGE'],
-
-            ['67', 'Frais financiers et charges assimilées', 2, 'CHARGE'],
-            ['671', 'Intérêts des emprunts', 3, 'CHARGE'],
-            ['6711', 'Emprunts obligataires', 4, 'CHARGE'],
-            ['6712', 'Emprunts auprès des établissements de crédit', 4, 'CHARGE'],
-            ['6713', 'Avances reçues et comptes courants bloqués', 4, 'CHARGE'],
-            ['6714', 'Dettes liées à des participations', 4, 'CHARGE'],
-            ['6715', 'Dettes commerciales', 4, 'CHARGE'],
-            ['6716', 'Dettes de crédit-bail', 4, 'CHARGE'],
-            ['6718', 'Intérêts des autres emprunts et dettes', 4, 'CHARGE'],
-            ['672', 'Intérêts dans loyers de crédit-bail et contrats assimilés', 3, 'CHARGE'],
-            ['6721', 'Crédit-bail immobilier', 4, 'CHARGE'],
-            ['6722', 'Crédit-bail mobilier', 4, 'CHARGE'],
-            ['6728', 'Autres', 4, 'CHARGE'],
-            ['673', 'Escomptes accordés', 3, 'CHARGE'],
-            ['674', 'Autres intérêts', 3, 'CHARGE'],
-            ['675', 'Escomptes des effets de commerce', 3, 'CHARGE'],
-            ['676', 'Pertes de change', 3, 'CHARGE'],
-            ['677', 'Pertes sur cessions de titres de placement', 3, 'CHARGE'],
-            ['678', 'Pertes sur risques financiers', 3, 'CHARGE'],
-            ['6781', 'Sur rentes viagères', 4, 'CHARGE'],
-            ['6782', 'Sur opérations financières', 4, 'CHARGE'],
-            ['679', 'Charges provisionnées financières', 3, 'CHARGE'],
-            ['6791', 'Sur risques financiers', 4, 'CHARGE'],
-            ['6795', 'Sur titres de placement', 4, 'CHARGE'],
-            ['6798', 'Autres charges provisionnées financières', 4, 'CHARGE'],
-
-            ['68', 'Dotations aux amortissements', 2, 'CHARGE'],
-            ['681', 'Dotations aux amortissements d\'exploitation', 3, 'CHARGE'],
-            ['6811', 'Dotations aux amortissements des charges immobilisées', 4, 'CHARGE'],
-            ['6812', 'Dotations aux amortissements des immobilisations incorporelles', 4, 'CHARGE'],
-            ['6813', 'Dotations aux amortissements des immobilisations corporelles', 4, 'CHARGE'],
-            ['687', 'Dotations aux amortissements à caractère financier', 3, 'CHARGE'],
-            ['6871', 'Dotations aux amortissements des primes de remboursement des obligations', 4, 'CHARGE'],
-            ['6872', 'Dotations aux provisions pour dépréciation des immobilisations financières', 4, 'CHARGE'],
-
-            ['69', 'Dotations aux provisions et aux dépréciations', 2, 'CHARGE'],
-            ['691', 'Dotations aux provisions d\'exploitation', 3, 'CHARGE'],
-            ['6911', 'Pour risques et charges', 4, 'CHARGE'],
-            ['6912', 'Pour grosses réparations', 4, 'CHARGE'],
-            ['6913', 'Pour dépréciation des immobilisations incorporelles', 4, 'CHARGE'],
-            ['6914', 'Pour dépréciation des immobilisations corporelles', 4, 'CHARGE'],
-            ['692', 'Dotations aux provisions pour dépréciation des stocks', 3, 'CHARGE'],
-            ['693', 'Dotations aux provisions pour dépréciation des créances', 3, 'CHARGE'],
-            ['697', 'Dotations aux provisions financières', 3, 'CHARGE'],
-            ['6971', 'Pour risques et charges', 4, 'CHARGE'],
-            ['6972', 'Pour dépréciation des immobilisations financières', 4, 'CHARGE'],
-        ];
-
-        // ============================================================
-        // CLASSE 7 : COMPTES DE PRODUITS
-        // ============================================================
-        $classe7 = [
-            ['7', 'COMPTES DE PRODUITS DES ACTIVITÉS ORDINAIRES', 1, 'PRODUIT'],
-
-            ['70', 'Ventes', 2, 'PRODUIT'],
-            ['701', 'Ventes de marchandises', 3, 'PRODUIT'],
-            ['7011', 'Marchandises A', 4, 'PRODUIT'],
-            ['7012', 'Marchandises B', 4, 'PRODUIT'],
-            ['7013', 'Marchandises C', 4, 'PRODUIT'],
-            ['7017', 'Rabais, remises et ristournes accordés', 4, 'PRODUIT'],
-            ['702', 'Ventes de produits finis', 3, 'PRODUIT'],
-            ['7021', 'Produits finis A', 4, 'PRODUIT'],
-            ['7022', 'Produits finis B', 4, 'PRODUIT'],
-            ['7023', 'Produits finis C', 4, 'PRODUIT'],
-            ['7027', 'Rabais, remises et ristournes accordés', 4, 'PRODUIT'],
-            ['703', 'Ventes de produits intermédiaires', 3, 'PRODUIT'],
-            ['704', 'Ventes de produits résiduels', 3, 'PRODUIT'],
-            ['705', 'Travaux facturés', 3, 'PRODUIT'],
-            ['706', 'Services vendus', 3, 'PRODUIT'],
-            ['7061', 'Services vendus aux tiers', 4, 'PRODUIT'],
-            ['7062', 'Prestations médicales', 4, 'PRODUIT'],
-            ['7063', 'Consultations', 4, 'PRODUIT'],
-            ['7064', 'Analyses et examens', 4, 'PRODUIT'],
-            ['7065', 'Hospitalisations', 4, 'PRODUIT'],
-            ['7066', 'Interventions chirurgicales', 4, 'PRODUIT'],
-            ['7068', 'Autres services vendus', 4, 'PRODUIT'],
-            ['707', 'Produits accessoires', 3, 'PRODUIT'],
-            ['7071', 'Ports, emballages perdus et autres frais facturés', 4, 'PRODUIT'],
-            ['7072', 'Commissions et courtages', 4, 'PRODUIT'],
-            ['7073', 'Locations', 4, 'PRODUIT'],
-            ['7074', 'Bonis sur reprises d\'emballages consignés', 4, 'PRODUIT'],
-            ['7075', 'Mise à disposition de personnel', 4, 'PRODUIT'],
-            ['7076', 'Redevances pour brevets, logiciels', 4, 'PRODUIT'],
-            ['7077', 'Services exploités dans l\'intérêt du personnel', 4, 'PRODUIT'],
-            ['7078', 'Autres produits accessoires', 4, 'PRODUIT'],
-
-            ['71', 'Subventions d\'exploitation', 2, 'PRODUIT'],
-            ['711', 'Subventions d\'exploitation reçues', 3, 'PRODUIT'],
-            ['7111', 'Sur produits', 4, 'PRODUIT'],
-            ['7112', 'Sur matières et fournitures', 4, 'PRODUIT'],
-            ['7113', 'Sur frais de main-d\'oeuvre', 4, 'PRODUIT'],
-            ['7114', 'D\'équilibre', 4, 'PRODUIT'],
-            ['7118', 'Autres subventions d\'exploitation', 4, 'PRODUIT'],
-            ['718', 'Autres subventions d\'exploitation', 3, 'PRODUIT'],
-
-            ['72', 'Production immobilisée', 2, 'PRODUIT'],
-            ['721', 'Immobilisations incorporelles', 3, 'PRODUIT'],
-            ['722', 'Immobilisations corporelles', 3, 'PRODUIT'],
-
-            ['73', 'Variations des stocks de biens produits et en cours', 2, 'PRODUIT'],
-            ['734', 'Variations des stocks de produits en cours', 3, 'PRODUIT'],
-            ['735', 'Variations des stocks de services en cours', 3, 'PRODUIT'],
-            ['736', 'Variations des stocks de produits finis', 3, 'PRODUIT'],
-            ['737', 'Variations des stocks de produits intermédiaires et résiduels', 3, 'PRODUIT'],
-
-            ['75', 'Autres produits', 2, 'PRODUIT'],
-            ['751', 'Quote-part de résultat sur opérations faites en commun', 3, 'PRODUIT'],
-            ['752', 'Quote-part de résultat sur opérations faites en commun', 3, 'PRODUIT'],
-            ['753', 'Quote-part de résultat sur opérations faites en commun', 3, 'PRODUIT'],
-            ['754', 'Produits des cessions courantes d\'immobilisations', 3, 'PRODUIT'],
-            ['758', 'Produits divers', 3, 'PRODUIT'],
-            ['7581', 'Jetons de présence et autres rémunérations d\'administrateurs', 4, 'PRODUIT'],
-            ['7582', 'Indemnités d\'assurances reçues', 4, 'PRODUIT'],
-            ['7588', 'Autres produits divers', 4, 'PRODUIT'],
-            ['759', 'Reprises de charges provisionnées d\'exploitation', 3, 'PRODUIT'],
-            ['7591', 'Sur risques à court terme', 4, 'PRODUIT'],
-            ['7593', 'Sur stocks', 4, 'PRODUIT'],
-            ['7594', 'Sur créances', 4, 'PRODUIT'],
-            ['7598', 'Autres reprises', 4, 'PRODUIT'],
-
-            ['77', 'Revenus financiers et produits assimilés', 2, 'PRODUIT'],
-            ['771', 'Intérêts de prêts', 3, 'PRODUIT'],
-            ['772', 'Revenus de participations', 3, 'PRODUIT'],
-            ['773', 'Escomptes obtenus', 3, 'PRODUIT'],
-            ['774', 'Revenus de titres de placement', 3, 'PRODUIT'],
-            ['775', 'Revenus des créances commerciales', 3, 'PRODUIT'],
-            ['776', 'Gains de change', 3, 'PRODUIT'],
-            ['777', 'Gains sur cessions de titres de placement', 3, 'PRODUIT'],
-            ['778', 'Gains sur risques financiers', 3, 'PRODUIT'],
-            ['779', 'Reprises de charges provisionnées financières', 3, 'PRODUIT'],
-            ['7791', 'Sur risques financiers', 4, 'PRODUIT'],
-            ['7795', 'Sur titres de placement', 4, 'PRODUIT'],
-            ['7798', 'Autres reprises', 4, 'PRODUIT'],
-
-            ['78', 'Transferts de charges d\'exploitation', 2, 'PRODUIT'],
-            ['781', 'Transferts de charges d\'exploitation', 3, 'PRODUIT'],
-            ['787', 'Transferts de charges financières', 3, 'PRODUIT'],
-
-            ['79', 'Reprises de provisions et dépréciations', 2, 'PRODUIT'],
-            ['791', 'Reprises de provisions d\'exploitation', 3, 'PRODUIT'],
-            ['7911', 'Pour risques et charges d\'exploitation', 4, 'PRODUIT'],
-            ['7912', 'Pour grosses réparations', 4, 'PRODUIT'],
-            ['7913', 'Pour dépréciation des immobilisations incorporelles', 4, 'PRODUIT'],
-            ['7914', 'Pour dépréciation des immobilisations corporelles', 4, 'PRODUIT'],
-            ['792', 'Reprises de provisions pour dépréciation des stocks', 3, 'PRODUIT'],
-            ['793', 'Reprises de provisions pour dépréciation des créances', 3, 'PRODUIT'],
-            ['797', 'Reprises de provisions financières', 3, 'PRODUIT'],
-            ['7971', 'Pour risques et charges financiers', 4, 'PRODUIT'],
-            ['7972', 'Pour dépréciation des immobilisations financières', 4, 'PRODUIT'],
-        ];
-
-        // ============================================================
-        // CLASSE 8 : COMPTES HAO
-        // ============================================================
-        $classe8 = [
-            ['8', 'COMPTES DES AUTRES CHARGES ET PRODUITS (H.A.O.)', 1, 'SPECIAL'],
-
-            ['81', 'Valeurs comptables des cessions d\'immobilisations', 2, 'CHARGE'],
-            ['811', 'Immobilisations incorporelles', 3, 'CHARGE'],
-            ['812', 'Immobilisations corporelles', 3, 'CHARGE'],
-            ['813', 'Immobilisations financières', 3, 'CHARGE'],
-
-            ['82', 'Produits des cessions d\'immobilisations', 2, 'PRODUIT'],
-            ['821', 'Immobilisations incorporelles', 3, 'PRODUIT'],
-            ['822', 'Immobilisations corporelles', 3, 'PRODUIT'],
-            ['823', 'Immobilisations financières', 3, 'PRODUIT'],
-
-            ['83', 'Charges H.A.O.', 2, 'CHARGE'],
-            ['831', 'Charges H.A.O. constatées', 3, 'CHARGE'],
-            ['834', 'Pertes sur créances H.A.O.', 3, 'CHARGE'],
-            ['835', 'Dons et libéralités accordés', 3, 'CHARGE'],
-            ['836', 'Subventions accordées', 3, 'CHARGE'],
-            ['839', 'Charges provisionnées H.A.O.', 3, 'CHARGE'],
-
-            ['84', 'Produits H.A.O.', 2, 'PRODUIT'],
-            ['841', 'Produits H.A.O. constatés', 3, 'PRODUIT'],
-            ['845', 'Dons et libéralités reçus', 3, 'PRODUIT'],
-            ['846', 'Subventions reçues', 3, 'PRODUIT'],
-            ['848', 'Transferts de charges H.A.O.', 3, 'PRODUIT'],
-            ['849', 'Reprises de charges provisionnées H.A.O.', 3, 'PRODUIT'],
-
-            ['85', 'Dotations H.A.O.', 2, 'CHARGE'],
-            ['851', 'Dotations aux amortissements H.A.O.', 3, 'CHARGE'],
-            ['852', 'Dotations aux provisions H.A.O.', 3, 'CHARGE'],
-            ['853', 'Dotations pour dépréciation H.A.O.', 3, 'CHARGE'],
-
-            ['86', 'Reprises H.A.O.', 2, 'PRODUIT'],
-            ['861', 'Reprises d\'amortissements H.A.O.', 3, 'PRODUIT'],
-            ['862', 'Reprises de provisions H.A.O.', 3, 'PRODUIT'],
-            ['863', 'Reprises de dépréciations H.A.O.', 3, 'PRODUIT'],
-
-            ['87', 'Participation des travailleurs', 2, 'CHARGE'],
-            ['871', 'Participation des travailleurs', 3, 'CHARGE'],
-
-            ['88', 'Subventions d\'équilibre', 2, 'PRODUIT'],
-            ['881', 'État', 3, 'PRODUIT'],
-            ['884', 'Collectivités publiques', 3, 'PRODUIT'],
-            ['886', 'Groupe', 3, 'PRODUIT'],
-            ['888', 'Autres organismes', 3, 'PRODUIT'],
-
-            ['89', 'Impôts sur le résultat', 2, 'CHARGE'],
-            ['891', 'Impôts sur les bénéfices de l\'exercice', 3, 'CHARGE'],
-            ['8911', 'Activités exercées dans l\'État', 4, 'CHARGE'],
-            ['8912', 'Activités exercées dans les autres États de la région', 4, 'CHARGE'],
-            ['8913', 'Activités exercées hors région', 4, 'CHARGE'],
-            ['892', 'Rappel d\'impôts sur résultats antérieurs', 3, 'CHARGE'],
-            ['895', 'Impôt minimum forfaitaire (IMF)', 3, 'CHARGE'],
-            ['899', 'Dégrèvements et annulations d\'impôts sur résultats antérieurs', 3, 'PRODUIT'],
-        ];
-
-        // Fusion de toutes les classes
-        $allComptes = array_merge($classe1, $classe2, $classe3, $classe4, $classe5, $classe6, $classe7, $classe8);
-
-        // Transformer en format base de données
-        foreach ($allComptes as $compte) {
             $comptes[] = [
-                'numero_compte' => $compte[0],
-                'libelle' => $compte[1],
-                'classe' => (int)$compte[0][0],
-                'niveau' => $compte[2],
-                'type_compte' => $compte[3],
-                'utilisable' => $compte[2] >= 4, // Les comptes de niveau 4+ sont utilisables
-                'created_at' => $now,
-                'updated_at' => $now,
+                'numero_compte' => $numeroCompte,
+                'libelle' => trim((string) $libelle),
+                'classe' => $classe,
+                'niveau' => $niveau,
+                'type_compte' => $typeCompte,
+                'utilisable' => $utilisable,
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
         }
 
-        return $comptes;
+        $this->command->info("Comptes trouvés: " . count($comptes));
+        $this->command->info("Lignes ignorées: $skipped");
+
+        if (count($comptes) > 0) {
+            // Clear existing data
+            DB::table('plan_comptable_ohada')->truncate();
+
+            // Insert in chunks
+            $chunks = array_chunk($comptes, 100);
+            $bar = $this->command->getOutput()->createProgressBar(count($chunks));
+
+            foreach ($chunks as $chunk) {
+                DB::table('plan_comptable_ohada')->insert($chunk);
+                $bar->advance();
+            }
+
+            $bar->finish();
+            $this->command->newLine();
+            $this->command->info('Plan Comptable OHADA chargé avec succès!');
+
+            // Show statistics
+            $this->afficherStatistiques();
+        }
     }
 
     /**
-     * Afficher les statistiques d'importation
+     * Determine account type based on class
+     */
+    private function getTypeCompte(int $classe): string
+    {
+        return match($classe) {
+            1 => 'PASSIF',      // Comptes de capitaux
+            2 => 'ACTIF',       // Comptes d'immobilisations
+            3 => 'ACTIF',       // Comptes de stocks
+            4 => 'ACTIF',       // Comptes de tiers (mixed but default to ACTIF)
+            5 => 'ACTIF',       // Comptes de trésorerie
+            6 => 'CHARGE',      // Comptes de charges
+            7 => 'PRODUIT',     // Comptes de produits
+            8 => 'SPECIAL',     // Comptes des autres charges et autres produits
+            9 => 'SPECIAL',     // Comptes des engagements hors bilan
+            default => 'SPECIAL'
+        };
+    }
+
+    /**
+     * Display import statistics
      */
     private function afficherStatistiques(): void
     {
-        $this->command->info("\n=== Statistiques du Plan Comptable SYSCOHADA ===\n");
+        $this->command->newLine();
+        $this->command->info('=== Statistiques ===');
 
-        $stats = DB::table('plan_comptable_ohada')
-            ->select('classe', DB::raw('COUNT(*) as total'))
+        // By class
+        $byClasse = DB::table('plan_comptable_ohada')
+            ->select('classe', DB::raw('count(*) as total'))
             ->groupBy('classe')
             ->orderBy('classe')
             ->get();
 
-        $classesLibelles = [
-            1 => 'Ressources durables (Capitaux)',
-            2 => 'Actif immobilisé',
-            3 => 'Stocks',
-            4 => 'Tiers',
-            5 => 'Trésorerie',
-            6 => 'Charges des activités ordinaires',
-            7 => 'Produits des activités ordinaires',
-            8 => 'H.A.O. (Hors Activités Ordinaires)',
-        ];
-
-        foreach ($stats as $stat) {
-            $libelle = $classesLibelles[$stat->classe] ?? "Classe {$stat->classe}";
-            $this->command->info(sprintf(
-                "  Classe %d - %s: %d comptes",
-                $stat->classe,
-                $libelle,
-                $stat->total
-            ));
+        foreach ($byClasse as $row) {
+            $this->command->line("Classe {$row->classe}: {$row->total} comptes");
         }
 
-        // Comptes fournisseurs (401xxx)
-        $fournisseurs = DB::table('plan_comptable_ohada')
-            ->where('numero_compte', 'LIKE', '401%')
-            ->count();
+        // By type
+        $byType = DB::table('plan_comptable_ohada')
+            ->select('type_compte', DB::raw('count(*) as total'))
+            ->groupBy('type_compte')
+            ->get();
 
-        // Comptes clients (411xxx)
-        $clients = DB::table('plan_comptable_ohada')
-            ->where('numero_compte', 'LIKE', '411%')
-            ->count();
+        $this->command->newLine();
+        foreach ($byType as $row) {
+            $this->command->line("{$row->type_compte}: {$row->total} comptes");
+        }
 
-        // Comptes banques (52xxx)
-        $banques = DB::table('plan_comptable_ohada')
-            ->where('numero_compte', 'LIKE', '52%')
-            ->count();
-
-        // Comptes charges (6xxxxx)
-        $charges = DB::table('plan_comptable_ohada')
-            ->where('classe', 6)
-            ->where('utilisable', true)
-            ->count();
-
-        $this->command->info("\n=== Comptes clés ===\n");
-        $this->command->info("  Comptes Fournisseurs (401): {$fournisseurs}");
-        $this->command->info("  Comptes Clients (411): {$clients}");
-        $this->command->info("  Comptes Banques (52): {$banques}");
-        $this->command->info("  Comptes Charges utilisables (6): {$charges}");
-
-        $this->command->info("\n==========================================\n");
+        // Total
+        $total = DB::table('plan_comptable_ohada')->count();
+        $this->command->newLine();
+        $this->command->info("Total: {$total} comptes");
     }
 }

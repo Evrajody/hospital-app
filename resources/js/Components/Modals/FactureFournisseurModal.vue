@@ -29,24 +29,6 @@
       </ul>
     </el-alert>
 
-    <!-- Info Fournisseur -->
-    <el-alert
-      v-if="fournisseur"
-      type="info"
-      :closable="false"
-      class="fournisseur-info"
-    >
-      <template #title>
-        <div class="fournisseur-title">
-          <el-icon><OfficeBuilding /></el-icon>
-          <span>Fournisseur : <strong>{{ fournisseur.nom }}</strong></span>
-          <el-tag v-if="fournisseur.compte_comptable" size="small" type="info" class="ml-2">
-            {{ fournisseur.compte_comptable.numero }}
-          </el-tag>
-        </div>
-      </template>
-    </el-alert>
-
     <el-form
       ref="formRef"
       :model="form"
@@ -68,7 +50,7 @@
           <div class="tab-content">
             <el-row :gutter="20">
               <!-- N° Pièce -->
-              <el-col :span="8">
+              <el-col :span="6">
                 <el-form-item label="N° Pièce" prop="numero_piece">
                   <el-input
                     v-model="form.numero_piece"
@@ -79,12 +61,12 @@
                       <el-button :icon="Refresh" @click="genererNumeroPiece" title="Générer automatiquement" />
                     </template>
                   </el-input>
-                  <div class="form-hint">Laissez vide pour génération automatique</div>
+                  <div class="form-hint">Laissez vide pour génération auto</div>
                 </el-form-item>
               </el-col>
 
               <!-- Date -->
-              <el-col :span="8">
+              <el-col :span="6">
                 <el-form-item prop="date">
                   <template #label>
                     <span>Date <span class="required-star">*</span></span>
@@ -100,13 +82,71 @@
                 </el-form-item>
               </el-col>
 
+              <!-- Date Fact / B.C. -->
+              <el-col :span="6">
+                <el-form-item label="Date Fact / B.C." prop="date_facture_bc">
+                  <el-date-picker
+                    v-model="form.date_facture_bc"
+                    type="date"
+                    placeholder="Sélectionner"
+                    format="DD/MM/YYYY"
+                    value-format="YYYY-MM-DD"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+
               <!-- Référence Facture -->
-              <el-col :span="8">
-                <el-form-item label="Référence / N° B.C" prop="reference_facture">
+              <el-col :span="6">
+                <el-form-item label="Référence Fact / N° B.C" prop="reference_facture">
                   <el-input
                     v-model="form.reference_facture"
                     placeholder="N° bon de commande"
                     :prefix-icon="DocumentCopy"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
+              <!-- Fournisseur -->
+              <el-col :span="12">
+                <el-form-item prop="fournisseur_id">
+                  <template #label>
+                    <span>Fournisseur <span class="required-star">*</span></span>
+                  </template>
+                  <el-select
+                    v-model="form.fournisseur_id"
+                    placeholder="Sélectionner un fournisseur"
+                    filterable
+                    clearable
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="f in fournisseurs"
+                      :key="f.id"
+                      :label="f.nom"
+                      :value="f.id"
+                    >
+                      <div class="select-option">
+                        <span>{{ f.nom }}</span>
+                        <el-tag v-if="f.ifu" size="small" type="info" class="ml-2">{{ f.ifu }}</el-tag>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+
+              <!-- Libellé -->
+              <el-col :span="12">
+                <el-form-item prop="libelle">
+                  <template #label>
+                    <span>Libellé <span class="required-star">*</span></span>
+                  </template>
+                  <el-input
+                    v-model="form.libelle"
+                    placeholder="Description de la facture"
+                    :prefix-icon="Edit"
                   />
                 </el-form-item>
               </el-col>
@@ -165,39 +205,22 @@
               </el-col>
             </el-row>
 
-            <el-row :gutter="20">
-              <!-- Libellé -->
+          </div>
+        </el-tab-pane>
+
+        <!-- Onglet 2: Montants -->
+        <el-tab-pane name="montants" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Money /></el-icon>
+              Montants
+            </span>
+          </template>
+
+          <div class="tab-content">
+            <!-- TVA -->
+            <el-row :gutter="20" class="tva-row">
               <el-col :span="24">
-                <el-form-item prop="libelle">
-                  <template #label>
-                    <span>Libellé de la facture <span class="required-star">*</span></span>
-                  </template>
-                  <el-input
-                    v-model="form.libelle"
-                    placeholder="Description de la facture"
-                    :prefix-icon="Edit"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-row :gutter="20">
-              <!-- Date Échéance -->
-              <el-col :span="12">
-                <el-form-item label="Date d'échéance" prop="date_echeance">
-                  <el-date-picker
-                    v-model="form.date_echeance"
-                    type="date"
-                    placeholder="Sélectionner"
-                    format="DD/MM/YYYY"
-                    value-format="YYYY-MM-DD"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-col>
-
-              <!-- TVA -->
-              <el-col :span="12">
                 <el-form-item label="Assujetti à la TVA" prop="assujetti_tva">
                   <div class="switch-container">
                     <el-switch
@@ -221,19 +244,9 @@
                 </el-form-item>
               </el-col>
             </el-row>
-          </div>
-        </el-tab-pane>
 
-        <!-- Onglet 2: Montants -->
-        <el-tab-pane name="montants" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Money /></el-icon>
-              Montants
-            </span>
-          </template>
+            <el-divider />
 
-          <div class="tab-content">
             <el-row :gutter="20">
               <!-- Montant Facture -->
               <el-col :span="8">
@@ -280,12 +293,12 @@
               </el-col>
             </el-row>
 
-            <el-divider content-position="left">Réductions</el-divider>
+            <el-divider content-position="left"></el-divider>
 
             <el-row :gutter="20">
-              <!-- Type de réduction -->
+              <!-- Escompte / AIB -->
               <el-col :span="8">
-                <el-form-item label="Type de réduction" prop="type_reduction">
+                <el-form-item label="Escompte / AIB" prop="type_reduction">
                   <el-select
                     v-model="form.type_reduction"
                     placeholder="Sélectionner"
@@ -313,13 +326,13 @@
                     :precision="2"
                     style="width: 100%"
                   />
-                  <div class="form-hint">Appliqué sur Montant M.O.</div>
+                  <div class="form-hint">{{ form.type_reduction === 'escompte' ? 'Appliqué sur Montant Facture' : 'Appliqué sur Montant M.O.' }}</div>
                 </el-form-item>
               </el-col>
 
-              <!-- Montant calculé -->
+              <!-- Montant Escompte/AIB -->
               <el-col :span="8">
-                <el-form-item label="Montant Réduction">
+                <el-form-item label="Montant Escompte/AIB">
                   <el-input
                     :model-value="formatMontant(calculMontantReduction)"
                     disabled
@@ -328,7 +341,7 @@
                   >
                     <template #append>XOF</template>
                   </el-input>
-                  <div class="form-hint">Calculé automatiquement</div>
+                  <div class="form-hint">{{ form.type_reduction === 'escompte' ? 'Calculé sur Montant Facture' : 'Calculé sur Montant M.O.' }}</div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -368,7 +381,7 @@
               <el-row :gutter="20">
                 <el-col :span="12">
                   <div class="recap-item">
-                    <span class="recap-label">Réduction</span>
+                    <span class="recap-label">Montant Escompte/AIB</span>
                     <span class="recap-value text-warning">- {{ formatMontant(calculMontantReduction) }}</span>
                   </div>
                 </el-col>
@@ -441,7 +454,6 @@ import {
   Money,
   Check,
   WarningFilled,
-  OfficeBuilding,
   TrendCharts,
   ChatDotSquare,
   ArrowLeft,
@@ -525,11 +537,11 @@ const fieldLabels = {
   montant_facture: 'Montant Facture',
   montant_mo: 'Montant M.O.',
   avoir: 'Avoir',
-  type_reduction: 'Type de réduction',
+  type_reduction: 'Escompte / AIB',
   taux: 'Taux',
   assujetti_tva: 'TVA',
   taux_tva: 'Taux TVA',
-  date_echeance: 'Date échéance',
+  date_facture_bc: 'Date Fact / B.C.',
   observations: 'Observations'
 };
 
@@ -549,7 +561,7 @@ const getInitialFormData = () => ({
   taux: 0,
   assujetti_tva: true,
   taux_tva: 18,
-  date_echeance: null,
+  date_facture_bc: null,
   observations: ''
 });
 
@@ -570,8 +582,11 @@ const calculMontantTTC = computed(() => {
 });
 
 const calculMontantReduction = computed(() => {
-  if (!form.montant_mo || !form.taux) return 0;
-  return (form.montant_mo * form.taux) / 100;
+  if (!form.taux) return 0;
+  // Escompte se calcule sur le montant facture, les autres (AIB, etc.) sur le montant M.O.
+  const base = form.type_reduction === 'escompte' ? form.montant_facture : form.montant_mo;
+  if (!base) return 0;
+  return (base * form.taux) / 100;
 });
 
 const calculMontantNet = computed(() => {
@@ -580,6 +595,9 @@ const calculMontantNet = computed(() => {
 
 // Validation rules
 const rules = computed(() => ({
+  fournisseur_id: [
+    { required: true, message: 'Le fournisseur est obligatoire', trigger: 'change' }
+  ],
   date: [
     { required: true, message: 'La date est obligatoire', trigger: 'change' }
   ],
@@ -646,6 +664,10 @@ const loadFormData = () => {
         form[key] = props.facture[key];
       }
     });
+    // S'assurer que le fournisseur_id est bien chargé
+    if (!form.fournisseur_id && props.facture.fournisseur?.id) {
+      form.fournisseur_id = props.facture.fournisseur.id;
+    }
   } else {
     const initialData = getInitialFormData();
     Object.keys(initialData).forEach(key => {

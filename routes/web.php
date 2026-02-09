@@ -5,6 +5,8 @@ use Inertia\Inertia;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\FactureFournisseurController;
 use App\Http\Controllers\ReglementFournisseurController;
+use App\Http\Controllers\BanqueController;
+use App\Http\Controllers\PlanComptableController;
 
 // Page d'accueil (Welcome)
 Route::get('/', function () {
@@ -763,326 +765,35 @@ Route::prefix('reglements-clients')->group(function () {
 
 // Plan Comptable Routes
 Route::prefix('plan-comptable')->group(function () {
-    Route::get('/', function () {
-        $comptes = [
-            [
-                'id' => 1,
-                'numero' => '401001',
-                'libelle' => 'Pharmacie Centrale du Bénin',
-                'type' => 'tiers',
-                'parent' => ['numero' => '401000'],
-                'utilisations' => 12
-            ],
-            [
-                'id' => 2,
-                'numero' => '401002',
-                'libelle' => 'SOBEMAP Matériel Médical',
-                'type' => 'tiers',
-                'parent' => ['numero' => '401000'],
-                'utilisations' => 8
-            ],
-            [
-                'id' => 3,
-                'numero' => '601100',
-                'libelle' => 'Achats de médicaments',
-                'type' => 'charge',
-                'parent' => ['numero' => '601000'],
-                'utilisations' => 25
-            ],
-            [
-                'id' => 4,
-                'numero' => '601200',
-                'libelle' => 'Achats de matériel médical',
-                'type' => 'charge',
-                'parent' => ['numero' => '601000'],
-                'utilisations' => 15
-            ],
-            [
-                'id' => 5,
-                'numero' => '221000',
-                'libelle' => 'Matériel et mobilier',
-                'type' => 'immobilisation',
-                'parent' => null,
-                'utilisations' => 3
-            ],
-            [
-                'id' => 6,
-                'numero' => '521000',
-                'libelle' => 'Banques - Compte courant',
-                'type' => 'banque',
-                'parent' => ['numero' => '521000'],
-                'utilisations' => 45
-            ],
-            [
-                'id' => 7,
-                'numero' => '571000',
-                'libelle' => 'Caisse - Espèces',
-                'type' => 'banque',
-                'parent' => null,
-                'utilisations' => 18
-            ],
-            [
-                'id' => 8,
-                'numero' => '445100',
-                'libelle' => 'TVA collectée',
-                'type' => 'tva',
-                'parent' => null,
-                'utilisations' => 156
-            ],
-            [
-                'id' => 9,
-                'numero' => '442100',
-                'libelle' => 'AIB à payer',
-                'type' => 'aib',
-                'parent' => null,
-                'utilisations' => 89
-            ]
-        ];
+    Route::get('/', [PlanComptableController::class, 'index'])->name('plan-comptable.index');
+});
 
-        $stats = [
-            'total' => count($comptes),
-            'charges' => 2,
-            'immobilisations' => 1,
-            'tiers' => 2,
-            'banques' => 2,
-            'autres' => 2
-        ];
-
-        return Inertia::render('PlanComptable/Index', [
-            'comptes' => $comptes,
-            'stats' => $stats,
-            'pagination' => [
-                'current_page' => 1,
-                'per_page' => 20,
-                'total' => count($comptes)
-            ],
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('plan-comptable.index');
-
-    // Formulaire création
-    Route::get('/create', function () {
-        $comptesParents = [
-            ['id' => 10, 'numero' => '401000', 'libelle' => 'Fournisseurs'],
-            ['id' => 11, 'numero' => '411000', 'libelle' => 'Clients'],
-            ['id' => 12, 'numero' => '601000', 'libelle' => 'Achats de marchandises'],
-            ['id' => 13, 'numero' => '521000', 'libelle' => 'Banques'],
-        ];
-
-        return Inertia::render('PlanComptable/Form', [
-            'comptesParents' => $comptesParents,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('plan-comptable.create');
-
-    // Formulaire édition
-    Route::get('/{id}/edit', function ($id) {
-        $compte = [
-            'id' => $id,
-            'numero' => '601100',
-            'libelle' => 'Achats de médicaments',
-            'type' => 'charge',
-            'compte_parent_id' => 12,
-            'description' => 'Compte utilisé pour l\'enregistrement des achats de médicaments'
-        ];
-
-        $comptesParents = [
-            ['id' => 10, 'numero' => '401000', 'libelle' => 'Fournisseurs'],
-            ['id' => 11, 'numero' => '411000', 'libelle' => 'Clients'],
-            ['id' => 12, 'numero' => '601000', 'libelle' => 'Achats de marchandises'],
-            ['id' => 13, 'numero' => '521000', 'libelle' => 'Banques'],
-        ];
-
-        return Inertia::render('PlanComptable/Form', [
-            'compte' => $compte,
-            'comptesParents' => $comptesParents,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('plan-comptable.edit');
+// API Plan Comptable
+Route::prefix('api/plan-comptable')->group(function () {
+    Route::get('/search', [PlanComptableController::class, 'search'])->name('api.plan-comptable.search');
+    Route::post('/', [PlanComptableController::class, 'store'])->name('api.plan-comptable.store');
+    Route::get('/{compte}', [PlanComptableController::class, 'show'])->name('api.plan-comptable.show');
+    Route::delete('/{compte}', [PlanComptableController::class, 'destroy'])->name('api.plan-comptable.destroy');
 });
 
 // Banques Routes
 Route::prefix('banques')->group(function () {
-    Route::get('/', function () {
-        $banques = [
-            [
-                'id' => 1,
-                'nom' => 'ORABANK - Compte Courant',
-                'numero' => 'BJ123456789',
-                'type' => 'banque',
-                'compte_comptable' => '521001',
-                'devise' => 'XOF',
-                'solde' => 45250000,
-                'mouvements' => [
-                    'entrees' => 125,
-                    'sorties' => 98
-                ],
-                'remarques' => 'Compte principal pour les opérations courantes'
-            ],
-            [
-                'id' => 2,
-                'nom' => 'BOA BENIN - Compte Dépenses',
-                'numero' => 'BJ987654321',
-                'type' => 'banque',
-                'compte_comptable' => '521002',
-                'devise' => 'XOF',
-                'solde' => 12800000,
-                'mouvements' => [
-                    'entrees' => 45,
-                    'sorties' => 156
-                ],
-                'remarques' => null
-            ],
-            [
-                'id' => 3,
-                'nom' => 'Caisse - Espèces',
-                'numero' => 'CAISSE-001',
-                'type' => 'especes',
-                'compte_comptable' => '571000',
-                'devise' => 'XOF',
-                'solde' => 2450000,
-                'mouvements' => [
-                    'entrees' => 89,
-                    'sorties' => 112
-                ],
-                'remarques' => 'Caisse principale du service comptabilité'
-            ],
-            [
-                'id' => 4,
-                'nom' => 'ECOBANK - Compte Épargne',
-                'numero' => 'BJ555777888',
-                'type' => 'banque',
-                'compte_comptable' => '521003',
-                'devise' => 'XOF',
-                'solde' => 28000000,
-                'mouvements' => [
-                    'entrees' => 12,
-                    'sorties' => 3
-                ],
-                'remarques' => null
-            ]
-        ];
+    Route::get('/', [BanqueController::class, 'index'])->name('banques.index');
+});
 
-        $stats = [
-            'solde_total' => 88500000,
-            'entrees_mois' => 45000000,
-            'sorties_mois' => 38200000
-        ];
+// API Banques
+Route::prefix('api')->group(function () {
+    // Banques
+    Route::post('/banques', [BanqueController::class, 'storeBanque'])->name('api.banques.store');
+    Route::get('/banques/liste', [BanqueController::class, 'listeBanques'])->name('api.banques.liste');
+    Route::delete('/banques/{banque}', [BanqueController::class, 'destroyBanque'])->name('api.banques.destroy');
 
-        return Inertia::render('Banques/Index', [
-            'banques' => $banques,
-            'stats' => $stats,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('banques.index');
+    // Comptes bancaires
+    Route::post('/comptes-bancaires', [BanqueController::class, 'storeCompte'])->name('api.comptes-bancaires.store');
+    Route::get('/comptes-bancaires/liste', [BanqueController::class, 'listeComptes'])->name('api.comptes-bancaires.liste');
 
-    Route::get('/approvisionner', function () {
-        $banques = [
-            ['id' => 1, 'nom' => 'ORABANK - Compte Courant', 'numero' => 'BJ123456789', 'type' => 'banque', 'compte_comptable' => '521001', 'solde' => 45250000],
-            ['id' => 2, 'nom' => 'BOA BENIN - Compte Dépenses', 'numero' => 'BJ987654321', 'type' => 'banque', 'compte_comptable' => '521002', 'solde' => 12800000],
-            ['id' => 3, 'nom' => 'Caisse - Espèces', 'numero' => 'CAISSE-001', 'type' => 'especes', 'compte_comptable' => '571000', 'solde' => 2450000],
-        ];
-
-        return Inertia::render('Banques/Approvisionner', [
-            'banques' => $banques,
-            'banque_preselection_id' => request()->query('banque_id') ? (int)request()->query('banque_id') : null,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('banques.approvisionner');
-
-    Route::get('/{id}/mouvements', function ($id) {
-        $banque = [
-            'id' => $id,
-            'nom' => 'ORABANK - Compte Courant',
-            'numero' => 'BJ123456789',
-            'type' => 'banque',
-            'compte_comptable' => '521001',
-            'solde' => 45250000
-        ];
-
-        $mouvements = [
-            [
-                'id' => 1,
-                'date' => '2025-01-20',
-                'type' => 'entree',
-                'reference' => 'DEPOT-2025-001',
-                'description' => 'Dépôt de recette journalière',
-                'origine' => 'recette',
-                'montant' => 5000000,
-                'solde_apres' => 45250000,
-                'user' => ['name' => 'Admin User']
-            ],
-            [
-                'id' => 2,
-                'date' => '2025-01-18',
-                'type' => 'sortie',
-                'reference' => 'VIR-2025-001',
-                'description' => 'Règlement facture Pharmacie Centrale',
-                'origine' => 'reglement_fournisseur',
-                'montant' => 2000000,
-                'solde_apres' => 40250000,
-                'user' => ['name' => 'Admin User']
-            ],
-            [
-                'id' => 3,
-                'date' => '2025-01-15',
-                'type' => 'entree',
-                'reference' => 'SUB-2025-001',
-                'description' => 'Subvention ministère de la santé',
-                'origine' => 'subvention',
-                'montant' => 15000000,
-                'solde_apres' => 42250000,
-                'user' => ['name' => 'Admin User']
-            ],
-            [
-                'id' => 4,
-                'date' => '2025-01-10',
-                'type' => 'sortie',
-                'reference' => 'CHQ-2025-005',
-                'description' => 'Règlement SOBEMAP Matériel Médical',
-                'origine' => 'reglement_fournisseur',
-                'montant' => 1500000,
-                'solde_apres' => 27250000,
-                'user' => ['name' => 'Admin User']
-            ]
-        ];
-
-        $stats = [
-            'total_entrees' => 20000000,
-            'total_sorties' => 3500000,
-            'nombre_mouvements' => count($mouvements)
-        ];
-
-        return Inertia::render('Banques/Mouvements', [
-            'banque' => $banque,
-            'mouvements' => $mouvements,
-            'stats' => $stats,
-            'pagination' => [
-                'current_page' => 1,
-                'per_page' => 20,
-                'total' => count($mouvements)
-            ],
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('banques.mouvements');
+    // Approvisionnements
+    Route::post('/banques/approvisionnement', [BanqueController::class, 'storeApprovisionnement'])->name('api.banques.approvisionnement');
 });
 
 // Rapports Routes

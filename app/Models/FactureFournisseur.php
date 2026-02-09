@@ -48,7 +48,7 @@ class FactureFournisseur extends Model
         'statut',
         'montant_paye',
         'reste_a_payer',
-        'date_echeance',
+        'date_facture_bc',
         'observations',
         'metadata',
         'created_by',
@@ -61,7 +61,7 @@ class FactureFournisseur extends Model
      */
     protected $casts = [
         'date' => 'date',
-        'date_echeance' => 'date',
+        'date_facture_bc' => 'date',
         'validated_at' => 'datetime',
         'montant_facture' => 'decimal:2',
         'montant_mo' => 'decimal:2',
@@ -542,7 +542,7 @@ class FactureFournisseur extends Model
             'statut_couleur' => $this->statut_couleur,
             'montant_paye' => $this->montant_paye,
             'reste_a_payer' => $this->reste_a_payer,
-            'date_echeance' => $this->date_echeance?->format('Y-m-d'),
+            'date_facture_bc' => $this->date_facture_bc?->format('Y-m-d'),
             'observations' => $this->observations,
             'metadata' => $this->metadata,
             'est_modifiable' => $this->est_modifiable,

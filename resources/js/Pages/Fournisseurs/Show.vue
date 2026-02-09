@@ -4,9 +4,6 @@
       <!-- Page Header -->
       <div class="page-header">
         <div class="header-left">
-          <el-tag :type="fournisseur.status === 'actif' ? 'success' : 'info'" size="large">
-            {{ fournisseur.status === 'actif' ? 'Actif' : 'Inactif' }}
-          </el-tag>
           <div>
             <h1 class="page-title">{{ fournisseur.nom }}</h1>
             <p class="page-subtitle" v-if="fournisseur.type_fournisseur_libelle">
@@ -125,11 +122,6 @@
                       </div>
                       <span v-else class="text-muted">Non assigné</span>
                     </el-descriptions-item>
-                    <el-descriptions-item label="Statut">
-                      <el-tag :type="fournisseur.status === 'actif' ? 'success' : 'info'">
-                        {{ fournisseur.status === 'actif' ? 'Actif' : 'Inactif' }}
-                      </el-tag>
-                    </el-descriptions-item>
                   </el-descriptions>
                 </div>
 
@@ -202,40 +194,17 @@
                     <el-descriptions-item label="RCCM">
                       {{ fournisseur.rccm || '-' }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="Régime Fiscal">
-                      {{ fournisseur.regime_fiscal_libelle || fournisseur.regime_fiscal || '-' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="Taux AIB">
-                      <el-tag type="info">{{ fournisseur.taux_aib_libelle || fournisseur.taux_aib + '%' }}</el-tag>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="Assujetti à la TVA">
-                      <el-tag :type="fournisseur.assujetti_tva ? 'success' : 'danger'">
-                        {{ fournisseur.assujetti_tva ? 'Oui' : 'Non' }}
-                      </el-tag>
-                    </el-descriptions-item>
                   </el-descriptions>
                 </div>
 
-                <!-- Informations Complémentaires -->
-                <div class="info-section">
+                <!-- Observations -->
+                <div class="info-section" v-if="fournisseur.observations">
                   <h3 class="section-title">
                     <el-icon><More /></el-icon>
-                    Informations Complémentaires
+                    Observations
                   </h3>
                   <el-descriptions :column="1" border>
-                    <el-descriptions-item label="Date début relation">
-                      {{ fournisseur.date_debut_relation ? formatDate(fournisseur.date_debut_relation) : '-' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="Délai de paiement">
-                      {{ fournisseur.delai_paiement }} jours
-                    </el-descriptions-item>
-                    <el-descriptions-item label="Mode de paiement préféré">
-                      {{ fournisseur.mode_paiement_libelle || fournisseur.mode_paiement_prefere || '-' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="Plafond de crédit">
-                      {{ fournisseur.plafond_credit ? formatMontant(fournisseur.plafond_credit) : 'Pas de limite' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="Observations" v-if="fournisseur.observations">
+                    <el-descriptions-item label="Notes">
                       <div class="observations-text">{{ fournisseur.observations }}</div>
                     </el-descriptions-item>
                   </el-descriptions>
@@ -297,13 +266,19 @@
                 </template>
               </el-table-column>
 
-              <el-table-column prop="date" label="Date" width="120">
+              <el-table-column prop="date" label="Date" width="110">
                 <template #default="{ row }">
                   {{ formatDate(row.date || row.date_facture) }}
                 </template>
               </el-table-column>
 
-              <el-table-column prop="reference_facture" label="Référence" width="140" />
+              <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120">
+                <template #default="{ row }">
+                  {{ row.date_facture_bc ? formatDate(row.date_facture_bc) : '-' }}
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="reference_facture" label="Référence" width="130" />
 
               <el-table-column prop="libelle" label="Libellé" min-width="200" />
 

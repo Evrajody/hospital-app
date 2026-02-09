@@ -77,13 +77,12 @@ class FactureFournisseurController extends Controller
                 'reste_a_payer' => (float) $facture->reste_a_payer,
                 'statut' => $facture->statut,
                 'statut_paiement' => $this->getStatutPaiement($facture),
-                'date_echeance' => $facture->date_echeance?->format('Y-m-d'),
+                'date_facture_bc' => $facture->date_facture_bc?->format('Y-m-d'),
             ];
         });
 
         // Récupérer tous les fournisseurs pour le filtre
         $fournisseurs = Fournisseur::select('id', 'nom')
-            ->where('status', 'actif')
             ->orderBy('nom')
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
@@ -153,7 +152,7 @@ class FactureFournisseurController extends Controller
             'numero_piece' => $facture->numero_piece,
             'date_facture' => $facture->date?->format('Y-m-d'),
             'date' => $facture->date?->format('Y-m-d'),
-            'date_echeance' => $facture->date_echeance?->format('Y-m-d'),
+            'date_facture_bc' => $facture->date_facture_bc?->format('Y-m-d'),
             'reference' => $facture->reference_facture,
             'reference_facture' => $facture->reference_facture,
             'fournisseur' => $facture->fournisseur ? [
@@ -226,7 +225,6 @@ class FactureFournisseurController extends Controller
 
         // Fournisseurs pour le select
         $fournisseurs = Fournisseur::select('id', 'nom')
-            ->where('status', 'actif')
             ->orderBy('nom')
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
@@ -498,7 +496,7 @@ class FactureFournisseurController extends Controller
                 'taux' => $request->taux ?? 0,
                 'assujetti_tva' => $request->assujetti_tva ?? true,
                 'taux_tva' => $request->taux_tva ?? 18,
-                'date_echeance' => $request->date_echeance,
+                'date_facture_bc' => $request->date_facture_bc,
                 'observations' => $request->observations,
                 'metadata' => $request->metadata,
                 'statut' => 'brouillon',
@@ -569,7 +567,7 @@ class FactureFournisseurController extends Controller
                 'taux' => $request->taux ?? $facture->taux,
                 'assujetti_tva' => $request->assujetti_tva ?? $facture->assujetti_tva,
                 'taux_tva' => $request->taux_tva ?? $facture->taux_tva,
-                'date_echeance' => $request->date_echeance,
+                'date_facture_bc' => $request->date_facture_bc,
                 'observations' => $request->observations,
                 'metadata' => $request->metadata ?? $facture->metadata,
             ]);
@@ -786,7 +784,7 @@ class FactureFournisseurController extends Controller
             'taux' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'assujetti_tva' => ['nullable', 'boolean'],
             'taux_tva' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'date_echeance' => ['nullable', 'date'],
+            'date_facture_bc' => ['nullable', 'date'],
             'observations' => ['nullable', 'string'],
             'metadata' => ['nullable', 'array'],
         ];

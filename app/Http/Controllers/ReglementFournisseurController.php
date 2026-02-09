@@ -56,8 +56,7 @@ class ReglementFournisseurController extends Controller
         $reglements = $reglementsPaginated->map(fn($r) => $r->toApiArray());
 
         // Fournisseurs pour les filtres
-        $fournisseurs = Fournisseur::select('id', 'nom')
-            ->where('status', 'actif')
+        $fournisseurs = Fournisseur::select('id', 'nom')    
             ->orderBy('nom')
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
@@ -65,9 +64,27 @@ class ReglementFournisseurController extends Controller
         // Statistiques
         $stats = ReglementFournisseur::getStatistiques();
 
+        // Factures impayées ou partiellement payées (utilise le scope nonPayee)
+        $facturesImpayees = FactureFournisseur::with('fournisseur')
+            // ->nonPayee()
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(fn($f) => [
+                'id' => $f->id,
+                'numero' => $f->numero_piece ?? $f->numero,
+                'libelle' => $f->libelle,
+                'date' => $f->date,
+                'fournisseur' => $f->fournisseur ? ['id' => $f->fournisseur->id, 'nom' => $f->fournisseur->nom] : null,
+                'montant_ttc' => $f->montant_ttc,
+                'montant_paye' => $f->montant_paye,
+                'reste_a_payer' => $f->reste_a_payer ?? ($f->montant_ttc - $f->montant_paye),
+                'statut' => $f->statut,
+            ]);
+
         return Inertia::render('ReglementsFournisseurs/Index', [
             'reglements' => $reglements,
             'fournisseurs' => $fournisseurs,
+            'facturesImpayees' => $facturesImpayees,
             'stats' => $stats,
             'pagination' => [
                 'current_page' => $reglementsPaginated->currentPage(),

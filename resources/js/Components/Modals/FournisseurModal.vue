@@ -83,25 +83,6 @@
                 </el-form-item>
               </el-col>
 
-              <!-- Statut (Switch) -->
-              <el-col :span="12">
-                <el-form-item label="Statut" prop="status">
-                  <div class="switch-container">
-                    <el-switch
-                      v-model="form.status"
-                      active-value="actif"
-                      inactive-value="inactif"
-                      active-text="Actif"
-                      inactive-text="Inactif"
-                      inline-prompt
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #909399"
-                    />
-                    <el-tag :type="form.status === 'actif' ? 'success' : 'info'" size="small" class="ml-2">
-                      {{ form.status === 'actif' ? 'Actif' : 'Inactif' }}
-                    </el-tag>
-                  </div>
-                </el-form-item>
-              </el-col>
             </el-row>
           </div>
         </el-tab-pane>
@@ -432,62 +413,6 @@
                   <div class="form-hint">Registre du Commerce et du Crédit Mobilier</div>
                 </el-form-item>
               </el-col>
-
-              <!-- Régime Fiscal -->
-              <el-col :span="12">
-                <el-form-item label="Régime Fiscal" prop="regime_fiscal">
-                  <el-select
-                    v-model="form.regime_fiscal"
-                    placeholder="Sélectionner le régime"
-                    clearable
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="option in regimesFiscauxOptions"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-
-              <!-- Taux AIB -->
-              <el-col :span="12">
-                <el-form-item label="Taux AIB Applicable" prop="taux_aib">
-                  <el-select
-                    v-model="form.taux_aib"
-                    placeholder="Sélectionner le taux"
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="option in tauxAibOptions"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                  <div class="form-hint">Acompte sur Impôt assis sur les Bénéfices</div>
-                </el-form-item>
-              </el-col>
-
-              <!-- Assujetti à la TVA (Switch) -->
-              <el-col :span="12">
-                <el-form-item label="Assujetti à la TVA" prop="assujetti_tva">
-                  <div class="switch-container">
-                    <el-switch
-                      v-model="form.assujetti_tva"
-                      active-text="Oui"
-                      inactive-text="Non"
-                      inline-prompt
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                    />
-                    <el-tag :type="form.assujetti_tva ? 'success' : 'danger'" size="small" class="ml-2">
-                      {{ form.assujetti_tva ? 'Assujetti' : 'Non assujetti' }}
-                    </el-tag>
-                  </div>
-                </el-form-item>
-              </el-col>
             </el-row>
           </div>
         </el-tab-pane>
@@ -503,72 +428,6 @@
 
           <div class="tab-content">
             <el-row :gutter="20">
-              <!-- Date de début de relation -->
-              <el-col :span="12">
-                <el-form-item label="Date de début de relation" prop="date_debut_relation">
-                  <el-date-picker
-                    v-model="form.date_debut_relation"
-                    type="date"
-                    placeholder="Sélectionner une date"
-                    format="DD/MM/YYYY"
-                    value-format="YYYY-MM-DD"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-col>
-
-              <!-- Délai de paiement -->
-              <el-col :span="12">
-                <el-form-item label="Délai de paiement (jours)" prop="delai_paiement">
-                  <el-select
-                    v-model="form.delai_paiement"
-                    placeholder="Sélectionner le délai"
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="option in delaisPaiementOptions"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-
-              <!-- Mode de paiement préféré -->
-              <el-col :span="12">
-                <el-form-item label="Mode de paiement préféré" prop="mode_paiement_prefere">
-                  <el-select
-                    v-model="form.mode_paiement_prefere"
-                    placeholder="Sélectionner le mode"
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="option in modesPaiementOptions"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-
-              <!-- Plafond de crédit -->
-              <el-col :span="12">
-                <el-form-item label="Plafond de crédit (XOF)" prop="plafond_credit">
-                  <el-input
-                    v-model="form.plafond_credit"
-                    placeholder="Ex: 5000000"
-                    type="number"
-                  >
-                    <template #suffix>
-                      <span class="input-suffix">XOF</span>
-                    </template>
-                  </el-input>
-                  <div class="form-hint">Laisser vide si pas de limite</div>
-                </el-form-item>
-              </el-col>
-
               <!-- Observations -->
               <el-col :span="24">
                 <el-form-item label="Observations / Notes" prop="observations">
@@ -697,7 +556,6 @@ const validationErrors = ref([]);
 const fieldLabels = {
   nom: 'Raison Sociale',
   type_fournisseur: 'Type de Fournisseur',
-  status: 'Statut',
   contact: 'Personne de Contact',
   fonction_contact: 'Fonction du Contact',
   telephone: 'Téléphone Principal',
@@ -713,13 +571,6 @@ const fieldLabels = {
   nouveau_compte_libelle: 'Libellé du Compte',
   ifu: 'IFU',
   rccm: 'RCCM',
-  regime_fiscal: 'Régime Fiscal',
-  taux_aib: 'Taux AIB',
-  assujetti_tva: 'Assujetti à la TVA',
-  date_debut_relation: 'Date de début de relation',
-  delai_paiement: 'Délai de paiement',
-  mode_paiement_prefere: 'Mode de paiement préféré',
-  plafond_credit: 'Plafond de crédit',
   observations: 'Observations'
 };
 
@@ -786,36 +637,6 @@ const paysOptions = [
   { value: 'OTHER', label: 'Autre', flag: '🌍' }
 ];
 
-const regimesFiscauxOptions = [
-  { value: 'reel_normal', label: 'Réel Normal' },
-  { value: 'reel_simplifie', label: 'Réel Simplifié' },
-  { value: 'micro', label: 'Micro-entreprise' },
-  { value: 'exonere', label: 'Exonéré' }
-];
-
-const tauxAibOptions = [
-  { value: '0', label: '0% - Exonéré' },
-  { value: '1', label: '1% - Standard' },
-  { value: '3', label: '3% - Sans IFU' },
-  { value: '5', label: '5% - Importateurs' }
-];
-
-const delaisPaiementOptions = [
-  { value: 0, label: 'Comptant' },
-  { value: 15, label: '15 jours' },
-  { value: 30, label: '30 jours' },
-  { value: 45, label: '45 jours' },
-  { value: 60, label: '60 jours' },
-  { value: 90, label: '90 jours' }
-];
-
-const modesPaiementOptions = [
-  { value: 'virement', label: 'Virement bancaire' },
-  { value: 'cheque', label: 'Chèque' },
-  { value: 'especes', label: 'Espèces' },
-  { value: 'mobile_money', label: 'Mobile Money' }
-];
-
 // ==========================================
 // FORM DATA
 // ==========================================
@@ -824,7 +645,6 @@ const getInitialFormData = () => ({
   // Informations générales
   nom: '',
   type_fournisseur: '',
-  status: 'actif',
   // Coordonnées
   contact: '',
   fonction_contact: '',
@@ -843,14 +663,7 @@ const getInitialFormData = () => ({
   // Fiscal
   ifu: '',
   rccm: '',
-  regime_fiscal: '',
-  taux_aib: '1',
-  assujetti_tva: true,
   // Extra
-  date_debut_relation: null,
-  delai_paiement: 30,
-  mode_paiement_prefere: 'virement',
-  plafond_credit: '',
   observations: ''
 });
 

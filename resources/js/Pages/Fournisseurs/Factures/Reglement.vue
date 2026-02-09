@@ -154,8 +154,26 @@
               @submit.prevent="handleSubmit"
             >
               <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="Date de Règlement" prop="date_reglement">
+                <el-col :span="6">
+                  <el-form-item label="Année d'exercice" prop="annee_exercice">
+                    <el-input
+                      v-model="form.annee_exercice"
+                      placeholder="2025"
+                    />
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="6">
+                  <el-form-item label="N° de ligne" prop="numero_ligne">
+                    <el-input
+                      v-model="form.numero_ligne"
+                      placeholder="001"
+                    />
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="6">
+                  <el-form-item label="Date Règlement" prop="date_reglement">
                     <el-date-picker
                       v-model="form.date_reglement"
                       type="date"
@@ -166,7 +184,22 @@
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="12">
+                <el-col :span="6">
+                  <el-form-item label="Montant" prop="montant">
+                    <el-input-number
+                      v-model="form.montant"
+                      :min="0"
+                      :max="resteAPayer"
+                      :precision="0"
+                      controls-position="right"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <el-row :gutter="20">
+                <el-col :span="6">
                   <el-form-item label="Mode de Paiement" prop="mode_paiement">
                     <el-select
                       v-model="form.mode_paiement"
@@ -177,95 +210,52 @@
                       <el-option label="Espèces" value="especes" />
                       <el-option label="Chèque" value="cheque" />
                       <el-option label="Virement bancaire" value="virement" />
-                      <el-option label="Carte bancaire" value="carte" />
-                      <el-option label="Mobile Money" value="mobile_money" />
                     </el-select>
                   </el-form-item>
                 </el-col>
-              </el-row>
 
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="Montant du Règlement" prop="montant">
-                    <el-input-number
-                      v-model="form.montant"
-                      :min="0"
-                      :max="resteAPayer"
-                      :precision="0"
-                      controls-position="right"
+                <el-col :span="6">
+                  <el-form-item label="Institution" prop="compte_bancaire_id">
+                    <el-select
+                      v-model="form.compte_bancaire_id"
+                      filterable
+                      placeholder="Sélectionner"
                       style="width: 100%"
+                      :disabled="!showBankField"
                     >
-                      <template #prefix>
-                        <span style="color: #909399;">XOF</span>
-                      </template>
-                    </el-input-number>
-                    <div class="form-hint">
-                      Montant maximum : {{ formatMontant(resteAPayer) }}
-                    </div>
+                      <el-option
+                        v-for="compte in comptesBancaires"
+                        :key="compte.id"
+                        :label="compte.banque"
+                        :value="compte.id"
+                      />
+                    </el-select>
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="12">
-                  <el-form-item>
-                    <template #label>
-                      <div style="display: flex; justify-content: space-between; width: 100%;">
-                        <span>Montant Prédéfini</span>
-                      </div>
-                    </template>
-                    <el-button-group style="width: 100%;">
-                      <el-button
-                        style="flex: 1"
-                        @click="form.montant = resteAPayer / 2"
-                      >
-                        50%
-                      </el-button>
-                      <el-button
-                        style="flex: 1"
-                        type="success"
-                        @click="form.montant = resteAPayer"
-                      >
-                        Solde total
-                      </el-button>
-                    </el-button-group>
+                <el-col :span="6">
+                  <el-form-item label="Référence" prop="reference">
+                    <el-input
+                      v-model="form.reference"
+                      placeholder="N° chèque / réf. virement"
+                      :disabled="!showBankField"
+                    />
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="6">
+                  <el-form-item label="Date Référence" prop="date_reference">
+                    <el-date-picker
+                      v-model="form.date_reference"
+                      type="date"
+                      placeholder="Sélectionner"
+                      style="width: 100%"
+                      format="DD/MM/YYYY"
+                      :disabled="!showBankField"
+                    />
                   </el-form-item>
                 </el-col>
               </el-row>
-
-              <el-form-item
-                v-if="showBankField"
-                label="Compte Bancaire"
-                prop="compte_bancaire_id"
-              >
-                <el-select
-                  v-model="form.compte_bancaire_id"
-                  filterable
-                  placeholder="Sélectionner le compte"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="compte in comptesBancaires"
-                    :key="compte.id"
-                    :label="`${compte.banque} - ${compte.numero}`"
-                    :value="compte.id"
-                  >
-                    <div class="compte-option">
-                      <strong>{{ compte.banque }}</strong>
-                      <span class="compte-numero">{{ compte.numero }}</span>
-                    </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="Référence / N° Pièce" prop="reference">
-                <el-input
-                  v-model="form.reference"
-                  :placeholder="getReferencePlaceholder()"
-                  :prefix-icon="DocumentCopy"
-                />
-                <div class="form-hint">
-                  {{ getReferenceHint() }}
-                </div>
-              </el-form-item>
 
               <el-form-item label="Notes / Remarques">
                 <el-input
@@ -387,7 +377,7 @@ const newReste = computed(() => {
 });
 
 const showBankField = computed(() => {
-  return ['cheque', 'virement', 'carte'].includes(form.mode_paiement);
+  return ['cheque', 'virement'].includes(form.mode_paiement);
 });
 
 // State
@@ -395,11 +385,14 @@ const formRef = ref(null);
 const submitting = ref(false);
 
 const form = reactive({
+  annee_exercice: new Date().getFullYear().toString(),
+  numero_ligne: '',
   date_reglement: new Date(),
-  mode_paiement: '',
   montant: resteAPayer.value,
+  mode_paiement: '',
   compte_bancaire_id: null,
   reference: '',
+  date_reference: null,
   remarques: ''
 });
 
@@ -500,6 +493,8 @@ const getReferenceHint = () => {
 const handleModeChange = () => {
   if (!showBankField.value) {
     form.compte_bancaire_id = null;
+    form.reference = '';
+    form.date_reference = null;
   }
 };
 
@@ -529,10 +524,15 @@ const handleSubmit = async () => {
           },
           body: JSON.stringify({
             facture_id: props.facture.id,
+            annee_exercice: form.annee_exercice,
+            numero_ligne: form.numero_ligne || null,
             date_reglement: dateReglement,
             montant: form.montant,
             mode_paiement: form.mode_paiement,
             reference: form.reference || null,
+            date_reference: form.date_reference instanceof Date
+              ? form.date_reference.toISOString().split('T')[0]
+              : form.date_reference,
             banque: form.compte_bancaire_id ? props.comptesBancaires.find(c => c.id === form.compte_bancaire_id)?.banque : null,
             numero_compte_bancaire: form.compte_bancaire_id ? props.comptesBancaires.find(c => c.id === form.compte_bancaire_id)?.numero : null,
             compte_tresorerie_id: form.compte_bancaire_id,

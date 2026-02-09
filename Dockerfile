@@ -12,13 +12,14 @@ RUN apk add --no-cache \
     oniguruma-dev \
     libxml2-dev \
     postgresql-dev \
+    libzip-dev \
     zip \
     unzip \
     nginx \
     shadow
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd
+RUN docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

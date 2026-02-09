@@ -4,61 +4,74 @@
       <!-- Page Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Plan Comptable</h1>
-          <p class="page-subtitle">Gestion des comptes comptables OHADA</p>
+          <h1 class="page-title">Plan Comptable OHADA</h1>
+          <p class="page-subtitle">{{ stats.total }} comptes dont {{ stats.custom || 0 }} personnalisé(s)</p>
         </div>
-        <el-button type="primary" size="large" @click="handleCreate">
+        <el-button type="primary" size="large" @click="showCompteModal = true">
           <el-icon><Plus /></el-icon>
           Nouveau Compte
         </el-button>
       </div>
 
       <!-- Stats Cards -->
-      <el-row :gutter="16" class="stats-row">
-        <el-col :span="4">
+      <el-row :gutter="12" class="stats-row">
+        <el-col :span="3">
           <el-card shadow="hover" class="stat-card stat-total">
             <div class="stat-content">
               <div class="stat-icon">
-                <el-icon :size="28"><Notebook /></el-icon>
+                <el-icon :size="24"><Notebook /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.total }}</div>
-                <div class="stat-label">Total Comptes</div>
+                <div class="stat-label">Total</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        <el-col :span="4">
-          <el-card shadow="hover" class="stat-card stat-charges">
+        <el-col :span="3">
+          <el-card shadow="hover" class="stat-card stat-capitaux">
             <div class="stat-content">
               <div class="stat-icon">
-                <el-icon :size="28"><Money /></el-icon>
+                <el-icon :size="24"><Coin /></el-icon>
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ stats.charges }}</div>
-                <div class="stat-label">Charges</div>
+                <div class="stat-value">{{ stats.capitaux }}</div>
+                <div class="stat-label">Capitaux</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        <el-col :span="4">
+        <el-col :span="3">
           <el-card shadow="hover" class="stat-card stat-immo">
             <div class="stat-content">
               <div class="stat-icon">
-                <el-icon :size="28"><Box /></el-icon>
+                <el-icon :size="24"><Box /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.immobilisations }}</div>
-                <div class="stat-label">Immobilisations</div>
+                <div class="stat-label">Immob.</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        <el-col :span="4">
+        <el-col :span="3">
+          <el-card shadow="hover" class="stat-card stat-stocks">
+            <div class="stat-content">
+              <div class="stat-icon">
+                <el-icon :size="24"><Goods /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ stats.stocks }}</div>
+                <div class="stat-label">Stocks</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="3">
           <el-card shadow="hover" class="stat-card stat-tiers">
             <div class="stat-content">
               <div class="stat-icon">
-                <el-icon :size="28"><UserFilled /></el-icon>
+                <el-icon :size="24"><UserFilled /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.tiers }}</div>
@@ -67,28 +80,41 @@
             </div>
           </el-card>
         </el-col>
-        <el-col :span="4">
-          <el-card shadow="hover" class="stat-card stat-banques">
+        <el-col :span="3">
+          <el-card shadow="hover" class="stat-card stat-tresorerie">
             <div class="stat-content">
               <div class="stat-icon">
-                <el-icon :size="28"><CreditCard /></el-icon>
+                <el-icon :size="24"><CreditCard /></el-icon>
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ stats.banques }}</div>
-                <div class="stat-label">Banques</div>
+                <div class="stat-value">{{ stats.tresorerie }}</div>
+                <div class="stat-label">Trésorerie</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        <el-col :span="4">
-          <el-card shadow="hover" class="stat-card stat-autres">
+        <el-col :span="3">
+          <el-card shadow="hover" class="stat-card stat-charges">
             <div class="stat-content">
               <div class="stat-icon">
-                <el-icon :size="28"><Grid /></el-icon>
+                <el-icon :size="24"><Money /></el-icon>
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ stats.autres }}</div>
-                <div class="stat-label">Autres</div>
+                <div class="stat-value">{{ stats.charges }}</div>
+                <div class="stat-label">Charges</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="3">
+          <el-card shadow="hover" class="stat-card stat-produits">
+            <div class="stat-content">
+              <div class="stat-icon">
+                <el-icon :size="24"><TrendCharts /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ stats.produits }}</div>
+                <div class="stat-label">Produits</div>
               </div>
             </div>
           </el-card>
@@ -114,17 +140,14 @@
               v-model="filters.type"
               placeholder="Tous"
               clearable
-              style="width: 200px"
+              style="width: 160px"
               @change="handleSearch"
             >
-              <el-option label="Charges" value="charge" />
-              <el-option label="Immobilisations" value="immobilisation" />
-              <el-option label="Tiers" value="tiers" />
-              <el-option label="Banques" value="banque" />
-              <el-option label="Escompte" value="escompte" />
-              <el-option label="AIB" value="aib" />
-              <el-option label="TVA" value="tva" />
-              <el-option label="Autres" value="autre" />
+              <el-option label="Actif" value="actif" />
+              <el-option label="Passif" value="passif" />
+              <el-option label="Charge" value="charge" />
+              <el-option label="Produit" value="produit" />
+              <el-option label="Spécial" value="special" />
             </el-select>
           </el-form-item>
 
@@ -133,16 +156,30 @@
               v-model="filters.classe"
               placeholder="Toutes"
               clearable
-              style="width: 150px"
+              style="width: 200px"
               @change="handleSearch"
             >
-              <el-option label="Classe 1 - Capitaux" value="1" />
-              <el-option label="Classe 2 - Immobilisations" value="2" />
-              <el-option label="Classe 3 - Stocks" value="3" />
-              <el-option label="Classe 4 - Tiers" value="4" />
-              <el-option label="Classe 5 - Trésorerie" value="5" />
-              <el-option label="Classe 6 - Charges" value="6" />
-              <el-option label="Classe 7 - Produits" value="7" />
+              <el-option label="1 - Capitaux" value="1" />
+              <el-option label="2 - Immobilisations" value="2" />
+              <el-option label="3 - Stocks" value="3" />
+              <el-option label="4 - Tiers" value="4" />
+              <el-option label="5 - Trésorerie" value="5" />
+              <el-option label="6 - Charges" value="6" />
+              <el-option label="7 - Produits" value="7" />
+              <el-option label="8 - Autres" value="8" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Source">
+            <el-select
+              v-model="filters.source"
+              placeholder="Tous"
+              clearable
+              style="width: 160px"
+              @change="handleSearch"
+            >
+              <el-option label="OHADA Standard" value="standard" />
+              <el-option label="Personnalisé" value="custom" />
             </el-select>
           </el-form-item>
 
@@ -189,7 +226,12 @@
 
           <el-table-column prop="libelle" label="Libellé" min-width="300">
             <template #default="{ row }">
-              <div class="compte-libelle">{{ row.libelle }}</div>
+              <div class="compte-libelle">
+                {{ row.libelle }}
+                <el-tag v-if="row.is_custom" type="warning" size="small" class="custom-badge">
+                  Personnalisé
+                </el-tag>
+              </div>
             </template>
           </el-table-column>
 
@@ -201,42 +243,31 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="parent" label="Compte parent" width="140">
+
+          <el-table-column prop="classe" label="Classe" width="100" align="center">
             <template #default="{ row }">
-              <span v-if="row.parent" class="compte-parent">{{ row.parent.numero }}</span>
-              <span v-else class="text-muted">-</span>
+              <el-tag size="small" effect="plain">{{ row.classe }}</el-tag>
             </template>
           </el-table-column>
 
-          <el-table-column prop="utilisations" label="Utilisations" width="120" align="center">
+          <el-table-column prop="utilisable" label="Utilisable" width="90" align="center">
             <template #default="{ row }">
-              <el-tag v-if="row.utilisations > 0" type="info" size="small">
-                {{ row.utilisations }}
-              </el-tag>
-              <span v-else class="text-muted">0</span>
+              <el-icon v-if="row.utilisable" color="#16a34a"><CircleCheck /></el-icon>
+              <el-icon v-else color="#d1d5db"><CircleClose /></el-icon>
             </template>
           </el-table-column>
 
-          <el-table-column label="Actions" width="180" fixed="right" align="center">
+          <el-table-column label="" width="60" align="center">
             <template #default="{ row }">
-              <el-button-group>
-                <el-button :icon="View" size="small" @click="handleView(row)">
-                  Détails
-                </el-button>
-                <el-dropdown @command="(cmd) => handleMoreActions(cmd, row)">
-                  <el-button :icon="More" size="small" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="edit" :icon="Edit">
-                        Modifier
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="delete" :icon="Delete">
-                        <span style="color: #f56c6c">Supprimer</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </el-button-group>
+              <el-button
+                v-if="row.is_custom"
+                type="danger"
+                :icon="Delete"
+                size="small"
+                circle
+                plain
+                @click="handleDelete(row)"
+              />
             </template>
           </el-table-column>
         </el-table>
@@ -254,6 +285,13 @@
           />
         </div>
       </el-card>
+
+      <!-- Modal Nouveau Compte -->
+      <CompteComptableModal
+        v-model="showCompteModal"
+        :comptes-parents="comptesParents"
+        @success="handleCompteSuccess"
+      />
     </div>
   </AppLayout>
 </template>
@@ -269,18 +307,20 @@ import {
   Download,
   Printer,
   Refresh,
-  View,
-  More,
-  Edit,
   Delete,
   Notebook,
   Money,
   Box,
   UserFilled,
   CreditCard,
-  Grid
+  Coin,
+  Goods,
+  TrendCharts,
+  CircleCheck,
+  CircleClose
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import CompteComptableModal from '@/Components/Modals/CompteComptableModal.vue';
 
 // Props
 const props = defineProps({
@@ -288,15 +328,22 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  comptesParents: {
+    type: Array,
+    default: () => []
+  },
   stats: {
     type: Object,
     default: () => ({
       total: 0,
-      charges: 0,
+      custom: 0,
+      capitaux: 0,
       immobilisations: 0,
+      stocks: 0,
       tiers: 0,
-      banques: 0,
-      autres: 0
+      tresorerie: 0,
+      charges: 0,
+      produits: 0
     })
   },
   pagination: {
@@ -307,6 +354,15 @@ const props = defineProps({
       total: 0
     })
   },
+  filters: {
+    type: Object,
+    default: () => ({
+      search: '',
+      type: '',
+      classe: '',
+      source: ''
+    })
+  },
   user: {
     type: Object,
     default: () => null
@@ -315,10 +371,12 @@ const props = defineProps({
 
 // State
 const loading = ref(false);
+const showCompteModal = ref(false);
 const filters = reactive({
-  search: '',
-  type: '',
-  classe: ''
+  search: props.filters.search || '',
+  type: props.filters.type || '',
+  classe: props.filters.classe || '',
+  source: props.filters.source || ''
 });
 
 const breadcrumbs = [
@@ -329,98 +387,86 @@ const breadcrumbs = [
 // Methods
 const getTypeTagType = (type) => {
   const types = {
+    actif: 'success',
+    passif: 'primary',
     charge: 'danger',
-    immobilisation: 'warning',
-    tiers: 'primary',
-    banque: 'success',
-    escompte: 'info',
-    aib: '',
-    tva: 'info',
-    autre: ''
+    produit: 'warning',
+    special: 'info'
   };
   return types[type] || '';
 };
 
 const getTypeLabel = (type) => {
   const labels = {
+    actif: 'Actif',
+    passif: 'Passif',
     charge: 'Charge',
-    immobilisation: 'Immobilisation',
-    tiers: 'Tiers',
-    banque: 'Banque',
-    escompte: 'Escompte',
-    aib: 'AIB',
-    tva: 'TVA',
-    autre: 'Autre'
+    produit: 'Produit',
+    special: 'Spécial'
   };
   return labels[type] || type;
 };
 
 const handleSearch = () => {
-  console.log('Searching with filters:', filters);
+  const params = new URLSearchParams();
+  if (filters.search) params.append('search', filters.search);
+  if (filters.type) params.append('type', filters.type);
+  if (filters.classe) params.append('classe', filters.classe);
+  if (filters.source) params.append('source', filters.source);
+
+  router.get('/plan-comptable', Object.fromEntries(params), {
+    preserveState: true,
+    preserveScroll: true,
+  });
 };
 
 const handleReset = () => {
   filters.search = '';
   filters.type = '';
   filters.classe = '';
-  handleSearch();
+  filters.source = '';
+  router.get('/plan-comptable', {}, {
+    preserveState: false,
+  });
 };
+
 
 const handleRefresh = () => {
   router.reload({ only: ['comptes', 'stats', 'pagination'] });
 };
 
 const handleSortChange = ({ prop, order }) => {
-  console.log('Sort changed:', prop, order);
+  const params = new URLSearchParams(window.location.search);
+  if (prop) {
+    params.set('sort_by', prop === 'numero' ? 'numero_compte' : prop);
+    params.set('sort_order', order === 'ascending' ? 'asc' : 'desc');
+  } else {
+    params.delete('sort_by');
+    params.delete('sort_order');
+  }
+  router.get('/plan-comptable', Object.fromEntries(params), {
+    preserveState: true,
+    preserveScroll: true,
+  });
 };
 
 const handleSizeChange = (size) => {
-  console.log('Page size changed:', size);
+  const params = new URLSearchParams(window.location.search);
+  params.set('per_page', size);
+  params.set('page', '1');
+  router.get('/plan-comptable', Object.fromEntries(params), {
+    preserveState: true,
+    preserveScroll: true,
+  });
 };
 
 const handlePageChange = (page) => {
-  console.log('Page changed:', page);
-};
-
-const handleCreate = () => {
-  router.visit('/plan-comptable/create');
-};
-
-const handleView = (compte) => {
-  router.visit(`/plan-comptable/${compte.id}`);
-};
-
-const handleMoreActions = async (command, compte) => {
-  switch (command) {
-    case 'edit':
-      router.visit(`/plan-comptable/${compte.id}/edit`);
-      break;
-    case 'delete':
-      if (compte.utilisations > 0) {
-        ElMessageBox.alert(
-          `Ce compte est utilisé ${compte.utilisations} fois dans l'application. Vous ne pouvez pas le supprimer.`,
-          'Suppression impossible',
-          {
-            confirmButtonText: 'OK',
-            type: 'warning'
-          }
-        );
-      } else {
-        ElMessageBox.confirm(
-          'Êtes-vous sûr de vouloir supprimer ce compte ?',
-          'Confirmation',
-          {
-            confirmButtonText: 'Supprimer',
-            cancelButtonText: 'Annuler',
-            type: 'warning'
-          }
-        ).then(() => {
-          ElMessage.success('Compte supprimé avec succès');
-          handleRefresh();
-        });
-      }
-      break;
-  }
+  const params = new URLSearchParams(window.location.search);
+  params.set('page', page);
+  router.get('/plan-comptable', Object.fromEntries(params), {
+    preserveState: true,
+    preserveScroll: true,
+  });
 };
 
 const handleExport = () => {
@@ -429,6 +475,45 @@ const handleExport = () => {
 
 const handlePrint = () => {
   ElMessage.info('Impression en cours de développement...');
+};
+
+const handleCompteSuccess = () => {
+  router.reload({ only: ['comptes', 'comptesParents', 'stats'] });
+};
+
+const handleDelete = async (compte) => {
+  try {
+    await ElMessageBox.confirm(
+      `Êtes-vous sûr de vouloir supprimer le compte "${compte.numero} - ${compte.libelle}" ?`,
+      'Confirmation de suppression',
+      {
+        confirmButtonText: 'Supprimer',
+        cancelButtonText: 'Annuler',
+        type: 'warning'
+      }
+    );
+
+    const response = await fetch(`/api/plan-comptable/${compte.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      ElMessage.success('Compte supprimé avec succès');
+      router.reload({ only: ['comptes', 'stats'] });
+    } else {
+      ElMessage.error(result.message || 'Erreur lors de la suppression');
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('Erreur lors de la suppression');
+    }
+  }
 };
 </script>
 
@@ -498,27 +583,37 @@ export default {
   color: #2563eb;
 }
 
+.stat-capitaux .stat-icon {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.stat-immo .stat-icon {
+  background-color: #e0e7ff;
+  color: #6366f1;
+}
+
+.stat-stocks .stat-icon {
+  background-color: #fed7aa;
+  color: #ea580c;
+}
+
+.stat-tiers .stat-icon {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.stat-tresorerie .stat-icon {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
 .stat-charges .stat-icon {
   background-color: #fee2e2;
   color: #dc2626;
 }
 
-.stat-immo .stat-icon {
-  background-color: #fef3c7;
-  color: #d97706;
-}
-
-.stat-tiers .stat-icon {
-  background-color: #e0e7ff;
-  color: #6366f1;
-}
-
-.stat-banques .stat-icon {
-  background-color: #dcfce7;
-  color: #16a34a;
-}
-
-.stat-autres .stat-icon {
+.stat-produits .stat-icon {
   background-color: #f3e8ff;
   color: #9333ea;
 }
@@ -582,16 +677,13 @@ export default {
 .compte-libelle {
   font-size: 14px;
   color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.compte-parent {
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.text-muted {
-  color: #d1d5db;
+.custom-badge {
+  flex-shrink: 0;
 }
 
 .pagination-container {
