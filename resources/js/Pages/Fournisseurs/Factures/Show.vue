@@ -68,7 +68,7 @@
         :fournisseurs="fournisseurs"
         :imputations="imputations"
         :comptes="comptes"
-        :types-reduction="typesReduction"
+        :comptes-aib="comptesAib"
         @success="handleFactureSuccess"
       />
 
@@ -160,7 +160,7 @@
               <el-descriptions-item label="Avoir" v-if="facture.avoir && facture.avoir > 0">
                 {{ formatMontant(facture.avoir) }}
               </el-descriptions-item>
-              <el-descriptions-item label="Escompte / AIB" v-if="facture.type_reduction">
+              <el-descriptions-item label="AIB" v-if="facture.type_reduction">
                 <el-tag size="small" type="success">{{ getTypeReductionLabel(facture.type_reduction) }}</el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="Taux" v-if="facture.taux && facture.taux > 0">
@@ -196,10 +196,6 @@
               <div class="total-row" v-if="facture.montant_aib > 0">
                 <span class="total-label">AIB :</span>
                 <span class="total-value total-aib">{{ formatMontant(facture.montant_aib) }}</span>
-              </div>
-              <div class="total-row" v-if="facture.montant_escompte > 0">
-                <span class="total-label">Escompte :</span>
-                <span class="total-value total-escompte">- {{ formatMontant(facture.montant_escompte) }}</span>
               </div>
               <el-divider style="margin: 8px 0" />
               <div class="total-row total-ttc-row">
@@ -389,7 +385,7 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  typesReduction: {
+  comptesAib: {
     type: Array,
     default: () => []
   },
@@ -506,12 +502,10 @@ const getModeLabel = (mode) => {
 const getTypeReductionLabel = (type) => {
   const labels = {
     aib: 'AIB',
-    escompte: 'Escompte',
-    remise: 'Remise',
-    ristourne: 'Ristourne',
-    rabais: 'Rabais'
+    '4473': '4473 - Contribution nationale',
+    '447310': '447310 - Acompte sur prestations',
   };
-  return labels[type] || type || 'Escompte/AIB';
+  return labels[type] || type || 'AIB';
 };
 
 // Montant du taux appliqué
@@ -764,10 +758,6 @@ const handlePrintImputation = (reglement) => {
 
 .total-aib {
   color: #d97706;
-}
-
-.total-escompte {
-  color: #059669;
 }
 
 .total-ttc-row,

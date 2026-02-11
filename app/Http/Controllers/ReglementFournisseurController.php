@@ -6,6 +6,8 @@ use App\Models\ReglementFournisseur;
 use App\Models\FactureFournisseur;
 use App\Models\Fournisseur;
 use App\Models\CompteComptable;
+use App\Models\CompteBancaire;
+use App\Models\Banque;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -194,11 +196,36 @@ class ReglementFournisseurController extends Controller
             ], 422);
         }
 
+        // Vérifier le solde du compte bancaire si mode chèque ou virement
+        $compteBancaire = null;
+        if (in_array($request->mode_paiement, ['cheque', 'virement']) && $request->compte_bancaire_id) {
+            $compteBancaire = CompteBancaire::with('banque')->find($request->compte_bancaire_id);
+
+            if ($compteBancaire && !$compteBancaire->soldeEstSuffisant($montantReglement) && !$request->force_insufficient_balance) {
+                return response()->json([
+                    'success' => false,
+                    'insufficient_balance' => true,
+                    'message' => 'Solde insuffisant sur le compte bancaire',
+                    'solde_actuel' => (float) $compteBancaire->solde,
+                    'montant_demande' => $montantReglement,
+                ], 422);
+            }
+        }
+
         try {
             DB::beginTransaction();
 
             // Générer le numéro de règlement
             $numeroReglement = $request->numero_reglement ?: ReglementFournisseur::genererNumeroReglement();
+
+            // Déterminer banque et numéro de compte
+            $banqueNom = $request->banque;
+            $numeroCompteBancaire = $request->numero_compte_bancaire;
+
+            if ($compteBancaire) {
+                $banqueNom = $compteBancaire->banque->nom;
+                $numeroCompteBancaire = $compteBancaire->numero_compte;
+            }
 
             // Créer le règlement (utiliser le montant converti en float)
             $reglement = ReglementFournisseur::create([
@@ -209,13 +236,19 @@ class ReglementFournisseurController extends Controller
                 'montant' => $montantReglement,
                 'mode_paiement' => $request->mode_paiement,
                 'reference' => $request->reference,
-                'banque' => $request->banque,
-                'numero_compte_bancaire' => $request->numero_compte_bancaire,
+                'beneficiaire' => $request->beneficiaire,
+                'banque' => $banqueNom,
+                'numero_compte_bancaire' => $numeroCompteBancaire,
                 'compte_tresorerie_id' => $request->compte_tresorerie_id,
                 'observations' => $request->observations,
                 'statut' => ReglementFournisseur::STATUT_VALIDE,
                 'created_by' => auth()->id(),
             ]);
+
+            // Débiter le compte bancaire si applicable
+            if ($compteBancaire) {
+                $compteBancaire->debiter($montantReglement);
+            }
 
             // Mettre à jour la facture
             $facture->enregistrerPaiement($montantReglement);
@@ -306,6 +339,7 @@ class ReglementFournisseurController extends Controller
                 'montant' => $request->montant ?? $reglement->montant,
                 'mode_paiement' => $request->mode_paiement ?? $reglement->mode_paiement,
                 'reference' => $request->reference,
+                'beneficiaire' => $request->beneficiaire,
                 'banque' => $request->banque,
                 'numero_compte_bancaire' => $request->numero_compte_bancaire,
                 'compte_tresorerie_id' => $request->compte_tresorerie_id,
@@ -430,9 +464,12 @@ class ReglementFournisseurController extends Controller
                 'virement', 'cheque', 'especes', 'mobile_money', 'carte'
             ])],
             'reference' => ['nullable', 'string', 'max:100'],
+            'beneficiaire' => ['nullable', 'string', 'max:255'],
             'banque' => ['nullable', 'string', 'max:100'],
             'numero_compte_bancaire' => ['nullable', 'string', 'max:50'],
+            'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
             'compte_tresorerie_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
+            'force_insufficient_balance' => ['nullable', 'boolean'],
             'observations' => ['nullable', 'string'],
         ];
     }

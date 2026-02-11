@@ -56,12 +56,24 @@
                     v-model="form.numero_piece"
                     placeholder="Auto-généré"
                     :prefix-icon="Document"
+                    @blur="verifierNumeroPiece"
+                    :class="{ 'numero-warning': numeroWarning, 'numero-error': numeroError }"
                   >
                     <template #append>
-                      <el-button :icon="Refresh" @click="genererNumeroPiece" title="Générer automatiquement" />
+                      <el-button :icon="Refresh" @click="genererNumeroPiece" title="Générer automatiquement" :loading="loadingNumero" />
                     </template>
                   </el-input>
-                  <div class="form-hint">Laissez vide pour génération auto</div>
+                  <div v-if="numeroWarning" class="numero-warning-text">
+                    <el-icon><WarningFilled /></el-icon>
+                    {{ numeroWarning }}
+                  </div>
+                  <div v-else-if="numeroError" class="numero-error-text">
+                    <el-icon><CircleCloseFilled /></el-icon>
+                    {{ numeroError }}
+                  </div>
+                  <div v-else class="form-hint">
+                    Prochain N°: <strong>{{ prochainNumero || '...' }}</strong>
+                  </div>
                 </el-form-item>
               </el-col>
 
@@ -155,13 +167,13 @@
             <el-row :gutter="20">
               <!-- Imputation -->
               <el-col :span="12">
-                <el-form-item label="Imputation (Compte de charges)" prop="imputation_id">
+                <el-form-item label="Imputation" prop="imputation_id">
                   <el-select
                     v-model="form.imputation_id"
-                    placeholder="Sélectionner une imputation"
-                    filterable
+                    placeholder="Sélectionner une classe"
                     clearable
                     style="width: 100%"
+                    @change="handleImputationChange"
                   >
                     <el-option
                       v-for="imputation in imputations"
@@ -170,12 +182,12 @@
                       :value="imputation.id"
                     >
                       <div class="select-option">
-                        <el-tag size="small" type="info">{{ imputation.code || imputation.numero }}</el-tag>
+                        <el-tag size="small" :type="getClasseTagType(imputation.classe)">{{ imputation.code || imputation.numero }}</el-tag>
                         <span>{{ imputation.libelle }}</span>
                       </div>
                     </el-option>
                   </el-select>
-                  <div class="form-hint">Compte de charges (classe 6)</div>
+                  <div class="form-hint">Sélectionner la classe comptable</div>
                 </el-form-item>
               </el-col>
 
@@ -188,19 +200,26 @@
                     filterable
                     clearable
                     style="width: 100%"
+                    :disabled="!form.imputation_id"
                   >
                     <el-option
-                      v-for="compte in comptes"
+                      v-for="compte in comptesFiltres"
                       :key="compte.id"
                       :label="`${compte.numero || compte.code} - ${compte.libelle}`"
                       :value="compte.id"
                     >
                       <div class="select-option">
-                        <el-tag size="small" type="info">{{ compte.numero || compte.code }}</el-tag>
+                        <el-tag size="small" :type="getClasseTagType(compte.classe)">{{ compte.numero || compte.code }}</el-tag>
                         <span>{{ compte.libelle }}</span>
                       </div>
                     </el-option>
                   </el-select>
+                  <div class="form-hint" v-if="selectedImputation">
+                    Comptes de la classe {{ selectedImputation.prefixe_compte || selectedImputation.code }} ({{ comptesFiltres.length }} disponibles)
+                  </div>
+                  <div class="form-hint" v-else>
+                    Sélectionnez d'abord une imputation
+                  </div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -249,7 +268,7 @@
 
             <el-row :gutter="20">
               <!-- Montant Facture -->
-              <el-col :span="8">
+              <el-col :span="12">
                 <el-form-item prop="montant_facture">
                   <template #label>
                     <span>Montant Facture <span class="required-star">*</span></span>
@@ -265,22 +284,8 @@
                 </el-form-item>
               </el-col>
 
-              <!-- Montant M.O. -->
-              <el-col :span="8">
-                <el-form-item label="Montant M.O." prop="montant_mo">
-                  <el-input
-                    v-model.number="form.montant_mo"
-                    type="number"
-                    placeholder="0"
-                  >
-                    <template #append>XOF</template>
-                  </el-input>
-                  <div class="form-hint">Base de calcul du taux</div>
-                </el-form-item>
-              </el-col>
-
               <!-- Avoir -->
-              <el-col :span="8">
+              <el-col :span="12">
                 <el-form-item label="Avoir" prop="avoir">
                   <el-input
                     v-model.number="form.avoir"
@@ -296,28 +301,42 @@
             <el-divider content-position="left"></el-divider>
 
             <el-row :gutter="20">
-              <!-- Escompte / AIB -->
+              <!-- Montant M.O. -->
               <el-col :span="8">
-                <el-form-item label="Escompte / AIB" prop="type_reduction">
+                <el-form-item label="Montant M.O." prop="montant_mo">
+                  <el-input
+                    v-model.number="form.montant_mo"
+                    type="number"
+                    placeholder="0"
+                  >
+                    <template #append>XOF</template>
+                  </el-input>
+                  <div class="form-hint">Base de calcul AIB</div>
+                </el-form-item>
+              </el-col>
+
+              <!-- AIB -->
+              <el-col :span="8">
+                <el-form-item label="AIB" prop="type_reduction">
                   <el-select
                     v-model="form.type_reduction"
-                    placeholder="Sélectionner"
+                    placeholder="Sélectionner un compte AIB"
                     clearable
                     style="width: 100%"
                   >
                     <el-option
-                      v-for="type in typesReduction"
-                      :key="type.value"
-                      :label="type.label"
-                      :value="type.value"
+                      v-for="compte in comptesAib"
+                      :key="compte.code"
+                      :label="`${compte.code} - ${compte.libelle}`"
+                      :value="compte.code"
                     />
                   </el-select>
                 </el-form-item>
               </el-col>
 
-              <!-- Taux -->
+              <!-- Taux AIB -->
               <el-col :span="8">
-                <el-form-item label="Taux (%)" prop="taux">
+                <el-form-item label="Taux AIB (%)" prop="taux">
                   <el-input-number
                     v-model="form.taux"
                     :min="0"
@@ -326,22 +345,6 @@
                     :precision="2"
                     style="width: 100%"
                   />
-                  <div class="form-hint">{{ form.type_reduction === 'escompte' ? 'Appliqué sur Montant Facture' : 'Appliqué sur Montant M.O.' }}</div>
-                </el-form-item>
-              </el-col>
-
-              <!-- Montant Escompte/AIB -->
-              <el-col :span="8">
-                <el-form-item label="Montant Escompte/AIB">
-                  <el-input
-                    :model-value="formatMontant(calculMontantReduction)"
-                    disabled
-                    readonly
-                    class="calculated-field"
-                  >
-                    <template #append>XOF</template>
-                  </el-input>
-                  <div class="form-hint">{{ form.type_reduction === 'escompte' ? 'Calculé sur Montant Facture' : 'Calculé sur Montant M.O.' }}</div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -363,9 +366,27 @@
                   </div>
                 </el-col>
                 <el-col :span="8">
+                  <div class="recap-item" v-if="form.avoir > 0">
+                    <span class="recap-label">Avoir</span>
+                    <span class="recap-value text-warning">- {{ formatMontant(form.avoir) }}</span>
+                  </div>
+                </el-col>
+                <el-col :span="8">
+                  <div class="recap-item" v-if="calculMontantReduction > 0">
+                    <span class="recap-label">AIB ({{ form.taux }}%)</span>
+                    <span class="recap-value text-warning">- {{ formatMontant(calculMontantReduction) }}</span>
+                  </div>
+                </el-col>
+              </el-row>
+
+              <el-divider />
+
+              <el-row :gutter="20">
+                <el-col :span="8">
                   <div class="recap-item">
                     <span class="recap-label">TVA ({{ form.assujetti_tva ? form.taux_tva : 0 }}%)</span>
                     <span class="recap-value">{{ formatMontant(calculMontantTVA) }}</span>
+                    <div class="form-hint">Versée par l'entreprise</div>
                   </div>
                 </el-col>
                 <el-col :span="8">
@@ -374,18 +395,7 @@
                     <span class="recap-value recap-ttc">{{ formatMontant(calculMontantTTC) }}</span>
                   </div>
                 </el-col>
-              </el-row>
-
-              <el-divider />
-
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <div class="recap-item">
-                    <span class="recap-label">Montant Escompte/AIB</span>
-                    <span class="recap-value text-warning">- {{ formatMontant(calculMontantReduction) }}</span>
-                  </div>
-                </el-col>
-                <el-col :span="12">
+                <el-col :span="8">
                   <div class="recap-item recap-net">
                     <span class="recap-label">Net à Payer</span>
                     <span class="recap-value">{{ formatMontant(calculMontantNet) }}</span>
@@ -445,7 +455,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Document,
   DocumentCopy,
@@ -454,6 +464,7 @@ import {
   Money,
   Check,
   WarningFilled,
+  CircleCloseFilled,
   TrendCharts,
   ChatDotSquare,
   ArrowLeft,
@@ -490,14 +501,9 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  typesReduction: {
+  comptesAib: {
     type: Array,
-    default: () => [
-      { label: 'Contribution Nationale', value: 'contribution' },
-      { label: 'Acomptes sur prestations', value: 'acomptes' },
-      { label: 'Escomptes', value: 'escomptes' },
-      { label: 'AIB', value: 'aib' }
-    ]
+    default: () => []
   },
   serverErrors: {
     type: Object,
@@ -522,6 +528,10 @@ const isEdit = computed(() => !!props.facture);
 const formRef = ref(null);
 const activeTab = ref('general');
 const validationErrors = ref([]);
+const loadingNumero = ref(false);
+const prochainNumero = ref('');
+const numeroWarning = ref('');
+const numeroError = ref('');
 
 const tabOrder = ['general', 'montants', 'observations'];
 
@@ -537,7 +547,7 @@ const fieldLabels = {
   montant_facture: 'Montant Facture',
   montant_mo: 'Montant M.O.',
   avoir: 'Avoir',
-  type_reduction: 'Escompte / AIB',
+  type_reduction: 'AIB',
   taux: 'Taux',
   assujetti_tva: 'TVA',
   taux_tva: 'Taux TVA',
@@ -568,33 +578,83 @@ const getInitialFormData = () => ({
 const form = reactive(getInitialFormData());
 
 // Computed - Calculs automatiques
+// Montant HT = Montant Facture (pas de soustraction de l'avoir)
 const calculMontantHT = computed(() => {
-  return (form.montant_facture || 0) - (form.avoir || 0);
+  return form.montant_facture || 0;
 });
 
+// TVA calculée sur le HT (informative, versée par l'entreprise)
 const calculMontantTVA = computed(() => {
   if (!form.assujetti_tva || !form.taux_tva) return 0;
   return (calculMontantHT.value * form.taux_tva) / 100;
 });
 
+// TTC = HT + TVA
 const calculMontantTTC = computed(() => {
   return calculMontantHT.value + calculMontantTVA.value;
 });
 
+// AIB calculé sur le Montant M.O.
 const calculMontantReduction = computed(() => {
-  if (!form.taux) return 0;
-  // Escompte se calcule sur le montant facture, les autres (AIB, etc.) sur le montant M.O.
-  const base = form.type_reduction === 'escompte' ? form.montant_facture : form.montant_mo;
+  if (!form.taux || !form.type_reduction) return 0;
+  const base = form.montant_mo || 0;
   if (!base) return 0;
   return (base * form.taux) / 100;
 });
 
+// Net à Payer = Montant Facture - Avoir - AIB (pas de TVA)
 const calculMontantNet = computed(() => {
-  return calculMontantTTC.value - calculMontantReduction.value;
+  return (form.montant_facture || 0) - (form.avoir || 0) - calculMontantReduction.value;
 });
+
+// Computed - Imputation sélectionnée
+const selectedImputation = computed(() => {
+  if (!form.imputation_id) return null;
+  return props.imputations.find(i => i.id === form.imputation_id);
+});
+
+// Computed - Comptes filtrés selon l'imputation sélectionnée
+const comptesFiltres = computed(() => {
+  if (!selectedImputation.value) return [];
+
+  const prefixe = selectedImputation.value.prefixe_compte || selectedImputation.value.code || '';
+
+  return props.comptes.filter(c => {
+    const compteNumero = c.code || c.numero || '';
+    return compteNumero.startsWith(prefixe);
+  });
+});
+
+// Helper - Type de tag selon la classe
+const getClasseTagType = (classe) => {
+  switch (classe) {
+    case '6': return 'danger';
+    case '2': return 'warning';
+    case '4': return 'success';
+    default: return 'info';
+  }
+};
+
+// Handler - Changement d'imputation
+const handleImputationChange = () => {
+  // Réinitialiser le compte si l'imputation change
+  form.compte_id = null;
+};
 
 // Validation rules
 const rules = computed(() => ({
+  numero_piece: [
+    {
+      validator: (rule, value, callback) => {
+        if (numeroError.value) {
+          callback(new Error(numeroError.value));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
   fournisseur_id: [
     { required: true, message: 'Le fournisseur est obligatoire', trigger: 'change' }
   ],
@@ -620,11 +680,99 @@ const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR').format(montant || 0);
 };
 
-const genererNumeroPiece = () => {
-  const date = new Date();
-  const year = String(date.getFullYear()).slice(-3);
-  const sequence = Math.floor(Math.random() * 9999) + 1;
-  form.numero_piece = `PC/${year}/${String(sequence).padStart(4, '0')}`;
+const genererNumeroPiece = async () => {
+  loadingNumero.value = true;
+  numeroWarning.value = '';
+  numeroError.value = '';
+
+  try {
+    const response = await fetch('/api/factures-fournisseurs/generer-numero', {
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      form.numero_piece = result.numero_piece;
+      prochainNumero.value = result.prochain_numero || result.numero_piece;
+    } else {
+      // Fallback: génération locale
+      const date = new Date();
+      const year = String(date.getFullYear()).slice(-3);
+      const sequence = Math.floor(Math.random() * 9999) + 1;
+      form.numero_piece = `PC/${year}/${String(sequence).padStart(4, '0')}`;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la génération du numéro:', error);
+    // Fallback
+    const date = new Date();
+    const year = String(date.getFullYear()).slice(-3);
+    const sequence = Math.floor(Math.random() * 9999) + 1;
+    form.numero_piece = `PC/${year}/${String(sequence).padStart(4, '0')}`;
+  } finally {
+    loadingNumero.value = false;
+  }
+};
+
+const verifierNumeroPiece = async () => {
+  if (!form.numero_piece || form.numero_piece === prochainNumero.value) {
+    numeroWarning.value = '';
+    numeroError.value = '';
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/factures-fournisseurs/verifier-numero', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify({ numero_piece: form.numero_piece })
+    });
+
+    const result = await response.json();
+
+    if (!result.valide) {
+      numeroError.value = result.message;
+      numeroWarning.value = '';
+    } else if (result.avertissement) {
+      numeroWarning.value = result.avertissement;
+      numeroError.value = '';
+    } else {
+      numeroWarning.value = '';
+      numeroError.value = '';
+    }
+
+    // Mettre à jour le prochain numéro suggéré
+    if (result.prochain_numero) {
+      prochainNumero.value = result.prochain_numero;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification:', error);
+  }
+};
+
+const chargerProchainNumero = async () => {
+  try {
+    const response = await fetch('/api/factures-fournisseurs/generer-numero', {
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      }
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      prochainNumero.value = result.prochain_numero || result.numero_piece;
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+  }
 };
 
 const previousTab = () => {
@@ -655,6 +803,9 @@ const handleClosed = () => {
   });
   activeTab.value = 'general';
   validationErrors.value = [];
+  numeroWarning.value = '';
+  numeroError.value = '';
+  prochainNumero.value = '';
 };
 
 const loadFormData = () => {
@@ -689,6 +840,37 @@ const handleSubmit = async () => {
   if (!formRef.value) return;
 
   validationErrors.value = [];
+
+  // Vérifier d'abord le numéro de pièce si modifié
+  if (form.numero_piece && form.numero_piece !== prochainNumero.value) {
+    await verifierNumeroPiece();
+
+    // Si erreur (doublon), ne pas continuer
+    if (numeroError.value) {
+      ElMessage.error({
+        message: numeroError.value,
+        duration: 4000
+      });
+      return;
+    }
+
+    // Si avertissement, demander confirmation
+    if (numeroWarning.value) {
+      const confirmed = await ElMessageBox.confirm(
+        `${numeroWarning.value}\n\nVoulez-vous continuer avec ce numéro ?`,
+        'Avertissement',
+        {
+          confirmButtonText: 'Continuer',
+          cancelButtonText: 'Annuler',
+          type: 'warning',
+        }
+      ).catch(() => false);
+
+      if (!confirmed) {
+        return;
+      }
+    }
+  }
 
   try {
     await formRef.value.validate();
@@ -726,12 +908,18 @@ const handleSubmit = async () => {
 };
 
 // Watchers
-watch(dialogVisible, (val) => {
+watch(dialogVisible, async (val) => {
   if (val) {
     loadFormData();
+    // Charger le prochain numéro attendu
+    await chargerProchainNumero();
+    // Si nouvelle facture et pas de numéro, générer automatiquement
     if (!isEdit.value && !form.numero_piece) {
-      genererNumeroPiece();
+      await genererNumeroPiece();
     }
+    // Réinitialiser les avertissements
+    numeroWarning.value = '';
+    numeroError.value = '';
   }
 });
 
@@ -824,6 +1012,48 @@ watch(() => props.serverErrors, (errors) => {
   font-size: 12px;
   color: #9ca3af;
   margin-top: 4px;
+}
+
+.form-hint strong {
+  color: #2563eb;
+}
+
+.numero-warning :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #e6a23c inset !important;
+}
+
+.numero-error :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #f56c6c inset !important;
+}
+
+.numero-warning-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+  color: #e6a23c;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.numero-warning-text .el-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.numero-error-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+  color: #f56c6c;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.numero-error-text .el-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .select-option {

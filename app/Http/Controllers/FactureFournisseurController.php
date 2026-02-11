@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\FactureFournisseur;
 use App\Models\Fournisseur;
 use App\Models\ReglementFournisseur;
+use App\Models\Classe;
 use App\Models\CompteComptable;
+use App\Models\Banque;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -87,11 +89,37 @@ class FactureFournisseurController extends Controller
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
 
-        // Imputations (comptes de charges classe 6)
-        $imputations = CompteComptable::where('numero_compte', 'LIKE', '6%')
-            ->whereRaw('LENGTH(numero_compte) >= 6')
+        // Imputations : Classe 2, Classe 6, Compte 42
+        $imputations = Classe::imputationsFactureFournisseur()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'code' => $c->code,
+                'numero' => $c->code,
+                'libelle' => $c->libelle,
+                'prefixe_compte' => $c->prefixe_compte,
+                'classe' => $c->code,
+            ]);
+
+        // Comptes comptables (classes 2, 6 et 42 - tous niveaux)
+        $comptes = CompteComptable::where(function ($q) {
+                $q->where('numero_compte', 'LIKE', '2%')
+                  ->orWhere('numero_compte', 'LIKE', '6%')
+                  ->orWhere('numero_compte', 'LIKE', '42%');
+            })
+            ->whereRaw('LENGTH(numero_compte) >= 2')
             ->orderBy('numero_compte')
-            ->limit(50)
+            ->get()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'code' => $c->numero_compte,
+                'numero' => $c->numero_compte,
+                'libelle' => $c->libelle,
+                'classe' => substr($c->numero_compte, 0, 1),
+            ]);
+
+        // Comptes AIB (4473 et ses sous-comptes)
+        $comptesAib = CompteComptable::where('numero_compte', 'LIKE', '4473%')
+            ->orderBy('numero_compte')
             ->get()
             ->map(fn($c) => [
                 'id' => $c->id,
@@ -99,21 +127,6 @@ class FactureFournisseurController extends Controller
                 'numero' => $c->numero_compte,
                 'libelle' => $c->libelle,
             ]);
-
-        // Comptes comptables
-        $comptes = CompteComptable::whereRaw('LENGTH(numero_compte) >= 6')
-            ->orderBy('numero_compte')
-            ->limit(100)
-            ->get()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'code' => $c->numero_compte,
-                'numero' => $c->numero_compte,
-                'libelle' => $c->libelle,
-            ]);
-
-        // Types de réduction
-        $typesReduction = FactureFournisseur::getTypesReduction();
 
         // Statistiques
         $stats = $this->calculerStats();
@@ -123,7 +136,7 @@ class FactureFournisseurController extends Controller
             'fournisseurs' => $fournisseurs,
             'imputations' => $imputations,
             'comptes' => $comptes,
-            'typesReduction' => $typesReduction,
+            'comptesAib' => $comptesAib,
             'stats' => $stats,
             'pagination' => [
                 'current_page' => $facturesPaginated->currentPage(),
@@ -169,13 +182,12 @@ class FactureFournisseurController extends Controller
             'montant_facture' => (float) $facture->montant_facture,
             'montant_mo' => (float) $facture->montant_mo,
             'avoir' => (float) $facture->avoir,
-            // Réductions (AIB, escompte, etc.)
+            // AIB
             'type_reduction' => $facture->type_reduction,
             'type_reduction_libelle' => $facture->type_reduction_libelle,
             'taux' => (float) $facture->taux,
             'montant_reduction' => (float) $facture->montant_reduction,
-            'montant_aib' => (float) $facture->montant_reduction, // Alias pour compatibilité
-            'montant_escompte' => 0,
+            'montant_aib' => (float) $facture->montant_reduction,
             // Montants calculés
             'montant_ht' => (float) $facture->montant_ht,
             'montant_tva' => (float) $facture->montant_tva,
@@ -189,9 +201,10 @@ class FactureFournisseurController extends Controller
             // Relations
             'imputation' => $facture->imputation ? [
                 'id' => $facture->imputation->id,
-                'code' => $facture->imputation->numero_compte,
-                'numero' => $facture->imputation->numero_compte,
+                'code' => $facture->imputation->code,
+                'numero' => $facture->imputation->code,
                 'libelle' => $facture->imputation->libelle,
+                'prefixe_compte' => $facture->imputation->prefixe_compte,
             ] : null,
             'compte' => $facture->compte ? [
                 'id' => $facture->compte->id,
@@ -229,30 +242,44 @@ class FactureFournisseurController extends Controller
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
 
-        // Imputations
-        $imputations = CompteComptable::where('numero_compte', 'LIKE', '6%')
-            ->whereRaw('LENGTH(numero_compte) >= 6')
+        // Imputations : Classe 2, Classe 6, Compte 42
+        $imputations = Classe::imputationsFactureFournisseur()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'code' => $c->code,
+                'numero' => $c->code,
+                'libelle' => $c->libelle,
+                'prefixe_compte' => $c->prefixe_compte,
+                'classe' => $c->code,
+            ]);
+
+        // Comptes comptables (classes 2, 6 et 42 - tous niveaux)
+        $comptes = CompteComptable::where(function ($q) {
+                $q->where('numero_compte', 'LIKE', '2%')
+                  ->orWhere('numero_compte', 'LIKE', '6%')
+                  ->orWhere('numero_compte', 'LIKE', '42%');
+            })
+            ->whereRaw('LENGTH(numero_compte) >= 2')
             ->orderBy('numero_compte')
-            ->limit(50)
             ->get()
             ->map(fn($c) => [
                 'id' => $c->id,
                 'code' => $c->numero_compte,
+                'numero' => $c->numero_compte,
                 'libelle' => $c->libelle,
+                'classe' => substr($c->numero_compte, 0, 1),
             ]);
 
-        // Comptes
-        $comptes = CompteComptable::whereRaw('LENGTH(numero_compte) >= 6')
+        // Comptes AIB (4473 et ses sous-comptes)
+        $comptesAib = CompteComptable::where('numero_compte', 'LIKE', '4473%')
             ->orderBy('numero_compte')
-            ->limit(100)
             ->get()
             ->map(fn($c) => [
                 'id' => $c->id,
+                'code' => $c->numero_compte,
                 'numero' => $c->numero_compte,
                 'libelle' => $c->libelle,
             ]);
-
-        $typesReduction = FactureFournisseur::getTypesReduction();
 
         return Inertia::render('Fournisseurs/Factures/Show', [
             'facture' => $factureData,
@@ -260,7 +287,7 @@ class FactureFournisseurController extends Controller
             'fournisseurs' => $fournisseurs,
             'imputations' => $imputations,
             'comptes' => $comptes,
-            'typesReduction' => $typesReduction,
+            'comptesAib' => $comptesAib,
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
@@ -324,25 +351,26 @@ class FactureFournisseurController extends Controller
                 ] : null),
             ]);
 
-        // Comptes de trésorerie pour le select
-        $comptesBancaires = CompteComptable::where(function($q) {
-                $q->where('numero_compte', 'LIKE', '52%')
-                  ->orWhere('numero_compte', 'LIKE', '57%');
-            })
-            ->where('utilisable', true)
-            ->orderBy('numero_compte')
+        // Banques avec leurs comptes bancaires
+        $banques = Banque::with(['comptes' => function($q) {
+                $q->orderBy('numero_compte');
+            }])
+            ->orderBy('nom')
             ->get()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'banque' => $c->libelle,
-                'numero' => $c->numero_compte,
-                'libelle' => $c->libelle,
+            ->map(fn($b) => [
+                'id' => $b->id,
+                'nom' => $b->nom,
+                'comptes' => $b->comptes->map(fn($c) => [
+                    'id' => $c->id,
+                    'numero_compte' => $c->numero_compte,
+                    'solde' => (float) $c->solde,
+                ]),
             ]);
 
         return Inertia::render('Fournisseurs/Factures/Reglement', [
             'facture' => $factureData,
             'reglements' => $reglements,
-            'comptesBancaires' => $comptesBancaires,
+            'banques' => $banques,
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
@@ -737,9 +765,103 @@ class FactureFournisseurController extends Controller
      */
     public function genererNumero(): JsonResponse
     {
+        $prochainNumero = FactureFournisseur::genererNumeroPiece();
+
         return response()->json([
             'success' => true,
-            'numero_piece' => FactureFournisseur::genererNumeroPiece(),
+            'numero_piece' => $prochainNumero,
+            'prochain_numero' => $prochainNumero,
+        ]);
+    }
+
+    /**
+     * Vérifier un numéro de pièce (API)
+     * Retourne si le numéro est valide, s'il y a un saut de séquence, etc.
+     */
+    public function verifierNumeroPiece(Request $request): JsonResponse
+    {
+        $numeroPiece = $request->get('numero_piece', '');
+        $prochainNumero = FactureFournisseur::genererNumeroPiece();
+
+        // Vérifier si le numéro existe déjà
+        $existe = FactureFournisseur::where('numero_piece', $numeroPiece)->exists();
+
+        if ($existe) {
+            return response()->json([
+                'success' => false,
+                'valide' => false,
+                'message' => 'Ce numéro de pièce existe déjà',
+                'prochain_numero' => $prochainNumero,
+                'erreur' => 'doublon',
+            ]);
+        }
+
+        // Vérifier le format attendu (PC/YYY/XXXX)
+        $formatValide = preg_match('/^PC\/\d{3}\/\d{4}$/', $numeroPiece);
+
+        if (!$formatValide) {
+            return response()->json([
+                'success' => true,
+                'valide' => true,
+                'format_standard' => false,
+                'message' => 'Format personnalisé accepté',
+                'prochain_numero' => $prochainNumero,
+                'avertissement' => 'Ce numéro ne suit pas le format standard (PC/YYY/XXXX). Cela pourrait compliquer le suivi séquentiel.',
+            ]);
+        }
+
+        // Extraire la séquence du numéro saisi
+        $parties = explode('/', $numeroPiece);
+        $sequenceSaisie = (int) ($parties[2] ?? 0);
+
+        // Extraire la séquence attendue
+        $partiesProchain = explode('/', $prochainNumero);
+        $sequenceAttendue = (int) ($partiesProchain[2] ?? 0);
+
+        // Vérifier l'année
+        $anneeSaisie = $parties[1] ?? '';
+        $anneeAttendue = $partiesProchain[1] ?? '';
+
+        if ($anneeSaisie !== $anneeAttendue) {
+            return response()->json([
+                'success' => true,
+                'valide' => true,
+                'format_standard' => true,
+                'prochain_numero' => $prochainNumero,
+                'avertissement' => "L'année du numéro ($anneeSaisie) ne correspond pas à l'année en cours ($anneeAttendue).",
+            ]);
+        }
+
+        // Vérifier la séquence
+        if ($sequenceSaisie < $sequenceAttendue) {
+            // Numéro inférieur à ce qui est attendu
+            return response()->json([
+                'success' => true,
+                'valide' => true,
+                'format_standard' => true,
+                'prochain_numero' => $prochainNumero,
+                'avertissement' => "Ce numéro ($sequenceSaisie) est inférieur au prochain attendu ($sequenceAttendue). Vérifiez qu'il n'y a pas de doublon.",
+            ]);
+        } elseif ($sequenceSaisie > $sequenceAttendue) {
+            // Saut de séquence
+            $saut = $sequenceSaisie - $sequenceAttendue;
+            return response()->json([
+                'success' => true,
+                'valide' => true,
+                'format_standard' => true,
+                'prochain_numero' => $prochainNumero,
+                'avertissement' => "Attention : saut de séquence détecté. Prochain numéro attendu: $sequenceAttendue, numéro saisi: $sequenceSaisie (saut de $saut).",
+                'saut_sequence' => $saut,
+            ]);
+        }
+
+        // Numéro parfait
+        return response()->json([
+            'success' => true,
+            'valide' => true,
+            'format_standard' => true,
+            'prochain_numero' => $prochainNumero,
+            'message' => 'Numéro de pièce valide et séquentiel',
         ]);
     }
 
@@ -772,15 +894,13 @@ class FactureFournisseurController extends Controller
             'date' => ['required', 'date'],
             'reference_facture' => ['nullable', 'string', 'max:100'],
             'fournisseur_id' => ['required', 'integer', 'exists:fournisseurs,id'],
-            'imputation_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
+            'imputation_id' => ['nullable', 'integer', 'exists:classes,id'],
             'compte_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'libelle' => ['required', 'string', 'max:500'],
             'montant_facture' => ['required', 'numeric', 'min:0'],
             'montant_mo' => ['nullable', 'numeric', 'min:0'],
             'avoir' => ['nullable', 'numeric', 'min:0'],
-            'type_reduction' => ['nullable', 'string', Rule::in([
-                'contribution', 'acomptes', 'escomptes', 'aib'
-            ])],
+            'type_reduction' => ['nullable', 'string'],
             'taux' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'assujetti_tva' => ['nullable', 'boolean'],
             'taux_tva' => ['nullable', 'numeric', 'min:0', 'max:100'],

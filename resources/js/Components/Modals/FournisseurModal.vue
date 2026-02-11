@@ -229,7 +229,7 @@
                 <div class="alert-title">Attribution du compte auxiliaire (Plan Comptable OHADA)</div>
               </template>
               <div class="alert-content">
-                Chaque fournisseur doit avoir son propre compte auxiliaire dans la classe 401 (Fournisseurs).
+                Chaque fournisseur doit avoir son propre compte auxiliaire dans les classes 401 (Fournisseurs) ou 4812 (Fournisseurs d'investissements).
                 Les comptes disponibles sont chargés depuis le Plan Comptable OHADA.
                 Vous pouvez soit sélectionner un compte existant, soit créer un nouveau compte.
               </div>
@@ -257,10 +257,10 @@
                 <el-select
                   v-model="form.compte_comptable_id"
                   filterable
-                  placeholder="Rechercher un compte 401xxx..."
+                  placeholder="Rechercher un compte 401xxx ou 4812xxx..."
                   style="width: 100%"
                   @change="handleCompteChange"
-                  :no-data-text="comptesFournisseurs.length === 0 ? 'Aucun compte 401 trouvé dans le plan comptable' : 'Aucun résultat'"
+                  :no-data-text="comptesFournisseurs.length === 0 ? 'Aucun compte fournisseur trouvé dans le plan comptable' : 'Aucun résultat'"
                 >
                   <el-option
                     v-for="compte in comptesFournisseurs"
@@ -275,7 +275,7 @@
                   </el-option>
                 </el-select>
                 <div class="form-hint">
-                  {{ comptesFournisseurs.length }} compte(s) disponible(s) dans la classe 401 (Fournisseurs)
+                  {{ comptesFournisseurs.length }} compte(s) disponible(s) dans les classes 401 et 4812
                 </div>
               </el-form-item>
 
@@ -303,7 +303,7 @@
                   <el-form-item label="Compte Parent (Plan Comptable OHADA)" prop="compte_parent_id">
                     <el-select
                       v-model="form.compte_parent_id"
-                      placeholder="401000 - Fournisseurs"
+                      placeholder="Sélectionner un compte parent (401 ou 4812)"
                       style="width: 100%"
                       filterable
                       @change="handleParentCompteChange"
@@ -329,7 +329,7 @@
                   <el-form-item label="Numéro de Compte" prop="nouveau_compte_numero">
                     <el-input
                       v-model="form.nouveau_compte_numero"
-                      placeholder="401001"
+                      placeholder="401.001"
                       :prefix-icon="Document"
                     >
                       <template #append>
@@ -338,7 +338,7 @@
                         </el-button>
                       </template>
                     </el-input>
-                    <div class="form-hint">Numéro unique du compte auxiliaire</div>
+                    <div class="form-hint">Format: compte_parent.XXX (auto-incrémenté)</div>
                   </el-form-item>
                 </el-col>
 
@@ -769,8 +769,8 @@ const rules = computed(() => ({
       validator: (rule, value, callback) => {
         if (compteMode.value === 'create' && !value) {
           callback(new Error('Le numéro de compte est obligatoire'));
-        } else if (compteMode.value === 'create' && !/^401\d{3,}$/.test(value)) {
-          callback(new Error('Le numéro doit commencer par 401 (ex: 401001)'));
+        } else if (compteMode.value === 'create' && !/^(401|4812)[\d.]+$/.test(value)) {
+          callback(new Error('Le numéro doit commencer par 401 ou 4812 (ex: 401.001, 4812.001)'));
         } else {
           callback();
         }
@@ -815,9 +815,32 @@ const handleParentCompteChange = () => {
 };
 
 const suggestAccountNumber = () => {
-  const baseNumber = 401000;
-  const random = Math.floor(Math.random() * 999) + 1;
-  form.nouveau_compte_numero = `${baseNumber + random}`;
+  const parentCompte = props.comptesParents.find(c => c.id === form.compte_parent_id);
+  if (!parentCompte) {
+    ElMessage.warning('Veuillez d\'abord sélectionner un compte parent');
+    return;
+  }
+
+  const parentNumero = parentCompte.numero;
+
+  // Chercher les comptes enfants existants au format parent.XXX
+  const childAccounts = props.comptesFournisseurs
+    .map(c => c.numero)
+    .filter(n => n.startsWith(parentNumero + '.'));
+
+  // Trouver le plus grand suffixe
+  let maxSuffix = 0;
+  for (const numero of childAccounts) {
+    const suffix = numero.substring(parentNumero.length + 1); // partie apres le point
+    const num = parseInt(suffix, 10);
+    if (!isNaN(num) && num > maxSuffix) {
+      maxSuffix = num;
+    }
+  }
+
+  // Incrementer et formater avec 3 chiffres
+  const nextSuffix = String(maxSuffix + 1).padStart(3, '0');
+  form.nouveau_compte_numero = `${parentNumero}.${nextSuffix}`;
 };
 
 const previousTab = () => {

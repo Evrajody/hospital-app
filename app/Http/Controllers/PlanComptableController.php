@@ -58,8 +58,7 @@ class PlanComptableController extends Controller
             'libelle' => $c->libelle,
             'classe' => $c->classe,
             'niveau' => $c->niveau,
-            'type' => strtolower($c->type_compte),
-            'utilisable' => $c->utilisable,
+            'type' => $c->type_compte ? strtolower($c->type_compte) : null,
             'is_custom' => $c->is_custom ?? false,
             'parent_id' => $c->parent_id,
         ]);
@@ -120,8 +119,7 @@ class PlanComptableController extends Controller
         $classe = $request->get('classe');
         $limit = $request->get('limit', 20);
 
-        $query = CompteComptable::query()
-            ->where('utilisable', true);
+        $query = CompteComptable::query();
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -164,7 +162,6 @@ class PlanComptableController extends Controller
                 'classe' => $compte->classe,
                 'niveau' => $compte->niveau,
                 'type' => $compte->type_compte,
-                'utilisable' => $compte->utilisable,
                 'is_custom' => $compte->is_custom,
             ],
         ]);
@@ -185,8 +182,6 @@ class PlanComptableController extends Controller
             ],
             'libelle' => 'required|string|max:500',
             'parent_id' => 'nullable|exists:plan_comptable_ohada,id',
-            'type_compte' => 'required|in:ACTIF,PASSIF,CHARGE,PRODUIT,SPECIAL',
-            'utilisable' => 'boolean',
         ]);
 
         // Déterminer la classe à partir du premier chiffre du numéro
@@ -218,8 +213,6 @@ class PlanComptableController extends Controller
             'libelle' => $validated['libelle'],
             'classe' => $classe,
             'niveau' => $niveau,
-            'type_compte' => $validated['type_compte'],
-            'utilisable' => $validated['utilisable'] ?? true,
             'is_custom' => true,
             'parent_id' => $validated['parent_id'],
             'created_by' => auth()->id(),

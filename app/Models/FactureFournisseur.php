@@ -92,11 +92,8 @@ class FactureFournisseur extends Model
     const STATUT_ANNULEE = 'annulee';
 
     /**
-     * Constantes pour les types de réduction
+     * Constantes pour les types de réduction (AIB)
      */
-    const REDUCTION_CONTRIBUTION = 'contribution';
-    const REDUCTION_ACOMPTES = 'acomptes';
-    const REDUCTION_ESCOMPTES = 'escomptes';
     const REDUCTION_AIB = 'aib';
 
     // ==========================================
@@ -112,11 +109,11 @@ class FactureFournisseur extends Model
     }
 
     /**
-     * Relation avec l'imputation (compte de charges)
+     * Relation avec l'imputation (classe comptable)
      */
     public function imputation(): BelongsTo
     {
-        return $this->belongsTo(CompteComptable::class, 'imputation_id');
+        return $this->belongsTo(Classe::class, 'imputation_id');
     }
 
     /**
@@ -267,13 +264,13 @@ class FactureFournisseur extends Model
     {
         if (!$this->type_reduction) return null;
 
-        return match($this->type_reduction) {
-            self::REDUCTION_CONTRIBUTION => 'Contribution Nationale',
-            self::REDUCTION_ACOMPTES => 'Acomptes sur prestations',
-            self::REDUCTION_ESCOMPTES => 'Escomptes',
-            self::REDUCTION_AIB => 'AIB',
-            default => $this->type_reduction,
-        };
+        // Le type_reduction stocke le code du compte AIB (ex: '4473', '447310')
+        $compte = \App\Models\CompteComptable::where('numero_compte', $this->type_reduction)->first();
+        if ($compte) {
+            return $compte->numero_compte . ' - ' . $compte->libelle;
+        }
+
+        return $this->type_reduction;
     }
 
     /**
@@ -297,7 +294,7 @@ class FactureFournisseur extends Model
      */
     public function getPeutEtrePayeeAttribute(): bool
     {
-        return in_array($this->statut, [self::STATUT_VALIDEE, self::STATUT_PARTIELLEMENT_PAYEE]);
+        return in_array($this->statut, [self::STATUT_BROUILLON, self::STATUT_VALIDEE, self::STATUT_PARTIELLEMENT_PAYEE]);
     }
 
     // ==========================================
@@ -309,28 +306,28 @@ class FactureFournisseur extends Model
      */
     public function calculerMontants(): void
     {
-        // Montant de la réduction
-        if ($this->montant_mo > 0 && $this->taux > 0) {
-            $this->montant_reduction = ($this->montant_mo * $this->taux) / 100;
-        } else {
-            $this->montant_reduction = 0;
-        }
+        // Montant HT = Montant Facture (pas de soustraction de l'avoir)
+        $this->montant_ht = $this->montant_facture;
 
-        // Montant HT
-        $this->montant_ht = $this->montant_facture - $this->avoir;
-
-        // TVA
+        // TVA calculée sur le HT (informative, versée par l'entreprise)
         if ($this->assujetti_tva && $this->taux_tva > 0) {
             $this->montant_tva = ($this->montant_ht * $this->taux_tva) / 100;
         } else {
             $this->montant_tva = 0;
         }
 
-        // TTC
+        // TTC (pour référence)
         $this->montant_ttc = $this->montant_ht + $this->montant_tva;
 
-        // Net à payer
-        $this->montant_net = $this->montant_ttc - $this->montant_reduction;
+        // AIB calculé sur le Montant M.O.
+        if ($this->montant_mo > 0 && $this->taux > 0) {
+            $this->montant_reduction = ($this->montant_mo * $this->taux) / 100;
+        } else {
+            $this->montant_reduction = 0;
+        }
+
+        // Net à payer = Montant Facture - Avoir - AIB (pas de TVA)
+        $this->montant_net = $this->montant_facture - $this->avoir - $this->montant_reduction;
 
         // Reste à payer
         $this->reste_a_payer = $this->montant_net - $this->montant_paye;
@@ -470,16 +467,18 @@ class FactureFournisseur extends Model
     }
 
     /**
-     * Obtenir les types de réduction disponibles
+     * Obtenir les comptes AIB disponibles
      */
-    public static function getTypesReduction(): array
+    public static function getComptesAib(): array
     {
-        return [
-            ['value' => self::REDUCTION_CONTRIBUTION, 'label' => 'Contribution Nationale'],
-            ['value' => self::REDUCTION_ACOMPTES, 'label' => 'Acomptes sur prestations'],
-            ['value' => self::REDUCTION_ESCOMPTES, 'label' => 'Escomptes'],
-            ['value' => self::REDUCTION_AIB, 'label' => 'AIB'],
-        ];
+        return \App\Models\CompteComptable::where('numero_compte', 'LIKE', '4473%')
+            ->orderBy('numero_compte')
+            ->get()
+            ->map(fn($c) => [
+                'code' => $c->numero_compte,
+                'libelle' => $c->libelle,
+            ])
+            ->toArray();
     }
 
     /**

@@ -68,10 +68,6 @@
             <td class="label-cell">AIB</td>
             <td class="value-cell">{{ formatMontant(facture.montant_aib) }}</td>
           </tr>
-          <tr>
-            <td class="label-cell">Escompte</td>
-            <td class="value-cell">{{ formatMontant(facture.montant_escompte) }}</td>
-          </tr>
           <tr class="total-row">
             <td class="label-cell"><strong>Montant TTC</strong></td>
             <td class="value-cell"><strong>{{ formatMontant(facture.montant_ttc) }}</strong></td>

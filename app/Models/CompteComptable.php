@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Cache;
  * @property int $classe
  * @property int $niveau
  * @property string $type_compte
- * @property bool $utilisable
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  *
@@ -28,7 +27,6 @@ use Illuminate\Support\Facades\Cache;
  * @property-read string $chemin
  * @property-read bool $est_feuille
  * @property-read bool $est_racine
- * @property-read string $type_compte_libelle
  * @property-read string $classe_libelle
  */
 class CompteComptable extends Model
@@ -47,7 +45,6 @@ class CompteComptable extends Model
         'classe',
         'niveau',
         'type_compte',
-        'utilisable',
         'is_custom',
         'parent_id',
         'created_by',
@@ -59,7 +56,6 @@ class CompteComptable extends Model
     protected $casts = [
         'classe' => 'integer',
         'niveau' => 'integer',
-        'utilisable' => 'boolean',
         'is_custom' => 'boolean',
         'parent_id' => 'integer',
         'created_by' => 'integer',
@@ -73,7 +69,6 @@ class CompteComptable extends Model
     protected $appends = [
         'est_feuille',
         'est_racine',
-        'type_compte_libelle',
         'classe_libelle',
         'is_custom',
     ];
@@ -246,21 +241,6 @@ class CompteComptable extends Model
     }
 
     /**
-     * Obtenir le libellé du type de compte
-     */
-    public function getTypeCompteLibelleAttribute(): string
-    {
-        return match($this->type_compte) {
-            self::TYPE_ACTIF => 'Actif',
-            self::TYPE_PASSIF => 'Passif',
-            self::TYPE_CHARGE => 'Charge',
-            self::TYPE_PRODUIT => 'Produit',
-            self::TYPE_SPECIAL => 'Spécial',
-            default => 'Inconnu',
-        };
-    }
-
-    /**
      * Obtenir le libellé de la classe
      */
     public function getClasseLibelleAttribute(): string
@@ -320,26 +300,6 @@ class CompteComptable extends Model
     }
 
     /**
-     * Filtrer par type de compte
-     */
-    public function scopeType(Builder $query, string $type): Builder
-    {
-        return $query->where('type_compte', $type);
-    }
-
-    /**
-     * Obtenir uniquement les comptes utilisables (feuilles)
-     */
-    public function scopeUtilisables(Builder $query): Builder
-    {
-        return $query->whereRaw('NOT EXISTS (
-            SELECT 1 FROM plan_comptable_ohada c2
-            WHERE c2.numero_compte LIKE CONCAT(plan_comptable_ohada.numero_compte, \'%\')
-            AND LENGTH(c2.numero_compte) > LENGTH(plan_comptable_ohada.numero_compte)
-        )');
-    }
-
-    /**
      * Obtenir uniquement les comptes racines (niveau 1)
      */
     public function scopeRacines(Builder $query): Builder
@@ -364,33 +324,6 @@ class CompteComptable extends Model
             $q->where('libelle', 'ILIKE', "%{$terme}%")
               ->orWhere('numero_compte', 'LIKE', "%{$terme}%");
         });
-    }
-
-    /**
-     * Comptes d'actif (bilan)
-     */
-    public function scopeActif(Builder $query): Builder
-    {
-        return $query->whereIn('classe', [
-            self::CLASSE_IMMOBILISATIONS,
-            self::CLASSE_STOCKS,
-            self::CLASSE_TRESORERIE,
-        ])->orWhere(function ($q) {
-            $q->where('classe', self::CLASSE_TIERS)
-              ->where('type_compte', self::TYPE_ACTIF);
-        });
-    }
-
-    /**
-     * Comptes de passif (bilan)
-     */
-    public function scopePassif(Builder $query): Builder
-    {
-        return $query->where('classe', self::CLASSE_CAPITAUX)
-            ->orWhere(function ($q) {
-                $q->where('classe', self::CLASSE_TIERS)
-                  ->where('type_compte', self::TYPE_PASSIF);
-            });
     }
 
     /**
@@ -499,14 +432,6 @@ class CompteComptable extends Model
     }
 
     /**
-     * Vérifier si le compte peut être utilisé dans une écriture
-     */
-    public function peutEtreUtilise(): bool
-    {
-        return $this->utilisable && $this->est_feuille;
-    }
-
-    /**
      * Obtenir le format court du compte (numéro uniquement)
      */
     public function getFormatCourt(): string
@@ -577,7 +502,7 @@ class CompteComptable extends Model
                 'valide' => true,
                 'message' => 'Compte valide',
                 'compte' => $compte,
-                'utilisable' => $compte->peutEtreUtilise(),
+                'est_feuille' => $compte->est_feuille,
             ];
         }
 
@@ -609,7 +534,6 @@ class CompteComptable extends Model
     public static function clients(): Collection
     {
         return self::commencePar('41')
-            ->utilisables()
             ->orderBy('numero_compte')
             ->get();
     }
@@ -620,7 +544,6 @@ class CompteComptable extends Model
     public static function fournisseurs(): Collection
     {
         return self::commencePar('40')
-            ->utilisables()
             ->orderBy('numero_compte')
             ->get();
     }
@@ -631,7 +554,6 @@ class CompteComptable extends Model
     public static function banques(): Collection
     {
         return self::commencePar('52')
-            ->utilisables()
             ->orderBy('numero_compte')
             ->get();
     }
@@ -642,7 +564,6 @@ class CompteComptable extends Model
     public static function caisses(): Collection
     {
         return self::commencePar('57')
-            ->utilisables()
             ->orderBy('numero_compte')
             ->get();
     }
@@ -664,8 +585,6 @@ class CompteComptable extends Model
             'classe_libelle' => $this->classe_libelle,
             'niveau' => $this->niveau,
             'type_compte' => $this->type_compte,
-            'type_compte_libelle' => $this->type_compte_libelle,
-            'utilisable' => $this->utilisable,
             'est_feuille' => $this->est_feuille,
             'est_racine' => $this->est_racine,
             'numero_compte_parent' => $this->numero_compte_parent,
@@ -681,7 +600,6 @@ class CompteComptable extends Model
         return [
             'value' => $this->numero_compte,
             'label' => $this->getFormatLong(),
-            'disabled' => !$this->peutEtreUtilise(),
         ];
     }
 

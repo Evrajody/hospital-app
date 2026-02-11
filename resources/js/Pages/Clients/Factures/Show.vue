@@ -1,389 +1,236 @@
 <template>
   <AppLayout :user="user" :breadcrumbs="breadcrumbs">
-    <div class="facture-show-container">
-      <!-- Header -->
+    <div class="page-container">
+      <!-- Page Header -->
       <div class="page-header">
-        <div>
-          <h1>Facture {{ facture.numero }}</h1>
-          <p class="subtitle">{{ facture.client.nom }}</p>
+        <div class="header-left">
+          <el-tag :type="getStatutType(facture.statut)" size="large">
+            {{ getStatutLabel(facture.statut) }}
+          </el-tag>
+          <div>
+            <h1 class="page-title">{{ facture.reference }}</h1>
+            <p class="page-subtitle">
+              Client: {{ facture.client?.nom || '-' }} &bull;
+              Date: {{ formatDate(facture.date_facture) }}
+            </p>
+          </div>
         </div>
+
         <div class="header-actions">
-          <el-tag :type="getStatutType()" size="large">{{ getStatutLabel() }}</el-tag>
+          <el-button @click="handleBack">
+            <el-icon><ArrowLeft /></el-icon>
+            Retour
+          </el-button>
+          <el-dropdown @command="handleAction" trigger="click">
+            <el-button type="primary">
+              Actions
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-if="!estPayee" command="regler" :icon="Money">
+                  Enregistrer un r&#232;glement
+                </el-dropdown-item>
+                <el-dropdown-item v-if="!estPayee" command="edit" :icon="Edit" divided>
+                  Modifier
+                </el-dropdown-item>
+                <el-dropdown-item command="print" :icon="Printer">
+                  Imprimer
+                </el-dropdown-item>
+                <el-dropdown-item divided command="delete" :icon="Delete">
+                  <span style="color: #f56c6c">Supprimer</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
 
       <el-row :gutter="20">
-        <!-- Informations facture -->
-        <el-col :xs="24" :lg="14">
-          <el-card shadow="never" class="facture-details">
+        <!-- Left Column: Invoice Details -->
+        <el-col :span="16">
+          <!-- Info Card -->
+          <el-card shadow="never" class="section-card">
             <template #header>
-              <div class="card-header">
-                <h3>Détails de la Facture</h3>
+              <div class="card-header-custom">
+                <el-icon :size="20"><Document /></el-icon>
+                <span>Informations G&#233;n&#233;rales</span>
               </div>
             </template>
 
-            <div class="details-grid">
-              <div class="detail-item">
-                <span class="label">Client :</span>
-                <span class="value">{{ facture.client.code }} - {{ facture.client.nom }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">Numéro :</span>
-                <span class="value"><strong>{{ facture.numero }}</strong></span>
-              </div>
-              <div class="detail-item">
-                <span class="label">Date de facture :</span>
-                <span class="value">{{ formatDate(facture.date_facture) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">Date d'échéance :</span>
-                <span class="value">{{ formatDate(facture.date_echeance) }}</span>
-              </div>
-              <div class="detail-item full-width">
-                <span class="label">Description :</span>
-                <span class="value">{{ facture.description }}</span>
-              </div>
-              <div v-if="facture.observation" class="detail-item full-width">
-                <span class="label">Observation :</span>
-                <span class="value observation">{{ facture.observation }}</span>
-              </div>
-            </div>
-
-            <el-divider />
-
-            <div class="montants-section">
-              <div class="montant-row">
-                <span class="montant-label">Montant HT :</span>
-                <span class="montant-value">{{ formatMontant(facture.montant_ht) }}</span>
-              </div>
-              <div class="montant-row">
-                <span class="montant-label">TVA (18%) :</span>
-                <span class="montant-value">{{ formatMontant(facture.montant_tva) }}</span>
-              </div>
-              <div class="montant-row total">
-                <span class="montant-label">Montant TTC :</span>
-                <span class="montant-value">{{ formatMontant(facture.montant_ttc) }}</span>
-              </div>
-              <div class="montant-row paye">
-                <span class="montant-label">Total payé :</span>
-                <span class="montant-value">{{ formatMontant(totalPaye) }}</span>
-              </div>
-              <div class="montant-row reste" :class="reste > 0 ? 'has-reste' : ''">
-                <span class="montant-label">Reste à payer :</span>
-                <span class="montant-value">{{ formatMontant(reste) }}</span>
-              </div>
-            </div>
-          </el-card>
-
-          <!-- Historique des règlements -->
-          <el-card shadow="never" class="reglements-card">
-            <template #header>
-              <div class="card-header">
-                <h3>Historique des Règlements</h3>
-              </div>
-            </template>
-
-            <el-table
-              :data="facture.reglements"
-              stripe
-              style="width: 100%"
-              :default-sort="{ prop: 'date_reglement', order: 'descending' }"
-            >
-              <el-table-column prop="date_reglement" label="Date" width="120">
-                <template #default="{ row }">
-                  {{ formatDate(row.date_reglement) }}
-                </template>
-              </el-table-column>
-              <el-table-column prop="mode_paiement" label="Mode" width="150">
-                <template #default="{ row }">
-                  {{ getModeLabel(row.mode_paiement) }}
-                </template>
-              </el-table-column>
-              <el-table-column prop="reference" label="Référence" />
-              <el-table-column prop="montant" label="Montant" align="right" width="150">
-                <template #default="{ row }">
-                  <span class="montant-paye">{{ formatMontant(row.montant) }}</span>
-                </template>
-              </el-table-column>
-            </el-table>
-
-            <div v-if="facture.reglements.length === 0" class="no-reglements">
-              <el-empty description="Aucun règlement enregistré pour cette facture" />
-            </div>
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="R&#233;f&#233;rence">
+                <el-tag type="primary">{{ facture.reference }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="Date">
+                {{ formatDate(facture.date_facture) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Client" :span="2">
+                <div class="client-info-detail">
+                  <strong>{{ facture.client?.nom || '-' }}</strong>
+                  <span v-if="facture.client?.telephone" class="client-tel">
+                    <el-icon><Phone /></el-icon>
+                    {{ facture.client.telephone }}
+                  </span>
+                </div>
+              </el-descriptions-item>
+              <el-descriptions-item label="Montant">
+                <strong style="font-size: 16px;">{{ formatMontant(facture.montant) }}</strong>
+              </el-descriptions-item>
+              <el-descriptions-item v-if="facture.ristourne > 0" label="Ristourne">
+                <span style="color: #e6a23c; font-weight: 600;">- {{ formatMontant(facture.ristourne) }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item v-if="facture.ristourne > 0" label="Net &#224; payer" :span="2">
+                <strong style="font-size: 16px; color: #059669;">{{ formatMontant(facture.net_a_payer) }}</strong>
+              </el-descriptions-item>
+              <el-descriptions-item label="Cr&#233;&#233;e le">
+                {{ facture.created_at ? formatDateTime(facture.created_at) : '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Statut">
+                <el-tag :type="getStatutType(facture.statut)" size="small">
+                  {{ getStatutLabel(facture.statut) }}
+                </el-tag>
+              </el-descriptions-item>
+            </el-descriptions>
           </el-card>
         </el-col>
 
-        <!-- Actions -->
-        <el-col :xs="24" :lg="10">
-          <el-card shadow="never" class="actions-card" v-if="reste > 0">
+        <!-- Right Column: Summary -->
+        <el-col :span="8">
+          <!-- Totals Card -->
+          <el-card shadow="never" class="section-card totals-card">
             <template #header>
-              <div class="card-header">
-                <h3>Enregistrer un Règlement</h3>
+              <div class="card-header-custom">
+                <el-icon :size="20"><Operation /></el-icon>
+                <span>R&#233;capitulatif</span>
               </div>
             </template>
 
-            <el-form
-              ref="reglementFormRef"
-              :model="reglementForm"
-              :rules="reglementRules"
-              label-position="top"
-            >
-              <el-form-item label="Date de règlement" prop="date_reglement">
-                <el-date-picker
-                  v-model="reglementForm.date_reglement"
-                  type="date"
-                  placeholder="Sélectionner la date"
-                  format="DD/MM/YYYY"
-                  value-format="YYYY-MM-DD"
-                  style="width: 100%"
-                  ref="dateReglementInput"
-                />
-              </el-form-item>
+            <div class="totals-grid">
+              <div class="total-row total-ttc-row">
+                <span class="total-label"><strong>Montant :</strong></span>
+                <span class="total-value total-ttc"><strong>{{ formatMontant(facture.montant) }}</strong></span>
+              </div>
 
-              <el-form-item label="Montant" prop="montant">
-                <el-input
-                  v-model.number="reglementForm.montant"
-                  type="number"
-                  placeholder="0"
-                  :max="reste"
-                >
-                  <template #append>XOF</template>
-                </el-input>
-                <div class="form-hint">Maximum : {{ formatMontant(reste) }}</div>
-              </el-form-item>
+              <div v-if="facture.ristourne > 0" class="total-row">
+                <span class="total-label">Ristourne :</span>
+                <span class="total-value" style="color: #e6a23c;">- {{ formatMontant(facture.ristourne) }}</span>
+              </div>
 
-              <el-form-item label="Mode de paiement" prop="mode_paiement">
-                <el-select
-                  v-model="reglementForm.mode_paiement"
-                  placeholder="Sélectionner le mode"
-                  style="width: 100%"
-                >
-                  <el-option label="Espèces" value="especes" />
-                  <el-option label="Chèque" value="cheque" />
-                  <el-option label="Virement bancaire" value="virement" />
-                  <el-option label="Carte bancaire" value="carte" />
-                  <el-option label="Mobile Money" value="mobile_money" />
-                </el-select>
-              </el-form-item>
+              <div v-if="facture.ristourne > 0" class="total-row">
+                <span class="total-label"><strong>Net &#224; payer :</strong></span>
+                <span class="total-value" style="color: #059669; font-size: 18px;"><strong>{{ formatMontant(facture.net_a_payer) }}</strong></span>
+              </div>
 
-              <el-form-item v-if="showBanqueField" label="Banque" prop="banque">
-                <el-select
-                  v-model="reglementForm.banque"
-                  placeholder="Sélectionner la banque"
-                  style="width: 100%"
-                >
-                  <el-option label="BIBE - Banque Internationale du Bénin" value="BIBE" />
-                  <el-option label="BOA - Bank of Africa" value="BOA" />
-                  <el-option label="Ecobank Bénin" value="ECOBANK" />
-                  <el-option label="SGBBE - Société Générale" value="SGBBE" />
-                  <el-option label="CBAO - Compagnie Bancaire" value="CBAO" />
-                </el-select>
-              </el-form-item>
+              <el-divider style="margin: 12px 0" />
 
-              <el-form-item v-if="showReferenceField" label="Référence" prop="reference">
-                <el-input
-                  v-model="reglementForm.reference"
-                  placeholder="Numéro de chèque ou référence"
-                />
-              </el-form-item>
+              <div class="total-row">
+                <span class="total-label">Montant pay&#233; :</span>
+                <span class="total-value total-paye">{{ formatMontant(facture.montant_paye) }}</span>
+              </div>
 
-              <el-form-item label="Notes" prop="notes">
-                <el-input
-                  v-model="reglementForm.notes"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="Notes complémentaires"
-                />
-              </el-form-item>
+              <div class="total-row reste-row">
+                <span class="total-label"><strong>Reste &#224; payer :</strong></span>
+                <span class="total-value total-reste" :class="{ 'soldee': estPayee }">
+                  <strong>{{ estPayee ? 'Pay\u00e9e' : formatMontant(facture.reste_a_payer) }}</strong>
+                </span>
+              </div>
+
+              <el-progress
+                :percentage="pourcentagePaye"
+                :color="progressColor"
+                :stroke-width="12"
+                style="margin-top: 16px"
+              />
 
               <el-button
+                v-if="!estPayee"
                 type="primary"
-                :loading="loading"
-                @click="handleReglement"
-                style="width: 100%"
                 size="large"
+                style="width: 100%; margin-top: 16px;"
+                @click="handleAction('regler')"
               >
-                Enregistrer le règlement
+                <el-icon><Money /></el-icon>
+                Enregistrer un r&#232;glement
               </el-button>
-            </el-form>
-          </el-card>
 
-          <el-card shadow="never" class="actions-card" v-if="reste > 0 && totalPaye > 0">
-            <template #header>
-              <div class="card-header">
-                <h3>Actions</h3>
-              </div>
-            </template>
-
-            <el-button
-              type="warning"
-              :icon="CircleCheck"
-              @click="handleMarquerSoldee"
-              style="width: 100%"
-            >
-              Marquer comme soldée
-            </el-button>
-            <div class="form-hint">
-              Cette action fermera la facture même s'il reste un solde impayé
+              <el-alert
+                v-if="estPayee"
+                type="success"
+                :closable="false"
+                style="margin-top: 16px;"
+              >
+                <template #title>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <el-icon><CircleCheck /></el-icon>
+                    Facture enti&#232;rement pay&#233;e
+                  </div>
+                </template>
+              </el-alert>
             </div>
-          </el-card>
-
-          <el-card shadow="never" class="solde-success" v-if="reste === 0 && !facture.soldee">
-            <el-result
-              icon="success"
-              title="Facture réglée"
-              sub-title="Cette facture a été entièrement payée"
-            />
-          </el-card>
-
-          <el-card shadow="never" class="solde-info" v-if="facture.soldee">
-            <el-result
-              icon="info"
-              title="Facture soldée"
-              sub-title="Cette facture a été marquée comme soldée manuellement"
-            />
           </el-card>
         </el-col>
       </el-row>
     </div>
+
+    <!-- Modal Facture -->
+    <FactureClientModal
+      ref="factureModalRef"
+      v-model="showFactureModal"
+      :facture="selectedFacture"
+      :clients="clients"
+      :prochaine-reference="prochaineReference"
+      :loading="modalLoading"
+      @success="handleFactureSuccess"
+    />
   </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import { CircleCheck } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import {
+  ArrowLeft, ArrowDown, Document, Operation, Money,
+  Edit, Delete, Printer, Phone, CircleCheck
+} from '@element-plus/icons-vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
 
-// Props
 const props = defineProps({
-  user: {
-    type: Object,
-    default: () => ({})
-  },
-  facture: {
-    type: Object,
-    required: true
-  }
+  facture: { type: Object, required: true },
+  clients: { type: Array, default: () => [] },
+  prochaineReference: { type: String, default: '' },
+  user: { type: Object, default: () => null },
 });
 
-// Breadcrumbs
+const showFactureModal = ref(false);
+const selectedFacture = ref(null);
+const modalLoading = ref(false);
+const factureModalRef = ref(null);
+
 const breadcrumbs = [
   { title: 'Tableau de bord', path: '/dashboard' },
-  { title: 'Factures Clients', path: '/clients/factures' },
-  { title: `Facture ${props.facture.numero}`, path: `/clients/factures/${props.facture.id}` }
+  { title: 'Factures Clients', path: '/factures-clients' },
+  { title: props.facture.reference, path: '' }
 ];
 
-// Form
-const reglementFormRef = ref(null);
-const loading = ref(false);
-
-const reglementForm = ref({
-  date_reglement: '',
-  montant: 0,
-  mode_paiement: '',
-  banque: '',
-  reference: '',
-  notes: ''
+const pourcentagePaye = computed(() => {
+  const netAPayer = parseFloat(props.facture.net_a_payer) || parseFloat(props.facture.montant) || 0;
+  if (netAPayer === 0) return 0;
+  const paye = parseFloat(props.facture.montant_paye) || 0;
+  return Math.min(Math.round((paye / netAPayer) * 100), 100);
 });
 
-// Computed
-const totalPaye = computed(() => {
-  return props.facture.reglements?.reduce((sum, r) => sum + r.montant, 0) || 0;
+const estPayee = computed(() => {
+  return props.facture.statut === 'payee';
 });
 
-const reste = computed(() => {
-  return props.facture.montant_ttc - totalPaye.value;
+const progressColor = computed(() => {
+  if (pourcentagePaye.value === 100) return '#67c23a';
+  if (pourcentagePaye.value >= 50) return '#e6a23c';
+  return '#f56c6c';
 });
-
-const showBanqueField = computed(() => {
-  return ['cheque', 'virement', 'carte'].includes(reglementForm.value.mode_paiement);
-});
-
-const showReferenceField = computed(() => {
-  return ['cheque', 'virement'].includes(reglementForm.value.mode_paiement);
-});
-
-// Validation rules
-const reglementRules = {
-  date_reglement: [
-    { required: true, message: 'La date de règlement est obligatoire', trigger: 'change' }
-  ],
-  montant: [
-    { required: true, message: 'Le montant est obligatoire', trigger: 'blur' },
-    { type: 'number', min: 0, message: 'Le montant doit être positif', trigger: 'blur' }
-  ],
-  mode_paiement: [
-    { required: true, message: 'Le mode de paiement est obligatoire', trigger: 'change' }
-  ]
-};
-
-// Methods
-const getStatutLabel = () => {
-  if (props.facture.soldee) return 'Soldée';
-  if (reste.value === 0) return 'Réglée';
-  if (totalPaye.value > 0) return 'Partiellement réglée';
-  return 'Non réglée';
-};
-
-const getStatutType = () => {
-  if (props.facture.soldee) return 'info';
-  if (reste.value === 0) return 'success';
-  if (totalPaye.value > 0) return 'warning';
-  return 'danger';
-};
-
-const getModeLabel = (mode) => {
-  const labels = {
-    especes: 'Espèces',
-    cheque: 'Chèque',
-    virement: 'Virement',
-    carte: 'Carte bancaire',
-    mobile_money: 'Mobile Money'
-  };
-  return labels[mode] || mode;
-};
-
-const handleReglement = () => {
-  reglementFormRef.value.validate((valid) => {
-    if (valid) {
-      if (reglementForm.value.montant > reste.value) {
-        ElMessage.error('Le montant ne peut pas dépasser le reste à payer');
-        return;
-      }
-
-      loading.value = true;
-
-      // TODO: Remplacer par l'envoi réel au backend
-      setTimeout(() => {
-        loading.value = false;
-        ElMessage.success('Règlement enregistré avec succès');
-        router.reload();
-      }, 1000);
-    } else {
-      ElMessage.error('Veuillez corriger les erreurs du formulaire');
-    }
-  });
-};
-
-const handleMarquerSoldee = () => {
-  ElMessageBox.confirm(
-    `Cette action marquera la facture comme soldée. Le reste impayé (${formatMontant(reste.value)}) sera considéré comme abandonné. Continuer ?`,
-    'Confirmation',
-    {
-      confirmButtonText: 'Confirmer',
-      cancelButtonText: 'Annuler',
-      type: 'warning'
-    }
-  ).then(() => {
-    // TODO: Implémenter l'API
-    ElMessage.success('Facture marquée comme soldée');
-    router.reload();
-  }).catch(() => {
-    // Annulé
-  });
-};
 
 const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR', {
@@ -394,164 +241,246 @@ const formatMontant = (montant) => {
 };
 
 const formatDate = (date) => {
+  if (!date) return '-';
   return new Date(date).toLocaleDateString('fr-FR');
+};
+
+const formatDateTime = (date) => {
+  if (!date) return '-';
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+};
+
+const getStatutType = (statut) => {
+  const types = {
+    non_payee: 'danger',
+    partiellement_payee: 'warning',
+    payee: 'success',
+  };
+  return types[statut] || 'info';
+};
+
+const getStatutLabel = (statut) => {
+  const labels = {
+    non_payee: 'Non pay\u00e9e',
+    partiellement_payee: 'Partiellement pay\u00e9e',
+    payee: 'Pay\u00e9e',
+  };
+  return labels[statut] || statut;
+};
+
+const handleBack = () => {
+  router.visit('/factures-clients');
+};
+
+const handleAction = (command) => {
+  switch (command) {
+    case 'regler':
+      router.visit(`/factures-clients/${props.facture.id}/regler`);
+      break;
+    case 'edit':
+      selectedFacture.value = props.facture;
+      showFactureModal.value = true;
+      break;
+    case 'print':
+      ElMessage.info('Impression en cours de d\u00e9veloppement...');
+      break;
+    case 'delete':
+      ElMessageBox.confirm(
+        '\u00cates-vous s\u00fbr de vouloir supprimer cette facture ?',
+        'Confirmation',
+        {
+          confirmButtonText: 'Supprimer',
+          cancelButtonText: 'Annuler',
+          type: 'warning'
+        }
+      ).then(async () => {
+        try {
+          const response = await fetch(`/api/factures-clients/${props.facture.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+          });
+          const result = await response.json();
+          if (result.success) {
+            ElMessage.success('Facture supprim\u00e9e');
+            router.visit('/factures-clients');
+          } else {
+            ElMessage.error(result.message || 'Erreur');
+          }
+        } catch (error) {
+          ElMessage.error('Erreur de connexion');
+        }
+      }).catch(() => {});
+      break;
+  }
+};
+
+const handleFactureSuccess = async (data) => {
+  modalLoading.value = true;
+
+  try {
+    const response = await fetch(`/api/factures-clients/${props.facture.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      ElMessage.success(result.message || 'Facture modifi\u00e9e');
+      showFactureModal.value = false;
+      router.reload();
+    } else {
+      ElMessage.error(result.message || 'Erreur');
+    }
+  } catch (error) {
+    ElMessage.error('Erreur de connexion au serveur');
+  } finally {
+    modalLoading.value = false;
+  }
 };
 </script>
 
 <style scoped>
-.facture-show-container {
-  max-width: 1400px;
-  margin: 0 auto;
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
   align-items: center;
-  margin-bottom: 24px;
+  gap: 16px;
 }
 
-.page-header h1 {
-  font-size: 28px;
+.page-title {
+  font-size: 24px;
   font-weight: 600;
-  color: #333;
-  margin: 0 0 8px 0;
+  color: #1f2937;
+  margin: 0 0 4px 0;
 }
 
-.subtitle {
-  color: #666;
+.page-subtitle {
   font-size: 14px;
+  color: #6b7280;
   margin: 0;
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
-  align-items: center;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.facture-details {
+.section-card {
+  border-radius: 8px;
   margin-bottom: 20px;
 }
 
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+.card-header-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
 }
 
-.detail-item {
+.client-info-detail {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+.client-tel {
+  display: flex;
+  align-items: center;
   gap: 4px;
+  font-size: 13px;
+  color: #6b7280;
 }
 
-.detail-item.full-width {
-  grid-column: 1 / -1;
+.totals-card {
+  background-color: #f9fafb;
 }
 
-.detail-item .label {
-  font-size: 12px;
-  color: #909399;
-  font-weight: 500;
+.totals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.detail-item .value {
-  font-size: 14px;
-  color: #333;
-}
-
-.detail-item .value.observation {
-  font-style: italic;
-  color: #606266;
-}
-
-.montants-section {
-  background: #f9fafb;
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.montant-row {
+.total-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.total-label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.total-value {
+  font-size: 15px;
+  color: #1f2937;
+  font-family: 'Courier New', monospace;
+}
+
+.total-ttc-row,
+.reste-row {
   padding: 8px 0;
+}
+
+.total-ttc {
+  color: #059669;
+  font-size: 20px;
+}
+
+.total-paye {
+  color: #059669;
+}
+
+.total-reste {
+  color: #dc2626;
+  font-size: 18px;
+}
+
+.total-reste.soldee {
+  color: #059669;
+}
+
+:deep(.el-card__header) {
+  padding: 16px 20px;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.montant-row:last-child {
-  border-bottom: none;
-}
-
-.montant-row.total {
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 2px solid #d1d5db;
-  font-size: 16px;
-  font-weight: bold;
-  color: #2563eb;
-}
-
-.montant-row.paye {
-  color: #059669;
-  font-weight: 600;
-}
-
-.montant-row.reste {
-  color: #666;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.montant-row.reste.has-reste {
-  color: #dc2626;
-}
-
-.reglements-card {
-  margin-bottom: 20px;
-}
-
-.no-reglements {
+:deep(.el-card__body) {
   padding: 20px;
-  text-align: center;
 }
 
-.montant-paye {
-  color: #059669;
+:deep(.el-descriptions__label) {
   font-weight: 600;
-}
-
-.actions-card {
-  margin-bottom: 20px;
-}
-
-.form-hint {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 8px;
-}
-
-.solde-success,
-.solde-info {
-  margin-bottom: 20px;
-}
-
-@media (max-width: 991px) {
-  .details-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

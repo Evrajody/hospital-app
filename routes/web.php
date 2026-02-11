@@ -6,7 +6,9 @@ use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\FactureFournisseurController;
 use App\Http\Controllers\ReglementFournisseurController;
 use App\Http\Controllers\BanqueController;
+use App\Http\Controllers\FactureClientController;
 use App\Http\Controllers\PlanComptableController;
+use App\Http\Controllers\ReglementClientController;
 
 // Page d'accueil (Welcome)
 Route::get('/', function () {
@@ -68,6 +70,9 @@ Route::prefix('api/factures-fournisseurs')->group(function () {
 
     // Générer un numéro de pièce
     Route::get('/generer-numero', [FactureFournisseurController::class, 'genererNumero'])->name('api.factures-fournisseurs.generer-numero');
+
+    // Vérifier un numéro de pièce
+    Route::post('/verifier-numero', [FactureFournisseurController::class, 'verifierNumeroPiece'])->name('api.factures-fournisseurs.verifier-numero');
 
     // Statistiques
     Route::get('/stats', [FactureFournisseurController::class, 'stats'])->name('api.factures-fournisseurs.stats');
@@ -375,392 +380,43 @@ Route::prefix('reglements-fournisseurs')->group(function () {
 
 // Clients Routes
 Route::prefix('clients')->group(function () {
-    // Liste des clients
-    Route::get('/', function () {
-        $clients = [
-            [
-                'id' => 1,
-                'code' => 'CLI-001',
-                'nom' => 'Assurance UNIAF',
-                'type' => 'assurance',
-                'telephone' => '+229 21 31 22 33',
-                'email' => 'contact@uniaf.bj',
-                'solde' => 3500000,
-                'nb_factures' => 12
-            ],
-            [
-                'id' => 2,
-                'code' => 'CLI-002',
-                'nom' => 'M. Kouadio Jean',
-                'type' => 'particulier',
-                'telephone' => '+229 97 XX XX XX',
-                'email' => 'j.kouadio@email.com',
-                'solde' => 150000,
-                'nb_factures' => 2
-            ],
-            [
-                'id' => 3,
-                'code' => 'CLI-003',
-                'nom' => 'Mutuelle MUGEF-CI',
-                'type' => 'mutuelle',
-                'telephone' => '+229 21 30 45 67',
-                'email' => 'info@mugef.ci',
-                'solde' => 0,
-                'nb_factures' => 8
-            ]
-        ];
+    Route::get('/', [App\Http\Controllers\ClientController::class, 'index'])->name('clients.index');
+});
 
-        $stats = [
-            'factures_en_cours' => 22,
-            'creances_total' => 3650000
-        ];
-
-        return Inertia::render('Clients/Index', [
-            'clients' => $clients,
-            'stats' => $stats,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('clients.index');
-
-    // Formulaire création
-    Route::get('/create', function () {
-        return Inertia::render('Clients/Create', [
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('clients.create');
-
-    // Formulaire édition
-    Route::get('/{id}/edit', function ($id) {
-        $client = [
-            'id' => $id,
-            'code' => 'CLI-001',
-            'nom' => 'Assurance UNIAF',
-            'type' => 'assurance',
-            'telephone' => '+229 21 31 22 33',
-            'email' => 'contact@uniaf.bj',
-            'adresse' => 'Avenue Jean-Paul II, Cotonou',
-            'ifu' => '1234567890123',
-            'numero_assurance' => 'ASS-001',
-            'notes' => 'Client important'
-        ];
-
-        return Inertia::render('Clients/Edit', [
-            'client' => $client,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('clients.edit');
-
-    // Détail client
-    Route::get('/{id}', function ($id) {
-        $client = [
-            'id' => $id,
-            'code' => 'CLI-001',
-            'nom' => 'Assurance UNIAF',
-            'type' => 'assurance',
-            'telephone' => '+229 21 31 22 33',
-            'email' => 'contact@uniaf.bj',
-            'adresse' => 'Avenue Jean-Paul II, Cotonou',
-            'ifu' => '1234567890123',
-            'numero_assurance' => 'ASS-001',
-            'notes' => 'Client important'
-        ];
-
-        $factures = [
-            [
-                'id' => 1,
-                'numero' => 'FC-2025-001',
-                'date_facture' => '2025-01-15',
-                'montant_ttc' => 2950000,
-                'montant_paye' => 1000000,
-                'statut_paiement' => 'partielle'
-            ],
-            [
-                'id' => 2,
-                'numero' => 'FC-2025-005',
-                'date_facture' => '2025-01-25',
-                'montant_ttc' => 500000,
-                'montant_paye' => 500000,
-                'statut_paiement' => 'payee'
-            ]
-        ];
-
-        $stats = [
-            'nombre_factures' => 12,
-            'montant_total' => 3450000,
-            'montant_paye' => 1500000,
-            'solde' => 1950000
-        ];
-
-        return Inertia::render('Clients/Show', [
-            'client' => $client,
-            'factures' => $factures,
-            'stats' => $stats,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('clients.show');
-
+// API Clients
+Route::prefix('api/clients')->group(function () {
+    Route::post('/', [App\Http\Controllers\ClientController::class, 'store'])->name('api.clients.store');
+    Route::put('/{id}', [App\Http\Controllers\ClientController::class, 'update'])->name('api.clients.update');
+    Route::delete('/{id}', [App\Http\Controllers\ClientController::class, 'destroy'])->name('api.clients.destroy');
 });
 
 // Factures Clients Routes
 Route::prefix('factures-clients')->group(function () {
-    // Liste des factures clients
-    Route::get('/', function () {
-        $factures = [
-            [
-                'id' => 1,
-                'numero' => 'FC-2025-001',
-                'date_facture' => '2025-01-15',
-                'date_echeance' => '2025-02-15',
-                'client' => [
-                    'id' => 1,
-                    'code' => 'CLI-001',
-                    'nom' => 'Assurance UNIAF'
-                ],
-                'montant_ht' => 2500000,
-                'montant_tva' => 450000,
-                'montant_ttc' => 2950000,
-                'reglements' => [
-                    ['id' => 1, 'montant' => 1000000]
-                ],
-                'soldee' => false
-            ],
-            [
-                'id' => 2,
-                'numero' => 'FC-2025-002',
-                'date_facture' => '2025-01-20',
-                'date_echeance' => '2025-02-20',
-                'client' => [
-                    'id' => 2,
-                    'code' => 'CLI-002',
-                    'nom' => 'M. Kouadio Jean'
-                ],
-                'montant_ht' => 120000,
-                'montant_tva' => 21600,
-                'montant_ttc' => 141600,
-                'reglements' => [],
-                'soldee' => false
-            ]
-        ];
+    Route::get('/', [FactureClientController::class, 'indexView'])->name('factures-clients.index');
+    Route::get('/{id}', [FactureClientController::class, 'showView'])
+        ->where('id', '[0-9]+')
+        ->name('factures-clients.show');
+    Route::get('/{id}/regler', [FactureClientController::class, 'reglementView'])
+        ->where('id', '[0-9]+')
+        ->name('factures-clients.regler');
+});
 
-        $clients = [
-            ['id' => 1, 'code' => 'CLI-001', 'nom' => 'Assurance UNIAF'],
-            ['id' => 2, 'code' => 'CLI-002', 'nom' => 'M. Kouadio Jean'],
-            ['id' => 3, 'code' => 'CLI-003', 'nom' => 'Mutuelle MUGEF-CI']
-        ];
-
-        return Inertia::render('Clients/Factures/Index', [
-            'factures' => $factures,
-            'clients' => $clients,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-clients.index');
-
-    // Formulaire création facture
-    Route::get('/create', function () {
-        $clients = [
-            ['id' => 1, 'code' => 'CLI-001', 'nom' => 'Assurance UNIAF'],
-            ['id' => 2, 'code' => 'CLI-002', 'nom' => 'M. Kouadio Jean'],
-            ['id' => 3, 'code' => 'CLI-003', 'nom' => 'Mutuelle MUGEF-CI']
-        ];
-
-        return Inertia::render('Clients/Factures/Create', [
-            'clients' => $clients,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-clients.create');
-
-    // Détail facture et règlement
-    Route::get('/{id}', function ($id) {
-        $facture = [
-            'id' => $id,
-            'numero' => 'FC-2025-001',
-            'date_facture' => '2025-01-15',
-            'date_echeance' => '2025-02-15',
-            'client' => [
-                'id' => 1,
-                'code' => 'CLI-001',
-                'nom' => 'Assurance UNIAF'
-            ],
-            'description' => 'Consultation et soins hospitaliers',
-            'observation' => 'Dossier urgent',
-            'montant_ht' => 2500000,
-            'montant_tva' => 450000,
-            'montant_ttc' => 2950000,
-            'reglements' => [
-                [
-                    'id' => 1,
-                    'date_reglement' => '2025-01-20',
-                    'mode_paiement' => 'virement',
-                    'reference' => 'VIR-CLI-001',
-                    'banque' => 'ORABANK',
-                    'montant' => 1000000
-                ]
-            ],
-            'soldee' => false
-        ];
-
-        return Inertia::render('Clients/Factures/Show', [
-            'facture' => $facture,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-clients.show');
+// API Factures Clients
+Route::prefix('api/factures-clients')->group(function () {
+    Route::post('/', [FactureClientController::class, 'store'])->name('api.factures-clients.store');
+    Route::put('/{id}', [FactureClientController::class, 'update'])->name('api.factures-clients.update');
+    Route::delete('/{id}', [FactureClientController::class, 'destroy'])->name('api.factures-clients.destroy');
 });
 
 // Règlements Clients Routes
 Route::prefix('reglements-clients')->group(function () {
-    Route::get('/', function () {
-        $reglements = [
-            [
-                'id' => 1,
-                'date_reglement' => '2025-01-20',
-                'facture' => [
-                    'id' => 1,
-                    'numero' => 'FC-2025-001'
-                ],
-                'client' => [
-                    'id' => 1,
-                    'code' => 'CLI-001',
-                    'nom' => 'Assurance UNIAF'
-                ],
-                'mode_paiement' => 'virement',
-                'reference' => 'VIR-CLI-001',
-                'compte_bancaire' => [
-                    'banque' => 'ORABANK',
-                    'numero' => 'BJ123456789'
-                ],
-                'montant' => 1000000,
-                'user' => [
-                    'name' => 'Admin User'
-                ]
-            ],
-            [
-                'id' => 2,
-                'date_reglement' => '2025-01-22',
-                'facture' => [
-                    'id' => 2,
-                    'numero' => 'FC-2025-002'
-                ],
-                'client' => [
-                    'id' => 2,
-                    'code' => 'CLI-002',
-                    'nom' => 'M. Kouadio Jean'
-                ],
-                'mode_paiement' => 'cheque',
-                'reference' => 'CHQ-001',
-                'compte_bancaire' => [
-                    'banque' => 'BOA BENIN',
-                    'numero' => 'BJ987654321'
-                ],
-                'montant' => 141600,
-                'user' => [
-                    'name' => 'Admin User'
-                ]
-            ],
-            [
-                'id' => 3,
-                'date_reglement' => '2025-01-25',
-                'facture' => [
-                    'id' => 1,
-                    'numero' => 'FC-2025-001'
-                ],
-                'client' => [
-                    'id' => 1,
-                    'code' => 'CLI-001',
-                    'nom' => 'Assurance UNIAF'
-                ],
-                'mode_paiement' => 'especes',
-                'reference' => null,
-                'compte_bancaire' => null,
-                'montant' => 500000,
-                'user' => [
-                    'name' => 'Admin User'
-                ]
-            ]
-        ];
+    Route::get('/', [ReglementClientController::class, 'indexView'])->name('reglements-clients.index');
+});
 
-        $clients = [
-            ['id' => 1, 'nom' => 'Assurance UNIAF'],
-            ['id' => 2, 'nom' => 'M. Kouadio Jean'],
-            ['id' => 3, 'nom' => 'Mutuelle MUGEF-CI']
-        ];
-
-        $stats = [
-            'total_reglements' => 1641600,
-            'reglements_mois' => 1641600,
-            'nombre_reglements' => count($reglements),
-            'montant_moyen' => 1641600 / count($reglements)
-        ];
-
-        return Inertia::render('ReglementClients/Index', [
-            'reglements' => $reglements,
-            'clients' => $clients,
-            'stats' => $stats,
-            'pagination' => [
-                'current_page' => 1,
-                'per_page' => 20,
-                'total' => count($reglements)
-            ],
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('reglements-clients.index');
-
-    // Reçu de règlement
-    Route::get('/{id}/recu', function ($id) {
-        $reglement = [
-            'id' => $id,
-            'date_reglement' => '2025-01-20',
-            'facture' => [
-                'id' => 1,
-                'numero' => 'FC-2025-001',
-                'date_facture' => '2025-01-15'
-            ],
-            'client' => [
-                'id' => 1,
-                'code' => 'CLI-001',
-                'nom' => 'Assurance UNIAF',
-                'ifu' => '1234567890123'
-            ],
-            'mode_paiement' => 'virement',
-            'reference' => 'VIR-CLI-001',
-            'compte_bancaire' => [
-                'banque' => 'ORABANK',
-                'numero' => 'BJ123456789'
-            ],
-            'montant' => 1000000,
-            'user' => [
-                'name' => 'Admin User'
-            ]
-        ];
-
-        return Inertia::render('Documents/RecuPaiement', [
-            'reglement' => $reglement,
-            'type' => 'client'
-        ]);
-    })->name('reglements-clients.recu');
+// API Règlements Clients
+Route::prefix('api/reglements-clients')->group(function () {
+    Route::post('/', [ReglementClientController::class, 'store'])->name('api.reglements-clients.store');
+    Route::delete('/{id}', [ReglementClientController::class, 'destroy'])->name('api.reglements-clients.destroy');
 });
 
 // Plan Comptable Routes

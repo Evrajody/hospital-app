@@ -32,6 +32,7 @@ class ReglementFournisseur extends Model
         'montant',
         'mode_paiement',
         'reference',
+        'beneficiaire',
         'banque',
         'numero_compte_bancaire',
         'compte_tresorerie_id',
@@ -409,6 +410,7 @@ class ReglementFournisseur extends Model
             'mode_paiement' => $this->mode_paiement,
             'mode_paiement_libelle' => $this->mode_paiement_libelle,
             'reference' => $this->reference,
+            'beneficiaire' => $this->beneficiaire,
             'banque' => $this->banque,
             'numero_compte_bancaire' => $this->numero_compte_bancaire,
             'compte_bancaire' => $this->banque ? [

@@ -297,7 +297,7 @@
       :fournisseurs="fournisseurs"
       :imputations="imputations"
       :comptes="comptes"
-      :types-reduction="typesReduction"
+      :comptes-aib="comptesAib"
       @success="handleFactureSuccess"
     />
   </AppLayout>
@@ -346,13 +346,9 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  typesReduction: {
+  comptesAib: {
     type: Array,
-    default: () => [
-      { label: 'Escompte', value: 'escompte' },
-      { label: 'AIB (Acompte d\'Impôt sur Bénéfice)', value: 'aib' },
-      { label: 'Remise commerciale', value: 'remise' }
-    ]
+    default: () => []
   },
   stats: {
     type: Object,

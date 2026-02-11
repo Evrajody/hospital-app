@@ -54,36 +54,6 @@
         />
       </el-form-item>
 
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="Type de compte" prop="type_compte">
-            <el-select
-              v-model="form.type_compte"
-              placeholder="Sélectionner"
-              style="width: 100%"
-            >
-              <el-option label="Actif" value="ACTIF" />
-              <el-option label="Passif" value="PASSIF" />
-              <el-option label="Charge" value="CHARGE" />
-              <el-option label="Produit" value="PRODUIT" />
-              <el-option label="Spécial" value="SPECIAL" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="Utilisable">
-            <el-switch
-              v-model="form.utilisable"
-              active-text="Oui"
-              inactive-text="Non"
-            />
-            <div class="form-tip">
-              Un compte utilisable peut être utilisé dans les écritures comptables
-            </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
       <el-alert
         type="info"
         :closable="false"
@@ -134,8 +104,6 @@ const form = reactive({
   parent_id: null,
   numero_compte: '',
   libelle: '',
-  type_compte: '',
-  utilisable: true
 });
 
 const rules = {
@@ -147,9 +115,6 @@ const rules = {
   libelle: [
     { required: true, message: 'Le libellé est obligatoire', trigger: 'blur' },
     { min: 2, message: 'Le libellé doit contenir au moins 2 caractères', trigger: 'blur' }
-  ],
-  type_compte: [
-    { required: true, message: 'Le type est obligatoire', trigger: 'change' }
   ]
 };
 
@@ -158,19 +123,6 @@ const handleParentChange = (parentId) => {
     const parent = props.comptesParents.find(c => c.id === parentId);
     if (parent) {
       parentPrefix.value = parent.numero;
-      // Auto-suggest type based on parent's class
-      const classe = parent.classe;
-      if ([2, 3, 5].includes(classe)) {
-        form.type_compte = 'ACTIF';
-      } else if (classe === 1) {
-        form.type_compte = 'PASSIF';
-      } else if (classe === 6) {
-        form.type_compte = 'CHARGE';
-      } else if (classe === 7) {
-        form.type_compte = 'PRODUIT';
-      } else if (classe === 4) {
-        form.type_compte = 'ACTIF'; // Default for tiers
-      }
     }
   } else {
     parentPrefix.value = '';
@@ -184,8 +136,6 @@ const handleClosed = () => {
   form.parent_id = null;
   form.numero_compte = '';
   form.libelle = '';
-  form.type_compte = '';
-  form.utilisable = true;
   parentPrefix.value = '';
 };
 
@@ -212,8 +162,6 @@ const handleSubmit = async () => {
         parent_id: form.parent_id,
         numero_compte: fullNumero,
         libelle: form.libelle,
-        type_compte: form.type_compte,
-        utilisable: form.utilisable
       })
     });
 

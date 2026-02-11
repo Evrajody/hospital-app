@@ -14,7 +14,7 @@ class PlanComptableOhadaSeeder extends Seeder
      */
     public function run(): void
     {
-        $filePath = base_path('docs/Plan-comptable-général-1.xlsx');
+        $filePath = base_path('docs/plan_comptable_fevrier.xlsx');
 
         if (!file_exists($filePath)) {
             $this->command->error("Fichier Excel non trouvé: $filePath");
@@ -32,9 +32,9 @@ class PlanComptableOhadaSeeder extends Seeder
         $comptes = [];
         $skipped = 0;
 
-        for ($row = 6; $row <= $highestRow; $row++) {
-            $numeroCompte = $sheet->getCell('B' . $row)->getValue();
-            $libelle = $sheet->getCell('C' . $row)->getValue();
+        for ($row = 4; $row <= $highestRow; $row++) {
+            $numeroCompte = $sheet->getCell('A' . $row)->getValue();
+            $libelle = $sheet->getCell('B' . $row)->getValue();
 
             // Skip if no numeric account number
             if ($numeroCompte === null || !is_numeric($numeroCompte)) {
@@ -57,6 +57,7 @@ class PlanComptableOhadaSeeder extends Seeder
             // Determine niveau (based on account number length)
             $length = strlen($numeroCompte);
             $niveau = match($length) {
+                1 => 0,      // 2, 6...
                 2 => 1,      // 10, 11, 12...
                 3 => 2,      // 101, 102, 103...
                 4 => 3,      // 1011, 1012...
@@ -64,25 +65,31 @@ class PlanComptableOhadaSeeder extends Seeder
                 default => min($length - 1, 5)  // cap at 5
             };
 
-            // Determine type_compte based on classe
-            $typeCompte = $this->getTypeCompte($classe);
-
-            // Determine if account is directly usable (usually leaf accounts with 4+ digits)
-            $utilisable = $length >= 4;
-
             $comptes[] = [
                 'numero_compte' => $numeroCompte,
                 'libelle' => trim((string) $libelle),
                 'classe' => $classe,
                 'niveau' => $niveau,
-                'type_compte' => $typeCompte,
-                'utilisable' => $utilisable,
+                'type_compte' => $this->getTypeCompte($classe),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
+        // Dédupliquer par numero_compte (garder la première occurrence)
+        $unique = [];
+        $duplicates = 0;
+        foreach ($comptes as $compte) {
+            if (!isset($unique[$compte['numero_compte']])) {
+                $unique[$compte['numero_compte']] = $compte;
+            } else {
+                $duplicates++;
+            }
+        }
+        $comptes = array_values($unique);
+
         $this->command->info("Comptes trouvés: " . count($comptes));
+        $this->command->info("Doublons ignorés: $duplicates");
         $this->command->info("Lignes ignorées: $skipped");
 
         if (count($comptes) > 0) {
@@ -113,15 +120,15 @@ class PlanComptableOhadaSeeder extends Seeder
     private function getTypeCompte(int $classe): string
     {
         return match($classe) {
-            1 => 'PASSIF',      // Comptes de capitaux
-            2 => 'ACTIF',       // Comptes d'immobilisations
-            3 => 'ACTIF',       // Comptes de stocks
-            4 => 'ACTIF',       // Comptes de tiers (mixed but default to ACTIF)
-            5 => 'ACTIF',       // Comptes de trésorerie
-            6 => 'CHARGE',      // Comptes de charges
-            7 => 'PRODUIT',     // Comptes de produits
-            8 => 'SPECIAL',     // Comptes des autres charges et autres produits
-            9 => 'SPECIAL',     // Comptes des engagements hors bilan
+            1 => 'PASSIF',
+            2 => 'ACTIF',
+            3 => 'ACTIF',
+            4 => 'ACTIF',
+            5 => 'ACTIF',
+            6 => 'CHARGE',
+            7 => 'PRODUIT',
+            8 => 'SPECIAL',
+            9 => 'SPECIAL',
             default => 'SPECIAL'
         };
     }
@@ -143,17 +150,6 @@ class PlanComptableOhadaSeeder extends Seeder
 
         foreach ($byClasse as $row) {
             $this->command->line("Classe {$row->classe}: {$row->total} comptes");
-        }
-
-        // By type
-        $byType = DB::table('plan_comptable_ohada')
-            ->select('type_compte', DB::raw('count(*) as total'))
-            ->groupBy('type_compte')
-            ->get();
-
-        $this->command->newLine();
-        foreach ($byType as $row) {
-            $this->command->line("{$row->type_compte}: {$row->total} comptes");
         }
 
         // Total

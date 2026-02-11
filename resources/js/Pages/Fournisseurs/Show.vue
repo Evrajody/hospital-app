@@ -460,7 +460,7 @@
         :fournisseur-id="fournisseur.id"
         :imputations="imputations"
         :comptes="comptes"
-        :types-reduction="typesReduction"
+        :comptes-aib="comptesAib"
         @success="handleFactureSuccess"
       />
     </div>
@@ -548,7 +548,7 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  typesReduction: {
+  comptesAib: {
     type: Array,
     default: () => []
   },

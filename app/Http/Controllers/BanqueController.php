@@ -45,7 +45,6 @@ class BanqueController extends Controller
 
         // Comptes OHADA de trésorerie (classe 5)
         $comptesOhada = CompteComptable::where('numero_compte', 'LIKE', '5%')
-            ->where('utilisable', true)
             ->orderBy('numero_compte')
             ->get()
             ->map(fn($c) => [

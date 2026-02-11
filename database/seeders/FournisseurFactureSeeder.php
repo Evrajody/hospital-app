@@ -18,18 +18,15 @@ class FournisseurFactureSeeder extends Seeder
 
         // Récupérer un compte fournisseur (401xxx)
         $compteFournisseur = CompteComptable::where('numero_compte', 'LIKE', '401%')
-            ->where('utilisable', true)
             ->first();
 
         if (!$compteFournisseur) {
-            // Créer un compte si nécessaire
             $compteFournisseur = CompteComptable::create([
                 'numero_compte' => '401100',
                 'libelle' => 'Fournisseurs divers',
                 'classe' => 4,
                 'niveau' => 4,
                 'type_compte' => 'PASSIF',
-                'utilisable' => true,
             ]);
         }
 
@@ -141,7 +138,6 @@ class FournisseurFactureSeeder extends Seeder
 
         // Récupérer un compte de charges (6xxx)
         $compteCharge = CompteComptable::where('numero_compte', 'LIKE', '6%')
-            ->where('utilisable', true)
             ->first();
 
         // Créer des factures

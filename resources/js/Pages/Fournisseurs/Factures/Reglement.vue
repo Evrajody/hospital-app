@@ -35,7 +35,6 @@
                 <span class="info-label">Fournisseur :</span>
                 <div class="fournisseur-info">
                   <strong>{{ facture.fournisseur.nom }}</strong>
-                  <!-- <span class="fournisseur-code">{{ facture.fournisseur.code }}</span> -->
                 </div>
               </div>
 
@@ -118,6 +117,10 @@
                     <strong class="reglement-montant">{{ formatMontant(reglement.montant) }}</strong>
                   </div>
                   <div class="reglement-details">
+                    <div v-if="reglement.beneficiaire">
+                      <el-icon><User /></el-icon>
+                      {{ reglement.beneficiaire }}
+                    </div>
                     <div v-if="reglement.reference">
                       <el-icon><DocumentCopy /></el-icon>
                       Réf: {{ reglement.reference }}
@@ -214,36 +217,58 @@
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="6">
-                  <el-form-item label="Institution" prop="compte_bancaire_id">
+                <el-col :span="6" v-if="showBankField">
+                  <el-form-item label="Banque" prop="banque_id">
                     <el-select
-                      v-model="form.compte_bancaire_id"
+                      v-model="form.banque_id"
                       filterable
-                      placeholder="Sélectionner"
+                      placeholder="Sélectionner une banque"
                       style="width: 100%"
-                      :disabled="!showBankField"
+                      @change="handleBanqueChange"
                     >
                       <el-option
-                        v-for="compte in comptesBancaires"
-                        :key="compte.id"
-                        :label="compte.banque"
-                        :value="compte.id"
+                        v-for="banque in banques"
+                        :key="banque.id"
+                        :label="banque.nom"
+                        :value="banque.id"
                       />
                     </el-select>
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="6">
+                <el-col :span="6" v-if="form.mode_paiement === 'virement' && form.banque_id">
+                  <el-form-item label="Compte bancaire" prop="compte_bancaire_id">
+                    <el-select
+                      v-model="form.compte_bancaire_id"
+                      filterable
+                      placeholder="Sélectionner un compte"
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="compte in filteredComptes"
+                        :key="compte.id"
+                        :label="compte.numero_compte"
+                        :value="compte.id"
+                      >
+                        <div class="compte-option">
+                          <span>{{ compte.numero_compte }}</span>
+                          <span class="compte-solde">Solde: {{ formatMontant(compte.solde) }}</span>
+                        </div>
+                      </el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="6" v-if="showBankField">
                   <el-form-item label="Référence" prop="reference">
                     <el-input
                       v-model="form.reference"
-                      placeholder="N° chèque / réf. virement"
-                      :disabled="!showBankField"
+                      :placeholder="form.mode_paiement === 'cheque' ? 'N° du chèque' : 'Réf. virement'"
                     />
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="6">
+                <el-col :span="6" v-if="showBankField">
                   <el-form-item label="Date Référence" prop="date_reference">
                     <el-date-picker
                       v-model="form.date_reference"
@@ -251,11 +276,36 @@
                       placeholder="Sélectionner"
                       style="width: 100%"
                       format="DD/MM/YYYY"
-                      :disabled="!showBankField"
                     />
                   </el-form-item>
                 </el-col>
               </el-row>
+
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="B&eacute;n&eacute;ficiaire">
+                    <el-input
+                      v-model="form.beneficiaire"
+                      placeholder="Nom du b&eacute;n&eacute;ficiaire du ch&egrave;que"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <!-- Solde du compte sélectionné -->
+              <el-alert
+                v-if="selectedCompte"
+                :type="selectedCompte.solde >= (form.montant || 0) ? 'success' : 'warning'"
+                :closable="false"
+                style="margin-bottom: 20px"
+              >
+                <template #title>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Solde du compte {{ selectedCompte.numero_compte }} :</span>
+                    <strong>{{ formatMontant(selectedCompte.solde) }}</strong>
+                  </div>
+                </template>
+              </el-alert>
 
               <el-form-item label="Notes / Remarques">
                 <el-input
@@ -314,11 +364,50 @@
         </el-col>
       </el-row>
     </div>
+
+    <!-- Modal Solde Insuffisant -->
+    <el-dialog
+      v-model="showInsufficientModal"
+      title="Solde insuffisant"
+      width="450px"
+      :close-on-click-modal="false"
+    >
+      <div style="text-align: center; padding: 10px 0;">
+        <el-icon :size="48" color="#E6A23C" style="margin-bottom: 16px;"><WarningFilled /></el-icon>
+        <p style="font-size: 15px; margin-bottom: 12px;">
+          Le solde du compte est insuffisant pour ce règlement.
+        </p>
+        <div style="background: #f5f7fa; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>Solde actuel :</span>
+            <strong>{{ formatMontant(insufficientData.solde) }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>Montant demandé :</span>
+            <strong style="color: #F56C6C;">{{ formatMontant(insufficientData.montant) }}</strong>
+          </div>
+          <el-divider style="margin: 8px 0" />
+          <div style="display: flex; justify-content: space-between;">
+            <span>Nouveau solde :</span>
+            <strong style="color: #F56C6C;">{{ formatMontant(insufficientData.solde - insufficientData.montant) }}</strong>
+          </div>
+        </div>
+        <p style="font-size: 13px; color: #909399;">
+          Voulez-vous quand même valider ce règlement ?
+        </p>
+      </div>
+      <template #footer>
+        <el-button @click="showInsufficientModal = false">Annuler</el-button>
+        <el-button type="warning" :loading="submitting" @click="forceSubmit">
+          Confirmer le règlement
+        </el-button>
+      </template>
+    </el-dialog>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
@@ -328,8 +417,10 @@ import {
   Money,
   CreditCard,
   DocumentCopy,
+  User,
   Check,
-  SuccessFilled
+  SuccessFilled,
+  WarningFilled
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -343,7 +434,7 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  comptesBancaires: {
+  banques: {
     type: Array,
     default: () => []
   },
@@ -362,11 +453,9 @@ const breadcrumbs = [
 ];
 
 const resteAPayer = computed(() => {
-  // Utiliser reste_a_payer de la facture, ou calculer depuis montant_net (TTC - AIB)
   if (props.facture.reste_a_payer !== undefined && props.facture.reste_a_payer !== null) {
     return parseFloat(props.facture.reste_a_payer) || 0;
   }
-  // Fallback: montant_net - montant_paye
   const montantNet = parseFloat(props.facture.montant_net) || parseFloat(props.facture.montant_ttc) || 0;
   const montantPaye = parseFloat(props.facture.montant_paye) || 0;
   return montantNet - montantPaye;
@@ -380,9 +469,26 @@ const showBankField = computed(() => {
   return ['cheque', 'virement'].includes(form.mode_paiement);
 });
 
+const filteredComptes = computed(() => {
+  if (!form.banque_id) return [];
+  const banque = props.banques.find(b => b.id === form.banque_id);
+  return banque ? banque.comptes : [];
+});
+
+const selectedCompte = computed(() => {
+  if (!form.compte_bancaire_id) return null;
+  for (const banque of props.banques) {
+    const compte = banque.comptes.find(c => c.id === form.compte_bancaire_id);
+    if (compte) return compte;
+  }
+  return null;
+});
+
 // State
 const formRef = ref(null);
 const submitting = ref(false);
+const showInsufficientModal = ref(false);
+const insufficientData = reactive({ solde: 0, montant: 0 });
 
 const form = reactive({
   annee_exercice: new Date().getFullYear().toString(),
@@ -390,9 +496,11 @@ const form = reactive({
   date_reglement: new Date(),
   montant: resteAPayer.value,
   mode_paiement: '',
+  banque_id: null,
   compte_bancaire_id: null,
   reference: '',
   date_reference: null,
+  beneficiaire: '',
   remarques: ''
 });
 
@@ -419,10 +527,22 @@ const rules = {
       trigger: 'blur'
     }
   ],
-  compte_bancaire_id: [
+  banque_id: [
     {
       validator: (rule, value, callback) => {
         if (showBankField.value && !value) {
+          callback(new Error('La banque est obligatoire'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'change'
+    }
+  ],
+  compte_bancaire_id: [
+    {
+      validator: (rule, value, callback) => {
+        if (form.mode_paiement === 'virement' && !value) {
           callback(new Error('Le compte bancaire est obligatoire'));
         } else {
           callback();
@@ -468,38 +588,87 @@ const getModeLabel = (mode) => {
   return labels[mode] || mode;
 };
 
-const getReferencePlaceholder = () => {
-  const placeholders = {
-    especes: 'Numéro de reçu (optionnel)',
-    cheque: 'Numéro de chèque',
-    virement: 'Référence du virement',
-    carte: 'Numéro de transaction',
-    mobile_money: 'Référence de la transaction'
-  };
-  return placeholders[form.mode_paiement] || 'Référence';
-};
-
-const getReferenceHint = () => {
-  const hints = {
-    especes: 'Numéro du reçu de caisse',
-    cheque: 'Indiquez le numéro du chèque',
-    virement: 'Code ou référence du virement bancaire',
-    carte: 'Numéro de transaction',
-    mobile_money: 'Référence de la transaction mobile'
-  };
-  return hints[form.mode_paiement] || '';
-};
-
 const handleModeChange = () => {
-  if (!showBankField.value) {
-    form.compte_bancaire_id = null;
-    form.reference = '';
-    form.date_reference = null;
-  }
+  form.banque_id = null;
+  form.compte_bancaire_id = null;
+  form.reference = '';
+  form.date_reference = null;
+};
+
+const handleBanqueChange = () => {
+  form.compte_bancaire_id = null;
 };
 
 const handleCancel = () => {
   router.visit('/factures-fournisseurs');
+};
+
+const buildPayload = (forceInsufficient = false) => {
+  const dateReglement = form.date_reglement instanceof Date
+    ? form.date_reglement.toISOString().split('T')[0]
+    : form.date_reglement;
+
+  const selectedBanque = form.banque_id
+    ? props.banques.find(b => b.id === form.banque_id)
+    : null;
+
+  return {
+    facture_id: props.facture.id,
+    annee_exercice: form.annee_exercice,
+    numero_ligne: form.numero_ligne || null,
+    date_reglement: dateReglement,
+    montant: form.montant,
+    mode_paiement: form.mode_paiement,
+    reference: form.reference || null,
+    date_reference: form.date_reference instanceof Date
+      ? form.date_reference.toISOString().split('T')[0]
+      : form.date_reference,
+    beneficiaire: form.beneficiaire || null,
+    banque: selectedBanque ? selectedBanque.nom : null,
+    compte_bancaire_id: form.compte_bancaire_id || null,
+    numero_compte_bancaire: selectedCompte.value ? selectedCompte.value.numero_compte : null,
+    observations: form.remarques || null,
+    force_insufficient_balance: forceInsufficient
+  };
+};
+
+const submitPayment = async (forceInsufficient = false) => {
+  submitting.value = true;
+
+  try {
+    const response = await fetch('/api/reglements-fournisseurs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      body: JSON.stringify(buildPayload(forceInsufficient))
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      ElMessage.success(data.message || 'Règlement enregistré avec succès');
+      router.visit(`/factures-fournisseurs/${props.facture.id}`);
+    } else if (data.insufficient_balance) {
+      insufficientData.solde = data.solde_actuel;
+      insufficientData.montant = data.montant_demande;
+      showInsufficientModal.value = true;
+    } else {
+      ElMessage.error(data.message || 'Erreur lors de l\'enregistrement');
+      if (data.errors) {
+        Object.values(data.errors).flat().forEach(error => {
+          ElMessage.warning(error);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    ElMessage.error('Erreur lors de l\'enregistrement du règlement');
+  } finally {
+    submitting.value = false;
+  }
 };
 
 const handleSubmit = async () => {
@@ -507,60 +676,14 @@ const handleSubmit = async () => {
 
   await formRef.value.validate(async (valid) => {
     if (valid) {
-      submitting.value = true;
-
-      try {
-        // Format date for API
-        const dateReglement = form.date_reglement instanceof Date
-          ? form.date_reglement.toISOString().split('T')[0]
-          : form.date_reglement;
-
-        const response = await fetch('/api/reglements-fournisseurs', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-          },
-          body: JSON.stringify({
-            facture_id: props.facture.id,
-            annee_exercice: form.annee_exercice,
-            numero_ligne: form.numero_ligne || null,
-            date_reglement: dateReglement,
-            montant: form.montant,
-            mode_paiement: form.mode_paiement,
-            reference: form.reference || null,
-            date_reference: form.date_reference instanceof Date
-              ? form.date_reference.toISOString().split('T')[0]
-              : form.date_reference,
-            banque: form.compte_bancaire_id ? props.comptesBancaires.find(c => c.id === form.compte_bancaire_id)?.banque : null,
-            numero_compte_bancaire: form.compte_bancaire_id ? props.comptesBancaires.find(c => c.id === form.compte_bancaire_id)?.numero : null,
-            compte_tresorerie_id: form.compte_bancaire_id,
-            observations: form.remarques || null
-          })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          ElMessage.success(data.message || 'Règlement enregistré avec succès');
-          router.visit(`/factures-fournisseurs/${props.facture.id}`);
-        } else {
-          ElMessage.error(data.message || 'Erreur lors de l\'enregistrement');
-          if (data.errors) {
-            Object.values(data.errors).flat().forEach(error => {
-              ElMessage.warning(error);
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        ElMessage.error('Erreur lors de l\'enregistrement du règlement');
-      } finally {
-        submitting.value = false;
-      }
+      await submitPayment(false);
     }
   });
+};
+
+const forceSubmit = async () => {
+  showInsufficientModal.value = false;
+  await submitPayment(true);
 };
 </script>
 
@@ -633,11 +756,6 @@ const handleSubmit = async () => {
   gap: 2px;
 }
 
-.fournisseur-code {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
 .montant-value {
   font-family: 'Courier New', monospace;
   font-size: 15px;
@@ -689,21 +807,16 @@ const handleSubmit = async () => {
   gap: 6px;
 }
 
-.form-hint {
-  font-size: 12px;
-  color: #9ca3af;
-  margin-top: 4px;
-}
-
 .compte-option {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
-.compte-numero {
+.compte-solde {
   font-size: 12px;
-  color: #9ca3af;
+  color: #909399;
 }
 
 .payment-summary {

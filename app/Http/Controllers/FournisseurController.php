@@ -52,9 +52,11 @@ class FournisseurController extends Controller
             return $fournisseur->toApiArray();
         });
 
-        // Comptes fournisseurs pour les filtres et le formulaire
-        $comptesFournisseurs = CompteComptable::where('numero_compte', 'LIKE', '401%')
-            ->where('utilisable', true)
+        // Comptes fournisseurs pour les filtres et le formulaire (401 + 4812)
+        $comptesFournisseurs = CompteComptable::where(function($q) {
+                $q->where('numero_compte', 'LIKE', '401%')
+                  ->orWhere('numero_compte', 'LIKE', '4812%');
+            })
             ->orderBy('numero_compte')
             ->get()
             ->map(function ($compte) {
@@ -65,8 +67,11 @@ class FournisseurController extends Controller
                 ];
             });
 
-        // Comptes parents pour création de nouveaux comptes
-        $comptesParents = CompteComptable::where('numero_compte', 'LIKE', '401%')
+        // Comptes parents pour création de nouveaux comptes (401 + 4812)
+        $comptesParents = CompteComptable::where(function($q) {
+                $q->where('numero_compte', 'LIKE', '401%')
+                  ->orWhere('numero_compte', 'LIKE', '4812%');
+            })
             ->where('niveau', '<=', 3)
             ->orderBy('numero_compte')
             ->get()
@@ -146,9 +151,11 @@ class FournisseurController extends Controller
             'montant_reste' => (float) FactureFournisseur::where('fournisseur_id', $id)->sum('reste_a_payer'),
         ];
 
-        // Comptes fournisseurs pour le formulaire d'édition
-        $comptesFournisseurs = CompteComptable::where('numero_compte', 'LIKE', '401%')
-            ->where('utilisable', true)
+        // Comptes fournisseurs pour le formulaire d'édition (401 + 4812)
+        $comptesFournisseurs = CompteComptable::where(function($q) {
+                $q->where('numero_compte', 'LIKE', '401%')
+                  ->orWhere('numero_compte', 'LIKE', '4812%');
+            })
             ->orderBy('numero_compte')
             ->get()
             ->map(function ($compte) {
@@ -159,7 +166,10 @@ class FournisseurController extends Controller
                 ];
             });
 
-        $comptesParents = CompteComptable::where('numero_compte', 'LIKE', '401%')
+        $comptesParents = CompteComptable::where(function($q) {
+                $q->where('numero_compte', 'LIKE', '401%')
+                  ->orWhere('numero_compte', 'LIKE', '4812%');
+            })
             ->where('niveau', '<=', 3)
             ->orderBy('numero_compte')
             ->get()
@@ -171,11 +181,9 @@ class FournisseurController extends Controller
                 ];
             });
 
-        // Données pour le formulaire de création de factures
-        $imputations = CompteComptable::where('numero_compte', 'LIKE', '6%')
-            ->whereRaw('LENGTH(numero_compte) >= 6')
+        // Données pour le formulaire de création de factures (3 comptes principaux: 6, 2 et 42)
+        $imputations = CompteComptable::whereIn('numero_compte', ['6', '2', '42'])
             ->orderBy('numero_compte')
-            ->limit(50)
             ->get()
             ->map(function ($compte) {
                 return [
@@ -183,12 +191,17 @@ class FournisseurController extends Controller
                     'code' => $compte->numero_compte,
                     'numero' => $compte->numero_compte,
                     'libelle' => $compte->libelle,
+                    'classe' => substr($compte->numero_compte, 0, 1),
                 ];
             });
 
-        $comptes = CompteComptable::whereRaw('LENGTH(numero_compte) >= 6')
+        $comptes = CompteComptable::where(function($q) {
+                $q->where('numero_compte', 'LIKE', '6%')
+                  ->orWhere('numero_compte', 'LIKE', '2%')
+                  ->orWhere('numero_compte', 'LIKE', '42%');
+            })
+            ->whereRaw('LENGTH(numero_compte) >= 4')
             ->orderBy('numero_compte')
-            ->limit(100)
             ->get()
             ->map(function ($compte) {
                 return [
@@ -196,10 +209,20 @@ class FournisseurController extends Controller
                     'code' => $compte->numero_compte,
                     'numero' => $compte->numero_compte,
                     'libelle' => $compte->libelle,
+                    'classe' => substr($compte->numero_compte, 0, 1),
                 ];
             });
 
-        $typesReduction = FactureFournisseur::getTypesReduction();
+        // Comptes AIB (4473 et ses sous-comptes)
+        $comptesAib = CompteComptable::where('numero_compte', 'LIKE', '4473%')
+            ->orderBy('numero_compte')
+            ->get()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'code' => $c->numero_compte,
+                'numero' => $c->numero_compte,
+                'libelle' => $c->libelle,
+            ]);
 
         // Charger les règlements du fournisseur
         $reglements = ReglementFournisseur::where('fournisseur_id', $id)
@@ -216,7 +239,6 @@ class FournisseurController extends Controller
                 $q->where('numero_compte', 'LIKE', '52%')
                   ->orWhere('numero_compte', 'LIKE', '57%');
             })
-            ->where('utilisable', true)
             ->orderBy('numero_compte')
             ->get()
             ->map(function ($compte) {
@@ -239,7 +261,7 @@ class FournisseurController extends Controller
             'imputations' => $imputations,
             'comptes' => $comptes,
             'comptesTresorerie' => $comptesTresorerie,
-            'typesReduction' => $typesReduction,
+            'comptesAib' => $comptesAib,
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
@@ -294,18 +316,20 @@ class FournisseurController extends Controller
                     ], 422);
                 }
 
-                // Déterminer le parent
-                $parentNumero = substr($request->nouveau_compte_numero, 0, -1);
-                $parent = CompteComptable::where('numero_compte', $parentNumero)->first();
+                // Déterminer le parent via compte_parent_id
+                $parent = $request->compte_parent_id
+                    ? CompteComptable::find($request->compte_parent_id)
+                    : null;
+
+                $niveau = $parent ? $parent->niveau + 1 : 5;
 
                 // Créer le nouveau compte
                 $nouveauCompte = CompteComptable::create([
                     'numero_compte' => $request->nouveau_compte_numero,
                     'libelle' => $request->nouveau_compte_libelle ?: $request->nom,
                     'classe' => 4, // Classe Tiers
-                    'niveau' => strlen($request->nouveau_compte_numero),
-                    'type_compte' => 'PASSIF',
-                    'utilisable' => true,
+                    'niveau' => $niveau,
+                    'parent_id' => $parent?->id,
                 ]);
 
                 $compteComptableId = $nouveauCompte->id;
@@ -386,13 +410,19 @@ class FournisseurController extends Controller
                     ], 422);
                 }
 
+                // Déterminer le parent via compte_parent_id
+                $parent = $request->compte_parent_id
+                    ? CompteComptable::find($request->compte_parent_id)
+                    : null;
+
+                $niveau = $parent ? $parent->niveau + 1 : 5;
+
                 $nouveauCompte = CompteComptable::create([
                     'numero_compte' => $request->nouveau_compte_numero,
                     'libelle' => $request->nouveau_compte_libelle ?: $request->nom,
                     'classe' => 4,
-                    'niveau' => strlen($request->nouveau_compte_numero),
-                    'type_compte' => 'PASSIF',
-                    'utilisable' => true,
+                    'niveau' => $niveau,
+                    'parent_id' => $parent?->id,
                 ]);
 
                 $compteComptableId = $nouveauCompte->id;
@@ -508,7 +538,8 @@ class FournisseurController extends Controller
             'rccm' => ['nullable', 'string', 'max:50'],
             'observations' => ['nullable', 'string'],
             'create_compte' => ['nullable', 'boolean'],
-            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^401\d{3,}$/'],
+            'compte_parent_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
+            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(401|4812)[\d.]+$/'],
             'nouveau_compte_libelle' => ['nullable', 'string', 'max:255'],
         ];
     }

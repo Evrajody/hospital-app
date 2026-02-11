@@ -4,12 +4,12 @@
       <!-- Page Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Règlements Clients</h1>
-          <p class="page-subtitle">Historique complet des paiements reçus</p>
+          <h1 class="page-title">R&egrave;glements Clients</h1>
+          <p class="page-subtitle">Historique complet des paiements re&ccedil;us</p>
         </div>
-        <el-button type="primary" size="large" @click="handleNewPayment">
+        <el-button type="primary" size="large" @click="showNewReglementModal = true">
           <el-icon><Plus /></el-icon>
-          Nouveau Règlement
+          Nouveau R&egrave;glement
         </el-button>
       </div>
 
@@ -23,7 +23,7 @@
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ formatMontant(stats.total_reglements) }}</div>
-                <div class="stat-label">Total Règlements</div>
+                <div class="stat-label">Total R&egrave;glements</div>
               </div>
             </div>
           </el-card>
@@ -49,7 +49,7 @@
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.nombre_reglements }}</div>
-                <div class="stat-label">Nombre de Règlements</div>
+                <div class="stat-label">Nombre de R&egrave;glements</div>
               </div>
             </div>
           </el-card>
@@ -71,26 +71,23 @@
 
       <!-- Filters Card -->
       <el-card class="filter-card" shadow="never">
-        <el-form :inline="true" :model="filters" class="filter-form">
-          <el-form-item label="Recherche">
+        <el-form :inline="true" class="filter-form">
+          <el-form-item>
             <el-input
-              v-model="filters.search"
-              placeholder="N° facture, référence..."
+              v-model="searchQuery"
+              placeholder="Rechercher (r&eacute;f&eacute;rence, institution, client...)"
               :prefix-icon="Search"
               clearable
-              style="width: 250px"
-              @input="handleSearch"
+              style="width: 350px"
             />
           </el-form-item>
-
-          <el-form-item label="Client">
+          <el-form-item>
             <el-select
-              v-model="filters.client_id"
-              placeholder="Tous"
+              v-model="filterClientId"
+              placeholder="Tous les clients"
               clearable
               filterable
               style="width: 200px"
-              @change="handleSearch"
             >
               <el-option
                 v-for="client in clients"
@@ -100,41 +97,6 @@
               />
             </el-select>
           </el-form-item>
-
-          <el-form-item label="Mode de Paiement">
-            <el-select
-              v-model="filters.mode_paiement"
-              placeholder="Tous"
-              clearable
-              style="width: 150px"
-              @change="handleSearch"
-            >
-              <el-option label="Espèces" value="especes" />
-              <el-option label="Chèque" value="cheque" />
-              <el-option label="Virement" value="virement" />
-              <el-option label="Carte" value="carte" />
-              <el-option label="Mobile Money" value="mobile_money" />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="Période">
-            <el-date-picker
-              v-model="filters.date_range"
-              type="daterange"
-              range-separator="à"
-              start-placeholder="Date début"
-              end-placeholder="Date fin"
-              style="width: 280px"
-              @change="handleSearch"
-            />
-          </el-form-item>
-
-          <el-form-item>
-            <el-button type="default" @click="handleReset">
-              <el-icon><RefreshLeft /></el-icon>
-              Réinitialiser
-            </el-button>
-          </el-form-item>
         </el-form>
       </el-card>
 
@@ -143,206 +105,174 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">
-              {{ pagination.total }} règlement(s) trouvé(s)
+              {{ filteredReglements.length }} r&egrave;glement(s)
             </span>
-            <div class="card-actions">
-              <el-button :icon="Download" size="small" @click="handleExport">
-                Exporter
-              </el-button>
-              <el-button :icon="Printer" size="small" @click="handlePrint">
-                Imprimer
-              </el-button>
-              <el-button :icon="Refresh" size="small" circle @click="handleRefresh" />
-            </div>
           </div>
         </template>
 
         <el-table
-          v-loading="loading"
-          :data="reglements"
+          :data="filteredReglements"
           stripe
           style="width: 100%"
-          @sort-change="handleSortChange"
+          :default-sort="{ prop: 'date_reglement', order: 'descending' }"
         >
-          <el-table-column prop="date_reglement" label="Date" width="120" sortable="custom">
+          <el-table-column prop="date_reglement" label="Date" width="120" sortable>
             <template #default="{ row }">
               {{ formatDate(row.date_reglement) }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="facture" label="N° Facture" width="140">
+          <el-table-column label="N&deg; Facture" width="140">
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewFacture(row.facture)">
-                <strong>{{ row.facture.numero }}</strong>
+                <strong>{{ row.facture?.reference || '-' }}</strong>
               </el-link>
             </template>
           </el-table-column>
 
-          <el-table-column prop="client" label="Client" min-width="200">
+          <el-table-column label="Client" min-width="180">
             <template #default="{ row }">
-              <div class="client-cell">
-                <div class="client-nom">{{ row.client.nom }}</div>
-                <div class="client-code">{{ row.client.code }}</div>
-              </div>
+              <strong>{{ row.client?.nom || '-' }}</strong>
             </template>
           </el-table-column>
 
-          <el-table-column prop="mode_paiement" label="Mode" width="140">
+          <el-table-column label="Institution" width="180">
             <template #default="{ row }">
-              <el-tag :type="getModeTagType(row.mode_paiement)" size="small">
-                {{ getModeLabel(row.mode_paiement) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="reference" label="Référence" width="140">
-            <template #default="{ row }">
-              <span v-if="row.reference">{{ row.reference }}</span>
+              <span v-if="row.institution">{{ row.institution }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="compte_bancaire" label="Compte Bancaire" width="180">
+          <el-table-column label="R&eacute;f. Ch&egrave;que" width="140">
             <template #default="{ row }">
-              <div v-if="row.compte_bancaire" class="compte-cell">
-                <el-icon><CreditCard /></el-icon>
-                <span>{{ row.compte_bancaire.banque }}</span>
-              </div>
+              <span v-if="row.reference_cheque">{{ row.reference_cheque }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant" label="Montant" width="140" align="right" sortable="custom">
+          <el-table-column label="Banque D&eacute;p&ocirc;t" width="160">
+            <template #default="{ row }">
+              <span v-if="row.banque_depot">{{ row.banque_depot.nom }}</span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Montant" width="140" align="right" sortable sort-by="montant">
             <template #default="{ row }">
               <strong class="montant-reglement">{{ formatMontant(row.montant) }}</strong>
             </template>
           </el-table-column>
 
-          <el-table-column prop="user" label="Saisi par" width="140">
-            <template #default="{ row }">
-              <div v-if="row.user" class="user-cell">
-                <el-icon><User /></el-icon>
-                <span>{{ row.user.name }}</span>
-              </div>
-            </template>
-          </el-table-column>
-
           <el-table-column label="Actions" width="180" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button-group>
-                <el-button :icon="View" size="small" @click="handleView(row)">
-                  Détails
-                </el-button>
-                <el-dropdown @command="(cmd) => handleMoreActions(cmd, row)">
-                  <el-button :icon="More" size="small" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="recu" :icon="Printer">
-                        Imprimer le reçu
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="facture" :icon="Document">
-                        Voir la facture
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="delete" :icon="Delete">
-                        <span style="color: #f56c6c">Supprimer</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </el-button-group>
+              <el-button size="small" @click="handleView(row)">
+                D&eacute;tails
+              </el-button>
+              <el-popconfirm
+                title="Supprimer ce r&egrave;glement ?"
+                confirm-button-text="Oui"
+                cancel-button-text="Non"
+                @confirm="handleDelete(row)"
+              >
+                <template #reference>
+                  <el-button size="small" type="danger" :icon="Delete" />
+                </template>
+              </el-popconfirm>
             </template>
           </el-table-column>
         </el-table>
-
-        <!-- Pagination -->
-        <div class="pagination-container">
-          <el-pagination
-            v-model:current-page="pagination.current_page"
-            v-model:page-size="pagination.per_page"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="pagination.total"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
-          />
-        </div>
       </el-card>
 
       <!-- Detail Modal -->
       <el-dialog
         v-model="detailDialogVisible"
-        title="Détails du Règlement"
+        title="D&eacute;tails du R&egrave;glement"
         width="600px"
         :close-on-click-modal="false"
       >
         <div v-if="selectedReglement" class="detail-modal-content">
           <el-descriptions :column="1" border>
-            <el-descriptions-item label="Date de Règlement">
+            <el-descriptions-item label="Date">
               <strong>{{ formatDate(selectedReglement.date_reglement) }}</strong>
             </el-descriptions-item>
-
             <el-descriptions-item label="Montant">
               <el-tag type="success" size="large" style="font-size: 16px; padding: 8px 16px;">
                 <strong>{{ formatMontant(selectedReglement.montant) }}</strong>
               </el-tag>
             </el-descriptions-item>
-
-            <el-descriptions-item label="Mode de Paiement">
-              <el-tag :type="getModeTagType(selectedReglement.mode_paiement)">
-                {{ getModeLabel(selectedReglement.mode_paiement) }}
-              </el-tag>
-            </el-descriptions-item>
-
-            <el-descriptions-item label="N° Facture">
-              <el-link type="primary" @click="handleViewFacture(selectedReglement.facture)">
-                <strong>{{ selectedReglement.facture.numero }}</strong>
+            <el-descriptions-item label="Facture">
+              <el-link type="primary" @click="handleViewFacture(selectedReglement.facture); detailDialogVisible = false">
+                <strong>{{ selectedReglement.facture?.reference }}</strong>
               </el-link>
             </el-descriptions-item>
-
             <el-descriptions-item label="Client">
-              <div>
-                <div><strong>{{ selectedReglement.client.nom }}</strong></div>
-                <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
-                  {{ selectedReglement.client.code }}
-                </div>
-              </div>
+              <strong>{{ selectedReglement.client?.nom }}</strong>
             </el-descriptions-item>
-
-            <el-descriptions-item label="Référence">
-              {{ selectedReglement.reference || '-' }}
+            <el-descriptions-item label="N&deg; Ligne">
+              {{ selectedReglement.numero_ligne || '-' }}
             </el-descriptions-item>
-
-            <el-descriptions-item label="Compte Bancaire" v-if="selectedReglement.compte_bancaire">
-              <div class="compte-bancaire-info">
-                <el-icon><CreditCard /></el-icon>
-                <div>
-                  <div><strong>{{ selectedReglement.compte_bancaire.banque }}</strong></div>
-                  <div style="font-size: 12px; color: #6b7280;">
-                    {{ selectedReglement.compte_bancaire.numero }}
-                  </div>
-                </div>
-              </div>
+            <el-descriptions-item label="Institution">
+              {{ selectedReglement.institution || '-' }}
             </el-descriptions-item>
-
-            <el-descriptions-item label="Saisi par" v-if="selectedReglement.user">
-              <div class="user-info">
-                <el-icon><User /></el-icon>
-                <span>{{ selectedReglement.user.name }}</span>
-              </div>
+            <el-descriptions-item label="R&eacute;f. Ch&egrave;que">
+              {{ selectedReglement.reference_cheque || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="Banque de d&eacute;p&ocirc;t">
+              {{ selectedReglement.banque_depot?.nom || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="R&eacute;f. Bordereau">
+              {{ selectedReglement.compte_bancaire?.numero_compte || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item v-if="selectedReglement.observations" label="Observations">
+              {{ selectedReglement.observations }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
+        <template #footer>
+          <el-button @click="detailDialogVisible = false">Fermer</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- Nouveau Règlement Modal (select facture) -->
+      <el-dialog
+        v-model="showNewReglementModal"
+        title="Nouveau R&egrave;glement"
+        width="500px"
+        :close-on-click-modal="false"
+      >
+        <el-form label-position="top">
+          <el-form-item label="Facture concern&eacute;e">
+            <el-select
+              v-model="selectedFactureId"
+              filterable
+              placeholder="S&eacute;lectionner une facture"
+              style="width: 100%"
+              size="large"
+            >
+              <el-option
+                v-for="f in facturesImpayees"
+                :key="f.id"
+                :label="f.reference + ' - ' + f.client_nom"
+                :value="f.id"
+              >
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span><strong>{{ f.reference }}</strong> &mdash; {{ f.client_nom }}</span>
+                  <span style="color: #dc2626; font-size: 12px; margin-left: 12px;">{{ formatMontant(f.reste_a_payer) }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
 
         <template #footer>
-          <div class="dialog-footer">
-            <el-button @click="detailDialogVisible = false">Fermer</el-button>
-            <el-button type="success" :icon="Printer" @click="handlePrintReceipt">
-              Reçu
-            </el-button>
-            <el-button type="info" :icon="Document" @click="handleViewFactureFromModal">
-              Voir la facture
-            </el-button>
-          </div>
+          <el-button @click="showNewReglementModal = false">Annuler</el-button>
+          <el-button
+            type="primary"
+            :disabled="!selectedFactureId"
+            @click="goToReglement"
+          >
+            Continuer
+          </el-button>
         </template>
       </el-dialog>
     </div>
@@ -350,39 +280,19 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import {
-  Plus,
-  Search,
-  RefreshLeft,
-  Download,
-  Printer,
-  Refresh,
-  View,
-  More,
-  Delete,
-  Money,
-  Calendar,
-  DocumentChecked,
-  TrendCharts,
-  CreditCard,
-  User,
-  Document
+  Plus, Search, Delete, Money, Calendar,
+  DocumentChecked, TrendCharts
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
-// Props
 const props = defineProps({
-  reglements: {
-    type: Array,
-    default: () => []
-  },
-  clients: {
-    type: Array,
-    default: () => []
-  },
+  reglements: { type: Array, default: () => [] },
+  clients: { type: Array, default: () => [] },
+  facturesImpayees: { type: Array, default: () => [] },
   stats: {
     type: Object,
     default: () => ({
@@ -392,37 +302,81 @@ const props = defineProps({
       montant_moyen: 0
     })
   },
-  pagination: {
-    type: Object,
-    default: () => ({
-      current_page: 1,
-      per_page: 20,
-      total: 0
-    })
-  },
-  user: {
-    type: Object,
-    default: () => null
-  }
-});
-
-// State
-const loading = ref(false);
-const detailDialogVisible = ref(false);
-const selectedReglement = ref(null);
-const filters = reactive({
-  search: '',
-  client_id: null,
-  mode_paiement: '',
-  date_range: null
+  user: { type: Object, default: () => null }
 });
 
 const breadcrumbs = [
   { title: 'Tableau de bord', path: '/dashboard' },
-  { title: 'Règlements Clients', path: '/reglements-clients' }
+  { title: 'R\u00e8glements Clients', path: '/reglements-clients' }
 ];
 
-// Methods
+const searchQuery = ref('');
+const filterClientId = ref(null);
+const detailDialogVisible = ref(false);
+const selectedReglement = ref(null);
+const showNewReglementModal = ref(false);
+const selectedFactureId = ref(null);
+
+const filteredReglements = computed(() => {
+  let result = props.reglements;
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    result = result.filter(r =>
+      r.facture?.reference?.toLowerCase().includes(q) ||
+      r.client?.nom?.toLowerCase().includes(q) ||
+      r.institution?.toLowerCase().includes(q) ||
+      r.reference_cheque?.toLowerCase().includes(q) ||
+      r.numero_ligne?.toLowerCase().includes(q)
+    );
+  }
+
+  if (filterClientId.value) {
+    result = result.filter(r => r.client_id === filterClientId.value);
+  }
+
+  return result;
+});
+
+const handleView = (reglement) => {
+  selectedReglement.value = reglement;
+  detailDialogVisible.value = true;
+};
+
+const handleViewFacture = (facture) => {
+  if (facture?.id) {
+    router.visit(`/factures-clients/${facture.id}`);
+  }
+};
+
+const handleDelete = async (reglement) => {
+  try {
+    const response = await fetch(`/api/reglements-clients/${reglement.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      }
+    });
+    const result = await response.json();
+    if (result.success) {
+      ElMessage.success('R\u00e8glement supprim\u00e9');
+      router.reload();
+    } else {
+      ElMessage.error(result.message || 'Erreur');
+    }
+  } catch (error) {
+    ElMessage.error('Erreur de connexion');
+  }
+};
+
+const goToReglement = () => {
+  if (selectedFactureId.value) {
+    showNewReglementModal.value = false;
+    router.visit(`/factures-clients/${selectedFactureId.value}/regler`);
+  }
+};
+
 const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
@@ -432,360 +386,38 @@ const formatMontant = (montant) => {
 };
 
 const formatDate = (date) => {
+  if (!date) return '-';
   return new Date(date).toLocaleDateString('fr-FR');
-};
-
-const getModeTagType = (mode) => {
-  const types = {
-    especes: 'success',
-    cheque: 'primary',
-    virement: 'info',
-    carte: 'warning',
-    mobile_money: 'success'
-  };
-  return types[mode] || 'info';
-};
-
-const getModeLabel = (mode) => {
-  const labels = {
-    especes: 'Espèces',
-    cheque: 'Chèque',
-    virement: 'Virement',
-    carte: 'Carte',
-    mobile_money: 'Mobile Money'
-  };
-  return labels[mode] || mode;
-};
-
-const handleSearch = () => {
-  console.log('Searching with filters:', filters);
-};
-
-const handleReset = () => {
-  filters.search = '';
-  filters.client_id = null;
-  filters.mode_paiement = '';
-  filters.date_range = null;
-  handleSearch();
-};
-
-const handleRefresh = () => {
-  router.reload({ only: ['reglements', 'stats', 'pagination'] });
-};
-
-const handleSortChange = ({ prop, order }) => {
-  console.log('Sort changed:', prop, order);
-};
-
-const handleSizeChange = (size) => {
-  console.log('Page size changed:', size);
-};
-
-const handlePageChange = (page) => {
-  console.log('Page changed:', page);
-};
-
-const handleNewPayment = () => {
-  // Redirect to factures list to select a facture to pay
-  router.visit('/factures-clients');
-};
-
-const handleView = (reglement) => {
-  selectedReglement.value = reglement;
-  detailDialogVisible.value = true;
-};
-
-const handleViewFactureFromModal = () => {
-  if (selectedReglement.value) {
-    detailDialogVisible.value = false;
-    router.visit(`/factures-clients/${selectedReglement.value.facture.id}`);
-  }
-};
-
-const handlePrintReceipt = () => {
-  if (selectedReglement.value) {
-    window.open(`/reglements-clients/${selectedReglement.value.id}/recu`, '_blank');
-  }
-};
-
-const handleViewFacture = (facture) => {
-  router.visit(`/factures-clients/${facture.id}`);
-};
-
-const handleMoreActions = async (command, reglement) => {
-  switch (command) {
-    case 'recu':
-      window.open(`/reglements-clients/${reglement.id}/recu`, '_blank');
-      break;
-    case 'facture':
-      router.visit(`/factures-clients/${reglement.facture.id}`);
-      break;
-    case 'delete':
-      ElMessageBox.confirm(
-        'Êtes-vous sûr de vouloir supprimer ce règlement ?',
-        'Confirmation',
-        {
-          confirmButtonText: 'Supprimer',
-          cancelButtonText: 'Annuler',
-          type: 'warning'
-        }
-      ).then(() => {
-        ElMessage.success('Règlement supprimé avec succès');
-        handleRefresh();
-      });
-      break;
-  }
-};
-
-const handleExport = () => {
-  ElMessage.info('Export en cours de développement...');
-};
-
-const handlePrint = () => {
-  ElMessage.info('Impression en cours de développement...');
-};
-</script>
-
-<script>
-export default {
-  layout: null
 };
 </script>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 4px 0;
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
-}
-
-/* Stats Cards */
-.stats-row {
-  margin-bottom: 4px;
-}
-
-.stat-card {
-  border-radius: 8px;
-  transition: transform 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.stat-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-}
-
-.stat-total .stat-icon {
-  background-color: #dcfce7;
-  color: #16a34a;
-}
-
-.stat-today .stat-icon {
-  background-color: #dbeafe;
-  color: #2563eb;
-}
-
-.stat-count .stat-icon {
-  background-color: #fef3c7;
-  color: #d97706;
-}
-
-.stat-average .stat-icon {
-  background-color: #f3e8ff;
-  color: #9333ea;
-}
-
-.stat-info {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-/* Filters */
-.filter-card {
-  border-radius: 8px;
-}
-
-.filter-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* Table */
-.table-card {
-  border-radius: 8px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.card-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.client-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.client-nom {
-  font-size: 14px;
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.client-code {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.compte-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.montant-reglement {
-  color: #059669;
-  font-size: 14px;
-}
-
-.text-muted {
-  color: #d1d5db;
-}
-
-.pagination-container {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-:deep(.el-table) {
-  font-size: 14px;
-}
-
-:deep(.el-table th) {
-  background-color: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-}
-
-:deep(.el-card__header) {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-:deep(.el-card__body) {
-  padding: 20px;
-}
-
-:deep(.stat-card .el-card__body) {
-  padding: 20px;
-}
-
-/* Detail Modal */
-.detail-modal-content {
-  padding: 8px 0;
-}
-
-.compte-bancaire-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-:deep(.el-dialog__header) {
-  border-bottom: 1px solid #e5e7eb;
-  padding: 16px 20px;
-}
-
-:deep(.el-dialog__body) {
-  padding: 20px;
-}
-
-:deep(.el-dialog__footer) {
-  border-top: 1px solid #e5e7eb;
-  padding: 12px 20px;
-}
-
-:deep(.el-descriptions__label) {
-  font-weight: 600;
-  width: 180px;
-}
+.page-container { display: flex; flex-direction: column; gap: 20px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.page-title { font-size: 24px; font-weight: 600; color: #1f2937; margin: 0 0 4px 0; }
+.page-subtitle { font-size: 14px; color: #6b7280; margin: 0; }
+.stats-row { margin-bottom: 4px; }
+.stat-card { border-radius: 8px; transition: transform 0.2s; }
+.stat-card:hover { transform: translateY(-2px); }
+.stat-content { display: flex; align-items: center; gap: 16px; }
+.stat-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px; }
+.stat-total .stat-icon { background-color: #dcfce7; color: #16a34a; }
+.stat-today .stat-icon { background-color: #dbeafe; color: #2563eb; }
+.stat-count .stat-icon { background-color: #fef3c7; color: #d97706; }
+.stat-average .stat-icon { background-color: #f3e8ff; color: #9333ea; }
+.stat-info { flex: 1; }
+.stat-value { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 4px; }
+.stat-label { font-size: 13px; color: #6b7280; }
+.filter-card { border-radius: 8px; }
+.filter-form { display: flex; flex-wrap: wrap; gap: 8px; }
+.table-card { border-radius: 8px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-size: 16px; font-weight: 600; color: #374151; }
+.montant-reglement { color: #059669; font-size: 14px; }
+.text-muted { color: #d1d5db; }
+.detail-modal-content { padding: 8px 0; }
+:deep(.el-table th) { background-color: #f9fafb; font-weight: 600; color: #374151; }
+:deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
+:deep(.el-card__body) { padding: 20px; }
+:deep(.el-descriptions__label) { font-weight: 600; width: 180px; }
 </style>

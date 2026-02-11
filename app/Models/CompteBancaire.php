@@ -50,6 +50,22 @@ class CompteBancaire extends Model
     }
 
     /**
+     * Vérifier si le solde est suffisant pour un montant donné
+     */
+    public function soldeEstSuffisant(float $montant): bool
+    {
+        return (float) $this->solde >= $montant;
+    }
+
+    /**
+     * Débiter le compte d'un montant donné
+     */
+    public function debiter(float $montant): void
+    {
+        $this->decrement('solde', $montant);
+    }
+
+    /**
      * Ajouter un approvisionnement et mettre à jour le solde
      */
     public function approvisionner(float $montant, string $dateDepot, ?string $observations = null, ?string $pieceJointe = null): ApprovisionnementBanque

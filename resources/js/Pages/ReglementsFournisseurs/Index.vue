@@ -200,6 +200,13 @@
             </template>
           </el-table-column>
 
+          <el-table-column prop="beneficiaire" label="Bénéficiaire" width="160">
+            <template #default="{ row }">
+              <span v-if="row.beneficiaire">{{ row.beneficiaire }}</span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
           <el-table-column prop="compte_bancaire" label="Compte Bancaire" width="180">
             <template #default="{ row }">
               <div v-if="row.compte_bancaire" class="compte-cell">
@@ -314,6 +321,10 @@
 
             <el-descriptions-item label="Référence">
               {{ selectedReglement.reference || '-' }}
+            </el-descriptions-item>
+
+            <el-descriptions-item label="Bénéficiaire">
+              {{ selectedReglement.beneficiaire || '-' }}
             </el-descriptions-item>
 
             <el-descriptions-item label="Compte Bancaire" v-if="selectedReglement.compte_bancaire">
