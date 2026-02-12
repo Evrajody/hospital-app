@@ -884,13 +884,15 @@ class FactureFournisseurController extends Controller
      */
     private function validationRules(?int $id = null): array
     {
+        $numeroPieceRules = ['nullable', 'string', 'max:50'];
+
+        // Unicité uniquement à la création
+        if (!$id) {
+            $numeroPieceRules[] = Rule::unique('factures_fournisseurs');
+        }
+
         return [
-            'numero_piece' => [
-                'nullable',
-                'string',
-                'max:50',
-                Rule::unique('factures_fournisseurs')->ignore($id),
-            ],
+            'numero_piece' => $numeroPieceRules,
             'date' => ['required', 'date'],
             'reference_facture' => ['nullable', 'string', 'max:100'],
             'fournisseur_id' => ['required', 'integer', 'exists:fournisseurs,id'],

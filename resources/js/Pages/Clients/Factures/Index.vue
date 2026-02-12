@@ -21,7 +21,7 @@
                 <el-icon :size="24"><Document /></el-icon>
               </div>
               <div class="stat-content">
-                <div class="stat-value">{{ filteredFactures.length }}</div>
+                <div class="stat-value">{{ pagination.total }}</div>
                 <div class="stat-label">Total Factures</div>
               </div>
             </div>
@@ -73,19 +73,22 @@
         <el-form :inline="true">
           <el-form-item>
             <el-input
-              v-model="searchQuery"
+              v-model="localFilters.search"
               placeholder="Rechercher (r&eacute;f&eacute;rence, client...)"
               :prefix-icon="Search"
               style="width: 350px"
               clearable
+              @input="debouncedSearch"
+              @clear="handleSearch"
             />
           </el-form-item>
           <el-form-item>
             <el-select
-              v-model="filterStatut"
+              v-model="localFilters.statut"
               placeholder="Tous les statuts"
               clearable
               style="width: 200px"
+              @change="handleSearch"
             >
               <el-option label="Non pay&eacute;e" value="non_payee" />
               <el-option label="Partiellement pay&eacute;e" value="partiellement_payee" />
@@ -97,13 +100,44 @@
 
       <!-- Table -->
       <el-card class="table-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">{{ pagination.total }} facture(s)</span>
+          </div>
+        </template>
+
         <el-table
-          :data="filteredFactures"
+          v-loading="loading"
+          :data="factures"
           stripe
           style="width: 100%"
-          :default-sort="{ prop: 'date_facture', order: 'descending' }"
+          @sort-change="handleSortChange"
           class="factures-table"
         >
+          <el-table-column label="Actions" width="280" fixed="left">
+            <template #default="{ row }">
+              <el-button
+                v-if="row.statut !== 'payee'"
+                size="small"
+                type="success"
+                @click="handleRegler(row)"
+              >
+                R&eacute;gler
+              </el-button>
+              <el-button size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
+              <el-popconfirm
+                title="Supprimer cette facture ?"
+                confirm-button-text="Oui"
+                cancel-button-text="Non"
+                @confirm="handleDelete(row)"
+              >
+                <template #reference>
+                  <el-button size="small" type="danger" :icon="Delete" />
+                </template>
+              </el-popconfirm>
+            </template>
+          </el-table-column>
+
           <el-table-column prop="reference" label="R&eacute;f&eacute;rence" width="160" sortable>
             <template #default="{ row }">
               <a class="ref-link" @click="handleView(row)">{{ row.reference }}</a>
@@ -146,30 +180,20 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="280" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                v-if="row.statut !== 'payee'"
-                size="small"
-                type="success"
-                @click="handleRegler(row)"
-              >
-                R&eacute;gler
-              </el-button>
-              <el-button size="small" :icon="Edit" @click="handleEdit(row)">Modifier</el-button>
-              <el-popconfirm
-                title="Supprimer cette facture ?"
-                confirm-button-text="Oui"
-                cancel-button-text="Non"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete" />
-                </template>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
         </el-table>
+
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="localPagination.current_page"
+            v-model:page-size="localPagination.per_page"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="pagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handlePageChange"
+          />
+        </div>
       </el-card>
     </div>
 
@@ -187,7 +211,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -197,11 +221,29 @@ import {
   Document, Money, SuccessFilled, Warning
 } from '@element-plus/icons-vue';
 
+// Simple debounce function
+const debounce = (fn, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
+
 const props = defineProps({
   user: { type: Object, default: () => ({}) },
   factures: { type: Array, default: () => [] },
   clients: { type: Array, default: () => [] },
   prochaineReference: { type: String, default: '' },
+  pagination: {
+    type: Object,
+    default: () => ({ current_page: 1, per_page: 20, total: 0 })
+  },
+  filters: { type: Object, default: () => ({}) },
+  stats: {
+    type: Object,
+    default: () => ({ total_facture: 0, total_paye: 0, total_reste: 0 })
+  },
 });
 
 const breadcrumbs = [
@@ -209,36 +251,73 @@ const breadcrumbs = [
   { title: 'Factures Clients', path: '/factures-clients' }
 ];
 
-const searchQuery = ref('');
-const filterStatut = ref('');
+const loading = ref(false);
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
 const modalLoading = ref(false);
 const factureModalRef = ref(null);
 
-const filteredFactures = computed(() => {
-  let result = props.factures;
-
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase();
-    result = result.filter(f =>
-      f.reference?.toLowerCase().includes(q) ||
-      f.client?.nom?.toLowerCase().includes(q)
-    );
-  }
-
-  if (filterStatut.value) {
-    result = result.filter(f => f.statut === filterStatut.value);
-  }
-
-  return result;
+const localFilters = reactive({
+  search: props.filters?.search || '',
+  statut: props.filters?.statut || ''
 });
 
-const stats = computed(() => ({
-  total_facture: filteredFactures.value.reduce((sum, f) => sum + (f.montant || 0), 0),
-  total_paye: filteredFactures.value.reduce((sum, f) => sum + (f.montant_paye || 0), 0),
-  total_reste: filteredFactures.value.reduce((sum, f) => sum + (f.reste_a_payer || 0), 0),
-}));
+const localPagination = reactive({
+  current_page: props.pagination.current_page,
+  per_page: props.pagination.per_page
+});
+
+const handleSearch = () => {
+  loading.value = true;
+  router.get('/factures-clients', {
+    search: localFilters.search || undefined,
+    statut: localFilters.statut || undefined,
+    per_page: localPagination.per_page,
+    page: 1
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => { loading.value = false; }
+  });
+};
+
+const debouncedSearch = debounce(handleSearch, 300);
+
+const handleSortChange = ({ prop, order }) => {
+  loading.value = true;
+  router.get('/factures-clients', {
+    search: localFilters.search || undefined,
+    statut: localFilters.statut || undefined,
+    per_page: localPagination.per_page,
+    page: localPagination.current_page,
+    sort: prop,
+    order: order === 'ascending' ? 'asc' : 'desc'
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => { loading.value = false; }
+  });
+};
+
+const handleSizeChange = (size) => {
+  localPagination.per_page = size;
+  localPagination.current_page = 1;
+  handleSearch();
+};
+
+const handlePageChange = (page) => {
+  loading.value = true;
+  router.get('/factures-clients', {
+    search: localFilters.search || undefined,
+    statut: localFilters.statut || undefined,
+    per_page: localPagination.per_page,
+    page
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => { loading.value = false; }
+  });
+};
 
 const getStatutLabel = (statut) => {
   const labels = {
@@ -361,10 +440,15 @@ const formatDate = (date) => {
 .stat-value { font-size: 20px; font-weight: bold; color: #333; line-height: 1.2; }
 .stat-label { font-size: 13px; color: #666; margin-top: 4px; }
 .table-card { border: 1px solid #e8e8e8; }
+.table-card :deep(.el-card__body) { padding: 0; }
 .factures-table :deep(.el-table__row) { cursor: default; }
 .montant-paye { color: #059669; font-weight: 600; }
 .montant-reste { font-weight: 600; color: #666; }
 .montant-reste.has-reste { color: #dc2626; }
 .ref-link { color: #409eff; cursor: pointer; font-weight: 600; text-decoration: none; }
 .ref-link:hover { text-decoration: underline; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-size: 16px; font-weight: 600; color: #374151; }
+:deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
+.pagination-container { margin-top: 16px; padding: 0 20px 16px; display: flex; justify-content: flex-end; }
 </style>

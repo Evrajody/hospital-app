@@ -130,11 +130,6 @@
         </div>
 
         <div class="header-right">
-          <!-- Notifications -->
-          <el-badge :value="notifications" class="notification-badge">
-            <el-button :icon="Bell" circle />
-          </el-badge>
-
           <!-- User dropdown -->
           <el-dropdown @command="handleCommand">
             <div class="user-profile">
@@ -184,7 +179,6 @@ import {
   Setting,
   User,
   UserFilled,
-  Bell,
   ArrowDown,
   SwitchButton,
   Expand,
@@ -206,7 +200,6 @@ const props = defineProps({
 
 // State
 const isCollapse = ref(false);
-const notifications = ref(3); // Mock notifications
 const currentRoute = ref(window.location.pathname);
 
 // Methods
@@ -312,10 +305,6 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-.notification-badge {
-  cursor: pointer;
 }
 
 .user-profile {

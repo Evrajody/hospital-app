@@ -1055,6 +1055,12 @@ const handleSubmit = async () => {
   gap: 8px;
 }
 
+.compte-option :deep(.el-tag) {
+  min-width: 85px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
 .compte-libelle {
   font-size: 13px;
   color: #6b7280;

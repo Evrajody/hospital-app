@@ -15,16 +15,35 @@ class ClientController extends Controller
     /**
      * Afficher la liste des clients (Vue Inertia)
      */
-    public function index(): InertiaResponse
+    public function index(Request $request): InertiaResponse
     {
-        $clients = Client::with('compteComptable')
-            ->orderBy('nom')
-            ->get()
-            ->map(function ($client) {
-                $data = $client->toApiArray();
-                $data['code'] = $client->compteComptable?->numero_compte ?? '-';
-                return $data;
+        $query = Client::with('compteComptable');
+
+        // Recherche
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'ILIKE', "%{$search}%")
+                  ->orWhere('telephone', 'ILIKE', "%{$search}%")
+                  ->orWhereHas('compteComptable', function ($cq) use ($search) {
+                      $cq->where('numero_compte', 'ILIKE', "%{$search}%");
+                  });
             });
+        }
+
+        // Tri
+        $sort = $request->input('sort', 'nom');
+        $order = $request->input('order', 'asc');
+        $query->orderBy($sort, $order);
+
+        // Pagination
+        $perPage = $request->input('per_page', 20);
+        $clientsPaginated = $query->paginate($perPage);
+
+        $clients = $clientsPaginated->getCollection()->map(function ($client) {
+            $data = $client->toApiArray();
+            $data['code'] = $client->compteComptable?->numero_compte ?? '-';
+            return $data;
+        });
 
         // Comptes clients (41%, 424100%) pour le select
         $comptesClients = CompteComptable::where(function ($q) {
@@ -53,6 +72,15 @@ class ClientController extends Controller
             'clients' => $clients,
             'comptesClients' => $comptesClients,
             'comptesParents' => $comptesParents,
+            'pagination' => [
+                'current_page' => $clientsPaginated->currentPage(),
+                'per_page' => $clientsPaginated->perPage(),
+                'total' => $clientsPaginated->total(),
+                'last_page' => $clientsPaginated->lastPage(),
+            ],
+            'filters' => [
+                'search' => $request->input('search', ''),
+            ],
             'stats' => [
                 'total' => Client::count(),
             ],

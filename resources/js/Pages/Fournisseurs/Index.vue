@@ -98,7 +98,12 @@
                 :key="compte.id"
                 :label="`${compte.numero} - ${compte.libelle}`"
                 :value="compte.id"
-              />
+              >
+                <div class="compte-option">
+                  <el-tag size="small" type="info">{{ compte.numero }}</el-tag>
+                  <span class="compte-libelle">{{ compte.libelle }}</span>
+                </div>
+              </el-option>
             </el-select>
           </el-form-item>
 
@@ -134,6 +139,29 @@
           style="width: 100%"
           @sort-change="handleSortChange"
         >
+          <el-table-column label="Actions" width="100" fixed="left" align="center">
+            <template #default="{ row }">
+              <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, row)">
+                <el-button size="small" type="primary">
+                  Actions <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="view" :icon="View">
+                      Voir
+                    </el-dropdown-item>
+                    <el-dropdown-item command="edit" :icon="Edit">
+                      Modifier
+                    </el-dropdown-item>
+                    <el-dropdown-item divided command="delete" :icon="Delete">
+                      <span style="color: #f56c6c">Supprimer</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+
           <el-table-column prop="nom" label="Raison Sociale" min-width="200" sortable="custom" />
 
           <el-table-column prop="type_fournisseur" label="Type" width="180">
@@ -175,28 +203,6 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="Actions" width="180" fixed="right" align="center">
-            <template #default="{ row }">
-              <el-button-group>
-                <el-button :icon="View" size="small" @click="handleView(row)">
-                  Voir
-                </el-button>
-                <el-button :icon="Edit" size="small" @click="handleEdit(row)">
-                  Modifier
-                </el-button>
-                <el-popconfirm
-                  title="Êtes-vous sûr de vouloir supprimer ce fournisseur ?"
-                  confirm-button-text="Oui"
-                  cancel-button-text="Non"
-                  @confirm="handleDelete(row.id)"
-                >
-                  <template #reference>
-                    <el-button :icon="Delete" size="small" type="danger" />
-                  </template>
-                </el-popconfirm>
-              </el-button-group>
-            </template>
-          </el-table-column>
         </el-table>
 
         <!-- Pagination -->
@@ -245,7 +251,8 @@ import {
   User,
   Document,
   Wallet,
-  CircleCheck
+  CircleCheck,
+  ArrowDown
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
@@ -414,6 +421,30 @@ const handleCreate = () => {
   serverErrors.value = null;
   selectedFournisseur.value = null;
   showFournisseurModal.value = true;
+};
+
+const handleAction = (command, row) => {
+  switch (command) {
+    case 'view':
+      handleView(row);
+      break;
+    case 'edit':
+      handleEdit(row);
+      break;
+    case 'delete':
+      ElMessageBox.confirm(
+        'Êtes-vous sûr de vouloir supprimer ce fournisseur ?',
+        'Confirmation',
+        {
+          confirmButtonText: 'Supprimer',
+          cancelButtonText: 'Annuler',
+          type: 'warning'
+        }
+      ).then(() => {
+        handleDelete(row.id);
+      }).catch(() => {});
+      break;
+  }
 };
 
 const handleView = (fournisseur) => {
@@ -621,6 +652,18 @@ export default {
   gap: 8px;
 }
 
+.compte-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compte-option :deep(.el-tag) {
+  min-width: 85px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
 .compte-cell {
   display: flex;
   align-items: center;
@@ -637,6 +680,7 @@ export default {
 
 .pagination-container {
   margin-top: 16px;
+  padding: 0 20px 16px;
   display: flex;
   justify-content: flex-end;
 }
@@ -656,7 +700,7 @@ export default {
   border-bottom: 1px solid #e5e7eb;
 }
 
-:deep(.el-card__body) {
-  padding: 20px;
+.table-card :deep(.el-card__body) {
+  padding: 0;
 }
 </style>

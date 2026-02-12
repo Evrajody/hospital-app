@@ -79,7 +79,8 @@
               :prefix-icon="Search"
               clearable
               style="width: 250px"
-              @input="handleSearch"
+              @input="debouncedSearch"
+              @clear="handleSearch"
             />
           </el-form-item>
 
@@ -162,6 +163,42 @@
           style="width: 100%"
           @sort-change="handleSortChange"
         >
+          <el-table-column label="Actions" width="100" fixed="left" align="center">
+            <template #default="{ row }">
+              <el-dropdown trigger="click" @command="(cmd) => handleMoreActions(cmd, row)">
+                <el-button size="small" type="primary">
+                  Actions <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="view" :icon="View">
+                      Voir
+                    </el-dropdown-item>
+                    <el-dropdown-item
+                      v-if="row.statut_paiement !== 'payee'"
+                      command="pay"
+                      :icon="Money"
+                    >
+                      Régler
+                    </el-dropdown-item>
+                    <el-dropdown-item command="edit" :icon="Edit">
+                      Modifier
+                    </el-dropdown-item>
+                    <el-dropdown-item command="duplicate" :icon="CopyDocument">
+                      Dupliquer
+                    </el-dropdown-item>
+                    <el-dropdown-item command="print" :icon="Printer">
+                      Imprimer
+                    </el-dropdown-item>
+                    <el-dropdown-item divided command="delete" :icon="Delete">
+                      <span style="color: #f56c6c">Supprimer</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+
           <el-table-column prop="numero" label="N° Facture" width="140" sortable="custom">
             <template #default="{ row }">
               <el-link type="primary" @click="handleView(row)">
@@ -236,50 +273,13 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="Actions" width="220" fixed="right" align="center">
-            <template #default="{ row }">
-              <el-button-group>
-                <el-button :icon="View" size="small" @click="handleView(row)">
-                  Voir
-                </el-button>
-                <el-button
-                  v-if="row.statut_paiement !== 'payee'"
-                  :icon="Money"
-                  size="small"
-                  type="success"
-                  @click="handlePay(row)"
-                >
-                  Régler
-                </el-button>
-                <el-dropdown @command="(cmd) => handleMoreActions(cmd, row)">
-                  <el-button :icon="More" size="small" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="edit" :icon="Edit">
-                        Modifier
-                      </el-dropdown-item>
-                      <el-dropdown-item command="duplicate" :icon="CopyDocument">
-                        Dupliquer
-                      </el-dropdown-item>
-                      <el-dropdown-item command="print" :icon="Printer">
-                        Imprimer
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="delete" :icon="Delete">
-                        <span style="color: #f56c6c">Supprimer</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </el-button-group>
-            </template>
-          </el-table-column>
         </el-table>
 
         <!-- Pagination -->
         <div class="pagination-container">
           <el-pagination
-            v-model:current-page="pagination.current_page"
-            v-model:page-size="pagination.per_page"
+            v-model:current-page="localPagination.current_page"
+            v-model:page-size="localPagination.per_page"
             :page-sizes="[10, 20, 50, 100]"
             :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
@@ -304,7 +304,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -323,7 +323,8 @@ import {
   WarningFilled,
   Clock,
   SuccessFilled,
-  CopyDocument
+  CopyDocument,
+  ArrowDown
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
@@ -373,16 +374,30 @@ const props = defineProps({
   }
 });
 
+// Simple debounce function
+const debounce = (fn, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
+
 // State
 const loading = ref(false);
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
 
 const filters = reactive({
-  search: '',
-  fournisseur_id: null,
-  statut_paiement: '',
+  search: props.pagination?.search || '',
+  fournisseur_id: props.pagination?.fournisseur_id || null,
+  statut_paiement: props.pagination?.statut_paiement || '',
   date_range: null
+});
+
+const localPagination = reactive({
+  current_page: props.pagination.current_page,
+  per_page: props.pagination.per_page
 });
 
 const breadcrumbs = [
@@ -427,9 +442,36 @@ const getPaymentTagType = (row) => {
   return 'warning';
 };
 
-const handleSearch = () => {
-  console.log('Searching with filters:', filters);
+const buildParams = (overrides = {}) => {
+  const params = {
+    search: filters.search || undefined,
+    fournisseur_id: filters.fournisseur_id || undefined,
+    statut: filters.statut_paiement || undefined,
+    per_page: localPagination.per_page,
+    page: localPagination.current_page,
+    ...overrides
+  };
+
+  if (filters.date_range && filters.date_range.length === 2) {
+    params.date_debut = filters.date_range[0]?.toISOString?.()?.split('T')[0] || filters.date_range[0];
+    params.date_fin = filters.date_range[1]?.toISOString?.()?.split('T')[0] || filters.date_range[1];
+  }
+
+  return params;
 };
+
+const handleSearch = () => {
+  loading.value = true;
+  router.get('/factures-fournisseurs', buildParams({ page: 1 }), {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
+};
+
+const debouncedSearch = debounce(handleSearch, 300);
 
 const handleReset = () => {
   filters.search = '';
@@ -440,19 +482,44 @@ const handleReset = () => {
 };
 
 const handleRefresh = () => {
-  router.reload({ only: ['factures', 'stats', 'pagination'] });
+  loading.value = true;
+  router.reload({
+    only: ['factures', 'stats', 'pagination'],
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
 };
 
 const handleSortChange = ({ prop, order }) => {
-  console.log('Sort changed:', prop, order);
+  loading.value = true;
+  router.get('/factures-fournisseurs', buildParams({
+    sort: prop,
+    order: order === 'ascending' ? 'asc' : 'desc'
+  }), {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
 };
 
 const handleSizeChange = (size) => {
-  console.log('Page size changed:', size);
+  localPagination.per_page = size;
+  localPagination.current_page = 1;
+  handleSearch();
 };
 
 const handlePageChange = (page) => {
-  console.log('Page changed:', page);
+  loading.value = true;
+  router.get('/factures-fournisseurs', buildParams({ page }), {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => {
+      loading.value = false;
+    }
+  });
 };
 
 const handleCreate = () => {
@@ -503,6 +570,12 @@ const handleFactureSuccess = async (factureData) => {
 
 const handleMoreActions = async (command, facture) => {
   switch (command) {
+    case 'view':
+      handleView(facture);
+      break;
+    case 'pay':
+      handlePay(facture);
+      break;
     case 'edit':
       selectedFacture.value = facture;
       showFactureModal.value = true;
@@ -522,10 +595,26 @@ const handleMoreActions = async (command, facture) => {
           cancelButtonText: 'Annuler',
           type: 'warning'
         }
-      ).then(() => {
-        ElMessage.success('Facture supprimée avec succès');
-        handleRefresh();
-      });
+      ).then(async () => {
+        try {
+          const response = await fetch(`/api/factures-fournisseurs/${facture.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+          });
+          const result = await response.json();
+          if (result.success) {
+            ElMessage.success('Facture supprimée avec succès');
+            handleRefresh();
+          } else {
+            ElMessage.error(result.message || 'Erreur lors de la suppression');
+          }
+        } catch (error) {
+          ElMessage.error('Erreur de connexion');
+        }
+      }).catch(() => {});
       break;
   }
 };
@@ -697,6 +786,7 @@ export default {
 
 .pagination-container {
   margin-top: 16px;
+  padding: 0 20px 16px;
   display: flex;
   justify-content: flex-end;
 }
@@ -716,8 +806,8 @@ export default {
   border-bottom: 1px solid #e5e7eb;
 }
 
-:deep(.el-card__body) {
-  padding: 20px;
+.table-card :deep(.el-card__body) {
+  padding: 0;
 }
 
 :deep(.stat-card .el-card__body) {

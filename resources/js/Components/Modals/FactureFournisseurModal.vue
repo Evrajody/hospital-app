@@ -31,6 +31,7 @@
 
     <el-form
       ref="formRef"
+      v-loading="loadingForm"
       :model="form"
       :rules="rules"
       label-position="top"
@@ -56,7 +57,7 @@
                     v-model="form.numero_piece"
                     placeholder="Auto-généré"
                     :prefix-icon="Document"
-                    @blur="verifierNumeroPiece"
+                    @blur="!isEdit && verifierNumeroPiece()"
                     :class="{ 'numero-warning': numeroWarning, 'numero-error': numeroError }"
                   >
                     <template #append>
@@ -808,16 +809,45 @@ const handleClosed = () => {
   prochainNumero.value = '';
 };
 
-const loadFormData = () => {
+const loadingForm = ref(false);
+
+const applyFactureData = (data) => {
+  Object.keys(form).forEach(key => {
+    if (key in data && data[key] !== null) {
+      form[key] = data[key];
+    }
+  });
+  // S'assurer que le fournisseur_id est bien chargé
+  if (!form.fournisseur_id && data.fournisseur?.id) {
+    form.fournisseur_id = data.fournisseur.id;
+  }
+};
+
+const loadFormData = async () => {
   if (props.facture) {
-    Object.keys(form).forEach(key => {
-      if (key in props.facture && props.facture[key] !== null) {
-        form[key] = props.facture[key];
+    // En mode édition, charger les données complètes depuis l'API
+    // car les données du listing ne contiennent pas tous les champs du formulaire
+    loadingForm.value = true;
+    try {
+      const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}`, {
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        }
+      });
+      const result = await response.json();
+      if (result.success && result.data) {
+        applyFactureData(result.data);
+      } else {
+        // Fallback: utiliser les données partielles du listing
+        applyFactureData(props.facture);
       }
-    });
-    // S'assurer que le fournisseur_id est bien chargé
-    if (!form.fournisseur_id && props.facture.fournisseur?.id) {
-      form.fournisseur_id = props.facture.fournisseur.id;
+    } catch (error) {
+      console.error('Erreur lors du chargement de la facture:', error);
+      // Fallback: utiliser les données partielles du listing
+      applyFactureData(props.facture);
+    } finally {
+      loadingForm.value = false;
     }
   } else {
     const initialData = getInitialFormData();
@@ -841,8 +871,8 @@ const handleSubmit = async () => {
 
   validationErrors.value = [];
 
-  // Vérifier d'abord le numéro de pièce si modifié
-  if (form.numero_piece && form.numero_piece !== prochainNumero.value) {
+  // Vérifier le numéro de pièce uniquement en création
+  if (!isEdit.value && form.numero_piece && form.numero_piece !== prochainNumero.value) {
     await verifierNumeroPiece();
 
     // Si erreur (doublon), ne pas continuer
@@ -910,7 +940,7 @@ const handleSubmit = async () => {
 // Watchers
 watch(dialogVisible, async (val) => {
   if (val) {
-    loadFormData();
+    await loadFormData();
     // Charger le prochain numéro attendu
     await chargerProchainNumero();
     // Si nouvelle facture et pas de numéro, générer automatiquement
@@ -1060,6 +1090,12 @@ watch(() => props.serverErrors, (errors) => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.select-option :deep(.el-tag) {
+  min-width: 70px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
 }
 
 .select-option span {

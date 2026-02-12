@@ -1,0 +1,84 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      network: host
+    container_name: hospital-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      # Le .env de Laravel (monté depuis le host)
+      - ./.env.production:/var/www/.env:ro
+      # Storage persistant (uploads, logs, sessions, cache)
+      - app-storage:/var/www/storage
+      # Volume partagé avec nginx pour les fichiers statiques
+      - app-public:/var/www/public-shared
+    networks:
+      - hospital-network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", 'php -r ''echo "ok";'' || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  nginx:
+    image: nginx:alpine
+    container_name: hospital-nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      # Dossier public synchronisé depuis le conteneur app
+      - app-public:/var/www/public:ro
+      - ./docker/nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - hospital-network
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  db:
+    image: postgres:16-alpine
+    container_name: hospital-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hospital_db
+      POSTGRES_USER: hospital_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - db-backups:/backups
+    # Port NON exposé publiquement en prod
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hospital_user -d hospital_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  hospital-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local
+  db-backups:
+    driver: local
+  app-storage:
+    driver: local
+  app-public:
+    driver: local

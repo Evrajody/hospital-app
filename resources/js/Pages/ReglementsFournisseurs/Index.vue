@@ -162,6 +162,38 @@
           style="width: 100%"
           @sort-change="handleSortChange"
         >
+          <el-table-column label="Actions" width="180" fixed="left" align="center">
+            <template #default="{ row }">
+              <el-button-group>
+                <el-button :icon="View" size="small" type="primary" @click="handleView(row)">
+                  Détails
+                </el-button>
+                <el-dropdown @command="(cmd) => handleMoreActions(cmd, row)">
+                  <el-button :icon="More" size="small" />
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="recu" :icon="Printer">
+                        Imprimer le reçu
+                      </el-dropdown-item>
+                      <el-dropdown-item command="mandat" :icon="DocumentCopy">
+                        Mandat de paiement
+                      </el-dropdown-item>
+                      <el-dropdown-item command="imputation" :icon="Notebook">
+                        Fiche d'imputation
+                      </el-dropdown-item>
+                      <el-dropdown-item divided command="facture" :icon="Document">
+                        Voir la facture
+                      </el-dropdown-item>
+                      <el-dropdown-item divided command="delete" :icon="Delete">
+                        <span style="color: #f56c6c">Supprimer</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </el-button-group>
+            </template>
+          </el-table-column>
+
           <el-table-column prop="date_reglement" label="Date" width="120" sortable="custom">
             <template #default="{ row }">
               {{ formatDate(row.date_reglement) }}
@@ -232,37 +264,6 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="Actions" width="180" fixed="right" align="center">
-            <template #default="{ row }">
-              <el-button-group>
-                <el-button :icon="View" size="small" @click="handleView(row)">
-                  Détails
-                </el-button>
-                <el-dropdown @command="(cmd) => handleMoreActions(cmd, row)">
-                  <el-button :icon="More" size="small" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="recu" :icon="Printer">
-                        Imprimer le reçu
-                      </el-dropdown-item>
-                      <el-dropdown-item command="mandat" :icon="DocumentCopy">
-                        Mandat de paiement
-                      </el-dropdown-item>
-                      <el-dropdown-item command="imputation" :icon="Notebook">
-                        Fiche d'imputation
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="facture" :icon="Document">
-                        Voir la facture
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="delete" :icon="Delete">
-                        <span style="color: #f56c6c">Supprimer</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </el-button-group>
-            </template>
-          </el-table-column>
         </el-table>
 
         <!-- Pagination -->
@@ -869,6 +870,7 @@ export default {
 
 .pagination-container {
   margin-top: 16px;
+  padding: 0 20px 16px;
   display: flex;
   justify-content: flex-end;
 }
@@ -888,8 +890,8 @@ export default {
   border-bottom: 1px solid #e5e7eb;
 }
 
-:deep(.el-card__body) {
-  padding: 20px;
+.table-card :deep(.el-card__body) {
+  padding: 0;
 }
 
 :deep(.stat-card .el-card__body) {

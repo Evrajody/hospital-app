@@ -373,31 +373,47 @@ class ReglementFournisseurController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $reglement = ReglementFournisseur::findOrFail($id);
-
-        if (!$reglement->est_modifiable) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ce règlement ne peut pas être annulé',
-            ], 422);
-        }
+        $facture = $reglement->facture;
 
         try {
-            if ($reglement->annuler()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Règlement annulé avec succès',
-                ]);
+            DB::beginTransaction();
+
+            $montant = (float) $reglement->montant;
+
+            // Supprimer le règlement
+            $reglement->delete();
+
+            // Reverser le paiement sur la facture
+            if ($facture) {
+                $facture->montant_paye = max(0, (float) $facture->montant_paye - $montant);
+                $facture->reste_a_payer = (float) $facture->montant_net - (float) $facture->montant_paye;
+
+                if ($facture->montant_paye <= 0.01) {
+                    $facture->statut = FactureFournisseur::STATUT_VALIDEE;
+                    $facture->montant_paye = 0;
+                } elseif ($facture->reste_a_payer <= 0.01) {
+                    $facture->statut = FactureFournisseur::STATUT_PAYEE;
+                    $facture->reste_a_payer = 0;
+                } else {
+                    $facture->statut = FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE;
+                }
+
+                $facture->save();
             }
 
+            DB::commit();
+
             return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'annulation du règlement',
-            ], 500);
+                'success' => true,
+                'message' => 'Règlement supprimé avec succès',
+            ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'annulation du règlement',
+                'message' => 'Erreur lors de la suppression du règlement',
                 'error' => $e->getMessage(),
             ], 500);
         }

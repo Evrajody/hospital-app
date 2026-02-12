@@ -58,7 +58,12 @@
             :key="compte.id"
             :label="`${compte.numero} - ${compte.libelle}`"
             :value="compte.id"
-          />
+          >
+            <div class="compte-option">
+              <el-tag size="small" type="info">{{ compte.numero }}</el-tag>
+              <span class="compte-libelle">{{ compte.libelle }}</span>
+            </div>
+          </el-option>
         </el-select>
         <div class="form-hint">Compte de trésorerie (classe 5)</div>
       </el-form-item>
@@ -230,5 +235,26 @@ const handleSubmit = async () => {
   font-size: 12px;
   color: #909399;
   margin-top: 4px;
+}
+
+.compte-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compte-option :deep(.el-tag) {
+  min-width: 70px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+.compte-libelle {
+  font-size: 13px;
+  color: #6b7280;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

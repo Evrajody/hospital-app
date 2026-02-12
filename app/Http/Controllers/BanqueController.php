@@ -218,19 +218,36 @@ class BanqueController extends Controller
      */
     public function destroyBanque(Banque $banque): JsonResponse
     {
-        // Vérifier si la banque a des comptes
-        if ($banque->comptes()->exists()) {
+        try {
+            DB::beginTransaction();
+
+            // Supprimer les approvisionnements des comptes de cette banque
+            $comptes = $banque->comptes;
+            foreach ($comptes as $compte) {
+                ApprovisionnementBanque::where('compte_bancaire_id', $compte->id)->delete();
+            }
+
+            // Supprimer les comptes bancaires de cette banque
+            $banque->comptes()->delete();
+
+            // Supprimer la banque
+            $banque->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Banque et ses comptes supprimés avec succès',
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Impossible de supprimer cette banque car elle possède des comptes bancaires.',
-            ], 422);
+                'message' => 'Erreur lors de la suppression de la banque',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        $banque->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Banque supprimée avec succès',
-        ]);
     }
 }

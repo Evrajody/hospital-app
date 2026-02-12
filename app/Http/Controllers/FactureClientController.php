@@ -16,12 +16,35 @@ class FactureClientController extends Controller
     /**
      * Afficher la liste des factures clients
      */
-    public function indexView(): InertiaResponse
+    public function indexView(Request $request): InertiaResponse
     {
-        $factures = FactureClient::with('client')
-            ->orderBy('date_facture', 'desc')
-            ->get()
-            ->map(fn($f) => $f->toApiArray());
+        $query = FactureClient::with('client');
+
+        // Recherche
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('reference', 'ILIKE', "%{$search}%")
+                  ->orWhereHas('client', function ($cq) use ($search) {
+                      $cq->where('nom', 'ILIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filtre par statut
+        if ($statut = $request->input('statut')) {
+            $query->where('statut', $statut);
+        }
+
+        // Tri
+        $sort = $request->input('sort', 'date_facture');
+        $order = $request->input('order', 'desc');
+        $query->orderBy($sort, $order);
+
+        // Pagination
+        $perPage = $request->input('per_page', 20);
+        $facturesPaginated = $query->paginate($perPage);
+
+        $factures = $facturesPaginated->getCollection()->map(fn($f) => $f->toApiArray());
 
         $clients = Client::orderBy('nom')
             ->get()
@@ -33,10 +56,29 @@ class FactureClientController extends Controller
 
         $prochaineReference = FactureClient::genererReference();
 
+        // Stats globales (non filtrées)
+        $allFactures = FactureClient::all();
+        $stats = [
+            'total_facture' => $allFactures->sum('montant'),
+            'total_paye' => $allFactures->sum('montant_paye'),
+            'total_reste' => $allFactures->sum('reste_a_payer'),
+        ];
+
         return Inertia::render('Clients/Factures/Index', [
             'factures' => $factures,
             'clients' => $clients,
             'prochaineReference' => $prochaineReference,
+            'pagination' => [
+                'current_page' => $facturesPaginated->currentPage(),
+                'per_page' => $facturesPaginated->perPage(),
+                'total' => $facturesPaginated->total(),
+                'last_page' => $facturesPaginated->lastPage(),
+            ],
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'statut' => $request->input('statut', ''),
+            ],
+            'stats' => $stats,
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',

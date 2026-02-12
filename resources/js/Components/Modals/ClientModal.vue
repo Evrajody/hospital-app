@@ -486,6 +486,7 @@ const handleSubmit = async () => {
 .alert-content { font-size: 13px; line-height: 1.6; margin-top: 4px; }
 .compte-section { margin-top: 20px; }
 .compte-option { display: flex; align-items: center; gap: 8px; }
+.compte-option :deep(.el-tag) { min-width: 85px; text-align: center; font-family: 'Courier New', monospace; }
 .compte-libelle { font-size: 13px; color: #6b7280; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compte-preview { margin-top: 16px; background-color: #f9fafb; }
 .preview-header { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #374151; margin-bottom: 12px; }

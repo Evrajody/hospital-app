@@ -476,23 +476,33 @@ class FournisseurController extends Controller
         $fournisseur = Fournisseur::findOrFail($id);
 
         try {
-            // TODO: Vérifier qu'il n'y a pas de factures liées avant suppression
-            // $hasFactures = $fournisseur->factures()->exists();
-            // if ($hasFactures) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Impossible de supprimer ce fournisseur car il a des factures associées',
-            //     ], 422);
-            // }
+            DB::beginTransaction();
 
+            // Supprimer les règlements associés à chaque facture du fournisseur
+            $factures = FactureFournisseur::where('fournisseur_id', $id)->get();
+            foreach ($factures as $facture) {
+                ReglementFournisseur::where('facture_id', $facture->id)->delete();
+            }
+
+            // Supprimer les règlements directement liés au fournisseur (sécurité)
+            ReglementFournisseur::where('fournisseur_id', $id)->delete();
+
+            // Supprimer toutes les factures du fournisseur
+            FactureFournisseur::where('fournisseur_id', $id)->delete();
+
+            // Supprimer le fournisseur
             $fournisseur->delete();
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Fournisseur supprimé avec succès',
+                'message' => 'Fournisseur et toutes ses factures/règlements supprimés avec succès',
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la suppression du fournisseur',

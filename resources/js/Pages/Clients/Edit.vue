@@ -58,7 +58,7 @@
 
           <el-row :gutter="20">
             <!-- Téléphone -->
-            <el-col :xs="24" :sm="12">
+            <el-col :xs="24">
               <el-form-item label="Téléphone" prop="telephone">
                 <el-input
                   v-model="form.telephone"
@@ -67,7 +67,9 @@
                 />
               </el-form-item>
             </el-col>
+          </el-row>
 
+          <el-row :gutter="20">
             <!-- Email -->
             <el-col :xs="24" :sm="12">
               <el-form-item label="Email" prop="email">
