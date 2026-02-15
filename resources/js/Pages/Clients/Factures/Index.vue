@@ -114,27 +114,29 @@
           @sort-change="handleSortChange"
           class="factures-table"
         >
-          <el-table-column label="Actions" width="280" fixed="left">
+          <el-table-column label="Actions" width="200" fixed="left" align="center">
             <template #default="{ row }">
-              <el-button
-                v-if="row.statut !== 'payee'"
-                size="small"
-                type="success"
-                @click="handleRegler(row)"
-              >
-                R&eacute;gler
-              </el-button>
-              <el-button size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
-              <el-popconfirm
-                title="Supprimer cette facture ?"
-                confirm-button-text="Oui"
-                cancel-button-text="Non"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete" />
-                </template>
-              </el-popconfirm>
+              <el-button-group>
+                <el-button :icon="View" size="small" type="primary" @click="handleView(row)">
+                  D&eacute;tails
+                </el-button>
+                <el-dropdown @command="(cmd) => handleAction(cmd, row)">
+                  <el-button :icon="More" size="small" />
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item v-if="row.statut !== 'payee'" command="regler" :icon="Money">
+                        R&eacute;gler
+                      </el-dropdown-item>
+                      <el-dropdown-item command="edit" :icon="Edit">
+                        Modifier
+                      </el-dropdown-item>
+                      <el-dropdown-item divided command="delete" :icon="Delete">
+                        <span style="color: #f56c6c">Supprimer</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </el-button-group>
             </template>
           </el-table-column>
 
@@ -217,7 +219,7 @@ import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
 import {
-  Plus, Search, Edit, Delete,
+  Plus, Search, Edit, Delete, View, More,
   Document, Money, SuccessFilled, Warning
 } from '@element-plus/icons-vue';
 
@@ -353,6 +355,20 @@ const handleCreate = () => {
 const handleEdit = (facture) => {
   selectedFacture.value = facture;
   showFactureModal.value = true;
+};
+
+const handleAction = (command, facture) => {
+  switch (command) {
+    case 'regler':
+      handleRegler(facture);
+      break;
+    case 'edit':
+      handleEdit(facture);
+      break;
+    case 'delete':
+      handleDelete(facture);
+      break;
+  }
 };
 
 const handleDelete = async (facture) => {

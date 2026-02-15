@@ -46,9 +46,6 @@
                 <el-dropdown-item v-if="!estSoldee" command="edit" :icon="Edit">
                   Modifier
                 </el-dropdown-item>
-                <el-dropdown-item command="duplicate" :icon="CopyDocument">
-                  Dupliquer
-                </el-dropdown-item>
                 <el-dropdown-item command="print" :icon="Printer">
                   Imprimer
                 </el-dropdown-item>
@@ -151,7 +148,7 @@
             </template>
 
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="Montant Facture">
+              <el-descriptions-item label="Montant Facture HT">
                 <strong>{{ formatMontant(facture.montant_facture) }}</strong>
               </el-descriptions-item>
               <el-descriptions-item label="Montant M.O.">
@@ -566,9 +563,6 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
     case 'edit':
       selectedFacture.value = props.facture;
       showFactureModal.value = true;
-      break;
-    case 'duplicate':
-      ElMessage.info('Duplication en cours de développement...');
       break;
     case 'print':
       ElMessage.info('Impression en cours de développement...');

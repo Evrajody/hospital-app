@@ -61,6 +61,7 @@ class PlanComptableController extends Controller
             'type' => $c->type_compte ? strtolower($c->type_compte) : null,
             'is_custom' => $c->is_custom ?? false,
             'parent_id' => $c->parent_id,
+            'utilisable' => $c->est_feuille ?? ($c->niveau >= 4),
         ]);
 
         // Statistiques par classe
@@ -221,6 +222,66 @@ class PlanComptableController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Compte créé avec succès',
+            'data' => [
+                'id' => $compte->id,
+                'numero' => $compte->numero_compte,
+                'libelle' => $compte->libelle,
+            ],
+        ]);
+    }
+
+    /**
+     * Modifier un compte (API)
+     */
+    public function update(Request $request, CompteComptable $compte): JsonResponse
+    {
+        $validated = $request->validate([
+            'numero_compte' => [
+                'required',
+                'string',
+                'max:10',
+                'regex:/^[0-9]+$/',
+                Rule::unique('plan_comptable_ohada', 'numero_compte')->ignore($compte->id),
+            ],
+            'libelle' => 'required|string|max:500',
+            'parent_id' => 'nullable|exists:plan_comptable_ohada,id',
+        ]);
+
+        // Déterminer la classe à partir du premier chiffre du numéro
+        $classe = (int) substr($validated['numero_compte'], 0, 1);
+
+        // Déterminer le niveau à partir de la longueur du numéro
+        $length = strlen($validated['numero_compte']);
+        $niveau = match($length) {
+            2 => 1,
+            3 => 2,
+            4 => 3,
+            5 => 4,
+            default => min($length - 1, 5)
+        };
+
+        // Vérifier la cohérence avec le compte parent si fourni
+        if ($validated['parent_id']) {
+            $parent = CompteComptable::find($validated['parent_id']);
+            if ($parent && !str_starts_with($validated['numero_compte'], $parent->numero_compte)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Le numéro de compte doit commencer par {$parent->numero_compte}",
+                ], 422);
+            }
+        }
+
+        $compte->update([
+            'numero_compte' => $validated['numero_compte'],
+            'libelle' => $validated['libelle'],
+            'classe' => $classe,
+            'niveau' => $niveau,
+            'parent_id' => $validated['parent_id'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Compte modifié avec succès',
             'data' => [
                 'id' => $compte->id,
                 'numero' => $compte->numero_compte,

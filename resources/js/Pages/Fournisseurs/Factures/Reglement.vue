@@ -60,7 +60,7 @@
                   <span class="montant-value">{{ formatMontant(facture.montant_tva) }}</span>
                 </div>
                 <div class="montant-row" v-if="facture.montant_aib > 0">
-                  <span class="montant-label">AIB :</span>
+                  <span class="montant-label">Mt AIB :</span>
                   <span class="montant-value">{{ formatMontant(facture.montant_aib) }}</span>
                 </div>
                 <div class="montant-row total-ttc">
@@ -492,7 +492,7 @@ const insufficientData = reactive({ solde: 0, montant: 0 });
 
 const form = reactive({
   annee_exercice: new Date().getFullYear().toString(),
-  numero_ligne: '',
+  numero_ligne: String(props.reglements.length + 1).padStart(3, '0'),
   date_reglement: new Date(),
   montant: resteAPayer.value,
   mode_paiement: '',
@@ -650,7 +650,7 @@ const submitPayment = async (forceInsufficient = false) => {
 
     if (data.success) {
       ElMessage.success(data.message || 'Règlement enregistré avec succès');
-      router.visit(`/factures-fournisseurs/${props.facture.id}`);
+      router.visit(`/factures-fournisseurs/${props.facture.id}/regler`);
     } else if (data.insufficient_balance) {
       insufficientData.solde = data.solde_actuel;
       insufficientData.montant = data.montant_demande;

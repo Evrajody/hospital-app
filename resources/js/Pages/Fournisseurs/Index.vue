@@ -162,9 +162,9 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="nom" label="Raison Sociale" min-width="200" sortable="custom" />
+          <el-table-column prop="nom" label="Raison Sociale" min-width="200" sortable="custom" show-overflow-tooltip />
 
-          <el-table-column prop="type_fournisseur" label="Type" width="180">
+          <el-table-column prop="type_fournisseur" label="Type" min-width="140">
             <template #default="{ row }">
               <el-tag v-if="row.type_fournisseur" size="small" type="info">
                 {{ getTypeFournisseurLabel(row.type_fournisseur) }}
@@ -173,7 +173,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="compte_comptable" label="Compte Comptable" width="220">
+          <el-table-column prop="compte_comptable" label="Compte Comptable" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
               <div v-if="row.compte_comptable" class="compte-cell">
                 <el-tag size="small">{{ row.compte_comptable.numero }}</el-tag>
@@ -183,9 +183,9 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="contact" label="Contact" width="150" />
+          <el-table-column prop="contact" label="Contact" min-width="140" show-overflow-tooltip />
 
-          <el-table-column prop="telephone" label="Téléphone" width="140">
+          <el-table-column prop="telephone" label="Téléphone" min-width="130">
             <template #default="{ row }">
               <el-link v-if="row.telephone" :href="`tel:${row.telephone}`" :icon="Phone">
                 {{ row.telephone }}
@@ -194,7 +194,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="email" label="Email" width="200">
+          <el-table-column prop="email" label="Email" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
               <el-link v-if="row.email" :href="`mailto:${row.email}`" :icon="Message">
                 {{ row.email }}

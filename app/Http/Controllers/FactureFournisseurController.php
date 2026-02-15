@@ -628,6 +628,15 @@ class FactureFournisseurController extends Controller
     {
         $facture = FactureFournisseur::findOrFail($id);
 
+        // Vérifier si la facture a des règlements
+        $nbReglements = ReglementFournisseur::where('facture_id', $id)->count();
+        if ($nbReglements > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Impossible de supprimer cette facture car elle fait l'objet de {$nbReglements} règlement(s). Veuillez d'abord supprimer les règlements associés.",
+            ], 422);
+        }
+
         // Vérifier si la facture peut être supprimée
         if (!$facture->est_modifiable) {
             return response()->json([

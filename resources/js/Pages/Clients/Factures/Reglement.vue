@@ -394,7 +394,7 @@ const showDetail = (reglement) => {
 };
 
 const form = ref({
-  numero_ligne: '',
+  numero_ligne: String(props.reglements.length + 1).padStart(3, '0'),
   date_reglement: new Date(),
   montant: null,
   institution: '',
@@ -482,7 +482,7 @@ const handleSubmit = async () => {
 
     if (result.success) {
       ElMessage.success(result.message || 'R\u00e8glement enregistr\u00e9');
-      router.visit(`/factures-clients/${props.facture.id}/regler`);
+      router.visit('/reglements-clients');
     } else {
       ElMessage.error(result.message || 'Erreur');
     }

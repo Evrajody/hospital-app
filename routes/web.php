@@ -307,75 +307,8 @@ Route::prefix('reglements-fournisseurs')->group(function () {
         ]);
     })->name('reglements-fournisseurs.recu');
 
-    Route::get('/{id}/mandat', function ($id) {
-        // Trouver le règlement dans les données mock
-        $reglement = [
-            'id' => $id,
-            'date_reglement' => '2025-01-20',
-            'facture' => [
-                'id' => 1,
-                'numero' => 'PC/025/0001',
-                'date_facture' => '2025-01-15'
-            ],
-            'fournisseur' => [
-                'id' => 1,
-                'code' => 'FOUR001',
-                'nom' => 'Pharmacie Centrale du Bénin',
-                'compte_numero' => '401001',
-                'ifu' => '0000000000001',
-                'rccm' => 'RB/COT/XX-X-00001'
-            ],
-            'mode_paiement' => 'virement',
-            'reference' => 'VIR-2025-001',
-            'compte_bancaire' => [
-                'banque' => 'ORABANK',
-                'numero' => 'BJ123456789'
-            ],
-            'montant' => 2000000,
-            'user' => [
-                'name' => 'Admin User'
-            ]
-        ];
-
-        return Inertia::render('Documents/MandatPaiement', [
-            'reglement' => $reglement
-        ]);
-    })->name('reglements-fournisseurs.mandat');
-
-    Route::get('/{id}/imputation', function ($id) {
-        // Trouver le règlement dans les données mock
-        $reglement = [
-            'id' => $id,
-            'date_reglement' => '2025-01-20',
-            'facture' => [
-                'id' => 1,
-                'numero' => 'PC/025/0001',
-                'date_facture' => '2025-01-15'
-            ],
-            'fournisseur' => [
-                'id' => 1,
-                'code' => 'FOUR001',
-                'nom' => 'Pharmacie Centrale du Bénin',
-                'compte_numero' => '401001',
-                'ifu' => '0000000000001',
-                'rccm' => 'RB/COT/XX-X-00001'
-            ],
-            'mode_paiement' => 'virement',
-            'reference' => 'VIR-2025-001',
-            'compte_bancaire' => [
-                'banque' => 'ORABANK',
-                'numero' => 'BJ123456789'
-            ],
-            'montant' => 2000000,
-            'user' => [
-                'name' => 'Admin User'
-            ]
-        ];
-
-        return Inertia::render('Documents/FicheImputation', [
-            'reglement' => $reglement
-        ]);
-    })->name('reglements-fournisseurs.imputation');
+    Route::get('/{id}/mandat', [ReglementFournisseurController::class, 'mandat'])->name('reglements-fournisseurs.mandat');
+    Route::get('/{id}/imputation', [ReglementFournisseurController::class, 'imputation'])->name('reglements-fournisseurs.imputation');
 });
 
 // Clients Routes
@@ -429,6 +362,7 @@ Route::prefix('api/plan-comptable')->group(function () {
     Route::get('/search', [PlanComptableController::class, 'search'])->name('api.plan-comptable.search');
     Route::post('/', [PlanComptableController::class, 'store'])->name('api.plan-comptable.store');
     Route::get('/{compte}', [PlanComptableController::class, 'show'])->name('api.plan-comptable.show');
+    Route::put('/{compte}', [PlanComptableController::class, 'update'])->name('api.plan-comptable.update');
     Route::delete('/{compte}', [PlanComptableController::class, 'destroy'])->name('api.plan-comptable.destroy');
 });
 

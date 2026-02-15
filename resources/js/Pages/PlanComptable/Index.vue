@@ -7,7 +7,7 @@
           <h1 class="page-title">Plan Comptable OHADA</h1>
           <p class="page-subtitle">{{ stats.total }} comptes dont {{ stats.custom || 0 }} personnalisé(s)</p>
         </div>
-        <el-button type="primary" size="large" @click="showCompteModal = true">
+        <el-button type="primary" size="large" @click="selectedCompte = null; showCompteModal = true">
           <el-icon><Plus /></el-icon>
           Nouveau Compte
         </el-button>
@@ -257,8 +257,16 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="" width="60" align="center">
+          <el-table-column label="Actions" width="120" align="center">
             <template #default="{ row }">
+              <el-button
+                :icon="Edit"
+                size="small"
+                circle
+                plain
+                type="primary"
+                @click="handleEdit(row)"
+              />
               <el-button
                 v-if="row.is_custom"
                 type="danger"
@@ -286,10 +294,11 @@
         </div>
       </el-card>
 
-      <!-- Modal Nouveau Compte -->
+      <!-- Modal Compte -->
       <CompteComptableModal
         v-model="showCompteModal"
         :comptes-parents="comptesParents"
+        :compte="selectedCompte"
         @success="handleCompteSuccess"
       />
     </div>
@@ -308,6 +317,7 @@ import {
   Printer,
   Refresh,
   Delete,
+  Edit,
   Notebook,
   Money,
   Box,
@@ -372,6 +382,7 @@ const props = defineProps({
 // State
 const loading = ref(false);
 const showCompteModal = ref(false);
+const selectedCompte = ref(null);
 const filters = reactive({
   search: props.filters.search || '',
   type: props.filters.type || '',
@@ -477,7 +488,13 @@ const handlePrint = () => {
   ElMessage.info('Impression en cours de développement...');
 };
 
+const handleEdit = (compte) => {
+  selectedCompte.value = compte;
+  showCompteModal.value = true;
+};
+
 const handleCompteSuccess = () => {
+  selectedCompte.value = null;
   router.reload({ only: ['comptes', 'comptesParents', 'stats'] });
 };
 

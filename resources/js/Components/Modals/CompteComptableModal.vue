@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="Nouveau Compte Comptable"
+    :title="isEdit ? 'Modifier le Compte Comptable' : 'Nouveau Compte Comptable'"
     width="550px"
     :close-on-click-modal="false"
     @closed="handleClosed"
@@ -68,7 +68,7 @@
     <template #footer>
       <el-button @click="dialogVisible = false">Annuler</el-button>
       <el-button type="primary" @click="handleSubmit" :loading="loading">
-        Créer le compte
+        {{ isEdit ? 'Enregistrer' : 'Créer le compte' }}
       </el-button>
     </template>
   </el-dialog>
@@ -86,8 +86,14 @@ const props = defineProps({
   comptesParents: {
     type: Array,
     default: () => []
+  },
+  compte: {
+    type: Object,
+    default: null
   }
 });
+
+const isEdit = computed(() => !!props.compte);
 
 const emit = defineEmits(['update:modelValue', 'success']);
 
@@ -118,6 +124,17 @@ const rules = {
   ]
 };
 
+// Pre-fill form when editing
+watch(() => props.modelValue, (visible) => {
+  if (visible && props.compte) {
+    form.parent_id = props.compte.parent_id || null;
+    form.libelle = props.compte.libelle || '';
+    // For edit mode, show the full numero
+    form.numero_compte = props.compte.numero || '';
+    parentPrefix.value = '';
+  }
+});
+
 const handleParentChange = (parentId) => {
   if (parentId) {
     const parent = props.comptesParents.find(c => c.id === parentId);
@@ -147,12 +164,16 @@ const handleSubmit = async () => {
     loading.value = true;
 
     // Build full numero_compte with parent prefix if applicable
-    const fullNumero = parentPrefix.value
-      ? parentPrefix.value + form.numero_compte
-      : form.numero_compte;
+    const fullNumero = isEdit.value
+      ? form.numero_compte
+      : (parentPrefix.value ? parentPrefix.value + form.numero_compte : form.numero_compte);
 
-    const response = await fetch('/api/plan-comptable', {
-      method: 'POST',
+    const url = isEdit.value
+      ? `/api/plan-comptable/${props.compte.id}`
+      : '/api/plan-comptable';
+
+    const response = await fetch(url, {
+      method: isEdit.value ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -168,7 +189,7 @@ const handleSubmit = async () => {
     const result = await response.json();
 
     if (result.success) {
-      ElMessage.success(result.message || 'Compte créé avec succès');
+      ElMessage.success(result.message || (isEdit.value ? 'Compte modifié avec succès' : 'Compte créé avec succès'));
       emit('success', result.data);
       dialogVisible.value = false;
     } else {

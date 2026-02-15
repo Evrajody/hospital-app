@@ -244,10 +244,6 @@
                 <h3>Liste des Factures</h3>
                 <span class="factures-count">{{ factures.length }} facture(s)</span>
               </div>
-              <el-button type="primary" @click="handleNewFacture">
-                <el-icon><Plus /></el-icon>
-                Nouvelle Facture
-              </el-button>
             </div>
 
             <!-- Table des factures -->
@@ -321,12 +317,7 @@
             </el-table>
 
             <!-- État vide -->
-            <el-empty v-else description="Aucune facture pour ce fournisseur" :image-size="120">
-              <el-button type="primary" @click="handleNewFacture">
-                <el-icon><Plus /></el-icon>
-                Créer une facture
-              </el-button>
-            </el-empty>
+            <el-empty v-else description="Aucune facture pour ce fournisseur" :image-size="120" />
           </el-tab-pane>
 
           <!-- Onglet Règlements -->
@@ -418,10 +409,13 @@
                       <el-button :icon="More" size="small" />
                       <template #dropdown>
                         <el-dropdown-menu>
-                          <el-dropdown-item command="recu" :icon="DocumentCopy">
-                            Imprimer le reçu
+                          <el-dropdown-item command="mandat" :icon="Printer">
+                            Mandat de paiement
                           </el-dropdown-item>
-                          <el-dropdown-item command="facture" :icon="Document">
+                          <el-dropdown-item command="imputation" :icon="Notebook">
+                            Fiche d'imputation
+                          </el-dropdown-item>
+                          <el-dropdown-item command="facture" divided :icon="Document">
                             Voir la facture
                           </el-dropdown-item>
                           <el-dropdown-item v-if="row.est_modifiable" divided command="annuler" :icon="Delete">
@@ -490,7 +484,9 @@ import {
   More,
   Calendar,
   CreditCard,
-  DocumentCopy
+  DocumentCopy,
+  Printer,
+  Notebook
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
@@ -760,8 +756,11 @@ const handleViewReglement = (reglement) => {
 
 const handleReglementActions = async (command, reglement) => {
   switch (command) {
-    case 'recu':
-      window.open(`/reglements-fournisseurs/${reglement.id}/recu`, '_blank');
+    case 'mandat':
+      window.open(`/reglements-fournisseurs/${reglement.id}/mandat`, '_blank');
+      break;
+    case 'imputation':
+      window.open(`/reglements-fournisseurs/${reglement.id}/imputation`, '_blank');
       break;
     case 'facture':
       if (reglement.facture) {

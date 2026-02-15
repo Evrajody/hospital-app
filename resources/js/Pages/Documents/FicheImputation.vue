@@ -283,10 +283,10 @@ const handleClose = () => {
 
 .document-page {
   max-width: 210mm;
-  min-height: 297mm;
+  max-height: 297mm;
   margin: 0 auto;
   background: white;
-  padding: 20mm;
+  padding: 15mm;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
@@ -295,8 +295,8 @@ const handleClose = () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
   border-bottom: 3px double #000000;
 }
 
@@ -363,30 +363,30 @@ const handleClose = () => {
 /* Titre du document */
 .document-title-section {
   text-align: center;
-  margin: 25px 0;
-  padding: 18px;
+  margin: 10px 0;
+  padding: 10px;
   background: none;
   color: white;
   border-radius: 0;
 }
 
 .document-title-section h1 {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: bold;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   letter-spacing: 2px;
 }
 
 .document-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   opacity: 0.9;
 }
 
 .document-date {
   text-align: right;
-  font-size: 13px;
+  font-size: 12px;
   color: #000000;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   font-weight: 500;
 }
 
@@ -396,7 +396,7 @@ const handleClose = () => {
 }
 
 .section {
-  margin-bottom: 25px;
+  margin-bottom: 15px;
 }
 
 .section h2 {
@@ -413,9 +413,9 @@ const handleClose = () => {
 /* Section info */
 .info-section {
   background: #f5f5f5;
-  padding: 20px;
+  padding: 12px;
   border-left: 4px solid #000000;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 }
 
 .info-grid {
@@ -590,7 +590,7 @@ const handleClose = () => {
 
 /* Signatures */
 .signature-section {
-  margin-top: 40px;
+  margin-top: 20px;
 }
 
 .signature-row {
@@ -618,13 +618,13 @@ const handleClose = () => {
 .signature-sub {
   font-size: 11px;
   color: #666666;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   font-style: italic;
 }
 
 .signature-space {
-  height: 50px;
-  margin: 20px 0 10px 0;
+  height: 35px;
+  margin: 10px 0 8px 0;
 }
 
 .signature-name {
@@ -640,7 +640,7 @@ const handleClose = () => {
 
 /* Note comptable */
 .comptable-note {
-  margin-top: 30px;
+  margin-top: 15px;
   padding: 12px;
   background: #f5f5f5;
   border-left: 4px solid #000000;
@@ -651,7 +651,7 @@ const handleClose = () => {
 
 /* Pied de page */
 .footer {
-  margin-top: 50px;
+  margin-top: 20px;
 }
 
 .footer-line {

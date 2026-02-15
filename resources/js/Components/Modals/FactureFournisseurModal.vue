@@ -272,7 +272,7 @@
               <el-col :span="12">
                 <el-form-item prop="montant_facture">
                   <template #label>
-                    <span>Montant Facture <span class="required-star">*</span></span>
+                    <span>Montant Facture HT <span class="required-star">*</span></span>
                   </template>
                   <el-input
                     v-model.number="form.montant_facture"
@@ -545,7 +545,7 @@ const fieldLabels = {
   imputation_id: 'Imputation',
   compte_id: 'Compte',
   libelle: 'Libellé',
-  montant_facture: 'Montant Facture',
+  montant_facture: 'Montant Facture HT',
   montant_mo: 'Montant M.O.',
   avoir: 'Avoir',
   type_reduction: 'AIB',
@@ -1029,8 +1029,8 @@ watch(() => props.serverErrors, (errors) => {
 }
 
 .tab-content {
-  min-height: 280px;
-  padding: 20px;
+  min-height: 200px;
+  padding: 12px 20px;
 }
 
 .required-star {
@@ -1124,9 +1124,17 @@ watch(() => props.serverErrors, (errors) => {
 
 /* Recap Card */
 .recap-card {
-  margin-top: 20px;
+  margin-top: 8px;
   border-radius: 8px;
   background-color: #f9fafb;
+}
+
+.recap-card :deep(.el-card__header) {
+  padding: 8px 16px;
+}
+
+.recap-card :deep(.el-card__body) {
+  padding: 8px 16px;
 }
 
 .recap-header {
@@ -1141,7 +1149,7 @@ watch(() => props.serverErrors, (errors) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .recap-label {
@@ -1208,8 +1216,16 @@ watch(() => props.serverErrors, (errors) => {
 
 :deep(.el-tabs__content) {
   padding: 0;
-  max-height: calc(90vh - 350px);
+  max-height: calc(90vh - 280px);
   overflow-y: auto;
+}
+
+:deep(.el-divider) {
+  margin: 8px 0;
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 12px;
 }
 
 :deep(.el-tabs__item) {

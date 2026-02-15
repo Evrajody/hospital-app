@@ -79,7 +79,8 @@
               :prefix-icon="Search"
               clearable
               style="width: 250px"
-              @input="handleSearch"
+              @input="debouncedSearch"
+              @clear="handleSearch"
             />
           </el-form-item>
 
@@ -122,6 +123,7 @@
               range-separator="à"
               start-placeholder="Date début"
               end-placeholder="Date fin"
+              format="DD/MM/YYYY"
               style="width: 280px"
               @change="handleSearch"
             />
@@ -172,9 +174,6 @@
                   <el-button :icon="More" size="small" />
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item command="recu" :icon="Printer">
-                        Imprimer le reçu
-                      </el-dropdown-item>
                       <el-dropdown-item command="mandat" :icon="DocumentCopy">
                         Mandat de paiement
                       </el-dropdown-item>
@@ -352,9 +351,6 @@
         <template #footer>
           <div class="dialog-footer">
             <el-button @click="detailDialogVisible = false">Fermer</el-button>
-            <el-button type="success" :icon="Printer" @click="handlePrintReceipt">
-              Reçu
-            </el-button>
             <el-button type="primary" :icon="DocumentCopy" @click="handlePrintMandat">
               Mandat de paiement
             </el-button>
@@ -433,6 +429,15 @@ import {
   Notebook
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+
+// Simple debounce function
+const debounce = (fn, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
 
 // Props
 const props = defineProps({
@@ -525,27 +530,32 @@ const getModeLabel = (mode) => {
 };
 
 const handleSearch = () => {
-  const params = new URLSearchParams();
+  const params = {};
 
   if (filters.search) {
-    params.append('search', filters.search);
+    params.search = filters.search;
   }
   if (filters.fournisseur_id) {
-    params.append('fournisseur_id', filters.fournisseur_id);
+    params.fournisseur_id = filters.fournisseur_id;
   }
   if (filters.mode_paiement) {
-    params.append('mode_paiement', filters.mode_paiement);
+    params.mode_paiement = filters.mode_paiement;
   }
   if (filters.date_range && filters.date_range.length === 2) {
-    params.append('date_debut', filters.date_range[0].toISOString().split('T')[0]);
-    params.append('date_fin', filters.date_range[1].toISOString().split('T')[0]);
+    const d0 = filters.date_range[0];
+    const d1 = filters.date_range[1];
+    params.date_debut = d0 instanceof Date ? d0.toISOString().split('T')[0] : d0;
+    params.date_fin = d1 instanceof Date ? d1.toISOString().split('T')[0] : d1;
   }
 
-  router.visit(`/reglements-fournisseurs?${params.toString()}`, {
+  router.get('/reglements-fournisseurs', params, {
     preserveState: true,
+    preserveScroll: true,
     only: ['reglements', 'stats', 'pagination']
   });
 };
+
+const debouncedSearch = debounce(handleSearch, 300);
 
 const handleReset = () => {
   filters.search = '';
@@ -615,12 +625,6 @@ const handleViewFactureFromModal = () => {
   }
 };
 
-const handlePrintReceipt = () => {
-  if (selectedReglement.value) {
-    window.open(`/reglements-fournisseurs/${selectedReglement.value.id}/recu`, '_blank');
-  }
-};
-
 const handlePrintMandat = () => {
   if (selectedReglement.value) {
     window.open(`/reglements-fournisseurs/${selectedReglement.value.id}/mandat`, '_blank');
@@ -639,9 +643,6 @@ const handleViewFacture = (facture) => {
 
 const handleMoreActions = async (command, reglement) => {
   switch (command) {
-    case 'recu':
-      window.open(`/reglements-fournisseurs/${reglement.id}/recu`, '_blank');
-      break;
     case 'mandat':
       window.open(`/reglements-fournisseurs/${reglement.id}/mandat`, '_blank');
       break;
@@ -919,6 +920,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 :deep(.el-dialog__header) {

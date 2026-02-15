@@ -184,9 +184,6 @@
                     <el-dropdown-item command="edit" :icon="Edit">
                       Modifier
                     </el-dropdown-item>
-                    <el-dropdown-item command="duplicate" :icon="CopyDocument">
-                      Dupliquer
-                    </el-dropdown-item>
                     <el-dropdown-item command="print" :icon="Printer">
                       Imprimer
                     </el-dropdown-item>
@@ -254,6 +251,21 @@
           <el-table-column prop="montant_ttc" label="Total TTC" width="140" align="right" sortable="custom">
             <template #default="{ row }">
               <strong class="montant-ttc">{{ formatMontant(row.montant_ttc) }}</strong>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="montant_aib" label="Mt AIB" width="120" align="right">
+            <template #default="{ row }">
+              <el-tag v-if="row.montant_aib > 0" type="warning" size="small">
+                {{ formatMontant(row.montant_aib) }}
+              </el-tag>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="montant_net" label="Net à payer" width="140" align="right">
+            <template #default="{ row }">
+              <strong>{{ formatMontant(row.montant_net) }}</strong>
             </template>
           </el-table-column>
 
@@ -579,9 +591,6 @@ const handleMoreActions = async (command, facture) => {
     case 'edit':
       selectedFacture.value = facture;
       showFactureModal.value = true;
-      break;
-    case 'duplicate':
-      ElMessage.info('Duplication en cours de développement...');
       break;
     case 'print':
       ElMessage.info('Impression en cours de développement...');

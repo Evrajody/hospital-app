@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -459,6 +460,172 @@ class ReglementFournisseurController extends Controller
             'success' => true,
             'data' => $reglements,
         ]);
+    }
+
+    /**
+     * Générer le PDF du Mandat de Paiement
+     */
+    public function mandat(int $id)
+    {
+        $reglement = ReglementFournisseur::with(['facture', 'fournisseur'])
+            ->findOrFail($id);
+
+        $data = $this->buildPdfData($reglement);
+
+        $pdf = Pdf::loadView('pdf.mandat-paiement', $data);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download("mandat-paiement-{$reglement->id}.pdf");
+    }
+
+    /**
+     * Générer le PDF de la Fiche d'Imputation
+     */
+    public function imputation(int $id)
+    {
+        $reglement = ReglementFournisseur::with(['facture', 'fournisseur'])
+            ->findOrFail($id);
+
+        $data = $this->buildPdfData($reglement);
+
+        // Logique comptable : déterminer les comptes
+        $data['compteDebit'] = $reglement->fournisseur->compteComptable
+            ? $reglement->fournisseur->compteComptable->numero_compte
+            : '401' . str_pad($reglement->fournisseur->id, 3, '0', STR_PAD_LEFT);
+
+        $data['compteCredit'] = match($reglement->mode_paiement) {
+            'especes' => '571000',
+            'cheque', 'virement', 'carte' => '521000',
+            'mobile_money' => '521500',
+            default => '521000',
+        };
+
+        $data['libelleCredit'] = match($reglement->mode_paiement) {
+            'especes' => 'Caisse - Espèces',
+            'cheque' => 'Banque - Compte courant',
+            'virement' => 'Banque - Compte courant',
+            'carte' => 'Banque - Compte courant',
+            'mobile_money' => 'Banque - Mobile Money',
+            default => 'Banque',
+        };
+
+        $pdf = Pdf::loadView('pdf.fiche-imputation', $data);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download("fiche-imputation-{$reglement->id}.pdf");
+    }
+
+    /**
+     * Construire les données communes pour les PDFs
+     */
+    private function buildPdfData(ReglementFournisseur $reglement): array
+    {
+        $montant = (float) $reglement->montant;
+
+        $modeLabel = match($reglement->mode_paiement) {
+            'especes' => 'Espèces',
+            'cheque' => 'Chèque',
+            'virement' => 'Virement bancaire',
+            'carte' => 'Carte bancaire',
+            'mobile_money' => 'Mobile Money',
+            default => $reglement->mode_paiement,
+        };
+
+        $montantFormate = number_format($montant, 0, ',', ' ') . ' FCFA';
+        $montantEnLettres = $this->convertirMontantEnLettres($montant) . ' francs CFA';
+
+        return [
+            'reglement' => $reglement,
+            'modeLabel' => $modeLabel,
+            'montantFormate' => $montantFormate,
+            'montantEnLettres' => $montantEnLettres,
+        ];
+    }
+
+    /**
+     * Convertir un montant en lettres (français)
+     */
+    private function convertirMontantEnLettres(float $montant): string
+    {
+        $montant = (int) $montant;
+
+        if ($montant === 0) return 'zéro';
+
+        $unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf',
+                   'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+        $dizaines = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'];
+
+        $convertirBloc = function(int $n) use ($unites, $dizaines): string {
+            if ($n === 0) return '';
+            if ($n < 20) return $unites[$n];
+            if ($n < 100) {
+                $d = intdiv($n, 10);
+                $u = $n % 10;
+                if ($d === 7 || $d === 9) {
+                    $u += 10;
+                    $base = $dizaines[$d];
+                    if ($u === 11 && $d === 7) return $base . ' et onze';
+                    return $base . '-' . $unites[$u];
+                }
+                if ($u === 0) {
+                    return $dizaines[$d] . ($d === 8 ? 's' : '');
+                }
+                if ($u === 1 && $d !== 8) return $dizaines[$d] . ' et un';
+                return $dizaines[$d] . '-' . $unites[$u];
+            }
+            $c = intdiv($n, 100);
+            $r = $n % 100;
+            $result = ($c === 1 ? 'cent' : $unites[$c] . ' cent');
+            if ($r === 0 && $c > 1) $result .= 's';
+            if ($r > 0) {
+                $convertirBloc2 = function(int $n2) use ($unites, $dizaines): string {
+                    if ($n2 < 20) return $unites[$n2];
+                    $d = intdiv($n2, 10);
+                    $u = $n2 % 10;
+                    if ($d === 7 || $d === 9) {
+                        $u += 10;
+                        $base = $dizaines[$d];
+                        if ($u === 11 && $d === 7) return $base . ' et onze';
+                        return $base . '-' . $unites[$u];
+                    }
+                    if ($u === 0) return $dizaines[$d] . ($d === 8 ? 's' : '');
+                    if ($u === 1 && $d !== 8) return $dizaines[$d] . ' et un';
+                    return $dizaines[$d] . '-' . $unites[$u];
+                };
+                $result .= ' ' . $convertirBloc2($r);
+            }
+            return $result;
+        };
+
+        $parties = [];
+
+        // Milliards
+        $milliards = intdiv($montant, 1000000000);
+        $montant %= 1000000000;
+        if ($milliards > 0) {
+            $parties[] = ($milliards === 1 ? 'un milliard' : $convertirBloc($milliards) . ' milliards');
+        }
+
+        // Millions
+        $millions = intdiv($montant, 1000000);
+        $montant %= 1000000;
+        if ($millions > 0) {
+            $parties[] = ($millions === 1 ? 'un million' : $convertirBloc($millions) . ' millions');
+        }
+
+        // Milliers
+        $milliers = intdiv($montant, 1000);
+        $montant %= 1000;
+        if ($milliers > 0) {
+            $parties[] = ($milliers === 1 ? 'mille' : $convertirBloc($milliers) . ' mille');
+        }
+
+        // Reste
+        if ($montant > 0) {
+            $parties[] = $convertirBloc($montant);
+        }
+
+        return ucfirst(implode(' ', $parties));
     }
 
     /**

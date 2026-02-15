@@ -122,7 +122,7 @@
             </div>
           </div>
 
-          <div class="signature-row" style="margin-top: 40px;">
+          <div class="signature-row" style="margin-top: 20px;">
             <div class="signature-box signature-box-wide">
               <div class="signature-label">Le Directeur Général</div>
               <div class="signature-label-sub">(Approbation et autorisation de paiement)</div>
@@ -226,10 +226,10 @@ const handleClose = () => {
 
 .document-page {
   max-width: 210mm;
-  min-height: 297mm;
+  max-height: 297mm;
   margin: 0 auto;
   background: white;
-  padding: 20mm;
+  padding: 15mm;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
@@ -238,8 +238,8 @@ const handleClose = () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 40px;
-  padding-bottom: 15px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
   border-bottom: 3px double #000000;
 }
 
@@ -305,30 +305,30 @@ const handleClose = () => {
 /* Titre du document */
 .document-title-section {
   text-align: center;
-  margin: 30px 0;
-  padding: 20px;
+  margin: 15px 0;
+  padding: 10px;
   background: none;
   color: white;
   border-radius: 0;
 }
 
 .document-title-section h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: bold;
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   letter-spacing: 2px;
 }
 
 .document-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   opacity: 0.9;
 }
 
 .document-date {
   text-align: right;
-  font-size: 14px;
+  font-size: 13px;
   color: #000000;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   font-weight: 500;
 }
 
@@ -338,14 +338,14 @@ const handleClose = () => {
 }
 
 .section {
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 }
 
 .objet-section {
   background: #f5f5f5;
-  padding: 20px;
+  padding: 12px;
   border-left: 4px solid #000000;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 }
 
 .objet-title {
@@ -382,8 +382,8 @@ const handleClose = () => {
 }
 
 .info-table td {
-  padding: 12px 0;
-  font-size: 13px;
+  padding: 8px 0;
+  font-size: 12px;
 }
 
 .info-table .label {
@@ -398,12 +398,12 @@ const handleClose = () => {
 
 /* Montant */
 .montant-section {
-  margin: 40px 0;
+  margin: 15px 0;
 }
 
 .montant-box {
   border: 3px double #000000;
-  padding: 25px;
+  padding: 15px;
 }
 
 .montant-row {
@@ -437,7 +437,7 @@ const handleClose = () => {
 
 /* Signatures */
 .signature-section {
-  margin-top: 60px;
+  margin-top: 25px;
 }
 
 .signature-row {
@@ -477,8 +477,8 @@ const handleClose = () => {
 }
 
 .signature-space {
-  height: 60px;
-  margin: 30px 0 15px 0;
+  height: 40px;
+  margin: 15px 0 10px 0;
 }
 
 .signature-name {
@@ -494,7 +494,7 @@ const handleClose = () => {
 
 /* Note officielle */
 .official-note {
-  margin-top: 40px;
+  margin-top: 15px;
   padding: 15px;
   background: #eeeeee;
   border-left: 4px solid #000000;

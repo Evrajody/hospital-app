@@ -53,7 +53,15 @@ class Classe extends Model
      */
     public static function imputationsFactureFournisseur()
     {
-        // S'assurer que le compte 42 existe
+        // S'assurer que les classes d'imputation existent
+        static::firstOrCreate(
+            ['code' => '2'],
+            ['libelle' => 'Immobilisations', 'prefixe_compte' => '2', 'is_active' => true]
+        );
+        static::firstOrCreate(
+            ['code' => '6'],
+            ['libelle' => 'Charges', 'prefixe_compte' => '6', 'is_active' => true]
+        );
         static::firstOrCreate(
             ['code' => '42'],
             ['libelle' => 'Personnel', 'prefixe_compte' => '42', 'is_active' => true]
