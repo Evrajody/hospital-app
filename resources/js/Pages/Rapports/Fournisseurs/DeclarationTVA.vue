@@ -61,7 +61,7 @@
               <td><strong>{{ facture.numero }}</strong></td>
               <td>{{ facture.fournisseur.nom }}</td>
               <td class="montant-col">{{ formatMontant(facture.montant_ht) }}</td>
-              <td class="montant-col">18%</td>
+              <td class="montant-col">{{ facture.taux_tva }}%</td>
               <td class="montant-col tva-cell">{{ formatMontant(facture.montant_tva) }}</td>
               <td class="montant-col">{{ formatMontant(facture.montant_ttc) }}</td>
             </tr>
@@ -87,7 +87,7 @@
             <div class="tva-value">{{ formatMontant(totaux.ht) }}</div>
           </div>
           <div class="tva-row">
-            <div class="tva-label">TVA Collectée (18%)</div>
+            <div class="tva-label">TVA Collectée</div>
             <div class="tva-value tva-collectee">{{ formatMontant(totaux.tva) }}</div>
           </div>
           <div class="tva-row">

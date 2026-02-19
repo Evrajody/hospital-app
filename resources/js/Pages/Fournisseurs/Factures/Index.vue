@@ -310,6 +310,8 @@
       :imputations="imputations"
       :comptes="comptes"
       :comptes-aib="comptesAib"
+      :taux-aib-list="tauxAibList"
+      :taux-tva-defaut="tauxTvaDefaut"
       @success="handleFactureSuccess"
     />
   </AppLayout>
@@ -362,6 +364,14 @@ const props = defineProps({
   comptesAib: {
     type: Array,
     default: () => []
+  },
+  tauxAibList: {
+    type: Array,
+    default: () => []
+  },
+  tauxTvaDefaut: {
+    type: Number,
+    default: 18
   },
   stats: {
     type: Object,

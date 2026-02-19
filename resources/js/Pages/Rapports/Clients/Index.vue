@@ -9,171 +9,90 @@
         </div>
       </div>
 
-      <!-- Filtres de période -->
-      <el-card class="filter-card" shadow="never">
-        <div class="filter-section">
-          <el-form :inline="true" :model="filters">
-            <el-form-item label="Période">
-              <el-date-picker
-                v-model="filters.periode"
-                type="daterange"
-                range-separator="-"
-                start-placeholder="Date début"
-                end-placeholder="Date fin"
-                format="DD/MM/YYYY"
-                value-format="YYYY-MM-DD"
-              />
-            </el-form-item>
-            <el-form-item label="Client">
-              <el-select
-                v-model="filters.client_id"
-                placeholder="Tous"
-                clearable
-                filterable
-                style="width: 250px"
-              >
-                <el-option
-                  v-for="client in clients"
-                  :key="client.id"
-                  :label="`${client.code} - ${client.nom}`"
-                  :value="client.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-form>
-        </div>
-      </el-card>
+      <!-- Tabs -->
+      <el-tabs v-model="activeTab" type="border-card" class="rapports-tabs">
+        <el-tab-pane name="etat-reglements" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Money /></el-icon>
+              État des règlements
+            </span>
+          </template>
+          <EtatReglementsTab :clients="clients" />
+        </el-tab-pane>
 
-      <!-- Liste des rapports -->
-      <el-row :gutter="20" class="rapports-grid">
-        <!-- Rapports de règlement -->
-        <el-col :xs="24" :sm="12" :lg="8" v-for="rapport in rapports" :key="rapport.id">
-          <el-card shadow="hover" class="rapport-card" :body-style="{ padding: '0px' }">
-            <div class="rapport-icon" :style="{ background: rapport.color }">
-              <el-icon :size="40">
-                <component :is="rapport.icon" />
-              </el-icon>
-            </div>
-            <div class="rapport-content">
-              <h3>{{ rapport.titre }}</h3>
-              <p class="rapport-description">{{ rapport.description }}</p>
-              <div class="rapport-actions">
-                <el-button type="primary" size="small" @click="genererRapport(rapport)">
-                  <el-icon><View /></el-icon>
-                  Générer
-                </el-button>
-                <el-button size="small" @click="exporterRapport(rapport)">
-                  <el-icon><Download /></el-icon>
-                  Exporter
-                </el-button>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+        <el-tab-pane name="etat-creances" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Wallet /></el-icon>
+              État des créances
+            </span>
+          </template>
+          <EtatCreancesTab :clients="clients" />
+        </el-tab-pane>
+
+        <el-tab-pane name="brouillard-cheques" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><CreditCard /></el-icon>
+              Brouillard de chèques
+            </span>
+          </template>
+          <BrouillardChequesTab />
+        </el-tab-pane>
+
+        <el-tab-pane name="chiffre-affaires" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><TrendCharts /></el-icon>
+              Chiffre d'affaires
+            </span>
+          </template>
+          <ChiffreAffairesTab :clients="clients" />
+        </el-tab-pane>
+
+        <el-tab-pane name="pertes-rejets" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Document /></el-icon>
+              Pertes & Rejets
+            </span>
+          </template>
+          <PertesRejetsTab />
+        </el-tab-pane>
+      </el-tabs>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
   Document,
-  DocumentCopy,
-  List,
   Wallet,
   CreditCard,
   TrendCharts,
-  Tickets,
-  View,
-  Download,
-  Money
+  Money,
 } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
 
-// Props
+import EtatReglementsTab from './Tabs/EtatReglementsTab.vue';
+import EtatCreancesTab from './Tabs/EtatCreancesTab.vue';
+import BrouillardChequesTab from './Tabs/BrouillardChequesTab.vue';
+import ChiffreAffairesTab from './Tabs/ChiffreAffairesTab.vue';
+import PertesRejetsTab from './Tabs/PertesRejetsTab.vue';
+
 const props = defineProps({
-  user: {
-    type: Object,
-    default: () => ({})
-  },
-  clients: {
-    type: Array,
-    default: () => []
-  }
+  user: { type: Object, default: () => ({}) },
+  clients: { type: Array, default: () => [] },
 });
 
-// Breadcrumbs
 const breadcrumbs = [
   { title: 'Tableau de bord', path: '/dashboard' },
-  { title: 'Rapports Clients', path: '/rapports/clients' }
+  { title: 'Rapports Clients', path: '/rapports/clients' },
 ];
 
-// Filters
-const filters = ref({
-  periode: null,
-  client_id: null
-});
-
-// Liste des rapports disponibles
-const rapports = ref([
-  {
-    id: 'etat-reglements',
-    titre: 'États périodiques des règlements',
-    description: 'Suivi détaillé des paiements reçus des clients',
-    icon: 'Money',
-    color: '#eeeeee',
-    route: '/rapports/clients/etat-reglements'
-  },
-  {
-    id: 'etat-creances',
-    titre: 'États périodiques des créances',
-    description: 'Point détaillé des factures non soldées par client',
-    icon: 'Wallet',
-    color: '#eeeeee',
-    route: '/rapports/clients/etat-creances'
-  },
-  {
-    id: 'brouillard-cheques',
-    titre: 'Brouillard de chèques',
-    description: 'Registre des chèques reçus et imputations comptables',
-    icon: 'CreditCard',
-    color: '#eeeeee',
-    route: '/rapports/clients/brouillard-cheques'
-  },
-  {
-    id: 'chiffre-affaires',
-    titre: 'Chiffre d\'affaires',
-    description: 'CA global et par client réalisé sur la période',
-    icon: 'TrendCharts',
-    color: '#eeeeee',
-    route: '/rapports/clients/chiffre-affaires'
-  },
-  {
-    id: 'pertes-rejets',
-    titre: 'Pertes, rejets et régularisations',
-    description: 'État des impayés, rejets et opérations de régularisation',
-    icon: 'Document',
-    color: '#eeeeee',
-    route: '/rapports/clients/pertes-rejets'
-  }
-]);
-
-// Methods
-const genererRapport = (rapport) => {
-  router.visit(rapport.route, {
-    data: {
-      periode: filters.value.periode,
-      client_id: filters.value.client_id
-    }
-  });
-};
-
-const exporterRapport = (rapport) => {
-  ElMessage.info('Fonction d\'export en développement');
-};
+const activeTab = ref('etat-reglements');
 </script>
 
 <style scoped>
@@ -202,68 +121,40 @@ const exporterRapport = (rapport) => {
   margin: 0;
 }
 
-.filter-card {
-  margin-bottom: 24px;
-  border: 1px solid #cccccc;
-}
-
-.filter-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.rapports-grid {
-  margin-top: 24px;
-}
-
-.rapport-card {
-  margin-bottom: 20px;
+/* Tabs styling */
+.rapports-tabs {
   border-radius: 0;
-  overflow: hidden;
-  transition: all 0.3s;
-  cursor: pointer;
 }
 
-.rapport-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+:deep(.el-tabs--border-card) {
+  border: 1px solid #ddd;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-.rapport-icon {
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
+:deep(.el-tabs__header) {
+  background-color: #f9fafb;
+  border-bottom: 2px solid #333;
 }
 
-.rapport-content {
+:deep(.el-tabs__item) {
+  height: 44px;
+  line-height: 44px;
+  font-size: 13px;
+}
+
+:deep(.el-tabs__item.is-active) {
+  background-color: #ffffff;
+  font-weight: 600;
+}
+
+:deep(.el-tabs__content) {
   padding: 20px;
 }
 
-.rapport-content h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333333;
-  margin: 0 0 8px 0;
-  min-height: 40px;
-}
-
-.rapport-description {
-  font-size: 13px;
-  color: #666666;
-  margin: 0 0 16px 0;
-  min-height: 40px;
-  line-height: 1.5;
-}
-
-.rapport-actions {
+.tab-label {
   display: flex;
-  gap: 8px;
-}
-
-.rapport-actions .el-button {
-  flex: 1;
+  align-items: center;
+  gap: 6px;
 }
 </style>

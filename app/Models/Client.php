@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
 {
@@ -33,6 +34,16 @@ class Client extends Model
     public function compteComptable(): BelongsTo
     {
         return $this->belongsTo(CompteComptable::class, 'compte_comptable_id');
+    }
+
+    public function facturesClient(): HasMany
+    {
+        return $this->hasMany(FactureClient::class);
+    }
+
+    public function reglementsClient(): HasMany
+    {
+        return $this->hasMany(ReglementClient::class);
     }
 
     // ==========================================

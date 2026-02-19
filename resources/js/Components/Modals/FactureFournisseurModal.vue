@@ -338,14 +338,20 @@
               <!-- Taux AIB -->
               <el-col :span="8">
                 <el-form-item label="Taux AIB (%)" prop="taux">
-                  <el-input-number
+                  <el-select
                     v-model="form.taux"
-                    :min="0"
-                    :max="100"
-                    :step="0.5"
-                    :precision="2"
+                    placeholder="Sélectionner un taux"
+                    clearable
                     style="width: 100%"
-                  />
+                    @change="handleTauxAibChange"
+                  >
+                    <el-option
+                      v-for="t in tauxAibList"
+                      :key="t.id"
+                      :label="`${t.libelle} (${t.taux}%)`"
+                      :value="t.taux"
+                    />
+                  </el-select>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -506,6 +512,14 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  tauxAibList: {
+    type: Array,
+    default: () => []
+  },
+  tauxTvaDefaut: {
+    type: Number,
+    default: 18
+  },
   serverErrors: {
     type: Object,
     default: () => null
@@ -571,7 +585,7 @@ const getInitialFormData = () => ({
   type_reduction: '',
   taux: 0,
   assujetti_tva: true,
-  taux_tva: 18,
+  taux_tva: props.tauxTvaDefaut,
   date_facture_bc: null,
   observations: ''
 });
@@ -863,6 +877,12 @@ const loadFormData = async () => {
     } else if (props.fournisseurs.length === 1) {
       form.fournisseur_id = props.fournisseurs[0].id;
     }
+  }
+};
+
+const handleTauxAibChange = (val) => {
+  if (!val && val !== 0) {
+    form.taux = 0;
   }
 };
 

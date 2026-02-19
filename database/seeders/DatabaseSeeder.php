@@ -22,6 +22,9 @@ class DatabaseSeeder extends Seeder
         // Plan comptable OHADA
         $this->call(PlanComptableOhadaSeeder::class);
 
+        // Taux fiscaux (TVA, AIB)
+        $this->call(TauxFiscalSeeder::class);
+
         // Fournisseurs et factures de test
         // $this->call(FournisseurFactureSeeder::class);
 

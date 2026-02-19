@@ -8,6 +8,7 @@ use App\Models\ReglementFournisseur;
 use App\Models\Classe;
 use App\Models\CompteComptable;
 use App\Models\Banque;
+use App\Models\TauxFiscal;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -131,12 +132,18 @@ class FactureFournisseurController extends Controller
         // Statistiques
         $stats = $this->calculerStats();
 
+        // Taux fiscaux dynamiques
+        $tauxAibList = TauxFiscal::getAibActifs();
+        $tauxTvaDefaut = TauxFiscal::getTvaParDefaut();
+
         return Inertia::render('Fournisseurs/Factures/Index', [
             'factures' => $factures,
             'fournisseurs' => $fournisseurs,
             'imputations' => $imputations,
             'comptes' => $comptes,
             'comptesAib' => $comptesAib,
+            'tauxAibList' => $tauxAibList,
+            'tauxTvaDefaut' => $tauxTvaDefaut,
             'stats' => $stats,
             'pagination' => [
                 'current_page' => $facturesPaginated->currentPage(),
@@ -523,7 +530,7 @@ class FactureFournisseurController extends Controller
                 'type_reduction' => $request->type_reduction,
                 'taux' => $request->taux ?? 0,
                 'assujetti_tva' => $request->assujetti_tva ?? true,
-                'taux_tva' => $request->taux_tva ?? 18,
+                'taux_tva' => $request->taux_tva ?? TauxFiscal::getTvaParDefaut(),
                 'date_facture_bc' => $request->date_facture_bc,
                 'observations' => $request->observations,
                 'metadata' => $request->metadata,

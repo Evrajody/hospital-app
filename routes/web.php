@@ -9,6 +9,13 @@ use App\Http\Controllers\BanqueController;
 use App\Http\Controllers\FactureClientController;
 use App\Http\Controllers\PlanComptableController;
 use App\Http\Controllers\ReglementClientController;
+use App\Http\Controllers\TauxFiscalController;
+use App\Http\Controllers\RapportClientController;
+use App\Models\Client;
+use App\Models\FactureClient;
+use App\Models\ReglementClient;
+use App\Models\Banque;
+use App\Models\CompteBancaire;
 
 // Page d'accueil (Welcome)
 Route::get('/', function () {
@@ -718,193 +725,28 @@ Route::prefix('rapports')->group(function () {
 
     // Rapports Clients
     Route::prefix('clients')->group(function () {
-        // Page index des rapports clients
-        Route::get('/', function () {
-            $clients = [
-                ['id' => 1, 'code' => 'CLI-001', 'nom' => 'Assurance UNIAF'],
-                ['id' => 2, 'code' => 'CLI-002', 'nom' => 'M. Kouadio Jean'],
-                ['id' => 3, 'code' => 'CLI-003', 'nom' => 'Mutuelle MUGEF-CI']
-            ];
+        // Page index (dashboard avec onglets)
+        Route::get('/', [RapportClientController::class, 'index'])->name('rapports.clients');
 
-            return Inertia::render('Rapports/Clients/Index', [
-                'clients' => $clients,
-                'user' => [
-                    'name' => 'Utilisateur Test',
-                    'email' => 'test@example.com'
-                ]
-            ]);
-        })->name('rapports.clients');
+        // API JSON pour les onglets
+        Route::get('/api/etat-reglements', [RapportClientController::class, 'etatReglements']);
+        Route::get('/api/etat-creances', [RapportClientController::class, 'etatCreances']);
+        Route::get('/api/brouillard-cheques', [RapportClientController::class, 'brouillardCheques']);
+        Route::get('/api/chiffre-affaires', [RapportClientController::class, 'chiffreAffaires']);
+        Route::get('/api/pertes-rejets', [RapportClientController::class, 'pertesRejets']);
 
-        // État des règlements
-        Route::get('/etat-reglements', function () {
-            $reglements = [
-                [
-                    'id' => 1,
-                    'date_reglement' => '2025-01-20',
-                    'client' => ['id' => 1, 'code' => 'CLI-001', 'nom' => 'Assurance UNIAF'],
-                    'facture' => ['numero' => 'FC-2025-001'],
-                    'mode_paiement' => 'virement',
-                    'reference' => 'VIR-CLI-001',
-                    'banque' => 'ORABANK',
-                    'montant' => 1000000
-                ],
-                [
-                    'id' => 2,
-                    'date_reglement' => '2025-01-22',
-                    'client' => ['id' => 2, 'code' => 'CLI-002', 'nom' => 'M. Kouadio Jean'],
-                    'facture' => ['numero' => 'FC-2025-002'],
-                    'mode_paiement' => 'cheque',
-                    'reference' => 'CHQ-001',
-                    'banque' => 'BOA BENIN',
-                    'montant' => 141600
-                ]
-            ];
+        // Export PDF
+        Route::get('/pdf/etat-reglements', [RapportClientController::class, 'etatReglementsPdf']);
+        Route::get('/pdf/etat-creances', [RapportClientController::class, 'etatCreancesPdf']);
+        Route::get('/pdf/brouillard-cheques', [RapportClientController::class, 'brouillardChequesPdf']);
+        Route::get('/pdf/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesPdf']);
 
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Clients/EtatReglements', [
-                'reglements' => $reglements,
-                'periode' => $periode
-            ]);
-        })->name('rapports.clients.etat-reglements');
-
-        // État des créances
-        Route::get('/etat-creances', function () {
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'FC-2025-001',
-                    'date_facture' => '2025-01-15',
-                    'date_echeance' => '2025-02-15',
-                    'client' => ['id' => 1, 'code' => 'CLI-001', 'nom' => 'Assurance UNIAF'],
-                    'montant_ttc' => 2950000,
-                    'reglements' => [['montant' => 1000000]]
-                ],
-                [
-                    'id' => 2,
-                    'numero' => 'FC-2025-002',
-                    'date_facture' => '2025-01-20',
-                    'date_echeance' => '2025-02-20',
-                    'client' => ['id' => 2, 'code' => 'CLI-002', 'nom' => 'M. Kouadio Jean'],
-                    'montant_ttc' => 141600,
-                    'reglements' => []
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Clients/EtatCreances', [
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.clients.etat-creances');
-
-        // Brouillard de chèques
-        Route::get('/brouillard-cheques', function () {
-            $cheques = [
-                [
-                    'id' => 1,
-                    'date_reglement' => '2025-01-22',
-                    'client' => ['id' => 2, 'code' => 'CLI-002', 'nom' => 'M. Kouadio Jean'],
-                    'facture' => ['numero' => 'FC-2025-002'],
-                    'reference' => 'CHQ-001',
-                    'banque' => 'BOA BENIN',
-                    'montant' => 141600,
-                    'statut_cheque' => 'en_attente'
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Clients/BrouillardCheques', [
-                'cheques' => $cheques,
-                'periode' => $periode
-            ]);
-        })->name('rapports.clients.brouillard-cheques');
-
-        // Chiffre d'affaires
-        Route::get('/chiffre-affaires', function () {
-            $clients = [
-                [
-                    'id' => 1,
-                    'code' => 'CLI-001',
-                    'nom' => 'Assurance UNIAF',
-                    'type' => 'assurance',
-                    'nb_factures' => 12,
-                    'ca_ht' => 25000000,
-                    'ca_tva' => 4500000,
-                    'ca_ttc' => 29500000,
-                    'ca_encaisse' => 26000000
-                ],
-                [
-                    'id' => 2,
-                    'code' => 'CLI-002',
-                    'nom' => 'M. Kouadio Jean',
-                    'type' => 'particulier',
-                    'nb_factures' => 2,
-                    'ca_ht' => 200000,
-                    'ca_tva' => 36000,
-                    'ca_ttc' => 236000,
-                    'ca_encaisse' => 86400
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Clients/ChiffreAffaires', [
-                'clients' => $clients,
-                'periode' => $periode
-            ]);
-        })->name('rapports.clients.chiffre-affaires');
-
-        // Pertes, rejets et régularisations
-        Route::get('/pertes-rejets', function () {
-            $pertes = [
-                [
-                    'id' => 1,
-                    'date_operation' => '2025-01-15',
-                    'client' => ['code' => 'CLI-099', 'nom' => 'Entreprise ABC'],
-                    'facture' => ['numero' => 'FC-2024-089'],
-                    'motif' => 'Client en faillite',
-                    'montant' => 500000,
-                    'decision' => 'Abandon de créance'
-                ]
-            ];
-
-            $rejets = [
-                [
-                    'id' => 1,
-                    'date_rejet' => '2025-01-18',
-                    'client' => ['code' => 'CLI-002', 'nom' => 'M. Kouadio Jean'],
-                    'numero_cheque' => 'CHQ-0012345',
-                    'banque' => 'BOA BENIN',
-                    'motif_rejet' => 'Provision insuffisante',
-                    'montant' => 141600,
-                    'statut' => 'en_attente'
-                ]
-            ];
-
-            $regularisations = [
-                [
-                    'id' => 1,
-                    'date_operation' => '2025-01-25',
-                    'client' => ['code' => 'CLI-001', 'nom' => 'Assurance UNIAF'],
-                    'type' => 'avoir',
-                    'description' => 'Avoir sur facture FC-2025-001',
-                    'montant' => 100000,
-                    'reference' => 'AV-2025-001'
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Clients/PertesRejets', [
-                'pertes' => $pertes,
-                'rejets' => $rejets,
-                'regularisations' => $regularisations,
-                'periode' => $periode
-            ]);
-        })->name('rapports.clients.pertes-rejets');
+        // Pages standalone (backward compat)
+        Route::get('/etat-reglements', [RapportClientController::class, 'etatReglementsPage'])->name('rapports.clients.etat-reglements');
+        Route::get('/etat-creances', [RapportClientController::class, 'etatCreancesPage'])->name('rapports.clients.etat-creances');
+        Route::get('/brouillard-cheques', [RapportClientController::class, 'brouillardChequesPage'])->name('rapports.clients.brouillard-cheques');
+        Route::get('/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesPage'])->name('rapports.clients.chiffre-affaires');
+        Route::get('/pertes-rejets', [RapportClientController::class, 'pertesRejetsPage'])->name('rapports.clients.pertes-rejets');
     });
 
     Route::get('/comptables', function () {
@@ -917,9 +759,15 @@ Route::get('/utilisateurs', function () {
     return Inertia::render('Dashboard'); // Placeholder
 })->name('utilisateurs.index');
 
-Route::get('/taux-fiscaux', function () {
-    return Inertia::render('Dashboard'); // Placeholder
-})->name('taux-fiscaux.index');
+Route::get('/taux-fiscaux', [TauxFiscalController::class, 'index'])->name('taux-fiscaux.index');
+
+// API Taux Fiscaux
+Route::prefix('api/taux-fiscaux')->group(function () {
+    Route::post('/', [TauxFiscalController::class, 'store'])->name('api.taux-fiscaux.store');
+    Route::put('/{id}', [TauxFiscalController::class, 'update'])->name('api.taux-fiscaux.update');
+    Route::delete('/{id}', [TauxFiscalController::class, 'destroy'])->name('api.taux-fiscaux.destroy');
+    Route::patch('/{id}/toggle', [TauxFiscalController::class, 'toggleActif'])->name('api.taux-fiscaux.toggle');
+});
 
 // User Profile Routes
 Route::get('/profile', function () {
