@@ -11,6 +11,7 @@ use App\Http\Controllers\PlanComptableController;
 use App\Http\Controllers\ReglementClientController;
 use App\Http\Controllers\TauxFiscalController;
 use App\Http\Controllers\RapportClientController;
+use App\Http\Controllers\RapportFournisseurController;
 use App\Models\Client;
 use App\Models\FactureClient;
 use App\Models\ReglementClient;
@@ -397,22 +398,8 @@ Route::prefix('api')->group(function () {
 Route::prefix('rapports')->group(function () {
     // Rapports Fournisseurs
     Route::prefix('fournisseurs')->group(function () {
-        // Page index des rapports fournisseurs
-        Route::get('/', function () {
-            $fournisseurs = [
-                ['id' => 1, 'code' => 'FOUR001', 'nom' => 'Pharmacie Centrale du Bénin'],
-                ['id' => 2, 'code' => 'FOUR002', 'nom' => 'SOBEMAP Matériel Médical'],
-                ['id' => 3, 'code' => 'FOUR003', 'nom' => 'SONEB (Eau)'],
-            ];
-
-            return Inertia::render('Rapports/Fournisseurs/Index', [
-                'fournisseurs' => $fournisseurs,
-                'user' => [
-                    'name' => 'Utilisateur Test',
-                    'email' => 'test@example.com'
-                ]
-            ]);
-        })->name('rapports.fournisseurs');
+        // Page index des rapports fournisseurs (dashboard avec onglets)
+        Route::get('/', [RapportFournisseurController::class, 'index'])->name('rapports.fournisseurs');
 
         // État de règlement d'une facture
         Route::get('/etat-reglement-facture', function () {
@@ -461,51 +448,29 @@ Route::prefix('rapports')->group(function () {
         })->name('rapports.fournisseurs.etat-reglement-facture');
 
         // Mouvement périodique fournisseur
-        Route::get('/mouvement-periodique', function () {
-            $fournisseur = [
-                'id' => 1,
-                'code' => 'FOUR001',
-                'nom' => 'Pharmacie Centrale du Bénin',
-                'compte_numero' => '401001',
-                'contact' => 'M. Adamou'
-            ];
+        Route::get('/mouvement-periodique', [RapportFournisseurController::class, 'mouvementFacturesPage'])->name('rapports.fournisseurs.mouvement-periodique');
+        Route::get('/api/mouvement-factures', [RapportFournisseurController::class, 'mouvementFactures']);
+        Route::get('/pdf/mouvement-factures', [RapportFournisseurController::class, 'mouvementFacturesPdf']);
 
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'PC/025/0001',
-                    'date_facture' => '2025-01-15',
-                    'reference' => 'REF-001',
-                    'montant_ht' => 5000000,
-                    'montant_tva' => 900000,
-                    'montant_aib' => 50000,
-                    'montant_ttc' => 5950000,
-                    'montant_paye' => 3950000
-                ],
-                [
-                    'id' => 2,
-                    'numero' => 'PC/025/0005',
-                    'date_facture' => '2025-01-25',
-                    'reference' => 'REF-005',
-                    'montant_ht' => 3000000,
-                    'montant_tva' => 540000,
-                    'montant_aib' => 30000,
-                    'montant_ttc' => 3570000,
-                    'montant_paye' => 3570000
-                ]
-            ];
+        // Situation des fournisseurs (point des dettes)
+        Route::get('/api/situation-fournisseurs', [RapportFournisseurController::class, 'situationFournisseurs']);
+        Route::get('/pdf/situation-fournisseurs', [RapportFournisseurController::class, 'situationFournisseursPdf']);
 
-            $periode = [
-                'debut' => '2025-01-01',
-                'fin' => '2025-01-31'
-            ];
+        // Factures réglées
+        Route::get('/api/factures-reglees', [RapportFournisseurController::class, 'facturesReglees']);
+        Route::get('/pdf/factures-reglees', [RapportFournisseurController::class, 'facturesRegleesPdf']);
 
-            return Inertia::render('Rapports/Fournisseurs/MouvementPeriodique', [
-                'fournisseur' => $fournisseur,
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.fournisseurs.mouvement-periodique');
+        // Déclaration AIB
+        Route::get('/api/declaration-aib', [RapportFournisseurController::class, 'declarationAib']);
+        Route::get('/pdf/declaration-aib', [RapportFournisseurController::class, 'declarationAibPdf']);
+
+        // Point périodique des PC
+        Route::get('/api/point-periodique', [RapportFournisseurController::class, 'pointPeriodique']);
+        Route::get('/pdf/point-periodique', [RapportFournisseurController::class, 'pointPeriodiquePdf']);
+
+        // Situation périodique des banques
+        Route::get('/api/situation-banques', [RapportFournisseurController::class, 'situationBanques']);
+        Route::get('/pdf/situation-banques', [RapportFournisseurController::class, 'situationBanquesPdf']);
 
         // Situation des fournisseurs
         Route::get('/situation-fournisseurs', function () {
