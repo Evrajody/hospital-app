@@ -27,7 +27,7 @@
 
             <div class="info-grid">
               <div class="info-row">
-                <span class="info-label">N° Facture :</span>
+                <span class="info-label">N° Pièce :</span>
                 <el-tag type="primary" size="large">{{ facture.numero }}</el-tag>
               </div>
 

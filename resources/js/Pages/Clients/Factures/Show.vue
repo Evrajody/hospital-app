@@ -143,16 +143,28 @@
                 style="margin-top: 16px"
               />
 
-              <el-button
-                v-if="!estPayee"
-                type="primary"
-                size="large"
-                style="width: 100%; margin-top: 16px;"
-                @click="handleAction('regler')"
-              >
-                <el-icon><Money /></el-icon>
-                Enregistrer un r&#232;glement
-              </el-button>
+              <div v-if="!estPayee" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+                <el-button
+                  type="primary"
+                  size="large"
+                  style="width: 100%;"
+                  @click="handleAction('regler')"
+                >
+                  <el-icon><Money /></el-icon>
+                  Enregistrer un r&#232;glement
+                </el-button>
+
+                <el-button
+                  type="success"
+                  size="large"
+                  plain
+                  style="width: 100%;"
+                  @click="handleAction('solder')"
+                >
+                  <el-icon><CircleCheck /></el-icon>
+                  Marquer comme sold&#233;e
+                </el-button>
+              </div>
 
               <el-alert
                 v-if="estPayee"
@@ -286,6 +298,32 @@ const handleAction = (command) => {
       break;
     case 'print':
       ElMessage.info('Impression en cours de d\u00e9veloppement...');
+      break;
+    case 'solder':
+      ElMessageBox.confirm(
+        'Voulez-vous marquer cette facture comme soldée ?',
+        'Confirmation',
+        { confirmButtonText: 'Oui, solder', cancelButtonText: 'Annuler', type: 'warning' }
+      ).then(async () => {
+        try {
+          const response = await fetch(`/api/factures-clients/${props.facture.id}/solder`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+          });
+          const result = await response.json();
+          if (result.success) {
+            ElMessage.success('Facture marquée comme soldée');
+            router.reload();
+          } else {
+            ElMessage.error(result.message || 'Erreur');
+          }
+        } catch (error) {
+          ElMessage.error('Erreur de connexion');
+        }
+      }).catch(() => {});
       break;
     case 'delete':
       ElMessageBox.confirm(

@@ -273,7 +273,7 @@ const handleClientSuccess = async (data) => {
       ElMessage.success(result.message || (isEdit ? 'Client modifié' : 'Client créé'));
       showClientModal.value = false;
       selectedClient.value = null;
-      router.reload();
+      router.visit(window.location.pathname, { preserveScroll: true });
     } else {
       if (result.errors) {
         serverErrors.value = result.errors;

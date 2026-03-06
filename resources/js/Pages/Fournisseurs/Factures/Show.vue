@@ -159,9 +159,9 @@
               </el-descriptions-item>
               <el-descriptions-item label="AIB" v-if="facture.type_reduction">
                 <el-tag size="small" type="success">{{ getTypeReductionLabel(facture.type_reduction) }}</el-tag>
-              </el-descriptions-item>
-              <el-descriptions-item label="Taux" v-if="facture.taux && facture.taux > 0">
-                {{ facture.taux }}%
+                <span v-if="facture.taux && facture.taux > 0" style="margin-left: 8px;">
+                  — Taux : <strong>{{ facture.taux }}%</strong>
+                </span>
               </el-descriptions-item>
               <el-descriptions-item label="Montant (Taux × M.O.)" v-if="facture.taux && facture.taux > 0">
                 {{ formatMontant(montantTaux) }}
@@ -229,28 +229,28 @@
                 style="margin-top: 16px"
               />
 
-              <el-button
-                v-if="!estSoldee"
-                type="primary"
-                size="large"
-                style="width: 100%; margin-top: 16px;"
-                @click="handleAction('pay')"
-              >
-                <el-icon><Money /></el-icon>
-                Enregistrer un règlement
-              </el-button>
+              <div v-if="!estSoldee" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+                <el-button
+                  type="primary"
+                  size="large"
+                  style="width: 100%;"
+                  @click="handleAction('pay')"
+                >
+                  <el-icon><Money /></el-icon>
+                  Enregistrer un règlement
+                </el-button>
 
-              <el-button
-                v-if="!estSoldee"
-                type="success"
-                size="large"
-                plain
-                style="width: 100%; margin-top: 8px;"
-                @click="handleAction('marquer_soldee')"
+                <el-button
+                  type="success"
+                  size="large"
+                  plain
+                  style="width: 100%;"
+                  @click="handleAction('marquer_soldee')"
               >
                 <el-icon><CircleCheck /></el-icon>
                 Marquer comme soldée
               </el-button>
+              </div>
 
               <el-alert
                 v-if="estSoldee"

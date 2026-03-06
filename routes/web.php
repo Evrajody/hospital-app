@@ -346,6 +346,7 @@ Route::prefix('factures-clients')->group(function () {
 Route::prefix('api/factures-clients')->group(function () {
     Route::post('/', [FactureClientController::class, 'store'])->name('api.factures-clients.store');
     Route::put('/{id}', [FactureClientController::class, 'update'])->name('api.factures-clients.update');
+    Route::post('/{id}/solder', [FactureClientController::class, 'solder'])->name('api.factures-clients.solder');
     Route::delete('/{id}', [FactureClientController::class, 'destroy'])->name('api.factures-clients.destroy');
 });
 
@@ -357,6 +358,7 @@ Route::prefix('reglements-clients')->group(function () {
 // API Règlements Clients
 Route::prefix('api/reglements-clients')->group(function () {
     Route::post('/', [ReglementClientController::class, 'store'])->name('api.reglements-clients.store');
+    Route::put('/{id}', [ReglementClientController::class, 'update'])->name('api.reglements-clients.update');
     Route::delete('/{id}', [ReglementClientController::class, 'destroy'])->name('api.reglements-clients.destroy');
 });
 

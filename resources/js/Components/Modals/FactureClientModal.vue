@@ -203,13 +203,22 @@ watch(() => props.facture, (newFacture) => {
 }, { immediate: true, deep: true });
 
 watch(() => props.modelValue, (isOpen) => {
-  if (isOpen && !props.facture) {
-    // Auto-remplir la référence en mode création
-    form.reference = props.prochaineReference;
-    form.date_facture = new Date();
-    form.client_id = null;
-    form.montant = null;
-    form.ristourne = 0;
+  if (isOpen) {
+    if (props.facture) {
+      // Mode édition : recharger les données
+      form.reference = props.facture.reference || '';
+      form.date_facture = props.facture.date_facture ? new Date(props.facture.date_facture) : new Date();
+      form.client_id = props.facture.client_id || null;
+      form.montant = props.facture.montant || null;
+      form.ristourne = props.facture.ristourne || 0;
+    } else {
+      // Mode création : auto-remplir la référence
+      form.reference = props.prochaineReference;
+      form.date_facture = new Date();
+      form.client_id = null;
+      form.montant = null;
+      form.ristourne = 0;
+    }
   }
 });
 

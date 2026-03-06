@@ -75,7 +75,7 @@
           <el-form-item label="Recherche">
             <el-input
               v-model="filters.search"
-              placeholder="N° facture, référence..."
+              placeholder="N° PC, référence..."
               :prefix-icon="Search"
               clearable
               style="width: 250px"
@@ -180,6 +180,9 @@
                       <el-dropdown-item command="imputation" :icon="Notebook">
                         Fiche d'imputation
                       </el-dropdown-item>
+                      <el-dropdown-item command="edit" :icon="Edit">
+                        Modifier
+                      </el-dropdown-item>
                       <el-dropdown-item divided command="facture" :icon="Document">
                         Voir la facture
                       </el-dropdown-item>
@@ -199,7 +202,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="facture" label="N° Facture" width="140">
+          <el-table-column prop="facture" label="N° PC" width="140">
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewFacture(row.facture)">
                 <strong>{{ row.facture.numero }}</strong>
@@ -304,7 +307,7 @@
               </el-tag>
             </el-descriptions-item>
 
-            <el-descriptions-item label="N° Facture">
+            <el-descriptions-item label="N° PC">
               <el-link type="primary" @click="handleViewFacture(selectedReglement.facture)">
                 <strong>{{ selectedReglement.facture.numero }}</strong>
               </el-link>
@@ -426,7 +429,8 @@ import {
   User,
   Document,
   DocumentCopy,
-  Notebook
+  Notebook,
+  Edit
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -648,6 +652,9 @@ const handleMoreActions = async (command, reglement) => {
       break;
     case 'imputation':
       window.open(`/reglements-fournisseurs/${reglement.id}/imputation`, '_blank');
+      break;
+    case 'edit':
+      router.visit(`/factures-fournisseurs/${reglement.facture.id}/regler?edit=${reglement.id}`);
       break;
     case 'facture':
       router.visit(`/factures-fournisseurs/${reglement.facture.id}`);

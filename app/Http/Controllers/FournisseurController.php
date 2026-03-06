@@ -72,7 +72,6 @@ class FournisseurController extends Controller
                 $q->where('numero_compte', 'LIKE', '401%')
                   ->orWhere('numero_compte', 'LIKE', '4812%');
             })
-            ->where('niveau', '<=', 3)
             ->orderBy('numero_compte')
             ->get()
             ->map(function ($compte) {
@@ -170,7 +169,6 @@ class FournisseurController extends Controller
                 $q->where('numero_compte', 'LIKE', '401%')
                   ->orWhere('numero_compte', 'LIKE', '4812%');
             })
-            ->where('niveau', '<=', 3)
             ->orderBy('numero_compte')
             ->get()
             ->map(function ($compte) {

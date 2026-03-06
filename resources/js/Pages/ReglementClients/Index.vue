@@ -116,11 +116,12 @@
           style="width: 100%"
           :default-sort="{ prop: 'date_reglement', order: 'descending' }"
         >
-          <el-table-column label="Actions" width="180" fixed="left" align="center">
+          <el-table-column label="Actions" width="220" fixed="left" align="center">
             <template #default="{ row }">
               <el-button size="small" type="primary" @click="handleView(row)">
                 D&eacute;tails
               </el-button>
+              <el-button size="small" type="warning" :icon="Edit" @click="handleEdit(row)" />
               <el-popconfirm
                 title="Supprimer ce r&egrave;glement ?"
                 confirm-button-text="Oui"
@@ -140,7 +141,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="N&deg; Facture" width="140">
+          <el-table-column label="N&deg; Facture Client" width="160">
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewFacture(row.facture)">
                 <strong>{{ row.facture?.reference || '-' }}</strong>
@@ -234,6 +235,69 @@
         </template>
       </el-dialog>
 
+      <!-- Edit Règlement Modal -->
+      <el-dialog
+        v-model="editDialogVisible"
+        title="Modifier le R&egrave;glement"
+        width="600px"
+        :close-on-click-modal="false"
+      >
+        <el-form v-if="editForm" label-position="top" size="large">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="Date">
+                <el-date-picker
+                  v-model="editForm.date_reglement"
+                  type="date"
+                  format="DD/MM/YYYY"
+                  value-format="YYYY-MM-DD"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Montant">
+                <el-input-number
+                  v-model="editForm.montant"
+                  :min="1"
+                  :precision="0"
+                  controls-position="right"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="N&deg; Ligne">
+                <el-input v-model="editForm.numero_ligne" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Institution">
+                <el-input v-model="editForm.institution" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="R&eacute;f. Ch&egrave;que">
+                <el-input v-model="editForm.reference_cheque" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="Observations">
+            <el-input v-model="editForm.observations" type="textarea" :rows="3" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="editDialogVisible = false">Annuler</el-button>
+          <el-button type="primary" :loading="editLoading" @click="handleEditSubmit">
+            Enregistrer
+          </el-button>
+        </template>
+      </el-dialog>
+
       <!-- Nouveau Règlement Modal (select facture) -->
       <el-dialog
         v-model="showNewReglementModal"
@@ -286,8 +350,9 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
   Plus, Search, Delete, Money, Calendar,
-  DocumentChecked, TrendCharts
+  DocumentChecked, TrendCharts, Edit
 } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
@@ -317,6 +382,10 @@ const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
 const showNewReglementModal = ref(false);
 const selectedFactureId = ref(null);
+const editDialogVisible = ref(false);
+const editForm = ref(null);
+const editLoading = ref(false);
+const editingReglementId = ref(null);
 
 const filteredReglements = computed(() => {
   let result = props.reglements;
@@ -347,6 +416,48 @@ const handleView = (reglement) => {
 const handleViewFacture = (facture) => {
   if (facture?.id) {
     router.visit(`/factures-clients/${facture.id}`);
+  }
+};
+
+const handleEdit = (reglement) => {
+  editingReglementId.value = reglement.id;
+  editForm.value = {
+    date_reglement: reglement.date_reglement,
+    montant: reglement.montant,
+    numero_ligne: reglement.numero_ligne || '',
+    institution: reglement.institution || '',
+    reference_cheque: reglement.reference_cheque || '',
+    banque_depot_id: reglement.banque_depot?.id || null,
+    compte_bancaire_id: reglement.compte_bancaire?.id || null,
+    observations: reglement.observations || '',
+  };
+  editDialogVisible.value = true;
+};
+
+const handleEditSubmit = async () => {
+  editLoading.value = true;
+  try {
+    const response = await fetch(`/api/reglements-clients/${editingReglementId.value}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      body: JSON.stringify(editForm.value)
+    });
+    const result = await response.json();
+    if (result.success) {
+      ElMessage.success('Règlement modifié avec succès');
+      editDialogVisible.value = false;
+      router.reload();
+    } else {
+      ElMessage.error(result.message || 'Erreur lors de la modification');
+    }
+  } catch (error) {
+    ElMessage.error('Erreur de connexion');
+  } finally {
+    editLoading.value = false;
   }
 };
 

@@ -234,6 +234,34 @@ class FactureClientController extends Controller
     }
 
     /**
+     * Marquer une facture client comme soldée
+     */
+    public function solder(int $id): JsonResponse
+    {
+        $facture = FactureClient::findOrFail($id);
+
+        if ($facture->statut === FactureClient::STATUT_PAYEE) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette facture est déjà soldée',
+            ], 422);
+        }
+
+        $facture->update([
+            'statut' => FactureClient::STATUT_PAYEE,
+            'reste_a_payer' => 0,
+        ]);
+
+        $facture->load('client');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Facture marquée comme soldée',
+            'data' => $facture->toApiArray(),
+        ]);
+    }
+
+    /**
      * Supprimer une facture client (API)
      */
     public function destroy(int $id): JsonResponse

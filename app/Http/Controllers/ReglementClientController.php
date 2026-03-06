@@ -142,6 +142,85 @@ class ReglementClientController extends Controller
     }
 
     /**
+     * Modifier un règlement client
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $reglement = ReglementClient::findOrFail($id);
+        $facture = $reglement->facture;
+
+        $request->validate([
+            'date_reglement' => ['required', 'date'],
+            'montant' => ['required', 'numeric', 'min:1'],
+            'numero_ligne' => ['nullable', 'string', 'max:50'],
+            'institution' => ['nullable', 'string', 'max:255'],
+            'reference_cheque' => ['nullable', 'string', 'max:100'],
+            'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
+            'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
+            'observations' => ['nullable', 'string'],
+        ]);
+
+        $ancienMontant = (float) $reglement->montant;
+        $nouveauMontant = (float) $request->montant;
+        $difference = $nouveauMontant - $ancienMontant;
+
+        // Vérifier que le nouveau montant ne dépasse pas le reste à payer + ancien montant
+        $resteDisponible = (float) $facture->reste_a_payer + $ancienMontant;
+        if ($nouveauMontant > $resteDisponible) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le montant dépasse le reste à payer (' . number_format($resteDisponible, 0, ',', ' ') . ' XOF)',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $reglement->update([
+                'date_reglement' => $request->date_reglement,
+                'montant' => $nouveauMontant,
+                'numero_ligne' => $request->numero_ligne,
+                'institution' => $request->institution,
+                'reference_cheque' => $request->reference_cheque,
+                'banque_depot_id' => $request->banque_depot_id,
+                'compte_bancaire_id' => $request->compte_bancaire_id,
+                'observations' => $request->observations,
+            ]);
+
+            // Mettre à jour la facture
+            $facture->montant_paye = (float) $facture->montant_paye + $difference;
+            $facture->reste_a_payer = (float) $facture->montant - (float) $facture->montant_paye;
+
+            if ($facture->montant_paye <= 0) {
+                $facture->statut = FactureClient::STATUT_NON_PAYEE;
+            } elseif ($facture->reste_a_payer <= 0.01) {
+                $facture->statut = FactureClient::STATUT_PAYEE;
+                $facture->reste_a_payer = 0;
+            } else {
+                $facture->statut = FactureClient::STATUT_PARTIELLEMENT_PAYEE;
+            }
+
+            $facture->save();
+
+            DB::commit();
+
+            $reglement->load(['facture', 'client', 'banqueDepot', 'compteBancaire']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Règlement modifié avec succès',
+                'data' => $reglement->toApiArray(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la modification : ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Supprimer un règlement
      */
     public function destroy(int $id): JsonResponse

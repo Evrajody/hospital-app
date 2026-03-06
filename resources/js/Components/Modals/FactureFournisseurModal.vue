@@ -52,7 +52,10 @@
             <el-row :gutter="20">
               <!-- N° Pièce -->
               <el-col :span="6">
-                <el-form-item label="N° Pièce" prop="numero_piece">
+                <el-form-item prop="numero_piece">
+                  <template #label>
+                    <span>N° PC <span class="required-star">*</span></span>
+                  </template>
                   <el-input
                     v-model="form.numero_piece"
                     placeholder="Auto-généré"
@@ -275,8 +278,8 @@
                     <span>Montant Facture HT <span class="required-star">*</span></span>
                   </template>
                   <el-input
-                    v-model.number="form.montant_facture"
-                    type="number"
+                    :model-value="formatInputMontant(form.montant_facture)"
+                    @input="val => form.montant_facture = parseInputMontant(val)"
                     placeholder="0"
                     :prefix-icon="Money"
                   >
@@ -289,8 +292,8 @@
               <el-col :span="12">
                 <el-form-item label="Avoir" prop="avoir">
                   <el-input
-                    v-model.number="form.avoir"
-                    type="number"
+                    :model-value="formatInputMontant(form.avoir)"
+                    @input="val => form.avoir = parseInputMontant(val)"
                     placeholder="0"
                   >
                     <template #append>XOF</template>
@@ -306,8 +309,8 @@
               <el-col :span="8">
                 <el-form-item label="Montant M.O." prop="montant_mo">
                   <el-input
-                    v-model.number="form.montant_mo"
-                    type="number"
+                    :model-value="formatInputMontant(form.montant_mo)"
+                    @input="val => form.montant_mo = parseInputMontant(val)"
                     placeholder="0"
                   >
                     <template #append>XOF</template>
@@ -348,9 +351,11 @@
                     <el-option
                       v-for="t in tauxAibList"
                       :key="t.id"
-                      :label="`${t.libelle} (${t.taux}%)`"
+                      :label="`${t.taux}%`"
                       :value="t.taux"
-                    />
+                    >
+                      {{ t.libelle }} ({{ t.taux }}%)
+                    </el-option>
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -368,19 +373,19 @@
               <el-row :gutter="20">
                 <el-col :span="8">
                   <div class="recap-item">
-                    <span class="recap-label">Montant HT</span>
+                    <span class="recap-label">Montant HT :</span>
                     <span class="recap-value">{{ formatMontant(calculMontantHT) }}</span>
                   </div>
                 </el-col>
                 <el-col :span="8">
                   <div class="recap-item" v-if="form.avoir > 0">
-                    <span class="recap-label">Avoir</span>
+                    <span class="recap-label">Avoir :</span>
                     <span class="recap-value text-warning">- {{ formatMontant(form.avoir) }}</span>
                   </div>
                 </el-col>
                 <el-col :span="8">
                   <div class="recap-item" v-if="calculMontantReduction > 0">
-                    <span class="recap-label">AIB ({{ form.taux }}%)</span>
+                    <span class="recap-label">AIB ({{ form.taux }}%) :</span>
                     <span class="recap-value text-warning">- {{ formatMontant(calculMontantReduction) }}</span>
                   </div>
                 </el-col>
@@ -391,20 +396,19 @@
               <el-row :gutter="20">
                 <el-col :span="8">
                   <div class="recap-item">
-                    <span class="recap-label">TVA ({{ form.assujetti_tva ? form.taux_tva : 0 }}%)</span>
+                    <span class="recap-label">TVA ({{ form.assujetti_tva ? form.taux_tva : 0 }}%) :</span>
                     <span class="recap-value">{{ formatMontant(calculMontantTVA) }}</span>
-                    <div class="form-hint">Versée par l'entreprise</div>
                   </div>
                 </el-col>
                 <el-col :span="8">
                   <div class="recap-item">
-                    <span class="recap-label">Montant TTC</span>
+                    <span class="recap-label">Montant TTC :</span>
                     <span class="recap-value recap-ttc">{{ formatMontant(calculMontantTTC) }}</span>
                   </div>
                 </el-col>
                 <el-col :span="8">
                   <div class="recap-item recap-net">
-                    <span class="recap-label">Net à Payer</span>
+                    <span class="recap-label">Net à Payer :</span>
                     <span class="recap-value">{{ formatMontant(calculMontantNet) }}</span>
                   </div>
                 </el-col>
@@ -552,7 +556,7 @@ const tabOrder = ['general', 'montants', 'observations'];
 
 // Labels des champs
 const fieldLabels = {
-  numero_piece: 'N° Pièce',
+  numero_piece: 'N° PC',
   date: 'Date',
   reference_facture: 'Référence',
   fournisseur_id: 'Fournisseur',
@@ -659,6 +663,7 @@ const handleImputationChange = () => {
 // Validation rules
 const rules = computed(() => ({
   numero_piece: [
+    { required: true, message: 'Le N° PC est obligatoire', trigger: 'blur' },
     {
       validator: (rule, value, callback) => {
         if (numeroError.value) {
@@ -693,6 +698,17 @@ const clearErrors = () => {
 
 const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR').format(montant || 0);
+};
+
+const formatInputMontant = (val) => {
+  if (!val && val !== 0) return '';
+  return new Intl.NumberFormat('fr-FR').format(val);
+};
+
+const parseInputMontant = (val) => {
+  if (!val) return 0;
+  const cleaned = String(val).replace(/[^\d]/g, '');
+  return parseInt(cleaned, 10) || 0;
 };
 
 const genererNumeroPiece = async () => {

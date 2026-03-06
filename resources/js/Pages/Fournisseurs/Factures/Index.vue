@@ -75,7 +75,7 @@
           <el-form-item label="Recherche">
             <el-input
               v-model="filters.search"
-              placeholder="N° facture, référence..."
+              placeholder="N° PC, référence..."
               :prefix-icon="Search"
               clearable
               style="width: 250px"
@@ -196,7 +196,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="numero" label="N° Facture" width="140" sortable="custom">
+          <el-table-column prop="numero" label="N° PC" width="140" sortable="custom" fixed="left">
             <template #default="{ row }">
               <el-link type="primary" @click="handleView(row)">
                 <strong>{{ row.numero }}</strong>
@@ -204,9 +204,17 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_facture" label="Date" width="110" sortable="custom">
+          <el-table-column prop="date_facture" label="Date" width="110" sortable="custom" fixed="left">
             <template #default="{ row }">
               {{ formatDate(row.date_facture) }}
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" fixed="left">
+            <template #default="{ row }">
+              <div class="fournisseur-cell">
+                <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
+              </div>
             </template>
           </el-table-column>
 
@@ -216,50 +224,17 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200">
+          <el-table-column prop="reference" label="Réf. Fact/B.C." width="140" />
+
+          <el-table-column prop="libelle" label="Libellé" min-width="180">
             <template #default="{ row }">
-              <div class="fournisseur-cell">
-                <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
-                <!-- <div class="fournisseur-code">{{ row.fournisseur.code }}</div> -->
-              </div>
+              {{ row.libelle || '-' }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference" label="Référence" width="140" />
-
-          <el-table-column prop="montant_ht" label="Montant HT" width="130" align="right" sortable="custom">
-            <template #default="{ row }">
-              {{ formatMontant(row.montant_ht) }}
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="montant_tva" label="TVA (18%)" width="120" align="right">
-            <template #default="{ row }">
-              <el-tag type="info" size="small">{{ formatMontant(row.montant_tva) }}</el-tag>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="montant_aib" label="AIB" width="100" align="right">
-            <template #default="{ row }">
-              <el-tag v-if="row.montant_aib > 0" type="warning" size="small">
-                {{ formatMontant(row.montant_aib) }}
-              </el-tag>
-              <span v-else class="text-muted">-</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="montant_ttc" label="Total TTC" width="140" align="right" sortable="custom">
+          <el-table-column prop="montant_ttc" label="Montant TTC" width="140" align="right" sortable="custom">
             <template #default="{ row }">
               <strong class="montant-ttc">{{ formatMontant(row.montant_ttc) }}</strong>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="montant_aib" label="Mt AIB" width="120" align="right">
-            <template #default="{ row }">
-              <el-tag v-if="row.montant_aib > 0" type="warning" size="small">
-                {{ formatMontant(row.montant_aib) }}
-              </el-tag>
-              <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 

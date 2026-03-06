@@ -69,6 +69,17 @@
                   </span>
                 </div>
               </div>
+
+              <el-button
+                v-if="resteAPayer > 0"
+                type="success"
+                plain
+                style="width: 100%; margin-top: 16px;"
+                @click="handleSolder"
+              >
+                <el-icon><CircleCheck /></el-icon>
+                Marquer comme sold&eacute;e
+              </el-button>
             </div>
           </el-card>
 
@@ -111,6 +122,9 @@
                   <div class="reglement-actions">
                     <el-button size="small" text type="primary" @click="showDetail(reglement)">
                       D&eacute;tails
+                    </el-button>
+                    <el-button size="small" text type="warning" @click="handleEditReglement(reglement)">
+                      Modifier
                     </el-button>
                   </div>
                 </el-card>
@@ -311,6 +325,69 @@
       </el-row>
     </div>
 
+    <!-- Edit Règlement Modal -->
+    <el-dialog
+      v-model="editVisible"
+      title="Modifier le R&egrave;glement"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-form v-if="editForm" label-position="top" size="large">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="Date">
+              <el-date-picker
+                v-model="editForm.date_reglement"
+                type="date"
+                format="DD/MM/YYYY"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Montant">
+              <el-input-number
+                v-model="editForm.montant"
+                :min="1"
+                :precision="0"
+                controls-position="right"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="N&deg; Ligne">
+              <el-input v-model="editForm.numero_ligne" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Institution">
+              <el-input v-model="editForm.institution" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="R&eacute;f. Ch&egrave;que">
+              <el-input v-model="editForm.reference_cheque" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="Observations">
+          <el-input v-model="editForm.observations" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">Annuler</el-button>
+        <el-button type="primary" :loading="editLoading" @click="handleEditSubmit">
+          Enregistrer
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- Detail Modal -->
     <el-dialog
       v-model="detailVisible"
@@ -361,8 +438,9 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
   ArrowLeft, Document, Clock, Money, Check,
-  DocumentCopy, CreditCard, SuccessFilled
+  DocumentCopy, CreditCard, SuccessFilled, CircleCheck
 } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 // OfficeBuilding might not exist in all versions, use a fallback
@@ -387,6 +465,10 @@ const formRef = ref(null);
 const submitting = ref(false);
 const detailVisible = ref(false);
 const selectedReglement = ref(null);
+const editVisible = ref(false);
+const editForm = ref(null);
+const editLoading = ref(false);
+const editingReglementId = ref(null);
 
 const showDetail = (reglement) => {
   selectedReglement.value = reglement;
@@ -490,6 +572,77 @@ const handleSubmit = async () => {
     ElMessage.error('Erreur de connexion au serveur');
   } finally {
     submitting.value = false;
+  }
+};
+
+const handleEditReglement = (reglement) => {
+  editingReglementId.value = reglement.id;
+  editForm.value = {
+    date_reglement: reglement.date_reglement,
+    montant: reglement.montant,
+    numero_ligne: reglement.numero_ligne || '',
+    institution: reglement.institution || '',
+    reference_cheque: reglement.reference_cheque || '',
+    banque_depot_id: reglement.banque_depot?.id || null,
+    compte_bancaire_id: reglement.compte_bancaire?.id || null,
+    observations: reglement.observations || '',
+  };
+  editVisible.value = true;
+};
+
+const handleEditSubmit = async () => {
+  editLoading.value = true;
+  try {
+    const response = await fetch(`/api/reglements-clients/${editingReglementId.value}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      body: JSON.stringify(editForm.value)
+    });
+    const result = await response.json();
+    if (result.success) {
+      ElMessage.success('Règlement modifié avec succès');
+      editVisible.value = false;
+      router.reload();
+    } else {
+      ElMessage.error(result.message || 'Erreur lors de la modification');
+    }
+  } catch (error) {
+    ElMessage.error('Erreur de connexion');
+  } finally {
+    editLoading.value = false;
+  }
+};
+
+const handleSolder = async () => {
+  try {
+    await ElMessageBox.confirm(
+      'Voulez-vous marquer cette facture comme soldée ?',
+      'Confirmation',
+      { confirmButtonText: 'Oui, solder', cancelButtonText: 'Annuler', type: 'warning' }
+    );
+  } catch { return; }
+
+  try {
+    const response = await fetch(`/api/factures-clients/${props.facture.id}/solder`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      }
+    });
+    const result = await response.json();
+    if (result.success) {
+      ElMessage.success('Facture marquée comme soldée');
+      router.visit(`/factures-clients/${props.facture.id}`);
+    } else {
+      ElMessage.error(result.message || 'Erreur');
+    }
+  } catch (error) {
+    ElMessage.error('Erreur de connexion');
   }
 };
 
