@@ -162,6 +162,7 @@
                     <el-input
                       v-model="form.annee_exercice"
                       placeholder="2025"
+                      readonly
                     />
                   </el-form-item>
                 </el-col>
@@ -171,6 +172,7 @@
                     <el-input
                       v-model="form.numero_ligne"
                       placeholder="001"
+                      readonly
                     />
                   </el-form-item>
                 </el-col>
@@ -288,6 +290,19 @@
                       v-model="form.beneficiaire"
                       placeholder="Nom du b&eacute;n&eacute;ficiaire du ch&egrave;que"
                     />
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="12" v-if="facture.type_reduction && facture.taux > 0">
+                  <el-form-item label=" ">
+                    <el-checkbox
+                      v-model="form.deduire_aib"
+                      :label="`Déduire l'AIB (${facture.taux}%)`"
+                      size="large"
+                    />
+                    <div v-if="form.deduire_aib" class="aib-info">
+                      Montant AIB déduit : <strong>{{ formatMontant(montantAibReglement) }}</strong>
+                    </div>
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -501,7 +516,13 @@ const form = reactive({
   reference: '',
   date_reference: null,
   beneficiaire: '',
+  deduire_aib: false,
   remarques: ''
+});
+
+const montantAibReglement = computed(() => {
+  if (!form.deduire_aib || !props.facture.taux) return 0;
+  return ((form.montant || 0) * parseFloat(props.facture.taux)) / 100;
 });
 
 // Validation rules
@@ -628,6 +649,7 @@ const buildPayload = (forceInsufficient = false) => {
     compte_bancaire_id: form.compte_bancaire_id || null,
     numero_compte_bancaire: selectedCompte.value ? selectedCompte.value.numero_compte : null,
     observations: form.remarques || null,
+    deduire_aib: form.deduire_aib || false,
     force_insufficient_balance: forceInsufficient
   };
 };
@@ -857,5 +879,11 @@ const forceSubmit = async () => {
 :deep(.el-timeline-item__timestamp) {
   font-weight: 600;
   color: #6b7280;
+}
+
+.aib-info {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #e6a23c;
 }
 </style>

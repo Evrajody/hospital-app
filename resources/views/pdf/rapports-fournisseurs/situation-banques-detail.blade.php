@@ -31,7 +31,7 @@
     </style>
 </head>
 <body>
-    <div class="hospital-name">HÔPITAL DE MENONTIN</div>
+    <div class="hospital-name">{{ strtoupper($etablissement['nom'] ?? 'HÔPITAL DE MENONTIN') }}</div>
 
     <div class="title-box">
         <h1>{{ $titre }}</h1>

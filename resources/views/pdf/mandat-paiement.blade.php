@@ -2,469 +2,286 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Mandat de Paiement N° {{ str_pad($reglement->id, 6, '0', STR_PAD_LEFT) }}</title>
+    <title>Mandat de Paiement - {{ $reglement->facture->numero_piece }}</title>
     <style>
         @page {
             size: A4;
-            margin: 15mm;
+            margin: 20mm 25mm;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Times New Roman', serif;
-            font-size: 12px;
-            color: #000000;
-            line-height: 1.4;
+            font-size: 13px;
+            color: #000;
+            line-height: 1.5;
         }
 
-        .document-page {
-            width: 100%;
-            padding: 0;
-        }
-
-        /* En-tête officiel */
         .header {
-            width: 100%;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px double #000000;
-        }
-
-        .header-table {
-            width: 100%;
-        }
-
-        .logo-section {
             text-align: center;
-        }
-
-        .republic {
-            font-size: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .motto {
-            font-size: 12px;
-            color: #666666;
-            font-style: italic;
-            margin: 4px 0;
-        }
-
-        .separator-text {
-            font-size: 14px;
-            color: #666666;
-            margin: 8px 0;
+            margin-bottom: 15px;
         }
 
         .hospital-name {
             font-size: 18px;
             font-weight: bold;
             text-transform: uppercase;
-            margin: 10px 0 8px 0;
+            letter-spacing: 1px;
         }
 
         .hospital-info {
             font-size: 11px;
-            color: #666666;
+            color: #444;
             line-height: 1.6;
+            margin-top: 3px;
         }
 
-        .document-ref {
-            text-align: right;
-            border: 2px solid #000000;
-            padding: 15px;
+        .document-title {
+            text-align: center;
+            margin: 25px 0 10px;
+        }
+
+        .document-title h1 {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: 2px solid #000;
+            display: inline-block;
+            padding: 8px 30px;
+        }
+
+        .numero-piece {
+            margin: 12px 0 5px;
+            font-size: 14px;
+        }
+
+        .exercice {
+            margin: 5px 0 18px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .intro-text {
+            font-size: 12px;
+            font-style: italic;
+            line-height: 1.7;
+            margin-bottom: 25px;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .details-table td {
+            padding: 5px 0;
             vertical-align: top;
         }
 
-        .ref-number {
-            font-size: 16px;
+        .details-label {
+            width: 250px;
             font-weight: bold;
+            white-space: nowrap;
+            padding-right: 15px;
         }
 
-        .ref-year {
-            font-size: 12px;
-            color: #666666;
-            margin-top: 5px;
-        }
-
-        /* Titre du document */
-        .document-title-section {
-            text-align: center;
-            margin: 15px 0;
-            padding: 10px;
-        }
-
-        .document-title-section h1 {
-            font-size: 24px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            margin: 0 0 4px 0;
-        }
-
-        .document-subtitle {
-            font-size: 13px;
-            color: #333333;
-        }
-
-        .document-date {
-            text-align: right;
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 15px;
-        }
-
-        /* Objet */
-        .objet-section {
-            background: #f5f5f5;
-            padding: 12px;
-            border-left: 4px solid #000000;
-            margin-bottom: 15px;
-        }
-
-        .objet-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-
-        .objet-content {
-            font-size: 14px;
-            color: #333333;
-            line-height: 1.6;
-        }
-
-        /* Sections */
-        .section {
-            margin-bottom: 15px;
-        }
-
-        .section h2 {
-            font-size: 14px;
-            font-weight: bold;
-            color: white;
-            background: #333333;
-            padding: 8px 12px;
-            margin-bottom: 15px;
+        .montant-lettres {
+            display: block;
+            font-size: 10px;
+            color: #cc0000;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            margin-top: 2px;
         }
 
-        /* Info table */
-        .info-table {
+        .spacer td {
+            height: 12px;
+        }
+
+        .montants-section {
+            margin: 15px 0;
+        }
+
+        .montants-section table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .info-table tr {
-            border-bottom: 1px solid #cccccc;
-        }
-
-        .info-table td {
-            padding: 8px 0;
-            font-size: 12px;
-        }
-
-        .info-table .label {
-            width: 220px;
-            color: #666666;
-            font-weight: 600;
-        }
-
-        .info-table .value {
-            color: #000000;
-        }
-
-        .info-table .value-sub {
-            font-size: 11px;
-            color: #666666;
-            margin-top: 2px;
-        }
-
-        /* Montant */
-        .montant-box {
-            border: 3px double #000000;
-            padding: 15px;
-            margin: 15px 0;
-        }
-
-        .montant-row-main {
-            width: 100%;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #cccccc;
-        }
-
-        .montant-row-main td {
-            vertical-align: middle;
-        }
-
-        .montant-label-text {
-            font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .montant-value-text {
-            font-size: 28px;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .montant-lettres {
-            font-size: 13px;
-            color: #333333;
-            line-height: 1.6;
-            font-style: italic;
-        }
-
-        /* Signatures */
-        .signature-section {
-            margin-top: 25px;
-        }
-
-        .signature-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 10px 0;
-        }
-
-        .signature-box {
-            text-align: center;
-            padding: 15px;
-            border: 1px solid #cccccc;
-            background: #f5f5f5;
+        .montants-section td {
+            padding: 5px 0;
             vertical-align: top;
         }
 
-        .signature-label {
-            font-size: 13px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
+        .montants-section .details-label {
+            width: 250px;
         }
 
-        .signature-label-sub {
-            font-size: 11px;
-            color: #666666;
+        .fait-a {
+            text-align: center;
+            margin: 40px 0 25px;
             font-style: italic;
-            margin-bottom: 30px;
+            font-weight: bold;
+            font-size: 14px;
         }
 
-        .signature-space {
-            height: 40px;
-            margin: 15px 0 10px 0;
+        .signatures-table {
+            width: 100%;
+        }
+
+        .signatures-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0 15px;
+        }
+
+        .signature-title {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 5px;
         }
 
         .signature-name {
-            font-size: 12px;
-            color: #666666;
-            margin-bottom: 5px;
+            margin-top: 55px;
+            font-size: 13px;
+            font-weight: bold;
         }
 
-        .signature-date {
-            font-size: 11px;
-            color: #666666;
-        }
-
-        /* Note officielle */
-        .official-note {
-            margin-top: 15px;
-            padding: 15px;
-            background: #eeeeee;
-            border-left: 4px solid #000000;
-            font-size: 11px;
-            line-height: 1.6;
-        }
-
-        /* Pied de page */
         .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 11px;
-            color: #666666;
-        }
-
-        .confidential {
-            margin-top: 5px;
+            margin-top: 50px;
+            font-size: 10px;
+            color: #666;
             font-style: italic;
-            color: #000000;
         }
     </style>
 </head>
 <body>
-    <div class="document-page">
-        <!-- En-tête officiel -->
-        <div class="header">
-            <table class="header-table">
-                <tr>
-                    <td class="logo-section" style="width: 65%;">
-                        <div class="republic">REPUBLIQUE DU BENIN</div>
-                        <div class="motto">Fraternite - Justice - Travail</div>
-                        <div class="separator-text">***</div>
-                        <div class="hospital-name">HOPITAL DE MENONTIN</div>
-                        <div class="hospital-info">
-                            Service Comptabilite et Finances<br>
-                            BP 123 - Cotonou<br>
-                            Tel: +229 21 XX XX XX
-                        </div>
-                    </td>
-                    <td class="document-ref" style="width: 35%;">
-                        <div class="ref-number">N&deg; {{ str_pad($reglement->id, 6, '0', STR_PAD_LEFT) }}</div>
-                        <div class="ref-year">Annee {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('Y') }}</div>
-                    </td>
-                </tr>
-            </table>
+    <!-- En-tête centré -->
+    <div class="header">
+        <div class="hospital-name">{{ $etablissement['nom'] }}</div>
+        <div class="hospital-info">
+            {{ $etablissement['adresse'] }}<br>
+            {{ $etablissement['telephone'] ? 'Tél.: ' . $etablissement['telephone'] : '' }}
+            @if(!empty($etablissement['email']))
+                - E-mail: {{ $etablissement['email'] }}
+            @endif
         </div>
+    </div>
 
-        <div class="document-title-section">
-            <h1>MANDAT DE PAIEMENT</h1>
-            <div class="document-subtitle">Ordre de paiement aux fournisseurs</div>
-        </div>
+    <!-- Titre encadré -->
+    <div class="document-title">
+        <h1>Mandat de Paiement</h1>
+    </div>
 
-        <div class="document-date">
-            Cotonou, le {{ \Carbon\Carbon::parse($reglement->date_reglement)->locale('fr')->isoFormat('D MMMM YYYY') }}
-        </div>
+    <div class="numero-piece">
+        <em>N° {{ $reglement->facture->numero_piece }}/DAF/H.M.</em>
+    </div>
 
-        <!-- Corps du mandat -->
-        <div class="document-body">
-            <!-- Objet -->
-            <div class="objet-section">
-                <div class="objet-title">OBJET :</div>
-                <div class="objet-content">
-                    Reglement de la facture N&deg; <strong>{{ $reglement->facture->numero_piece }}</strong>
-                </div>
-            </div>
+    <div class="exercice">EXERCICE {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('Y') }}</div>
 
-            <!-- Bénéficiaire -->
-            <div class="section">
-                <h2>BENEFICIAIRE</h2>
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Raison sociale :</td>
-                        <td class="value"><strong>{{ $reglement->fournisseur->nom }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Code fournisseur :</td>
-                        <td class="value">FOUR{{ str_pad($reglement->fournisseur->id, 3, '0', STR_PAD_LEFT) }}</td>
-                    </tr>
-                    @if($reglement->fournisseur->ifu)
-                    <tr>
-                        <td class="label">IFU :</td>
-                        <td class="value">{{ $reglement->fournisseur->ifu }}</td>
-                    </tr>
+    <div class="intro-text">
+        En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital de
+        Ménontin mandate sur la caisse du Centre, la créance détaillée ci-après :
+    </div>
+
+    <!-- Infos facture -->
+    <table class="details-table">
+        <tr>
+            <td class="details-label">OBJET :</td>
+            <td>{{ $facture->libelle }}</td>
+        </tr>
+        <tr class="spacer"><td colspan="2"></td></tr>
+        <tr>
+            <td class="details-label">PRESTATAIRE :</td>
+            <td>{{ $reglement->fournisseur->nom }}</td>
+        </tr>
+    </table>
+
+    <!-- Montants -->
+    <div class="montants-section">
+        <table>
+            <tr>
+                <td class="details-label">MONTANT FACTURE :</td>
+                <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }} <em>FCFA</em></td>
+            </tr>
+            <tr>
+                <td class="details-label">MONTANT AVOIR / ESCOMPT :</td>
+                <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }} <em>FCFA</em></td>
+            </tr>
+            @if($facture->taux && (float) $facture->taux > 0)
+            <tr>
+                <td class="details-label">IMPÔT / AIB {{ $facture->taux }}% :</td>
+                <td>{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }} <em>FCFA</em></td>
+            </tr>
+            @endif
+            <tr>
+                <td class="details-label">MONTANT PAYE (FCFA) :</td>
+                <td>
+                    {{ number_format((float) $facture->montant_paye, 0, ',', ' ') }} <em>FCFA</em>
+                    <span class="montant-lettres">{{ strtoupper($montantEnLettres) }}</span>
+                </td>
+            </tr>
+            <tr>
+                @php $resteAPayer = (float) $facture->reste_a_payer; @endphp
+                <td class="details-label">RESTE A PAYER (FCFA) :</td>
+                <td>
+                    {{ number_format($resteAPayer, 0, ',', ' ') }} <em>FCFA</em>
+                    @if($resteAPayer > 0)
+                    <span class="montant-lettres">{{ $resteAPayerLettres }}</span>
                     @endif
-                    @if($reglement->fournisseur->rccm)
-                    <tr>
-                        <td class="label">RCCM :</td>
-                        <td class="value">{{ $reglement->fournisseur->rccm }}</td>
-                    </tr>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Pièces et mode paiement -->
+    <table class="details-table">
+        @if($facture->reference_facture)
+        <tr>
+            <td class="details-label">PIECES JUSTIFICATIVES :</td>
+            <td>{{ $facture->reference_facture }}</td>
+        </tr>
+        <tr class="spacer"><td colspan="2"></td></tr>
+        @endif
+        <tr>
+            <td class="details-label">MODE PAIEMENT :</td>
+            <td>
+                {{ $modeLabel }}
+                @if($reglement->banque)
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $reglement->banque }}
+                @endif
+                @if($reglement->reference)
+                <br>N°{{ $reglement->reference }}
+                    @if($reglement->date_reglement)
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;du {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}
                     @endif
-                </table>
-            </div>
+                @endif
+            </td>
+        </tr>
+    </table>
 
-            <!-- Détails du paiement -->
-            <div class="section">
-                <h2>DETAILS DU PAIEMENT</h2>
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Facture N&deg; :</td>
-                        <td class="value"><strong>{{ $reglement->facture->numero_piece }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Date de reglement :</td>
-                        <td class="value">{{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Mode de paiement :</td>
-                        <td class="value"><strong>{{ strtoupper($modeLabel) }}</strong></td>
-                    </tr>
-                    @if($reglement->reference)
-                    <tr>
-                        <td class="label">Reference :</td>
-                        <td class="value">{{ $reglement->reference }}</td>
-                    </tr>
-                    @endif
-                    @if($reglement->banque)
-                    <tr>
-                        <td class="label">Compte bancaire :</td>
-                        <td class="value">
-                            <strong>{{ $reglement->banque }}</strong>
-                            @if($reglement->numero_compte_bancaire)
-                            <div class="value-sub">{{ $reglement->numero_compte_bancaire }}</div>
-                            @endif
-                        </td>
-                    </tr>
-                    @endif
-                </table>
-            </div>
+    <!-- Signatures -->
+    <div class="fait-a">
+        <em>Fait à Cotonou, le {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}</em>
+    </div>
 
-            <!-- Montant -->
-            <div class="montant-box">
-                <table class="montant-row-main">
-                    <tr>
-                        <td class="montant-label-text">MONTANT A PAYER :</td>
-                        <td class="montant-value-text">{{ $montantFormate }}</td>
-                    </tr>
-                </table>
-                <div class="montant-lettres">
-                    Arrete le present mandat a la somme de : <strong>{{ $montantEnLettres }}</strong>
-                </div>
-            </div>
+    <table class="signatures-table">
+        <tr>
+            <td>
+                <div class="signature-title">Le Bénéficiaire,</div>
+                <div class="signature-name">{{ strtoupper($reglement->fournisseur->nom) }}</div>
+            </td>
+            <td style="text-align: right;">
+                <div class="signature-title">Le Directeur,</div>
+                <div class="signature-name">&nbsp;</div>
+            </td>
+        </tr>
+    </table>
 
-            <!-- Visas et signatures -->
-            <div class="signature-section">
-                <table class="signature-table">
-                    <tr>
-                        <td class="signature-box" style="width: 50%;">
-                            <div class="signature-label">Le Comptable</div>
-                            <div class="signature-space"></div>
-                            <div class="signature-name">Nom et signature</div>
-                            <div class="signature-date">Date : ___/___/______</div>
-                        </td>
-                        <td class="signature-box" style="width: 50%;">
-                            <div class="signature-label">Le Directeur des Affaires Financieres</div>
-                            <div class="signature-space"></div>
-                            <div class="signature-name">Nom et signature</div>
-                            <div class="signature-date">Date : ___/___/______</div>
-                        </td>
-                    </tr>
-                </table>
-
-                <table class="signature-table" style="margin-top: 15px;">
-                    <tr>
-                        <td style="width: 20%;"></td>
-                        <td class="signature-box" style="width: 60%;">
-                            <div class="signature-label">Le Directeur General</div>
-                            <div class="signature-label-sub">(Approbation et autorisation de paiement)</div>
-                            <div class="signature-space"></div>
-                            <div class="signature-name">Nom et signature</div>
-                            <div class="signature-date">Date : ___/___/______</div>
-                        </td>
-                        <td style="width: 20%;"></td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Note officielle -->
-            <div class="official-note">
-                <strong>NOTE :</strong> Ce mandat autorise le paiement de la somme mentionnee ci-dessus au beneficiaire designe.
-                Tout paiement effectue sans ce mandat dument signe et valide sera considere comme irregulier.
-            </div>
-        </div>
-
-        <!-- Pied de page -->
-        <div class="footer">
-            <div>Document genere le {{ \Carbon\Carbon::now()->locale('fr')->isoFormat('D MMMM YYYY') }}</div>
-            <div class="confidential">Document confidentiel - Usage interne uniquement</div>
-        </div>
+    <!-- Footer -->
+    <div class="footer">
+        Edité par {{ $user?->name ?? 'Système' }}
     </div>
 </body>
 </html>

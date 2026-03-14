@@ -51,7 +51,7 @@
             <div class="report-title">{{ titreDeclaration }}</div>
 
             <el-table :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryDeclaration">
-              <el-table-column prop="numero_piece" label="N°PC" width="100" />
+              <el-table-column prop="numero_piece" label="N°Pièce" width="100" />
               <el-table-column prop="date" label="Date AIB" width="90" />
               <el-table-column prop="fournisseur" label="Fournisseur" width="220" />
               <el-table-column prop="libelle" label="Libellé facture" min-width="200" />

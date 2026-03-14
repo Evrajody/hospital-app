@@ -75,7 +75,7 @@
           <el-form-item label="Recherche">
             <el-input
               v-model="filters.search"
-              placeholder="N° PC, référence..."
+              placeholder="N° Pièce, référence..."
               :prefix-icon="Search"
               clearable
               style="width: 250px"
@@ -187,6 +187,16 @@
                     <el-dropdown-item command="print" :icon="Printer">
                       Imprimer
                     </el-dropdown-item>
+                    <el-dropdown-item command="etat_reglement" :icon="Document">
+                      État de Règlement
+                    </el-dropdown-item>
+                    <el-dropdown-item
+                      v-if="row.imputation_id && row.compte_id"
+                      command="imputation"
+                      :icon="CopyDocument"
+                    >
+                      Imputation Comptable
+                    </el-dropdown-item>
                     <el-dropdown-item divided command="delete" :icon="Delete">
                       <span style="color: #f56c6c">Supprimer</span>
                     </el-dropdown-item>
@@ -196,7 +206,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="numero" label="N° PC" width="140" sortable="custom" fixed="left">
+          <el-table-column prop="numero" label="N° Pièce" width="140" sortable="custom" fixed="left">
             <template #default="{ row }">
               <el-link type="primary" @click="handleView(row)">
                 <strong>{{ row.numero }}</strong>
@@ -289,6 +299,163 @@
       :taux-tva-defaut="tauxTvaDefaut"
       @success="handleFactureSuccess"
     />
+
+    <!-- Drawer Imputation Comptable -->
+    <el-drawer
+      v-model="showImputationDrawer"
+      title="Imputation Comptable"
+      direction="rtl"
+      size="55%"
+      :destroy-on-close="true"
+    >
+      <div v-if="imputationLoading" style="text-align: center; padding: 40px;">
+        <el-icon class="is-loading" :size="30"><Refresh /></el-icon>
+        <p style="margin-top: 10px; color: #909399;">Chargement...</p>
+      </div>
+
+      <div v-else-if="imputationData" class="imputation-content">
+        <!-- En-tête identique au PDF -->
+        <div class="imputation-header">
+          <div class="imputation-hospital-name">{{ imputationData.etablissement.nom }}</div>
+          <div class="imputation-hospital-info">
+            {{ imputationData.etablissement.pays }} - {{ imputationData.etablissement.service }}<br>
+            {{ imputationData.etablissement.adresse }}{{ imputationData.etablissement.telephone ? ' - Tel: ' + imputationData.etablissement.telephone : '' }}
+          </div>
+          <div class="imputation-title-box">
+            <span>IMPUTATION COMPTABLE</span>
+          </div>
+          <p class="imputation-numero-piece"><strong><u>Numero piece :</u></strong> {{ imputationData.facture.numero_piece }}</p>
+        </div>
+
+        <!-- Tableau des écritures -->
+        <table class="imputation-table">
+          <thead>
+            <tr>
+              <th style="width: 100px;">Date</th>
+              <th style="width: 130px;">Compte</th>
+              <th style="width: 140px; text-align: right;">Débit</th>
+              <th style="width: 140px; text-align: right;">Crédit</th>
+              <th>Libellé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="(group, gIndex) in imputationData.ecritures" :key="gIndex">
+              <tr v-for="(ligne, lIndex) in group.lignes" :key="`${gIndex}-${lIndex}`">
+                <td style="font-weight: 600;">{{ lIndex === 0 ? group.date : '' }}</td>
+                <td>{{ ligne.numero_compte }}</td>
+                <td style="text-align: right;">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
+                <td style="text-align: right;">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
+                <td>{{ ligne.libelle || '' }}</td>
+              </tr>
+            </template>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" style="font-weight: 700;">TOTAUX</td>
+              <td style="text-align: right; font-weight: 700;">{{ formatMontant(imputationData.total_debit) }}</td>
+              <td style="text-align: right; font-weight: 700;">{{ formatMontant(imputationData.total_credit) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- Bouton télécharger PDF -->
+        <div style="text-align: right; margin-top: 20px;">
+          <el-button type="primary" :icon="Download" @click="downloadImputationPdf">
+            Télécharger PDF
+          </el-button>
+        </div>
+      </div>
+
+      <div v-else style="text-align: center; padding: 40px; color: #909399;">
+        Aucune écriture comptable trouvée pour cette facture.
+      </div>
+    </el-drawer>
+
+    <!-- Drawer État de Règlement Facture -->
+    <el-drawer v-model="showEtatReglementDrawer" title="État de Règlement Facture" direction="rtl" size="55%" :destroy-on-close="true">
+      <div v-if="etatReglementLoading" style="text-align: center; padding: 40px;">
+        <el-icon class="is-loading" :size="30"><Refresh /></el-icon>
+        <p style="margin-top: 10px; color: #909399;">Chargement...</p>
+      </div>
+      <div v-else-if="etatReglementData" class="etat-reglement-content">
+        <div class="etat-reglement-header">
+          <div class="imputation-hospital-name">{{ etatReglementData.etablissement.nom }}</div>
+          <div class="imputation-hospital-info">
+            {{ etatReglementData.etablissement.adresse }}<br>
+            {{ etatReglementData.etablissement.telephone ? 'Tél.: ' + etatReglementData.etablissement.telephone : '' }}
+            {{ etatReglementData.etablissement.email ? ' - E-mail: ' + etatReglementData.etablissement.email : '' }}
+          </div>
+          <div class="imputation-title-box"><span>ÉTAT DE RÈGLEMENT FACTURE</span></div>
+        </div>
+
+        <div class="etat-reglement-fournisseur">
+          <strong>Fournisseur :</strong> [{{ etatReglementData.fournisseur.code }}] {{ etatReglementData.fournisseur.nom }}
+        </div>
+
+        <div class="etat-reglement-info">
+          <span><strong>N° PC :</strong> {{ etatReglementData.facture.numero_piece }}</span>
+          <span><strong>Date PC :</strong> {{ etatReglementData.facture.date }}</span>
+          <span><strong>Réf facture :</strong> {{ etatReglementData.facture.reference_facture }}</span>
+        </div>
+
+        <div class="etat-reglement-objet">
+          <strong>Objet :</strong> {{ etatReglementData.facture.libelle }}
+        </div>
+
+        <div class="etat-reglement-montants">
+          <span><strong>Mt facture :</strong> {{ etatReglementData.facture.montant_facture }}</span>
+          <span><strong>Mt M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
+        </div>
+        <div class="etat-reglement-montants">
+          <span><strong>Avoir :</strong> {{ etatReglementData.facture.avoir }}</span>
+        </div>
+
+        <table class="etat-reglement-table">
+          <thead>
+            <tr>
+              <th>N° Ordre de règlement</th>
+              <th>Date règlement</th>
+              <th>Mode règlement</th>
+              <th>Bénéficiaire</th>
+              <th style="text-align: right;">Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(reg, index) in etatReglementData.reglements" :key="index">
+              <td>{{ reg.numero_ordre }}</td>
+              <td>{{ reg.date_reglement }}</td>
+              <td>{{ reg.mode_paiement }}</td>
+              <td>{{ reg.beneficiaire }}</td>
+              <td style="text-align: right;">{{ reg.montant }}</td>
+            </tr>
+            <tr v-if="!etatReglementData.reglements.length">
+              <td colspan="5" style="text-align: center; font-style: italic;">Aucun règlement</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="etat-reglement-totaux">
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Total règlement :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.total_reglements }}</span>
+          </div>
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Montant dû :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.montant_du }}</span>
+          </div>
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Solde :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.solde }}</span>
+          </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+          <el-button type="primary" :icon="Download" @click="downloadEtatReglementPdf">Télécharger PDF</el-button>
+        </div>
+      </div>
+      <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune donnée trouvée.</div>
+    </el-drawer>
   </AppLayout>
 </template>
 
@@ -384,6 +551,18 @@ const debounce = (fn, delay) => {
 const loading = ref(false);
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
+
+// Drawer Imputation Comptable
+const showImputationDrawer = ref(false);
+const imputationLoading = ref(false);
+const imputationData = ref(null);
+const imputationFactureId = ref(null);
+
+// Drawer État de Règlement
+const showEtatReglementDrawer = ref(false);
+const etatReglementLoading = ref(false);
+const etatReglementData = ref(null);
+const etatReglementFactureId = ref(null);
 
 const filters = reactive({
   search: props.pagination?.search || '',
@@ -555,6 +734,46 @@ const handleFactureSuccess = async (factureData) => {
       ElMessage.success(result.message || (isEdit ? 'Facture modifiée avec succès' : 'Facture créée avec succès'));
       showFactureModal.value = false;
       selectedFacture.value = null;
+
+      // Si la facture a une imputation et qu'elle vient d'être créée, demander confirmation
+      if (!isEdit && result.has_imputation && result.data?.id) {
+        const factureId = result.data.id;
+        try {
+          await ElMessageBox.confirm(
+            'Autorisez-vous une imputation comptable à l\'enregistrement de cette pièce comptable ?',
+            'Imputation Comptable',
+            {
+              confirmButtonText: 'Oui, autoriser',
+              cancelButtonText: 'Non',
+              type: 'info',
+            }
+          );
+          // L'utilisateur a confirmé
+          try {
+            const impResponse = await fetch(`/api/factures-fournisseurs/${factureId}/imputation`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+              }
+            });
+            const impResult = await impResponse.json();
+            if (impResult.success) {
+              ElMessage.success('Imputation comptable enregistrée');
+              // Ouvrir le drawer d'imputation comptable
+              openImputationDrawer(factureId);
+            } else {
+              ElMessage.warning(impResult.message || 'Imputation non créée');
+            }
+          } catch (err) {
+            console.error('Erreur imputation:', err);
+          }
+        } catch {
+          // L'utilisateur a refusé l'imputation
+        }
+      }
+
       handleRefresh();
     } else {
       ElMessage.error(result.message || 'Une erreur est survenue');
@@ -579,6 +798,12 @@ const handleMoreActions = async (command, facture) => {
       break;
     case 'print':
       ElMessage.info('Impression en cours de développement...');
+      break;
+    case 'imputation':
+      openImputationDrawer(facture.id);
+      break;
+    case 'etat_reglement':
+      openEtatReglementDrawer(facture.id);
       break;
     case 'delete':
       ElMessageBox.confirm(
@@ -619,6 +844,65 @@ const handleExport = () => {
 
 const handlePrint = () => {
   ElMessage.info('Impression en cours de développement...');
+};
+
+// Imputation Comptable Drawer
+const openImputationDrawer = async (factureId) => {
+  imputationFactureId.value = factureId;
+  imputationData.value = null;
+  imputationLoading.value = true;
+  showImputationDrawer.value = true;
+
+  try {
+    const response = await fetch(`/api/factures-fournisseurs/${factureId}/imputation-data`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    const result = await response.json();
+    if (result.success) {
+      imputationData.value = result;
+    } else {
+      ElMessage.warning(result.message || 'Aucune écriture trouvée');
+    }
+  } catch (err) {
+    ElMessage.error('Erreur lors du chargement des écritures');
+  } finally {
+    imputationLoading.value = false;
+  }
+};
+
+const downloadImputationPdf = () => {
+  if (imputationFactureId.value) {
+    window.open(`/factures-fournisseurs/${imputationFactureId.value}/imputation-pdf`, '_blank');
+  }
+};
+
+const openEtatReglementDrawer = async (factureId) => {
+  etatReglementFactureId.value = factureId;
+  etatReglementData.value = null;
+  etatReglementLoading.value = true;
+  showEtatReglementDrawer.value = true;
+
+  try {
+    const response = await fetch(`/api/factures-fournisseurs/${factureId}/etat-reglement-data`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    const result = await response.json();
+    if (result.success) {
+      etatReglementData.value = result;
+    } else {
+      ElMessage.warning(result.message || 'Données non trouvées');
+    }
+  } catch (err) {
+    ElMessage.error('Erreur lors du chargement de l\'état de règlement');
+  } finally {
+    etatReglementLoading.value = false;
+  }
+};
+
+const downloadEtatReglementPdf = () => {
+  if (etatReglementFactureId.value) {
+    window.open(`/factures-fournisseurs/${etatReglementFactureId.value}/etat-reglement-pdf`, '_blank');
+  }
 };
 </script>
 
@@ -807,4 +1091,94 @@ export default {
 :deep(.stat-card .el-card__body) {
   padding: 20px;
 }
+
+/* Imputation Comptable Drawer */
+.imputation-content {
+  padding: 0 15px;
+  font-family: 'Times New Roman', serif;
+}
+
+.imputation-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.imputation-hospital-name {
+  font-size: 20px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.imputation-hospital-info {
+  font-size: 12px;
+  color: #444;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
+.imputation-title-box {
+  margin: 20px auto 15px;
+  display: inline-block;
+  border: 2px solid #000;
+  padding: 8px 30px;
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.imputation-numero-piece {
+  text-align: left;
+  margin: 15px 0 0;
+  font-size: 14px;
+}
+
+.imputation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.imputation-table th {
+  border: 1px solid #000;
+  padding: 8px 10px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 12px;
+  background-color: #fff;
+}
+
+.imputation-table td {
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #ccc;
+  padding: 6px 10px;
+}
+
+.imputation-table tbody tr:last-child td {
+  border-bottom: 1px solid #000;
+}
+
+.imputation-table tfoot td {
+  border: 1px solid #000;
+  background-color: #fff;
+  font-weight: bold;
+}
+
+/* État de Règlement Drawer */
+.etat-reglement-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }
+.etat-reglement-header { margin-bottom: 15px; text-align: center; }
+.etat-reglement-fournisseur { margin: 10px 0; font-size: 13px; }
+.etat-reglement-info { display: flex; gap: 25px; margin: 8px 0; font-size: 13px; }
+.etat-reglement-objet { margin: 10px 0; font-size: 13px; }
+.etat-reglement-montants { display: flex; gap: 40px; margin: 3px 0; font-size: 13px; }
+.etat-reglement-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+.etat-reglement-table th { border: 1px solid #000; padding: 6px 8px; font-weight: bold; text-align: center; font-size: 11px; background-color: #fff; }
+.etat-reglement-table td { border: 1px solid #000; padding: 5px 8px; }
+.etat-reglement-totaux { display: flex; flex-direction: column; align-items: flex-end; margin-top: 10px; }
+.etat-reglement-total-row { display: flex; gap: 15px; padding: 3px 0; font-size: 13px; }
+.etat-reglement-total-label { font-weight: bold; min-width: 140px; text-align: right; }
+.etat-reglement-total-value { min-width: 100px; text-align: right; }
 </style>

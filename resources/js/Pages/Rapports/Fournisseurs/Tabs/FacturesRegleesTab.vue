@@ -101,7 +101,7 @@
                 <strong>Fournisseur :</strong> {{ fData.fournisseur }}
               </div>
               <el-table :data="fData.lignes" border size="small" stripe>
-                <el-table-column prop="numero_piece" label="N°PC" width="90" />
+                <el-table-column prop="numero_piece" label="N°Pièce" width="90" />
                 <el-table-column prop="date" label="Date PC" width="85" />
                 <el-table-column prop="date_reglement" label="Date Règ." width="85" />
                 <el-table-column label="Mt Fact." width="95" align="right">

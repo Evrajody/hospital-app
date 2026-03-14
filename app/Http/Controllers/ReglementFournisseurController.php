@@ -8,6 +8,7 @@ use App\Models\Fournisseur;
 use App\Models\CompteComptable;
 use App\Models\CompteBancaire;
 use App\Models\Banque;
+use App\Models\EcritureComptable;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -228,6 +229,16 @@ class ReglementFournisseurController extends Controller
                 $numeroCompteBancaire = $compteBancaire->numero_compte;
             }
 
+            // Calcul AIB si déduction demandée
+            $deduireAib = (bool) $request->input('deduire_aib', false);
+            $montantAibDeduit = 0;
+            $compteAib = null;
+
+            if ($deduireAib && $facture->type_reduction && $facture->taux > 0) {
+                $montantAibDeduit = ($montantReglement * (float) $facture->taux) / 100;
+                $compteAib = $facture->type_reduction;
+            }
+
             // Créer le règlement (utiliser le montant converti en float)
             $reglement = ReglementFournisseur::create([
                 'numero_reglement' => $numeroReglement,
@@ -242,6 +253,9 @@ class ReglementFournisseurController extends Controller
                 'numero_compte_bancaire' => $numeroCompteBancaire,
                 'compte_tresorerie_id' => $request->compte_tresorerie_id,
                 'observations' => $request->observations,
+                'deduire_aib' => $deduireAib,
+                'montant_aib_deduit' => $montantAibDeduit,
+                'compte_aib' => $compteAib,
                 'statut' => ReglementFournisseur::STATUT_VALIDE,
                 'created_by' => auth()->id(),
             ]);
@@ -253,6 +267,13 @@ class ReglementFournisseurController extends Controller
 
             // Mettre à jour la facture
             $facture->enregistrerPaiement($montantReglement);
+
+            // Créer les écritures comptables si la facture a une imputation
+            if ($facture->compte_id) {
+                $facture->load(['fournisseur.compteComptable']);
+                $reglement->load(['compteTresorerie']);
+                EcritureComptable::creerEcrituresReglement($reglement, $facture, $deduireAib);
+            }
 
             DB::commit();
 
@@ -381,6 +402,9 @@ class ReglementFournisseurController extends Controller
 
             $montant = (float) $reglement->montant;
 
+            // Supprimer les écritures comptables liées
+            EcritureComptable::supprimerEcrituresReglement($reglement->id);
+
             // Supprimer le règlement
             $reglement->delete();
 
@@ -467,52 +491,78 @@ class ReglementFournisseurController extends Controller
      */
     public function mandat(int $id)
     {
-        $reglement = ReglementFournisseur::with(['facture', 'fournisseur'])
+        $reglement = ReglementFournisseur::with(['facture.fournisseur', 'fournisseur'])
             ->findOrFail($id);
 
         $data = $this->buildPdfData($reglement);
+        $data['facture'] = $reglement->facture;
+        $data['user'] = auth()->user();
+        $data['resteAPayerLettres'] = strtoupper($this->convertirMontantEnLettres((float) $reglement->facture->reste_a_payer) . ' FRANCS');
 
         $pdf = Pdf::loadView('pdf.mandat-paiement', $data);
         $pdf->setPaper('a4', 'portrait');
 
-        return $pdf->download("mandat-paiement-{$reglement->id}.pdf");
+        return $pdf->stream("mandat-paiement-{$reglement->id}.pdf");
     }
 
     /**
-     * Générer le PDF de la Fiche d'Imputation
+     * Données du mandat de paiement (JSON pour drawer)
      */
-    public function imputation(int $id)
+    public function mandatData(int $id): JsonResponse
     {
         $reglement = ReglementFournisseur::with(['facture', 'fournisseur'])
             ->findOrFail($id);
 
-        $data = $this->buildPdfData($reglement);
+        $facture = $reglement->facture;
+        $montant = (float) $reglement->montant;
+        $montantFacture = (float) $facture->montant_facture;
+        $montantAvoir = (float) ($facture->avoir ?? 0);
+        $montantAib = (float) ($reglement->montant_aib_deduit ?? 0);
+        $tauxAib = $facture->taux ? (float) $facture->taux : 0;
+        $resteAPayer = (float) $facture->reste_a_payer;
 
-        // Logique comptable : déterminer les comptes
-        $data['compteDebit'] = $reglement->fournisseur->compteComptable
-            ? $reglement->fournisseur->compteComptable->numero_compte
-            : '401' . str_pad($reglement->fournisseur->id, 3, '0', STR_PAD_LEFT);
-
-        $data['compteCredit'] = match($reglement->mode_paiement) {
-            'especes' => '571000',
-            'cheque', 'virement', 'carte' => '521000',
-            'mobile_money' => '521500',
-            default => '521000',
+        $modeLabel = match($reglement->mode_paiement) {
+            'especes' => 'Espèces',
+            'cheque' => 'Chèque',
+            'virement' => 'Virement bancaire',
+            'carte' => 'Carte bancaire',
+            'mobile_money' => 'Mobile Money',
+            default => $reglement->mode_paiement,
         };
 
-        $data['libelleCredit'] = match($reglement->mode_paiement) {
-            'especes' => 'Caisse - Espèces',
-            'cheque' => 'Banque - Compte courant',
-            'virement' => 'Banque - Compte courant',
-            'carte' => 'Banque - Compte courant',
-            'mobile_money' => 'Banque - Mobile Money',
-            default => 'Banque',
-        };
-
-        $pdf = Pdf::loadView('pdf.fiche-imputation', $data);
-        $pdf->setPaper('a4', 'portrait');
-
-        return $pdf->download("fiche-imputation-{$reglement->id}.pdf");
+        return response()->json([
+            'success' => true,
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+            'reglement' => [
+                'id' => $reglement->id,
+                'numero_reglement' => $reglement->numero_reglement,
+                'date_reglement' => $reglement->date_reglement?->format('d/m/Y'),
+                'montant' => $montant,
+                'montant_formate' => number_format($montant, 0, ',', ' '),
+                'montant_en_lettres' => strtoupper($this->convertirMontantEnLettres($montant) . ' FRANCS'),
+                'mode_paiement' => $modeLabel,
+                'reference' => $reglement->reference,
+                'beneficiaire' => $reglement->beneficiaire,
+                'banque' => $reglement->banque,
+                'numero_compte_bancaire' => $reglement->numero_compte_bancaire,
+            ],
+            'facture' => [
+                'numero_piece' => $facture->numero_piece,
+                'libelle' => $facture->libelle,
+                'reference_facture' => $facture->reference_facture,
+                'montant_facture' => number_format($montantFacture, 0, ',', ' '),
+                'montant_avoir' => number_format($montantAvoir, 0, ',', ' '),
+                'taux_aib' => $tauxAib,
+                'montant_aib' => number_format($montantAib, 0, ',', ' '),
+                'montant_paye' => number_format((float) $facture->montant_paye, 0, ',', ' '),
+                'montant_paye_lettres' => strtoupper($this->convertirMontantEnLettres((float) $facture->montant_paye) . ' FRANCS'),
+                'reste_a_payer' => number_format($resteAPayer, 0, ',', ' '),
+                'reste_a_payer_lettres' => strtoupper($this->convertirMontantEnLettres($resteAPayer) . ' FRANCS'),
+            ],
+            'fournisseur' => [
+                'nom' => $reglement->fournisseur?->nom,
+            ],
+        ]);
     }
 
     /**
@@ -539,6 +589,7 @@ class ReglementFournisseurController extends Controller
             'modeLabel' => $modeLabel,
             'montantFormate' => $montantFormate,
             'montantEnLettres' => $montantEnLettres,
+            'etablissement' => \App\Models\Setting::getEtablissement(),
         ];
     }
 
@@ -653,6 +704,7 @@ class ReglementFournisseurController extends Controller
             'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
             'compte_tresorerie_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'force_insufficient_balance' => ['nullable', 'boolean'],
+            'deduire_aib' => ['nullable', 'boolean'],
             'observations' => ['nullable', 'string'],
         ];
     }

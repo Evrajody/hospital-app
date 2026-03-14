@@ -46,8 +46,18 @@
                 <el-dropdown-item v-if="!estSoldee" command="edit" :icon="Edit">
                   Modifier
                 </el-dropdown-item>
+                <el-dropdown-item command="etat_reglement" :icon="Document">
+                  État de Règlement
+                </el-dropdown-item>
                 <el-dropdown-item command="print" :icon="Printer">
                   Imprimer
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="facture.compte"
+                  command="imputation"
+                  :icon="Notebook"
+                >
+                  Imputation Comptable
                 </el-dropdown-item>
                 <el-dropdown-item divided command="delete" :icon="Delete">
                   <span style="color: #f56c6c">Supprimer</span>
@@ -229,11 +239,11 @@
                 style="margin-top: 16px"
               />
 
-              <div v-if="!estSoldee" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+              <div v-if="!estSoldee" style="display: flex; gap: 8px; margin-top: 16px;">
                 <el-button
                   type="primary"
                   size="large"
-                  style="width: 100%;"
+                  style="flex: 1;"
                   @click="handleAction('pay')"
                 >
                   <el-icon><Money /></el-icon>
@@ -244,12 +254,12 @@
                   type="success"
                   size="large"
                   plain
-                  style="width: 100%;"
+                  style="flex: 1;"
                   @click="handleAction('marquer_soldee')"
-              >
-                <el-icon><CircleCheck /></el-icon>
-                Marquer comme soldée
-              </el-button>
+                >
+                  <el-icon><CircleCheck /></el-icon>
+                  Marquer comme soldée
+                </el-button>
               </div>
 
               <el-alert
@@ -307,14 +317,8 @@
                   </div>
                   <el-divider style="margin: 12px 0" />
                   <div class="reglement-actions">
-                    <!-- <el-button size="small" :icon="Printer" @click="handlePrintRecu(reglement)">
-                      Reçu
-                    </el-button> -->
-                    <el-button size="small" type="primary" :icon="DocumentCopy" @click="handlePrintMandat(reglement)">
+                    <el-button size="small" type="primary" :icon="DocumentCopy" @click="openMandatDrawer(reglement.id)">
                       Mandat
-                    </el-button>
-                    <el-button size="small" type="warning" :icon="Notebook" @click="handlePrintImputation(reglement)">
-                      Imputation
                     </el-button>
                   </div>
                 </el-card>
@@ -330,6 +334,251 @@
         </el-col>
       </el-row>
     </div>
+
+    <!-- Drawer Imputation Comptable -->
+    <el-drawer v-model="showImputationDrawer" title="Imputation Comptable" direction="rtl" size="55%" :destroy-on-close="true">
+      <div v-if="imputationLoading" style="text-align: center; padding: 40px;">
+        <el-icon class="is-loading" :size="30"><Clock /></el-icon>
+        <p style="margin-top: 10px; color: #909399;">Chargement...</p>
+      </div>
+      <div v-else-if="imputationData" class="imputation-content">
+        <div class="imputation-header">
+          <div class="imputation-hospital-name">{{ imputationData.etablissement.nom }}</div>
+          <div class="imputation-hospital-info">
+            {{ imputationData.etablissement.pays }} - {{ imputationData.etablissement.service }}<br>
+            {{ imputationData.etablissement.adresse }}{{ imputationData.etablissement.telephone ? ' - Tel: ' + imputationData.etablissement.telephone : '' }}
+          </div>
+          <div class="imputation-title-box"><span>IMPUTATION COMPTABLE</span></div>
+          <p class="imputation-numero-piece"><strong><u>Numero piece :</u></strong> {{ imputationData.facture.numero_piece }}</p>
+        </div>
+        <table class="imputation-table">
+          <thead>
+            <tr>
+              <th style="width: 100px;">Date</th>
+              <th style="width: 130px;">Compte</th>
+              <th style="width: 140px; text-align: right;">Débit</th>
+              <th style="width: 140px; text-align: right;">Crédit</th>
+              <th>Libellé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="(group, gIndex) in imputationData.ecritures" :key="gIndex">
+              <tr v-for="(ligne, lIndex) in group.lignes" :key="`${gIndex}-${lIndex}`">
+                <td style="font-weight: 600;">{{ lIndex === 0 ? group.date : '' }}</td>
+                <td>{{ ligne.numero_compte }}</td>
+                <td style="text-align: right;">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
+                <td style="text-align: right;">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
+                <td>{{ ligne.libelle || '' }}</td>
+              </tr>
+            </template>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" style="font-weight: 700;">TOTAUX</td>
+              <td style="text-align: right; font-weight: 700;">{{ formatMontant(imputationData.total_debit) }}</td>
+              <td style="text-align: right; font-weight: 700;">{{ formatMontant(imputationData.total_credit) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        <div style="text-align: right; margin-top: 20px;">
+          <el-button type="primary" :icon="Printer" @click="downloadImputationPdf">Télécharger PDF</el-button>
+        </div>
+      </div>
+      <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune écriture comptable trouvée.</div>
+    </el-drawer>
+
+    <!-- Drawer État de Règlement Facture -->
+    <el-drawer v-model="showEtatReglementDrawer" title="État de Règlement Facture" direction="rtl" size="55%" :destroy-on-close="true">
+      <div v-if="etatReglementLoading" style="text-align: center; padding: 40px;">
+        <el-icon class="is-loading" :size="30"><Clock /></el-icon>
+        <p style="margin-top: 10px; color: #909399;">Chargement...</p>
+      </div>
+      <div v-else-if="etatReglementData" class="etat-reglement-content">
+        <div class="etat-reglement-header">
+          <div class="imputation-hospital-name">{{ etatReglementData.etablissement.nom }}</div>
+          <div class="imputation-hospital-info">
+            {{ etatReglementData.etablissement.adresse }}<br>
+            {{ etatReglementData.etablissement.telephone ? 'Tél.: ' + etatReglementData.etablissement.telephone : '' }}
+            {{ etatReglementData.etablissement.email ? ' - E-mail: ' + etatReglementData.etablissement.email : '' }}
+          </div>
+          <div class="imputation-title-box"><span>ÉTAT DE RÈGLEMENT FACTURE</span></div>
+        </div>
+
+        <div class="etat-reglement-fournisseur">
+          <strong>Fournisseur :</strong> [{{ etatReglementData.fournisseur.code }}] {{ etatReglementData.fournisseur.nom }}
+        </div>
+
+        <div class="etat-reglement-info">
+          <span><strong>N° PC :</strong> {{ etatReglementData.facture.numero_piece }}</span>
+          <span><strong>Date PC :</strong> {{ etatReglementData.facture.date }}</span>
+          <span><strong>Réf facture :</strong> {{ etatReglementData.facture.reference_facture }}</span>
+        </div>
+
+        <div class="etat-reglement-objet">
+          <strong>Objet :</strong> {{ etatReglementData.facture.libelle }}
+        </div>
+
+        <div class="etat-reglement-montants">
+          <span><strong>Mt facture :</strong> {{ etatReglementData.facture.montant_facture }}</span>
+          <span><strong>Mt M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
+        </div>
+        <div class="etat-reglement-montants">
+          <span><strong>Avoir :</strong> {{ etatReglementData.facture.avoir }}</span>
+        </div>
+
+        <table class="etat-reglement-table">
+          <thead>
+            <tr>
+              <th>N° Ordre de règlement</th>
+              <th>Date règlement</th>
+              <th>Mode règlement</th>
+              <th>Bénéficiaire</th>
+              <th style="text-align: right;">Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(reg, index) in etatReglementData.reglements" :key="index">
+              <td>{{ reg.numero_ordre }}</td>
+              <td>{{ reg.date_reglement }}</td>
+              <td>{{ reg.mode_paiement }}</td>
+              <td>{{ reg.beneficiaire }}</td>
+              <td style="text-align: right;">{{ reg.montant }}</td>
+            </tr>
+            <tr v-if="!etatReglementData.reglements.length">
+              <td colspan="5" style="text-align: center; font-style: italic;">Aucun règlement</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="etat-reglement-totaux">
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Total règlement :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.total_reglements }}</span>
+          </div>
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Montant dû :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.montant_du }}</span>
+          </div>
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Solde :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.solde }}</span>
+          </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+          <el-button type="primary" :icon="Printer" @click="downloadEtatReglementPdf">Télécharger PDF</el-button>
+        </div>
+      </div>
+      <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune donnée trouvée.</div>
+    </el-drawer>
+
+    <!-- Drawer Mandat de Paiement -->
+    <el-drawer v-model="showMandatDrawer" title="Mandat de Paiement" direction="rtl" size="55%" :destroy-on-close="true">
+      <div v-if="mandatLoading" style="text-align: center; padding: 40px;">
+        <el-icon class="is-loading" :size="30"><Clock /></el-icon>
+        <p style="margin-top: 10px; color: #909399;">Chargement...</p>
+      </div>
+      <div v-else-if="mandatData" class="mandat-content">
+        <!-- En-tête centré comme imputation -->
+        <div class="mandat-header">
+          <div class="imputation-hospital-name">{{ mandatData.etablissement.nom }}</div>
+          <div class="imputation-hospital-info">
+            {{ mandatData.etablissement.adresse }}<br>
+            {{ mandatData.etablissement.telephone ? 'Tél.: ' + mandatData.etablissement.telephone : '' }}
+            {{ mandatData.etablissement.email ? ' - E-mail: ' + mandatData.etablissement.email : '' }}
+          </div>
+          <div class="imputation-title-box"><span>MANDAT DE PAIEMENT</span></div>
+          <p class="imputation-numero-piece"><em>N° {{ mandatData.facture.numero_piece }}/DAF/H.M.</em></p>
+        </div>
+
+        <div class="mandat-exercice"><strong>EXERCICE {{ new Date().getFullYear() }}</strong></div>
+
+        <p class="mandat-intro">
+          <em>En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital de
+          Ménontin mandate sur la caisse du Centre, la créance détaillée ci-après :</em>
+        </p>
+
+        <!-- Détails -->
+        <table class="mandat-details-table">
+          <tr>
+            <td class="mandat-label">OBJET :</td>
+            <td>{{ mandatData.facture.libelle }}</td>
+          </tr>
+          <tr><td colspan="2" style="height: 10px;"></td></tr>
+          <tr>
+            <td class="mandat-label">PRESTATAIRE :</td>
+            <td>{{ mandatData.fournisseur.nom }}</td>
+          </tr>
+          <tr><td colspan="2" style="height: 10px;"></td></tr>
+          <tr>
+            <td class="mandat-label">MONTANT FACTURE :</td>
+            <td>{{ mandatData.facture.montant_facture }} <em>FCFA</em></td>
+          </tr>
+          <tr>
+            <td class="mandat-label">MONTANT AVOIR / ESCOMPT :</td>
+            <td>{{ mandatData.facture.montant_avoir }} <em>FCFA</em></td>
+          </tr>
+          <tr v-if="mandatData.facture.taux_aib > 0">
+            <td class="mandat-label">IMPÔT / AIB {{ mandatData.facture.taux_aib }}% :</td>
+            <td>{{ mandatData.facture.montant_aib }} <em>FCFA</em></td>
+          </tr>
+          <tr><td colspan="2" style="height: 10px;"></td></tr>
+          <tr>
+            <td class="mandat-label">MONTANT PAYE (FCFA) :</td>
+            <td>
+              {{ mandatData.facture.montant_paye }} <em>FCFA</em>
+              <span class="mandat-lettres">{{ mandatData.facture.montant_paye_lettres }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="mandat-label">RESTE A PAYER (FCFA) :</td>
+            <td>
+              {{ mandatData.facture.reste_a_payer }} <em>FCFA</em>
+              <span class="mandat-lettres">{{ mandatData.facture.reste_a_payer_lettres }}</span>
+            </td>
+          </tr>
+          <tr><td colspan="2" style="height: 10px;"></td></tr>
+          <tr v-if="mandatData.facture.reference_facture">
+            <td class="mandat-label">PIECES JUSTIFICATIVES :</td>
+            <td>{{ mandatData.facture.reference_facture }}</td>
+          </tr>
+          <tr><td colspan="2" style="height: 10px;"></td></tr>
+          <tr>
+            <td class="mandat-label">MODE PAIEMENT :</td>
+            <td>
+              {{ mandatData.reglement.mode_paiement }}
+              <span v-if="mandatData.reglement.banque" style="margin-left: 30px;">{{ mandatData.reglement.banque }}</span>
+              <br v-if="mandatData.reglement.reference">
+              <span v-if="mandatData.reglement.reference">N°{{ mandatData.reglement.reference }}</span>
+              <span v-if="mandatData.reglement.date_reglement" style="margin-left: 30px;">du {{ mandatData.reglement.date_reglement }}</span>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Signatures -->
+        <p class="mandat-fait"><em><strong>Fait à Cotonou, le {{ mandatData.reglement.date_reglement }}</strong></em></p>
+
+        <table class="mandat-signatures">
+          <tr>
+            <td>
+              <strong>Le Bénéficiaire,</strong>
+              <div class="mandat-signature-name">{{ mandatData.fournisseur.nom }}</div>
+            </td>
+            <td style="text-align: right;">
+              <strong>Le Directeur,</strong>
+              <div class="mandat-signature-name">&nbsp;</div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Télécharger -->
+        <div style="text-align: right; margin-top: 30px;">
+          <el-button type="primary" :icon="Printer" @click="downloadMandatPdf">Télécharger PDF</el-button>
+        </div>
+      </div>
+      <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune donnée trouvée.</div>
+    </el-drawer>
   </AppLayout>
 </template>
 
@@ -341,14 +590,12 @@ import {
   ArrowLeft,
   ArrowDown,
   Document,
-  List,
   Operation,
   Clock,
   Money,
   Edit,
   Delete,
   Printer,
-  CopyDocument,
   User,
   Phone,
   Message,
@@ -395,6 +642,22 @@ const props = defineProps({
 // State for modal
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
+
+// Drawer Imputation Comptable
+const showImputationDrawer = ref(false);
+const imputationLoading = ref(false);
+const imputationData = ref(null);
+
+// Drawer Mandat de Paiement
+const showMandatDrawer = ref(false);
+const mandatLoading = ref(false);
+const mandatData = ref(null);
+const mandatReglementId = ref(null);
+
+// Drawer État de Règlement
+const showEtatReglementDrawer = ref(false);
+const etatReglementLoading = ref(false);
+const etatReglementData = ref(null);
 
 // Computed
 const breadcrumbs = [
@@ -567,6 +830,12 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
     case 'print':
       ElMessage.info('Impression en cours de développement...');
       break;
+    case 'imputation':
+      openImputationDrawer();
+      break;
+    case 'etat_reglement':
+      openEtatReglementDrawer();
+      break;
     case 'delete':
       ElMessageBox.confirm(
         'Êtes-vous sûr de vouloir supprimer cette facture ?',
@@ -613,16 +882,85 @@ const handleFactureSuccess = async (factureData) => {
   }
 };
 
-const handlePrintRecu = (reglement) => {
-  window.open(`/reglements-fournisseurs/${reglement.id}/recu`, '_blank');
+const openMandatDrawer = async (reglementId) => {
+  mandatReglementId.value = reglementId;
+  mandatData.value = null;
+  mandatLoading.value = true;
+  showMandatDrawer.value = true;
+
+  try {
+    const response = await fetch(`/api/reglements-fournisseurs/${reglementId}/mandat-data`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    const result = await response.json();
+    if (result.success) {
+      mandatData.value = result;
+    } else {
+      ElMessage.warning(result.message || 'Données non trouvées');
+    }
+  } catch (err) {
+    ElMessage.error('Erreur lors du chargement du mandat');
+  } finally {
+    mandatLoading.value = false;
+  }
 };
 
-const handlePrintMandat = (reglement) => {
-  window.open(`/reglements-fournisseurs/${reglement.id}/mandat`, '_blank');
+const downloadMandatPdf = () => {
+  if (mandatReglementId.value) {
+    window.open(`/reglements-fournisseurs/${mandatReglementId.value}/mandat`, '_blank');
+  }
 };
 
-const handlePrintImputation = (reglement) => {
-  window.open(`/reglements-fournisseurs/${reglement.id}/imputation`, '_blank');
+const openImputationDrawer = async () => {
+  imputationData.value = null;
+  imputationLoading.value = true;
+  showImputationDrawer.value = true;
+
+  try {
+    const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}/imputation-data`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    const result = await response.json();
+    if (result.success) {
+      imputationData.value = result;
+    } else {
+      ElMessage.warning(result.message || 'Aucune écriture trouvée');
+    }
+  } catch (err) {
+    ElMessage.error('Erreur lors du chargement des écritures');
+  } finally {
+    imputationLoading.value = false;
+  }
+};
+
+const downloadImputationPdf = () => {
+  window.open(`/factures-fournisseurs/${props.facture.id}/imputation-pdf`, '_blank');
+};
+
+const openEtatReglementDrawer = async () => {
+  etatReglementData.value = null;
+  etatReglementLoading.value = true;
+  showEtatReglementDrawer.value = true;
+
+  try {
+    const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}/etat-reglement-data`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    const result = await response.json();
+    if (result.success) {
+      etatReglementData.value = result;
+    } else {
+      ElMessage.warning(result.message || 'Données non trouvées');
+    }
+  } catch (err) {
+    ElMessage.error('Erreur lors du chargement de l\'état de règlement');
+  } finally {
+    etatReglementLoading.value = false;
+  }
+};
+
+const downloadEtatReglementPdf = () => {
+  window.open(`/factures-fournisseurs/${props.facture.id}/etat-reglement-pdf`, '_blank');
 };
 </script>
 
@@ -846,4 +1184,46 @@ const handlePrintImputation = (reglement) => {
   font-weight: 600;
   color: #6b7280;
 }
+
+/* Imputation Comptable Drawer */
+.imputation-content { padding: 0 15px; font-family: 'Times New Roman', serif; }
+.imputation-header { margin-bottom: 20px; text-align: center; }
+.imputation-hospital-name { font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+.imputation-hospital-info { font-size: 12px; color: #444; line-height: 1.6; margin-top: 4px; }
+.imputation-title-box { margin: 20px auto 15px; display: inline-block; border: 2px solid #000; padding: 8px 30px; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+.imputation-numero-piece { text-align: left; margin: 15px 0 0; font-size: 14px; }
+.imputation-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.imputation-table th { border: 1px solid #000; padding: 8px 10px; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 12px; background-color: #fff; }
+.imputation-table td { border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #ccc; padding: 6px 10px; }
+.imputation-table tbody tr:last-child td { border-bottom: 1px solid #000; }
+.imputation-table tfoot td { border: 1px solid #000; background-color: #fff; font-weight: bold; }
+
+/* Mandat de Paiement Drawer */
+.mandat-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }
+.mandat-header { margin-bottom: 15px; text-align: center; }
+.mandat-exercice { margin: 10px 0 15px; font-size: 14px; }
+.mandat-intro { margin: 0 0 20px; font-size: 13px; line-height: 1.6; }
+.mandat-details-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mandat-details-table td { padding: 3px 0; vertical-align: top; }
+.mandat-label { width: 240px; font-weight: bold; white-space: nowrap; }
+.mandat-lettres { display: inline-block; margin-left: 10px; font-size: 11px; color: #c00; text-transform: uppercase; }
+.mandat-fait { margin: 30px 0 20px; text-align: center; }
+.mandat-signatures { width: 100%; margin-top: 10px; }
+.mandat-signatures td { width: 50%; vertical-align: top; padding: 0 10px; }
+.mandat-signature-name { margin-top: 50px; font-size: 13px; }
+
+/* État de Règlement Drawer */
+.etat-reglement-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }
+.etat-reglement-header { margin-bottom: 15px; text-align: center; }
+.etat-reglement-fournisseur { margin: 10px 0; font-size: 13px; }
+.etat-reglement-info { display: flex; gap: 25px; margin: 8px 0; font-size: 13px; }
+.etat-reglement-objet { margin: 10px 0; font-size: 13px; }
+.etat-reglement-montants { display: flex; gap: 40px; margin: 3px 0; font-size: 13px; }
+.etat-reglement-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+.etat-reglement-table th { border: 1px solid #000; padding: 6px 8px; font-weight: bold; text-align: center; font-size: 11px; background-color: #fff; }
+.etat-reglement-table td { border: 1px solid #000; padding: 5px 8px; }
+.etat-reglement-totaux { display: flex; flex-direction: column; align-items: flex-end; margin-top: 10px; }
+.etat-reglement-total-row { display: flex; gap: 15px; padding: 3px 0; font-size: 13px; }
+.etat-reglement-total-label { font-weight: bold; min-width: 140px; text-align: right; }
+.etat-reglement-total-value { min-width: 100px; text-align: right; }
 </style>

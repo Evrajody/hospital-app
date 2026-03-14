@@ -75,7 +75,7 @@
           <el-form-item label="Recherche">
             <el-input
               v-model="filters.search"
-              placeholder="N° PC, référence..."
+              placeholder="N° Pièce, référence..."
               :prefix-icon="Search"
               clearable
               style="width: 250px"
@@ -202,7 +202,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="facture" label="N° PC" width="140">
+          <el-table-column prop="facture" label="N° Pièce" width="140">
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewFacture(row.facture)">
                 <strong>{{ row.facture.numero }}</strong>
@@ -307,7 +307,7 @@
               </el-tag>
             </el-descriptions-item>
 
-            <el-descriptions-item label="N° PC">
+            <el-descriptions-item label="N° Pièce">
               <el-link type="primary" @click="handleViewFacture(selectedReglement.facture)">
                 <strong>{{ selectedReglement.facture.numero }}</strong>
               </el-link>

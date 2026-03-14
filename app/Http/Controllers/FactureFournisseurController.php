@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FactureFournisseur;
 use App\Models\Fournisseur;
 use App\Models\ReglementFournisseur;
+use App\Models\EcritureComptable;
 use App\Models\Classe;
 use App\Models\CompteComptable;
 use App\Models\Banque;
@@ -46,9 +47,10 @@ class FactureFournisseurController extends Controller
             $query->recherche($request->search);
         }
 
-        // Tri
-        $sortField = $request->input('sort', 'date');
-        $sortOrder = $request->input('order', 'desc');
+        // Tri (mapping des noms Vue → colonnes SQL)
+        $sortMapping = ['numero' => 'numero_piece', 'date_facture' => 'date', 'montant_ttc' => 'montant_ttc'];
+        $sortField = $sortMapping[$request->input('sort', 'date')] ?? 'date';
+        $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortField, $sortOrder);
 
         // Pagination
@@ -81,6 +83,8 @@ class FactureFournisseurController extends Controller
                 'statut' => $facture->statut,
                 'statut_paiement' => $this->getStatutPaiement($facture),
                 'date_facture_bc' => $facture->date_facture_bc?->format('Y-m-d'),
+                'imputation_id' => $facture->imputation_id,
+                'compte_id' => $facture->compte_id,
             ];
         });
 
@@ -451,9 +455,10 @@ class FactureFournisseurController extends Controller
             $query->recherche($request->search);
         }
 
-        // Tri
-        $sortField = $request->input('sort', 'date');
-        $sortOrder = $request->input('order', 'desc');
+        // Tri (mapping des noms Vue → colonnes SQL)
+        $sortMapping = ['numero' => 'numero_piece', 'date_facture' => 'date', 'montant_ttc' => 'montant_ttc'];
+        $sortField = $sortMapping[$request->input('sort', 'date')] ?? 'date';
+        $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortField, $sortOrder);
 
         // Pagination
@@ -538,14 +543,18 @@ class FactureFournisseurController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            DB::commit();
-
             $facture->load(['fournisseur', 'imputation', 'compte']);
+
+            // Vérifier si la facture a une imputation
+            $hasImputation = $facture->imputation_id && $facture->compte_id;
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Facture créée avec succès',
                 'data' => $facture->toApiArray(),
+                'has_imputation' => $hasImputation,
             ], 201);
 
         } catch (\Exception $e) {
@@ -893,6 +902,223 @@ class FactureFournisseurController extends Controller
             'success' => true,
             'data' => $stats,
         ]);
+    }
+
+    /**
+     * Créer les écritures d'imputation comptable pour une facture (API)
+     */
+    public function creerImputation(int $id): JsonResponse
+    {
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte'])
+            ->findOrFail($id);
+
+        if (!$facture->compte_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette facture n\'a pas de compte d\'imputation',
+            ], 422);
+        }
+
+        // Vérifier si des écritures de type facture existent déjà
+        $existe = \App\Models\EcritureComptable::where('facture_id', $id)
+            ->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)
+            ->exists();
+
+        if ($existe) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Les écritures d\'imputation existent déjà pour cette facture',
+            ], 422);
+        }
+
+        try {
+            \App\Models\EcritureComptable::creerEcrituresFacture($facture);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Imputation comptable créée avec succès',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la création de l\'imputation',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Générer le PDF d'imputation comptable d'une facture
+     */
+    public function imputationPdf(int $id)
+    {
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputation'])
+            ->findOrFail($id);
+
+        $ecritures = \App\Models\EcritureComptable::where('facture_id', $id)
+            ->orderBy('date_ecriture')
+            ->orderBy('id')
+            ->get();
+
+        if ($ecritures->isEmpty()) {
+            abort(404, 'Aucune écriture comptable pour cette facture');
+        }
+
+        // Grouper par date
+        $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
+
+        $totalDebit = $ecritures->sum('debit');
+        $totalCredit = $ecritures->sum('credit');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.imputation-comptable', [
+            'facture' => $facture,
+            'ecrituresParDate' => $ecrituresParDate,
+            'totalDebit' => $totalDebit,
+            'totalCredit' => $totalCredit,
+            'user' => auth()->user(),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]);
+        $pdf->setPaper('a4', 'landscape');
+
+        return $pdf->download("imputation-comptable-{$facture->id}.pdf");
+    }
+
+    /**
+     * Récupérer les données d'imputation comptable (JSON)
+     */
+    public function imputationData(int $id): JsonResponse
+    {
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputation'])
+            ->findOrFail($id);
+
+        $ecritures = \App\Models\EcritureComptable::where('facture_id', $id)
+            ->orderBy('date_ecriture')
+            ->orderBy('id')
+            ->get();
+
+        if ($ecritures->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucune écriture comptable pour cette facture',
+            ], 404);
+        }
+
+        // Grouper par date
+        $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
+
+        $data = [];
+        foreach ($ecrituresParDate as $date => $lignes) {
+            $group = [
+                'date' => $date,
+                'lignes' => $lignes->map(fn($e) => [
+                    'numero_compte' => $e->numero_compte,
+                    'debit' => (float) $e->debit,
+                    'credit' => (float) $e->credit,
+                    'libelle' => $e->libelle,
+                ])->values()->toArray(),
+            ];
+            $data[] = $group;
+        }
+
+        return response()->json([
+            'success' => true,
+            'facture' => [
+                'id' => $facture->id,
+                'numero_piece' => $facture->numero_piece,
+                'date' => $facture->date?->format('d/m/Y'),
+                'fournisseur' => $facture->fournisseur?->nom,
+                'libelle' => $facture->libelle,
+            ],
+            'ecritures' => $data,
+            'total_debit' => (float) $ecritures->sum('debit'),
+            'total_credit' => (float) $ecritures->sum('credit'),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]);
+    }
+
+    /**
+     * Données pour le drawer "État de Règlement Facture" (JSON)
+     */
+    public function etatReglementData(int $id): JsonResponse
+    {
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable'])
+            ->findOrFail($id);
+
+        $reglements = ReglementFournisseur::where('facture_id', $id)
+            ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+            ->orderBy('date_reglement')
+            ->orderBy('id')
+            ->get();
+
+        $totalReglements = $reglements->sum('montant');
+        $montantDu = (float) $facture->montant_net;
+        $solde = $montantDu - (float) $totalReglements;
+
+        return response()->json([
+            'success' => true,
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+            'facture' => [
+                'id' => $facture->id,
+                'numero_piece' => $facture->numero_piece,
+                'date' => $facture->date?->format('d/m/Y'),
+                'reference_facture' => $facture->reference_facture,
+                'libelle' => $facture->libelle,
+                'montant_facture' => number_format((float) $facture->montant_facture, 0, ',', ' '),
+                'montant_mo' => number_format((float) $facture->montant_mo, 0, ',', ' '),
+                'avoir' => number_format((float) $facture->avoir, 0, ',', ' '),
+            ],
+            'fournisseur' => [
+                'nom' => $facture->fournisseur?->nom,
+                'code' => $facture->fournisseur?->compteComptable?->numero_compte,
+            ],
+            'reglements' => $reglements->values()->map(fn($r, $index) => [
+                'numero_ordre' => $facture->numero_piece . str_pad($index + 1, 2, '0', STR_PAD_LEFT),
+                'date_reglement' => $r->date_reglement?->format('d/m/Y'),
+                'mode_paiement' => match($r->mode_paiement) {
+                    'cheque' => 'Chèque',
+                    'virement' => 'Virement Bancaire',
+                    'especes' => 'Espèces',
+                    default => ucfirst($r->mode_paiement ?? ''),
+                },
+                'beneficiaire' => $r->beneficiaire ?: $facture->fournisseur?->nom,
+                'montant' => number_format((float) $r->montant, 0, ',', ' '),
+            ])->toArray(),
+            'total_reglements' => number_format((float) $totalReglements, 0, ',', ' '),
+            'montant_du' => number_format($montantDu, 0, ',', ' '),
+            'solde' => number_format($solde, 0, ',', ' '),
+        ]);
+    }
+
+    /**
+     * PDF "État de Règlement Facture"
+     */
+    public function etatReglementPdf(int $id)
+    {
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable'])
+            ->findOrFail($id);
+
+        $reglements = ReglementFournisseur::where('facture_id', $id)
+            ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+            ->orderBy('date_reglement')
+            ->orderBy('id')
+            ->get();
+
+        $totalReglements = $reglements->sum('montant');
+        $montantDu = (float) $facture->montant_net;
+        $solde = $montantDu - (float) $totalReglements;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.etat-reglement-facture', [
+            'facture' => $facture,
+            'fournisseur' => $facture->fournisseur,
+            'reglements' => $reglements,
+            'totalReglements' => $totalReglements,
+            'montantDu' => $montantDu,
+            'solde' => $solde,
+            'user' => auth()->user(),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]);
+
+        return $pdf->stream("etat-reglement-{$facture->id}.pdf");
     }
 
     /**

@@ -117,6 +117,21 @@ Route::prefix('api/factures-fournisseurs')->group(function () {
     Route::post('/{id}/solder', [FactureFournisseurController::class, 'solder'])
         ->where('id', '[0-9]+')
         ->name('api.factures-fournisseurs.solder');
+
+    // Créer l'imputation comptable d'une facture
+    Route::post('/{id}/imputation', [FactureFournisseurController::class, 'creerImputation'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.imputation');
+
+    // Données d'imputation comptable (JSON)
+    Route::get('/{id}/imputation-data', [FactureFournisseurController::class, 'imputationData'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.imputation-data');
+
+    // Données état de règlement facture (JSON)
+    Route::get('/{id}/etat-reglement-data', [FactureFournisseurController::class, 'etatReglementData'])
+        ->where('id', '[0-9]+')
+        ->name('api.factures-fournisseurs.etat-reglement-data');
 });
 
 // API Règlements Fournisseurs (JSON)
@@ -152,6 +167,11 @@ Route::prefix('api/reglements-fournisseurs')->group(function () {
     Route::get('/facture/{factureId}', [ReglementFournisseurController::class, 'parFacture'])
         ->where('factureId', '[0-9]+')
         ->name('api.reglements-fournisseurs.par-facture');
+
+    // Données du mandat de paiement (JSON)
+    Route::get('/{id}/mandat-data', [ReglementFournisseurController::class, 'mandatData'])
+        ->where('id', '[0-9]+')
+        ->name('api.reglements-fournisseurs.mandat-data');
 });
 
 // Factures Fournisseurs Routes
@@ -198,6 +218,16 @@ Route::prefix('factures-fournisseurs')->group(function () {
     Route::get('/{id}/regler', [FactureFournisseurController::class, 'reglementView'])
         ->where('id', '[0-9]+')
         ->name('factures-fournisseurs.regler');
+
+    // PDF Imputation comptable d'une facture
+    Route::get('/{id}/imputation-pdf', [FactureFournisseurController::class, 'imputationPdf'])
+        ->where('id', '[0-9]+')
+        ->name('factures-fournisseurs.imputation-pdf');
+
+    // PDF État de règlement facture
+    Route::get('/{id}/etat-reglement-pdf', [FactureFournisseurController::class, 'etatReglementPdf'])
+        ->where('id', '[0-9]+')
+        ->name('factures-fournisseurs.etat-reglement-pdf');
 
     // Routes commentées - Édition se fait maintenant via modal
     /*
@@ -279,44 +309,7 @@ Route::prefix('reglements-fournisseurs')->group(function () {
     Route::get('/', [ReglementFournisseurController::class, 'indexView'])
         ->name('reglements-fournisseurs.index');
 
-    // Documents de règlement
-    Route::get('/{id}/recu', function ($id) {
-        // Trouver le règlement dans les données mock
-        $reglement = [
-            'id' => $id,
-            'date_reglement' => '2025-01-20',
-            'facture' => [
-                'id' => 1,
-                'numero' => 'PC/025/0001',
-                'date_facture' => '2025-01-15'
-            ],
-            'fournisseur' => [
-                'id' => 1,
-                'code' => 'FOUR001',
-                'nom' => 'Pharmacie Centrale du Bénin',
-                'compte_numero' => '401001',
-                'ifu' => '0000000000001',
-                'rccm' => 'RB/COT/XX-X-00001'
-            ],
-            'mode_paiement' => 'virement',
-            'reference' => 'VIR-2025-001',
-            'compte_bancaire' => [
-                'banque' => 'ORABANK',
-                'numero' => 'BJ123456789'
-            ],
-            'montant' => 2000000,
-            'user' => [
-                'name' => 'Admin User'
-            ]
-        ];
-
-        return Inertia::render('Documents/RecuPaiement', [
-            'reglement' => $reglement
-        ]);
-    })->name('reglements-fournisseurs.recu');
-
     Route::get('/{id}/mandat', [ReglementFournisseurController::class, 'mandat'])->name('reglements-fournisseurs.mandat');
-    Route::get('/{id}/imputation', [ReglementFournisseurController::class, 'imputation'])->name('reglements-fournisseurs.imputation');
 });
 
 // Clients Routes

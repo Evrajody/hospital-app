@@ -54,7 +54,7 @@
               <el-col :span="6">
                 <el-form-item prop="numero_piece">
                   <template #label>
-                    <span>N° PC <span class="required-star">*</span></span>
+                    <span>N° Pièce <span class="required-star">*</span></span>
                   </template>
                   <el-input
                     v-model="form.numero_piece"
@@ -85,7 +85,7 @@
               <el-col :span="6">
                 <el-form-item prop="date">
                   <template #label>
-                    <span>Date <span class="required-star">*</span></span>
+                    <span>Date Enregistrement <span class="required-star">*</span></span>
                   </template>
                   <el-date-picker
                     v-model="form.date"
@@ -94,6 +94,17 @@
                     format="DD/MM/YYYY"
                     value-format="YYYY-MM-DD"
                     style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+
+                  <!-- Référence Facture -->
+              <el-col :span="6">
+                <el-form-item label="Référence Fact / N° B.C" prop="reference_facture">
+                  <el-input
+                    v-model="form.reference_facture"
+                    placeholder="N° bon de commande"
+                    :prefix-icon="DocumentCopy"
                   />
                 </el-form-item>
               </el-col>
@@ -112,16 +123,7 @@
                 </el-form-item>
               </el-col>
 
-              <!-- Référence Facture -->
-              <el-col :span="6">
-                <el-form-item label="Référence Fact / N° B.C" prop="reference_facture">
-                  <el-input
-                    v-model="form.reference_facture"
-                    placeholder="N° bon de commande"
-                    :prefix-icon="DocumentCopy"
-                  />
-                </el-form-item>
-              </el-col>
+          
             </el-row>
 
             <el-row :gutter="20">
@@ -157,7 +159,7 @@
               <el-col :span="12">
                 <el-form-item prop="libelle">
                   <template #label>
-                    <span>Libellé <span class="required-star">*</span></span>
+                    <span>Libellé Facture<span class="required-star">*</span></span>
                   </template>
                   <el-input
                     v-model="form.libelle"
@@ -556,7 +558,7 @@ const tabOrder = ['general', 'montants', 'observations'];
 
 // Labels des champs
 const fieldLabels = {
-  numero_piece: 'N° PC',
+  numero_piece: 'N° Pièce',
   date: 'Date',
   reference_facture: 'Référence',
   fournisseur_id: 'Fournisseur',
@@ -663,7 +665,7 @@ const handleImputationChange = () => {
 // Validation rules
 const rules = computed(() => ({
   numero_piece: [
-    { required: true, message: 'Le N° PC est obligatoire', trigger: 'blur' },
+    { required: true, message: 'Le N° Pièce est obligatoire', trigger: 'blur' },
     {
       validator: (rule, value, callback) => {
         if (numeroError.value) {

@@ -996,6 +996,7 @@ class RapportFournisseurController extends Controller
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
         $result['generatedBy'] = auth()->user()?->name ?? 'Utilisateur';
         $result['generatedAtLong'] = now()->translatedFormat('l d F Y');
+        $result['etablissement'] = \App\Models\Setting::getEtablissement();
 
         $view = $result['mode'] === 'par_banque'
             ? 'pdf.rapports-fournisseurs.situation-banques-detail'

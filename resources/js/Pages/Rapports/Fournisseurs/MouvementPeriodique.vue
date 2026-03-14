@@ -100,7 +100,7 @@
         <table class="data-table mouvement-table">
           <thead>
             <tr>
-              <th style="width: 80px">N°PC</th>
+              <th style="width: 80px">N°Pièce</th>
               <th style="width: 75px">Date PC</th>
               <th style="width: 90px">Réf. Fact.</th>
               <th class="montant-col">Mt Fact.</th>
