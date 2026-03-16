@@ -460,7 +460,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, watch, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -735,9 +735,11 @@ const handleFactureSuccess = async (factureData) => {
       showFactureModal.value = false;
       selectedFacture.value = null;
 
-      // Si la facture a une imputation et qu'elle vient d'être créée, demander confirmation
-      if (!isEdit && result.has_imputation && result.data?.id) {
+      // Si la facture a une imputation, demander confirmation
+      if (result.has_imputation && result.data?.id) {
         const factureId = result.data.id;
+        // Attendre que le dialog se ferme complètement avant d'afficher le MessageBox
+        await new Promise(resolve => setTimeout(resolve, 600));
         try {
           await ElMessageBox.confirm(
             'Autorisez-vous une imputation comptable à l\'enregistrement de cette pièce comptable ?',

@@ -127,6 +127,14 @@ const rules = {
   ]
 };
 
+// Props (errors from backend)
+const props = defineProps({
+  errors: {
+    type: Object,
+    default: () => ({})
+  }
+});
+
 // Methods
 const handleLogin = async () => {
   if (!loginFormRef.value) return;
@@ -135,11 +143,21 @@ const handleLogin = async () => {
     if (valid) {
       form.processing = true;
 
-      // TODO: Replace with actual API call when backend is ready
-      setTimeout(() => {
-        ElMessage.success('Connexion réussie !');
-        router.visit('/dashboard');
-      }, 1000);
+      router.post('/login', {
+        email: form.email,
+        password: form.password,
+        remember: form.remember,
+      }, {
+        onFinish: () => {
+          form.processing = false;
+        },
+        onError: (errors) => {
+          if (errors.email) {
+            ElMessage.error(errors.email);
+          }
+          form.processing = false;
+        },
+      });
     }
   });
 };

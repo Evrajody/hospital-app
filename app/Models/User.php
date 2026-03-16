@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * Constantes pour les rôles
@@ -117,11 +118,5 @@ class User extends Authenticatable
         return $query->where('is_active', true);
     }
 
-    /**
-     * Scope pour filtrer par rôle
-     */
-    public function scopeRole($query, string $role)
-    {
-        return $query->where('role', $role);
-    }
+    // Le scope role() est maintenant fourni par le trait HasRoles de Spatie
 }

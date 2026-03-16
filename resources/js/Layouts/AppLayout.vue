@@ -98,9 +98,13 @@
             <el-icon><Setting /></el-icon>
             <span>Paramètres</span>
           </template>
-          <el-menu-item index="/utilisateurs" @click="navigate('/utilisateurs')">
+          <el-menu-item v-if="can('utilisateurs.voir')" index="/utilisateurs" @click="navigate('/utilisateurs')">
             <el-icon><User /></el-icon>
             <template #title>Utilisateurs</template>
+          </el-menu-item>
+          <el-menu-item v-if="can('roles.voir')" index="/roles" @click="navigate('/roles')">
+            <el-icon><Key /></el-icon>
+            <template #title>Rôles & Permissions</template>
           </el-menu-item>
           <el-menu-item index="/taux-fiscaux" @click="navigate('/taux-fiscaux')">
             <el-icon><List /></el-icon>
@@ -134,7 +138,7 @@
           <el-dropdown @command="handleCommand">
             <div class="user-profile">
               <el-avatar :size="32" :icon="UserFilled" />
-              <span class="username">{{ user?.name || 'Utilisateur' }}</span>
+              <span class="username">{{ authUser?.name || 'Utilisateur' }}</span>
               <el-icon><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
@@ -167,7 +171,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import {
   OfficeBuilding,
   HomeFilled,
@@ -183,7 +187,8 @@ import {
   SwitchButton,
   Expand,
   Fold,
-  List
+  List,
+  Key
 } from '@element-plus/icons-vue';
 
 // Props
@@ -197,6 +202,16 @@ const props = defineProps({
     default: () => []
   }
 });
+
+// Auth partagé via Inertia
+const page = usePage();
+const authUser = computed(() => page.props.auth?.user || props.user);
+const userPermissions = computed(() => authUser.value?.permissions || []);
+
+const can = (permission) => {
+  if (!userPermissions.value.length) return true; // Si pas de permissions chargées, accès libre (fallback)
+  return userPermissions.value.includes(permission);
+};
 
 // State
 const isCollapse = ref(false);

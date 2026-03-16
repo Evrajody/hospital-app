@@ -12,32 +12,37 @@ use App\Http\Controllers\ReglementClientController;
 use App\Http\Controllers\TauxFiscalController;
 use App\Http\Controllers\RapportClientController;
 use App\Http\Controllers\RapportFournisseurController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\RoleController;
 use App\Models\Client;
 use App\Models\FactureClient;
 use App\Models\ReglementClient;
 use App\Models\Banque;
 use App\Models\CompteBancaire;
 
-// Page d'accueil (Welcome)
+// Page d'accueil → redirect to login or dashboard
 Route::get('/', function () {
-
-    return Inertia::render('Welcome');
+    return auth()->check() ? redirect('/dashboard') : redirect('/login');
 });
 
-// Authentication Routes (UI only for now)
-Route::get('/login', function () {
-    return Inertia::render('Auth/Login');
-})->name('login');
+// Authentication Routes
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'loginPage'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+});
 
-// Dashboard (Protected - pour l'instant accessible sans auth)
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// Dashboard
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard', [
-        'user' => [
-            'name' => 'Utilisateur Test',
-            'email' => 'test@example.com'
-        ]
-    ]);
-})->name('dashboard');
+    return Inertia::render('Dashboard');
+})->middleware('auth')->name('dashboard');
+
+// ==========================================
+// TOUTES LES ROUTES PROTÉGÉES PAR AUTH
+// ==========================================
+Route::middleware('auth')->group(function () {
 
 // ==========================================
 // FOURNISSEURS ROUTES (CRUD FONCTIONNEL)
@@ -715,10 +720,6 @@ Route::prefix('rapports')->group(function () {
 });
 
 // Paramètres Routes
-Route::get('/utilisateurs', function () {
-    return Inertia::render('Dashboard'); // Placeholder
-})->name('utilisateurs.index');
-
 Route::get('/taux-fiscaux', [TauxFiscalController::class, 'index'])->name('taux-fiscaux.index');
 
 // API Taux Fiscaux
@@ -729,6 +730,27 @@ Route::prefix('api/taux-fiscaux')->group(function () {
     Route::patch('/{id}/toggle', [TauxFiscalController::class, 'toggleActif'])->name('api.taux-fiscaux.toggle');
 });
 
+// Administration - Utilisateurs
+Route::get('/utilisateurs', [UserController::class, 'index'])->name('utilisateurs.index');
+Route::prefix('api/utilisateurs')->group(function () {
+    Route::post('/', [UserController::class, 'store'])->name('api.utilisateurs.store');
+    Route::put('/{id}', [UserController::class, 'update'])->name('api.utilisateurs.update');
+    Route::delete('/{id}', [UserController::class, 'destroy'])->name('api.utilisateurs.destroy');
+    Route::patch('/{id}/toggle-active', [UserController::class, 'toggleActive'])->name('api.utilisateurs.toggle-active');
+});
+
+// Administration - Rôles & Permissions
+Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+Route::prefix('api/roles')->group(function () {
+    Route::post('/', [RoleController::class, 'storeRole'])->name('api.roles.store');
+    Route::put('/{id}', [RoleController::class, 'updateRole'])->name('api.roles.update');
+    Route::delete('/{id}', [RoleController::class, 'destroyRole'])->name('api.roles.destroy');
+});
+Route::prefix('api/permissions')->group(function () {
+    Route::post('/', [RoleController::class, 'storePermission'])->name('api.permissions.store');
+    Route::delete('/{id}', [RoleController::class, 'destroyPermission'])->name('api.permissions.destroy');
+});
+
 // User Profile Routes
 Route::get('/profile', function () {
     return Inertia::render('Dashboard'); // Placeholder
@@ -737,3 +759,5 @@ Route::get('/profile', function () {
 Route::get('/settings', function () {
     return Inertia::render('Dashboard'); // Placeholder
 })->name('settings');
+
+}); // Fin du middleware auth

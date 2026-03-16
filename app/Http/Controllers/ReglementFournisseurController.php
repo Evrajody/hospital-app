@@ -229,14 +229,14 @@ class ReglementFournisseurController extends Controller
                 $numeroCompteBancaire = $compteBancaire->numero_compte;
             }
 
-            // Calcul AIB si déduction demandée
+            // AIB : on enregistre juste la déclaration (date du jour)
             $deduireAib = (bool) $request->input('deduire_aib', false);
-            $montantAibDeduit = 0;
             $compteAib = null;
+            $dateAib = null;
 
             if ($deduireAib && $facture->type_reduction && $facture->taux > 0) {
-                $montantAibDeduit = ($montantReglement * (float) $facture->taux) / 100;
                 $compteAib = $facture->type_reduction;
+                $dateAib = $request->date_aib ?? now()->toDateString();
             }
 
             // Créer le règlement (utiliser le montant converti en float)
@@ -254,8 +254,9 @@ class ReglementFournisseurController extends Controller
                 'compte_tresorerie_id' => $request->compte_tresorerie_id,
                 'observations' => $request->observations,
                 'deduire_aib' => $deduireAib,
-                'montant_aib_deduit' => $montantAibDeduit,
+                'montant_aib_deduit' => 0,
                 'compte_aib' => $compteAib,
+                'date_aib' => $dateAib,
                 'statut' => ReglementFournisseur::STATUT_VALIDE,
                 'created_by' => auth()->id(),
             ]);
@@ -272,7 +273,7 @@ class ReglementFournisseurController extends Controller
             if ($facture->compte_id) {
                 $facture->load(['fournisseur.compteComptable']);
                 $reglement->load(['compteTresorerie']);
-                EcritureComptable::creerEcrituresReglement($reglement, $facture, $deduireAib);
+                EcritureComptable::creerEcrituresReglement($reglement, $facture);
             }
 
             DB::commit();

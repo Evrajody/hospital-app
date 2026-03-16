@@ -297,12 +297,9 @@
                   <el-form-item label=" ">
                     <el-checkbox
                       v-model="form.deduire_aib"
-                      :label="`Déduire l'AIB (${facture.taux}%)`"
+                      :label="`Déclarer l'AIB (${facture.taux}%)`"
                       size="large"
                     />
-                    <div v-if="form.deduire_aib" class="aib-info">
-                      Montant AIB déduit : <strong>{{ formatMontant(montantAibReglement) }}</strong>
-                    </div>
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -520,10 +517,7 @@ const form = reactive({
   remarques: ''
 });
 
-const montantAibReglement = computed(() => {
-  if (!form.deduire_aib || !props.facture.taux) return 0;
-  return ((form.montant || 0) * parseFloat(props.facture.taux)) / 100;
-});
+// L'AIB est déjà déduit du montant net de la facture, pas de calcul ici
 
 // Validation rules
 const rules = {
@@ -650,6 +644,7 @@ const buildPayload = (forceInsufficient = false) => {
     numero_compte_bancaire: selectedCompte.value ? selectedCompte.value.numero_compte : null,
     observations: form.remarques || null,
     deduire_aib: form.deduire_aib || false,
+    date_aib: form.deduire_aib ? new Date().toISOString().split('T')[0] : null,
     force_insufficient_balance: forceInsufficient
   };
 };
@@ -672,6 +667,26 @@ const submitPayment = async (forceInsufficient = false) => {
 
     if (data.success) {
       ElMessage.success(data.message || 'Règlement enregistré avec succès');
+
+      // Proposer l'imputation comptable si la facture a une imputation
+      if (props.facture.imputation && props.facture.compte) {
+        try {
+          await ElMessageBox.confirm(
+            'Voulez-vous voir l\'imputation comptable de cette facture ?',
+            'Imputation Comptable',
+            {
+              confirmButtonText: 'Oui, voir',
+              cancelButtonText: 'Non',
+              type: 'info',
+            }
+          );
+          router.visit(`/factures-fournisseurs/${props.facture.id}`);
+          return;
+        } catch {
+          // L'utilisateur a annulé
+        }
+      }
+
       router.visit(`/factures-fournisseurs/${props.facture.id}/regler`);
     } else if (data.insufficient_balance) {
       insufficientData.solde = data.solde_actuel;

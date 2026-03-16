@@ -311,7 +311,7 @@ class FactureFournisseurController extends Controller
      */
     public function reglementView(int $id): InertiaResponse
     {
-        $facture = FactureFournisseur::with(['fournisseur'])
+        $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte'])
             ->findOrFail($id);
 
         $factureData = [
@@ -332,13 +332,16 @@ class FactureFournisseurController extends Controller
             'type_reduction_libelle' => $facture->type_reduction_libelle,
             'taux' => (float) $facture->taux,
             'montant_reduction' => (float) $facture->montant_reduction,
-            'montant_aib' => (float) $facture->montant_reduction, // Alias pour compatibilité
+            'montant_aib' => (float) $facture->montant_reduction,
             // Net à payer et reste
             'montant_net' => (float) $facture->montant_net,
             'montant_paye' => (float) $facture->montant_paye,
             'reste_a_payer' => (float) $facture->reste_a_payer,
             'statut' => $facture->statut,
             'statut_paiement' => $this->getStatutPaiement($facture),
+            // Imputation (pour le modal après règlement)
+            'imputation' => $facture->imputation ? true : false,
+            'compte' => $facture->compte ? true : false,
         ];
 
         // Récupérer les règlements existants depuis la base
@@ -620,10 +623,13 @@ class FactureFournisseurController extends Controller
 
             $facture->load(['fournisseur', 'imputation', 'compte']);
 
+            $hasImputation = $facture->imputation_id && $facture->compte_id;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Facture modifiée avec succès',
                 'data' => $facture->toApiArray(),
+                'has_imputation' => $hasImputation,
             ]);
 
         } catch (\Exception $e) {
@@ -919,19 +925,13 @@ class FactureFournisseurController extends Controller
             ], 422);
         }
 
-        // Vérifier si des écritures de type facture existent déjà
-        $existe = \App\Models\EcritureComptable::where('facture_id', $id)
-            ->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)
-            ->exists();
-
-        if ($existe) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Les écritures d\'imputation existent déjà pour cette facture',
-            ], 422);
-        }
-
         try {
+            // Supprimer les anciennes écritures de type facture si elles existent (cas modification)
+            \App\Models\EcritureComptable::where('facture_id', $id)
+                ->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)
+                ->delete();
+
+            // Créer les nouvelles écritures
             \App\Models\EcritureComptable::creerEcrituresFacture($facture);
 
             return response()->json([

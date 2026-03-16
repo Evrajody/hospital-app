@@ -57,6 +57,14 @@ class EcritureComptable extends Model
         }
 
         $montant = (float) $facture->montant_facture;
+        $montantAib = 0;
+
+        // Vérifier si la facture a un AIB défini
+        if ($facture->type_reduction && $facture->taux > 0) {
+            $montantAib = (float) $facture->montant_reduction;
+        }
+
+        $montantCredit = $montant - $montantAib;
 
         // Débit: compte d'imputation (ex: 60111)
         self::create([
@@ -77,10 +85,26 @@ class EcritureComptable extends Model
             'date_ecriture' => $facture->date,
             'numero_compte' => $compteCredit,
             'debit' => 0,
-            'credit' => $montant,
+            'credit' => $montantCredit,
             'libelle' => null,
             'type' => self::TYPE_FACTURE,
         ]);
+
+        // Crédit: compte AIB (si AIB défini sur la facture)
+        if ($montantAib > 0) {
+            $compteAib = $facture->type_reduction ?: '44731';
+
+            self::create([
+                'facture_id' => $facture->id,
+                'reglement_id' => null,
+                'date_ecriture' => $facture->date,
+                'numero_compte' => $compteAib,
+                'debit' => 0,
+                'credit' => $montantAib,
+                'libelle' => 'S/ AIB ' . $facture->taux . '%',
+                'type' => self::TYPE_FACTURE,
+            ]);
+        }
     }
 
     /**
@@ -88,8 +112,7 @@ class EcritureComptable extends Model
      */
     public static function creerEcrituresReglement(
         ReglementFournisseur $reglement,
-        FactureFournisseur $facture,
-        bool $deduireAib = false
+        FactureFournisseur $facture
     ): void {
         $compteFournisseur = $facture->fournisseur?->compteComptable
             ? $facture->fournisseur->compteComptable->numero_compte
@@ -118,10 +141,10 @@ class EcritureComptable extends Model
             'type' => self::TYPE_REGLEMENT,
         ]);
 
-        // Calcul AIB si déduction demandée
+        // AIB : toujours présent si la facture a un taux AIB défini
         $montantAib = 0;
-        if ($deduireAib && $facture->type_reduction && $facture->taux > 0) {
-            $montantAib = ($montantReglement * (float) $facture->taux) / 100;
+        if ($facture->type_reduction && $facture->taux > 0) {
+            $montantAib = (float) $facture->montant_reduction;
         }
 
         $montantBanque = $montantReglement - $montantAib;
@@ -149,7 +172,7 @@ class EcritureComptable extends Model
             'type' => self::TYPE_REGLEMENT,
         ]);
 
-        // Crédit: compte AIB (si déduction)
+        // Crédit: compte AIB (automatique si la facture a un AIB)
         if ($montantAib > 0) {
             $compteAib = $facture->type_reduction ?: '44731';
 

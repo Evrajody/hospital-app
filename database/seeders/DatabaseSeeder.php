@@ -4,6 +4,7 @@
 namespace Database\Seeders;
 
 
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Seeder;
 
 
@@ -24,6 +25,8 @@ class DatabaseSeeder extends Seeder
 
         // Taux fiscaux (TVA, AIB)
         $this->call(TauxFiscalSeeder::class);
+
+        $this->call(RolesAndPermissionsSeeder::class);
 
         // Fournisseurs et factures de test
         // $this->call(FournisseurFactureSeeder::class);
