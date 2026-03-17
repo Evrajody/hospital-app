@@ -1,8 +1,25 @@
 <template>
   <div class="tab-content">
-    <!-- Filtres partagés -->
+    <!-- Filtres -->
     <div class="filters-section">
       <el-form :inline="true" class="filters-form">
+        <el-form-item label="Fournisseur">
+          <el-select
+            v-model="selectedFournisseurId"
+            placeholder="Tous les fournisseurs"
+            filterable
+            clearable
+            style="width: 300px"
+          >
+            <el-option
+              v-for="f in fournisseurs"
+              :key="f.id"
+              :label="`[${f.code}] ${f.nom}`"
+              :value="f.id"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="Mode">
           <el-radio-group v-model="selectedMode" size="default">
             <el-radio-button label="date">Date</el-radio-button>
@@ -60,24 +77,24 @@
               <span class="sub-tab-label">Résumé par fournisseur</span>
             </template>
 
-            <el-table :data="resume" border size="small" stripe show-summary :summary-method="getSummaryResume">
+            <el-table style="width: 100%" :data="resume" border size="small" stripe show-summary :summary-method="getSummaryResume">
               <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" />
-              <el-table-column label="Total Mt Fact." width="130" align="right">
+              <el-table-column label="Total Mt Fact." min-width="130" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_facture) }}</template>
               </el-table-column>
-              <el-table-column label="Total Avoir" width="110" align="right">
+              <el-table-column label="Total Avoir" min-width="110" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_avoir) }}</template>
               </el-table-column>
-              <el-table-column label="Total Mt M.O." width="120" align="right">
+              <el-table-column label="Total Mt M.O." min-width="120" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_mo) }}</template>
               </el-table-column>
-              <el-table-column label="Total AIB" width="110" align="right">
+              <el-table-column label="Total AIB" min-width="110" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_aib) }}</template>
               </el-table-column>
-              <el-table-column label="Total Rég. Période" width="140" align="right">
+              <el-table-column label="Total Rég. Période" min-width="140" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_reg_periode) }}</template>
               </el-table-column>
-              <el-table-column label="Total Mt Rég." width="130" align="right">
+              <el-table-column label="Total Mt Rég." min-width="130" align="right">
                 <template #default="{ row }">
                   <span style="font-weight: bold;">{{ formatMontant(row.total_mt_reg) }}</span>
                 </template>
@@ -100,45 +117,51 @@
               <div class="fournisseur-header-box">
                 <strong>Fournisseur :</strong> {{ fData.fournisseur }}
               </div>
-              <el-table :data="fData.lignes" border size="small" stripe>
-                <el-table-column prop="numero_piece" label="N°Pièce" width="90" />
-                <el-table-column prop="date" label="Date PC" width="85" />
-                <el-table-column prop="date_reglement" label="Date Règ." width="85" />
-                <el-table-column label="Mt Fact." width="95" align="right">
+              <el-table style="width: 100%" :data="fData.lignes" border size="small" stripe>
+                <el-table-column prop="numero_piece" label="N°PC" min-width="90" />
+                <el-table-column prop="date" label="Date PC" min-width="85" />
+                <el-table-column prop="date_reglement" label="Date Règ." min-width="85" />
+                <el-table-column label="Mt Fact." min-width="95" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
                 </el-table-column>
-                <el-table-column label="Avoir" width="80" align="right">
+                <el-table-column label="Avoir" min-width="80" align="right">
                   <template #default="{ row }">{{ formatMontant(row.avoir) }}</template>
                 </el-table-column>
-                <el-table-column label="Mt M.O." width="85" align="right">
+                <el-table-column label="Mt M.O." min-width="85" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_mo) }}</template>
                 </el-table-column>
-                <el-table-column label="AIB (%)" width="65" align="right">
+                <el-table-column label="AIB" min-width="65" align="right">
                   <template #default="{ row }">{{ row.taux_aib ? row.taux_aib.toFixed(1) + '%' : '0%' }}</template>
                 </el-table-column>
-                <el-table-column label="Mt AIB" width="85" align="right">
+                <el-table-column label="Mt AIB" min-width="85" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
                 </el-table-column>
-                <el-table-column label="Rég. Période" width="110" align="right">
+                <el-table-column label="Rég. Période" min-width="110" align="right">
                   <template #default="{ row }">{{ formatMontant(row.reg_periode) }}</template>
                 </el-table-column>
-                <el-table-column label="Mt Total Rég." width="110" align="right">
+                <el-table-column label="Mt Total Rég." min-width="110" align="right">
                   <template #default="{ row }">
                     <span style="font-weight: bold;">{{ formatMontant(row.mt_total_reg) }}</span>
                   </template>
                 </el-table-column>
               </el-table>
               <div class="fournisseur-totals">
-                Total Fournisseur : Mt Fact. <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong>
-                &nbsp;|&nbsp; Rég. Période <strong>{{ formatMontant(fData.totaux.reg_periode) }}</strong>
-                &nbsp;|&nbsp; Mt Total Rég. <strong>{{ formatMontant(fData.totaux.mt_total_reg) }}</strong>
+                <span><strong>Total Fournisseur :</strong></span>
+                <span>Mt Fact. <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong></span>
+                <span>Avoir <strong>{{ formatMontant(fData.totaux.avoir) }}</strong></span>
+                <span>Mt M.O. <strong>{{ formatMontant(fData.totaux.montant_mo) }}</strong></span>
+                <span>AIB <strong>{{ formatMontant(fData.totaux.montant_aib) }}</strong></span>
+                <span>Rég. Période <strong>{{ formatMontant(fData.totaux.reg_periode) }}</strong></span>
+                <span>Mt Total Rég. <strong>{{ formatMontant(fData.totaux.mt_total_reg) }}</strong></span>
               </div>
             </div>
 
             <!-- Grand Total -->
             <div class="grand-total">
-              <span>TOTAL GÉNÉRAL — Mt Fact. : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
+              <span>TOTAL GÉNÉRAL</span>
+              <span>Mt Fact. : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
               <span>Avoir : <strong>{{ formatMontant(grandTotaux.avoir) }}</strong></span>
+              <span>Mt M.O. : <strong>{{ formatMontant(grandTotaux.montant_mo) }}</strong></span>
               <span>AIB : <strong>{{ formatMontant(grandTotaux.montant_aib) }}</strong></span>
               <span>Rég. Période : <strong>{{ formatMontant(grandTotaux.reg_periode) }}</strong></span>
               <span style="font-weight: bold;">Mt Total Rég. : {{ formatMontant(grandTotaux.mt_total_reg) }}</span>
@@ -159,6 +182,11 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 
+const props = defineProps({
+  fournisseurs: { type: Array, default: () => [] },
+});
+
+const selectedFournisseurId = ref(null);
 const selectedMode = ref('date');
 const dateRef = ref('');
 const dateDebut = ref('');
@@ -191,6 +219,9 @@ const fetchData = async () => {
     } else {
       params.append('date_debut', dateDebut.value);
       params.append('date_fin', dateFin.value);
+    }
+    if (selectedFournisseurId.value) {
+      params.append('fournisseur_id', selectedFournisseurId.value);
     }
 
     const res = await fetch(`/rapports/fournisseurs/api/factures-reglees?${params}`);
@@ -229,6 +260,9 @@ const buildPdfParams = (type) => {
   } else {
     params.append('date_debut', dateDebut.value);
     params.append('date_fin', dateFin.value);
+  }
+  if (selectedFournisseurId.value) {
+    params.append('fournisseur_id', selectedFournisseurId.value);
   }
   return params;
 };

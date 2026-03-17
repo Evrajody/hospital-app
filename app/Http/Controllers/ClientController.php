@@ -58,8 +58,11 @@ class ClientController extends Controller
                 'libelle' => $c->libelle,
             ]);
 
-        // Comptes parents pour la création de nouveaux comptes
-        $comptesParents = CompteComptable::whereIn('numero_compte', ['41', '4111', '424100'])
+        // Comptes parents pour la création de nouveaux comptes (tous les comptes clients)
+        $comptesParents = CompteComptable::where(function ($q) {
+                $q->where('numero_compte', 'LIKE', '41%')
+                  ->orWhere('numero_compte', 'LIKE', '424100%');
+            })
             ->orderBy('numero_compte')
             ->get()
             ->map(fn($c) => [

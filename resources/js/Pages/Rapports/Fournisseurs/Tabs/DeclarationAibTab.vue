@@ -50,21 +50,21 @@
 
             <div class="report-title">{{ titreDeclaration }}</div>
 
-            <el-table :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryDeclaration">
-              <el-table-column prop="numero_piece" label="N°Pièce" width="100" />
-              <el-table-column prop="date" label="Date AIB" width="90" />
-              <el-table-column prop="fournisseur" label="Fournisseur" width="220" />
+            <el-table style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryDeclaration">
+              <el-table-column prop="numero_piece" label="N°Pièce" min-width="100" />
+              <el-table-column prop="date" label="Date AIB" min-width="90" />
+              <el-table-column prop="fournisseur" label="Fournisseur" min-width="220" />
               <el-table-column prop="libelle" label="Libellé facture" min-width="200" />
-              <el-table-column label="Mt Fac" width="100" align="right">
+              <el-table-column label="Mt Fac" min-width="100" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
               </el-table-column>
-              <el-table-column label="Mt M.O." width="100" align="right">
+              <el-table-column label="Mt M.O." min-width="100" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_mo) }}</template>
               </el-table-column>
-              <el-table-column label="Taux AIB" width="75" align="right">
+              <el-table-column label="Taux AIB" min-width="75" align="right">
                 <template #default="{ row }">{{ Math.round(row.taux_aib) }}%</template>
               </el-table-column>
-              <el-table-column label="Montant AIB" width="100" align="right">
+              <el-table-column label="Montant AIB" min-width="100" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
               </el-table-column>
             </el-table>
@@ -83,15 +83,15 @@
               <div class="bordereau-title">BORDEREAU DE VERSEMENT DES PRÉLÈVEMENTS D'ACOMPTE IMPUTABLE SUR L'IMPÔT ASSIS SUR LES BÉNÉFICES</div>
 
               <div class="bordereau-section-header">II- LIQUIDATION DES DROITS</div>
-              <el-table :data="bordereauRows" border size="small" :show-header="true">
+              <el-table style="width: 100%" :data="bordereauRows" border size="small" :show-header="true">
                 <el-table-column prop="nature" label="NATURE" min-width="300" />
-                <el-table-column label="BASE" width="130" align="right">
+                <el-table-column label="BASE" min-width="130" align="right">
                   <template #default="{ row }">
                     <span v-if="row.isCategory" style="font-weight: bold;"></span>
                     <span v-else>{{ row.base !== null ? formatMontant(row.base) : '-' }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="MONTANT" width="130" align="right">
+                <el-table-column label="MONTANT" min-width="130" align="right">
                   <template #default="{ row }">
                     <span v-if="row.isCategory"></span>
                     <span v-else-if="row.isTotal" style="font-weight: bold; font-size: 14px;">{{ formatMontant(row.montant) }}</span>
@@ -117,18 +117,18 @@
 
             <div class="report-title">{{ titreEtat }}</div>
 
-            <el-table :data="lignesTfu" border size="small" stripe show-summary :summary-method="getSummaryTfu">
-              <el-table-column prop="numero" label="N°" width="50" align="center" />
-              <el-table-column prop="ifu" label="N° IFU" width="120" />
-              <el-table-column prop="fournisseur" label="Fournisseur" width="220" />
+            <el-table style="width: 100%" :data="lignesTfu" border size="small" stripe show-summary :summary-method="getSummaryTfu">
+              <el-table-column prop="numero" label="N°" min-width="50" align="center" />
+              <el-table-column prop="ifu" label="N° IFU" min-width="120" />
+              <el-table-column prop="fournisseur" label="Fournisseur" min-width="220" />
               <el-table-column prop="adresse" label="Adresses" min-width="200" />
-              <el-table-column label="Mt prestation" width="110" align="right">
+              <el-table-column label="Mt prestation" min-width="110" align="right">
                 <template #default="{ row }">{{ formatMontant(row.mt_prestation) }}</template>
               </el-table-column>
-              <el-table-column label="Taux AIB" width="75" align="right">
+              <el-table-column label="Taux AIB" min-width="75" align="right">
                 <template #default="{ row }">{{ Math.round(row.taux_aib) }}%</template>
               </el-table-column>
-              <el-table-column label="Montant AIB" width="110" align="right">
+              <el-table-column label="Montant AIB" min-width="110" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
               </el-table-column>
             </el-table>

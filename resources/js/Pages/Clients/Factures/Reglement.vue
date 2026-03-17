@@ -159,6 +159,7 @@
                     <el-input
                       v-model="form.numero_ligne"
                       placeholder="001"
+                      readonly
                     />
                   </el-form-item>
                 </el-col>
@@ -181,14 +182,14 @@
                     <template #label>
                       <span>Montant <span class="required-star">*</span></span>
                     </template>
-                    <el-input-number
-                      v-model="form.montant"
-                      :min="0"
-                      :max="resteAPayer"
-                      :precision="0"
-                      controls-position="right"
-                      style="width: 100%"
-                    />
+                    <el-input
+                      :model-value="formatInputMontant(form.montant)"
+                      @input="val => form.montant = parseInputMontant(val)"
+                      placeholder="0"
+                      :prefix-icon="Money"
+                    >
+                      <template #append>XOF</template>
+                    </el-input>
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -360,7 +361,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="N&deg; Ligne">
-              <el-input v-model="editForm.numero_ligne" />
+              <el-input v-model="editForm.numero_ligne" readonly />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -442,6 +443,7 @@ import {
 } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useMontant } from '@/Composables/useMontant';
 
 // OfficeBuilding might not exist in all versions, use a fallback
 const OfficeBuilding = DocumentCopy;
@@ -646,13 +648,7 @@ const handleSolder = async () => {
   }
 };
 
-const formatMontant = (montant) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    minimumFractionDigits: 0
-  }).format(montant || 0);
-};
+const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
 const formatDate = (date) => {
   if (!date) return '-';

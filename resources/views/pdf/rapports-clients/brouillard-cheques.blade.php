@@ -1,38 +1,21 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Brouillard de Chèques</title>
-    <style>
-        @page { size: A4 portrait; margin: 15mm 25mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 11px; color: #000000; line-height: 1.4; padding: 10mm 10mm; }
-        .title-box { text-align: center; margin: 20px 0; padding: 14px; border: 3px double #000000; }
-        .title-box h1 { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-        .title-box .periode { font-size: 11px; margin-top: 6px; font-style: italic; }
-        .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 8px 0; margin: 30px 0 10px; border-bottom: 2px solid #000000; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th { background: #eeeeee; border: 1px solid #000000; padding: 6px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 9px; }
-        td { border: 1px solid #cccccc; padding: 5px 6px; }
-        .montant { text-align: right; font-family: 'Courier New', monospace; }
-        .solde { font-weight: bold; }
-        .date-header { background: #f0f0f0; border-top: 2px solid #000000; }
-        .total-row { background: #eeeeee; border-top: 2px solid #000000; font-weight: bold; }
-        .total-row td { border: 1px solid #000000; font-size: 11px; }
-        .total-label { text-align: right; text-transform: uppercase; }
-        .compte-cell { font-family: 'Courier New', monospace; font-size: 9px; text-align: center; }
-    </style>
-</head>
-<body>
-    @include('pdf.rapports-clients._header')
+@extends('pdf.rapports._layout-rapport')
 
-    <div class="title-box">
-        <h1>{{ $titre ?? 'BROUILLARD DE CHÈQUES' }}</h1>
-        @if(!empty($periode['debut']) && !empty($periode['fin']))
-            <div class="periode">Du {{ \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}</div>
-        @endif
-    </div>
+@section('title', 'Brouillard de Chèques')
+@section('page-size', 'A4 portrait')
+@section('page-margin', '15mm 25mm')
+@section('report-title', $titre ?? 'BROUILLARD DE CHÈQUES')
 
+@if(!empty($periode['debut']) && !empty($periode['fin']))
+    @section('report-subtitle', 'Du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y'))
+@endif
+
+@section('extra-styles')
+    .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 8px 0; margin: 30px 0 10px; border-bottom: 1px solid #000; }
+    .solde { font-weight: bold; }
+    .compte-cell { font-family: 'Courier New', monospace; font-size: 9px; text-align: center; }
+@endsection
+
+@section('content')
     @if(count($data) === 0)
         <p style="text-align: center; padding: 40px; color: #666;">Aucune donnée trouvée pour cette période.</p>
     @else
@@ -52,7 +35,7 @@
             $soldeGeneral = count($data) > 0 ? $data[count($data) - 1]['solde'] : 0;
         @endphp
 
-        <table>
+        <table class="report-table">
             <thead>
                 <tr>
                     <th style="width: 80px">Date</th>
@@ -64,7 +47,7 @@
             </thead>
             <tbody>
                 @foreach($groups as $group)
-                    <tr class="date-header">
+                    <tr>
                         <td><strong>{{ $group['date'] }}</strong></td>
                         <td colspan="4"></td>
                     </tr>
@@ -91,7 +74,7 @@
 
         {{-- Imputations Comptables --}}
         <div class="section-title">IMPUTATIONS COMPTABLES</div>
-        <table>
+        <table class="report-table">
             <thead>
                 <tr>
                     <th style="width: 70px">Date</th>
@@ -123,7 +106,4 @@
             </tfoot>
         </table>
     @endif
-
-    @include('pdf.rapports-clients._footer')
-</body>
-</html>
+@endsection

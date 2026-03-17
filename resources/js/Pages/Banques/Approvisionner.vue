@@ -75,14 +75,11 @@
 
               <el-form-item label="Montant" prop="montant" required>
                 <el-input
-                  v-model.number="form.montant"
-                  type="number"
+                  :model-value="formatInputMontant(form.montant)"
+                  @input="val => form.montant = parseInputMontant(val)"
                   placeholder="0"
-                  :min="0"
+                  :prefix-icon="Money"
                 >
-                  <template #prepend>
-                    <el-icon><Money /></el-icon>
-                  </template>
                   <template #append>FCFA</template>
                 </el-input>
                 <div class="form-help">
@@ -260,6 +257,7 @@ import {
   TopRight
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useMontant } from '@/Composables/useMontant';
 
 // Props
 const props = defineProps({
@@ -325,13 +323,7 @@ const rules = {
 };
 
 // Methods
-const formatMontant = (montant) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    minimumFractionDigits: 0
-  }).format(montant || 0);
-};
+const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
 const handleBanqueChange = () => {
   // Trigger reactivity

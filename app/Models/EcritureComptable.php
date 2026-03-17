@@ -93,6 +93,8 @@ class EcritureComptable extends Model
         // Crédit: compte AIB (si AIB défini sur la facture)
         if ($montantAib > 0) {
             $compteAib = $facture->type_reduction ?: '44731';
+            $compteAibModel = \App\Models\CompteComptable::where('numero_compte', $compteAib)->first();
+            $libelleAib = $compteAibModel ? 'S/ ' . $compteAibModel->libelle : 'S/ AIB ' . $facture->taux . '%';
 
             self::create([
                 'facture_id' => $facture->id,
@@ -101,7 +103,7 @@ class EcritureComptable extends Model
                 'numero_compte' => $compteAib,
                 'debit' => 0,
                 'credit' => $montantAib,
-                'libelle' => 'S/ AIB ' . $facture->taux . '%',
+                'libelle' => $libelleAib,
                 'type' => self::TYPE_FACTURE,
             ]);
         }
@@ -175,6 +177,8 @@ class EcritureComptable extends Model
         // Crédit: compte AIB (automatique si la facture a un AIB)
         if ($montantAib > 0) {
             $compteAib = $facture->type_reduction ?: '44731';
+            $compteAibModel = \App\Models\CompteComptable::where('numero_compte', $compteAib)->first();
+            $libelleAib = $compteAibModel ? 'S/ ' . $compteAibModel->libelle : 'S/ AIB';
 
             self::create([
                 'facture_id' => $facture->id,
@@ -183,7 +187,7 @@ class EcritureComptable extends Model
                 'numero_compte' => $compteAib,
                 'debit' => 0,
                 'credit' => $montantAib,
-                'libelle' => 'S/ Acompte',
+                'libelle' => $libelleAib,
                 'type' => self::TYPE_REGLEMENT,
             ]);
         }

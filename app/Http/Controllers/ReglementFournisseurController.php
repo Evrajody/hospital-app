@@ -254,7 +254,9 @@ class ReglementFournisseurController extends Controller
                 'compte_tresorerie_id' => $request->compte_tresorerie_id,
                 'observations' => $request->observations,
                 'deduire_aib' => $deduireAib,
-                'montant_aib_deduit' => 0,
+                'montant_aib_deduit' => ($deduireAib && $facture->taux > 0)
+                    ? (float) $facture->montant_reduction
+                    : 0,
                 'compte_aib' => $compteAib,
                 'date_aib' => $dateAib,
                 'statut' => ReglementFournisseur::STATUT_VALIDE,

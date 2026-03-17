@@ -108,6 +108,11 @@ class FactureFournisseur extends Model
         return $this->belongsTo(Fournisseur::class);
     }
 
+    public function reglements(): HasMany
+    {
+        return $this->hasMany(ReglementFournisseur::class, 'facture_id');
+    }
+
     /**
      * Relation avec l'imputation (classe comptable)
      */

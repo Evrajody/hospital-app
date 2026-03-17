@@ -70,16 +70,16 @@
           <el-empty description="Aucune dette fournisseur trouvée" />
         </div>
         <template v-else>
-          <el-table :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
-            <el-table-column prop="numero" label="N°" width="50" align="center" />
+          <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
+            <el-table-column prop="numero" label="N°" min-width="50" align="center" />
             <el-table-column prop="raison_sociale" label="Raison sociale" />
-            <el-table-column label="Montant total dû" width="150" align="right">
+            <el-table-column label="Montant total dû" min-width="150" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_du) }}</template>
             </el-table-column>
-            <el-table-column label="Montant total règlements" width="170" align="right">
+            <el-table-column label="Montant total règlements" min-width="170" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_reglements) }}</template>
             </el-table-column>
-            <el-table-column label="Restant dû" width="140" align="right">
+            <el-table-column label="Restant dû" min-width="140" align="right">
               <template #default="{ row }">
                 <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.restant_du) }}</span>
               </template>
@@ -98,18 +98,18 @@
             <strong>Compte :</strong> <em>{{ compteInfo.numero_compte }} {{ compteInfo.libelle }}</em>
           </div>
 
-          <el-table :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
-            <el-table-column prop="numero" label="N°" width="50" align="center" />
+          <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
+            <el-table-column prop="numero" label="N°" min-width="50" align="center" />
             <el-table-column label="Raison sociale">
               <template #default="{ row }">[{{ row.numero_compte }}] {{ row.raison_sociale }}</template>
             </el-table-column>
-            <el-table-column label="Montant total dû" width="150" align="right">
+            <el-table-column label="Montant total dû" min-width="150" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_du) }}</template>
             </el-table-column>
-            <el-table-column label="Montant total règlements" width="170" align="right">
+            <el-table-column label="Montant total règlements" min-width="170" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_reglements) }}</template>
             </el-table-column>
-            <el-table-column label="Restant dû" width="140" align="right">
+            <el-table-column label="Restant dû" min-width="140" align="right">
               <template #default="{ row }">
                 <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.restant_du) }}</span>
               </template>
@@ -128,32 +128,32 @@
             <div class="fournisseur-header-box">
               <strong>Fournisseur :</strong> {{ fData.fournisseur }}
             </div>
-            <el-table :data="fData.lignes" border size="small" stripe>
-              <el-table-column prop="numero_piece" label="N°Pièce" width="90" />
-              <el-table-column prop="date" label="Date PC" width="85" />
-              <el-table-column prop="reference_facture" label="Réf. Fact." width="100" />
-              <el-table-column label="Mt Fact." width="95" align="right">
+            <el-table style="width: 100%" :data="fData.lignes" border size="small" stripe>
+              <el-table-column prop="numero_piece" label="N°Pièce" min-width="90" />
+              <el-table-column prop="date" label="Date PC" min-width="85" />
+              <el-table-column prop="reference_facture" label="Réf. Fact." min-width="100" />
+              <el-table-column label="Mt Fact." min-width="95" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
               </el-table-column>
-              <el-table-column label="Avoir" width="80" align="right">
+              <el-table-column label="Avoir" min-width="80" align="right">
                 <template #default="{ row }">{{ formatMontant(row.avoir) }}</template>
               </el-table-column>
-              <el-table-column label="Mt M.O." width="85" align="right">
+              <el-table-column label="Mt M.O." min-width="85" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_mo) }}</template>
               </el-table-column>
-              <el-table-column label="AIB (%)" width="65" align="right">
+              <el-table-column label="AIB (%)" min-width="65" align="right">
                 <template #default="{ row }">{{ row.taux_aib ? row.taux_aib.toFixed(1) + '%' : '0%' }}</template>
               </el-table-column>
-              <el-table-column label="Mt AIB" width="85" align="right">
+              <el-table-column label="Mt AIB" min-width="85" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
               </el-table-column>
-              <el-table-column label="Mt Dû" width="95" align="right">
+              <el-table-column label="Mt Dû" min-width="95" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_du) }}</template>
               </el-table-column>
-              <el-table-column label="Total Règ." width="95" align="right">
+              <el-table-column label="Total Règ." min-width="95" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_reglement) }}</template>
               </el-table-column>
-              <el-table-column label="Solde" width="95" align="right">
+              <el-table-column label="Solde" min-width="95" align="right">
                 <template #default="{ row }">
                   <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.solde) }}</span>
                 </template>

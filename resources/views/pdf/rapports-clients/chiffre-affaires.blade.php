@@ -1,54 +1,34 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Chiffre d'Affaires</title>
-    <style>
-        @page { size: A4 portrait; margin: 15mm 25mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 11px; color: #000000; line-height: 1.4; padding: 10mm 10mm; }
-        .title-box { text-align: center; margin: 20px 0; padding: 14px; border: 3px double #000000; }
-        .title-box h1 { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-        .title-box .subtitle { font-size: 11px; font-style: italic; margin-top: 4px; }
-        .title-box .periode { font-size: 11px; margin-top: 6px; }
-        .client-header { border: 2px solid #000000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th { background: #000000; color: #ffffff; border: 1px solid #000000; padding: 8px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 10px; }
-        td { border: 1px solid #cccccc; padding: 6px 8px; }
-        .montant { text-align: right; font-family: 'Courier New', monospace; }
-        .ecart { color: #cc0000; font-weight: bold; }
-        .total-row { background: #eeeeee; border-top: 2px solid #000000; font-weight: bold; }
-        .total-row td { border: 1px solid #000000; font-size: 11px; }
-        .total-label { text-align: right; text-transform: uppercase; }
-        .global-table { max-width: 500px; margin: 30px auto; }
-        .global-table th { text-align: center; font-size: 12px; padding: 10px; }
-        .global-table td { font-size: 14px; padding: 12px 16px; text-align: center; }
-    </style>
-</head>
-<body>
-    @include('pdf.rapports-clients._header')
+@extends('pdf.rapports._layout-rapport')
 
-    <div class="title-box">
-        <h1>{{ $titre ?? "CHIFFRE D'AFFAIRES" }}</h1>
-        @if(in_array($mode, ['global_du', 'global_au', 'global_periode']))
-            @if($mode === 'global_du' && !empty($dateRef))
-                <div class="subtitle">CA du {{ \Carbon\Carbon::parse($dateRef)->format('d/m/Y') }}</div>
-            @elseif($mode === 'global_au' && !empty($dateRef))
-                <div class="subtitle">CA au {{ \Carbon\Carbon::parse($dateRef)->format('d/m/Y') }}</div>
-            @elseif($mode === 'global_periode' && !empty($periode['debut']) && !empty($periode['fin']))
-                <div class="periode">Période du {{ \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}</div>
-            @endif
-        @elseif($mode === 'par_client')
-            <div class="subtitle">CA par client</div>
-            @if(!empty($periode['debut']) && !empty($periode['fin']))
-                <div class="periode">Période du {{ \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}</div>
-            @endif
-        @endif
-    </div>
+@section('title', "Chiffre d'Affaires")
+@section('page-size', 'A4 portrait')
+@section('page-margin', '15mm 25mm')
+@section('report-title', $titre ?? "CHIFFRE D'AFFAIRES")
 
+@if(in_array($mode, ['global_du', 'global_au', 'global_periode']))
+    @if($mode === 'global_du' && !empty($dateRef))
+        @section('report-subtitle', 'CA du ' . \Carbon\Carbon::parse($dateRef)->format('d/m/Y'))
+    @elseif($mode === 'global_au' && !empty($dateRef))
+        @section('report-subtitle', 'CA au ' . \Carbon\Carbon::parse($dateRef)->format('d/m/Y'))
+    @elseif($mode === 'global_periode' && !empty($periode['debut']) && !empty($periode['fin']))
+        @section('report-subtitle', 'Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y'))
+    @endif
+@elseif($mode === 'par_client')
+    @section('report-subtitle', 'CA par client' . (!empty($periode['debut']) && !empty($periode['fin']) ? ' - Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : ''))
+@endif
+
+@section('extra-styles')
+    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
+    .ecart { color: #cc0000; font-weight: bold; }
+    .global-table { max-width: 500px; margin: 30px auto; }
+    .global-table th { text-align: center; font-size: 12px; padding: 10px; }
+    .global-table td { font-size: 14px; padding: 12px 16px; text-align: center; }
+@endsection
+
+@section('content')
     @if(in_array($mode, ['global_du', 'global_au', 'global_periode']))
         @if(is_array($data) && isset($data['theorique']))
-            <table class="global-table">
+            <table class="report-table global-table">
                 <thead>
                     <tr>
                         <th>CA Théorique</th>
@@ -74,13 +54,13 @@
                 &nbsp;&nbsp;&nbsp;&nbsp;
                 <strong><u>Raison sociale :</u></strong> {{ $data['raison_sociale'] }}
             </div>
-            <table>
+            <table class="report-table">
                 <thead>
                     <tr>
-                        <th style="width: 30px; background: #eeeeee; color: #000;">N°</th>
-                        <th style="background: #eeeeee; color: #000;">Réf. Facture</th>
-                        <th style="background: #eeeeee; color: #000;">Date Facture</th>
-                        <th class="montant" style="width: 130px; background: #eeeeee; color: #000;">Montant CA</th>
+                        <th style="width: 30px">N°</th>
+                        <th>Réf. Facture</th>
+                        <th>Date Facture</th>
+                        <th class="montant" style="width: 130px">Montant CA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -104,7 +84,4 @@
             <p style="text-align: center; padding: 40px; color: #666;">Aucune donnée trouvée.</p>
         @endif
     @endif
-
-    @include('pdf.rapports-clients._footer')
-</body>
-</html>
+@endsection

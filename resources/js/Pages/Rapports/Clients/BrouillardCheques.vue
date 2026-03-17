@@ -4,7 +4,7 @@
     <el-dialog
       v-model="showCriteres"
       title="BROUILLARD DE CHÈQUES & IMPUTATIONS COMPTABLES"
-      width="550px"
+      min-width="550px"
       :close-on-click-modal="false"
       :show-close="true"
       @close="handleBack"

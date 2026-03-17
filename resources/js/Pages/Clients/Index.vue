@@ -232,9 +232,10 @@ const handleDelete = async (client) => {
   try {
     const response = await fetch(`/api/clients/${client.id}`, {
       method: 'DELETE',
+      credentials: 'same-origin',
       headers: {
         'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
       }
     });
     const result = await response.json();
@@ -259,10 +260,11 @@ const handleClientSuccess = async (data) => {
   try {
     const response = await fetch(url, {
       method: isEdit ? 'PUT' : 'POST',
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
       },
       body: JSON.stringify(data)
     });

@@ -1,38 +1,19 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Mouvement Factures Fournisseur</title>
-    <style>
-        @page { size: A4 landscape; margin: 15mm 25mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 11px; color: #000000; line-height: 1.4; padding: 10mm 10mm; }
-        .title-box { text-align: center; margin: 20px 0; padding: 14px; border: 3px double #000000; }
-        .title-box h1 { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-        .title-box .periode { font-size: 11px; margin-top: 6px; font-style: italic; }
-        .fournisseur-header { border: 2px solid #000000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; font-size: 9px; }
-        th { background: #eeeeee; border: 1px solid #000000; padding: 6px 4px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 8px; }
-        td { border: 1px solid #cccccc; padding: 5px 4px; }
-        .montant { text-align: right; font-family: 'Courier New', monospace; }
-        .total-row { background: #eeeeee; border-top: 2px solid #000000; font-weight: bold; }
-        .total-row td { border: 1px solid #000000; font-size: 10px; }
-        .total-label { text-align: right; text-transform: uppercase; }
-        .footer-section { margin-top: 30px; font-size: 10px; }
-        .footer-section .edite-par { font-style: italic; }
-        .footer-section .page-info { text-align: right; }
-    </style>
-</head>
-<body>
-    @include('pdf.rapports-clients._header')
+@extends('pdf.rapports._layout-rapport')
 
-    <div class="title-box">
-        <h1>{{ $titre ?? 'ÉTAT DES MOUVEMENTS FACTURES' }}</h1>
-        @if(!empty($periode['debut']) && !empty($periode['fin']))
-            <div class="periode">Période du {{ \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}</div>
-        @endif
-    </div>
+@section('title', 'Mouvement Factures Fournisseur')
+@section('page-size', 'A4 landscape')
+@section('page-margin', '15mm 25mm')
+@section('report-title', $titre ?? 'ÉTAT DES MOUVEMENTS FACTURES')
 
+@if(!empty($periode['debut']) && !empty($periode['fin']))
+    @section('report-subtitle', 'Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y'))
+@endif
+
+@section('extra-styles')
+    .fournisseur-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
+@endsection
+
+@section('content')
     @if($fournisseur)
         <div class="fournisseur-header">
             <strong><u>N° Compte :</u></strong> {{ $fournisseur['code'] }}
@@ -44,7 +25,7 @@
     @if(count($lignes) === 0)
         <p style="text-align: center; padding: 40px; color: #666;">Aucune donnée trouvée.</p>
     @else
-        <table>
+        <table class="report-table">
             <thead>
                 <tr>
                     <th style="width: 70px">N&deg;PC</th>
@@ -92,16 +73,4 @@
             </tfoot>
         </table>
     @endif
-
-    <table class="footer-section" style="width: 100%; border: none; margin-top: 30px;">
-        <tr>
-            <td style="border: none;" class="edite-par">
-                &Eacute;dit&eacute; par {{ $generatedBy ?? 'Utilisateur' }} - {{ $generatedAt ?? now()->format('d/m/Y à H:i') }}
-            </td>
-            <td style="border: none; text-align: right;" class="page-info">
-                Page <span class="page-num"></span>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
+@endsection

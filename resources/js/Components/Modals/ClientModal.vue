@@ -106,7 +106,7 @@
                 <div class="alert-title">Attribution du compte auxiliaire (Plan Comptable OHADA)</div>
               </template>
               <div class="alert-content">
-                Comptes parents disponibles : 41 (Clients), 4111 (Client), 424100 (Assistance médicale).
+                Tous les comptes clients (41xxx, 424100xxx) sont disponibles comme compte parent, y compris les comptes créés manuellement.
               </div>
             </el-alert>
 

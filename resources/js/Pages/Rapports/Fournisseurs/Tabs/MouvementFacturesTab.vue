@@ -57,32 +57,32 @@
           <el-empty description="Aucune facture trouvée pour ce fournisseur" />
         </div>
 
-        <el-table v-else :data="lignes" border size="small" stripe show-summary :summary-method="getSummary">
-          <el-table-column prop="numero_piece" label="N°Pièce" width="90" />
-          <el-table-column prop="date" label="Date PC" width="85" />
-          <el-table-column prop="reference_facture" label="Réf. Fact." width="100" />
-          <el-table-column label="Mt Fact." width="100" align="right">
+        <el-table style="width: 100%" v-else :data="lignes"  border size="small" stripe show-summary :summary-method="getSummary">
+          <el-table-column prop="numero_piece" label="N°Pièce" min-width="90" />
+          <el-table-column prop="date" label="Date PC" min-width="85" />
+          <el-table-column prop="reference_facture" label="Réf. Fact." min-width="100" />
+          <el-table-column label="Mt Fact." min-width="100" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
           </el-table-column>
-          <el-table-column label="Avoir" width="85" align="right">
+          <el-table-column label="Avoir" min-width="85" align="right">
             <template #default="{ row }">{{ formatMontant(row.avoir) }}</template>
           </el-table-column>
-          <el-table-column label="Mt M.O." width="90" align="right">
+          <el-table-column label="Mt M.O." min-width="90" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_mo) }}</template>
           </el-table-column>
-          <el-table-column label="AIB (%)" width="70" align="right">
+          <el-table-column label="AIB (%)" min-width="70" align="right">
             <template #default="{ row }">{{ row.taux_aib ? row.taux_aib.toFixed(1) + '%' : '' }}</template>
           </el-table-column>
-          <el-table-column label="Mt AIB" width="85" align="right">
+          <el-table-column label="Mt AIB" min-width="85" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
           </el-table-column>
-          <el-table-column label="Mt Dû" width="100" align="right">
+          <el-table-column label="Mt Dû" min-width="100" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_du) }}</template>
           </el-table-column>
-          <el-table-column label="Total Règ." width="100" align="right">
+          <el-table-column label="Total Règ." min-width="100" align="right">
             <template #default="{ row }">{{ formatMontant(row.total_reglement) }}</template>
           </el-table-column>
-          <el-table-column label="Solde" width="100" align="right">
+          <el-table-column label="Solde" min-width="100" align="right">
             <template #default="{ row }">
               <span :style="{ color: row.solde > 0 ? '#cc0000' : 'inherit', fontWeight: row.solde > 0 ? 'bold' : 'normal' }">
                 {{ formatMontant(row.solde) }}

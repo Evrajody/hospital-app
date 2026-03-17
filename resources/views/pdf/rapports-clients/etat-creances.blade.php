@@ -1,39 +1,18 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>États Périodiques des Créances Clients</title>
-    <style>
-        @page { size: A4 portrait; margin: 15mm 25mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 11px; color: #000000; line-height: 1.4; padding: 10mm 10mm; }
-        .title-box { text-align: center; margin: 20px 0; padding: 14px; border: 3px double #000000; }
-        .title-box h1 { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-        .title-box .subtitle { font-size: 11px; font-style: italic; margin-top: 4px; }
-        .title-box .periode { font-size: 11px; margin-top: 6px; }
-        .client-block { margin-bottom: 25px; page-break-inside: avoid; }
-        .client-header { border: 2px solid #000000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th { background: #eeeeee; border: 1px solid #000000; padding: 6px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 9px; }
-        td { border: 1px solid #cccccc; padding: 5px 6px; }
-        .montant { text-align: right; font-family: 'Courier New', monospace; }
-        .reste { color: #cc0000; font-weight: bold; }
-        .total-row { background: #eeeeee; border-top: 2px solid #000000; font-weight: bold; }
-        .total-row td { border: 1px solid #000000; font-size: 11px; }
-        .total-label { text-align: right; text-transform: uppercase; }
-    </style>
-</head>
-<body>
-    @include('pdf.rapports-clients._header')
+@extends('pdf.rapports._layout-rapport')
 
-    <div class="title-box">
-        <h1>{{ $titre ?? 'ÉTATS PÉRIODIQUES DES CRÉANCES CLIENTS' }}</h1>
-        <div class="subtitle">Factures non soldées</div>
-        @if($mode === 'tous_clients' && !empty($periode['debut']) && !empty($periode['fin']))
-            <div class="periode">Période du {{ \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}</div>
-        @endif
-    </div>
+@section('title', 'États Périodiques des Créances Clients')
+@section('page-size', 'A4 portrait')
+@section('page-margin', '15mm 25mm')
+@section('report-title', $titre ?? 'ÉTATS PÉRIODIQUES DES CRÉANCES CLIENTS')
+@section('report-subtitle', 'Factures non soldées' . ($mode === 'tous_clients' && !empty($periode['debut']) && !empty($periode['fin']) ? ' - Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : ''))
 
+@section('extra-styles')
+    .client-block { margin-bottom: 25px; page-break-inside: avoid; }
+    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
+    .reste { color: #cc0000; font-weight: bold; }
+@endsection
+
+@section('content')
     @if(count($data) === 0)
         <p style="text-align: center; padding: 40px; color: #666;">Aucune créance trouvée.</p>
     @elseif($mode === 'par_client' || $mode === 'un_client')
@@ -44,7 +23,7 @@
                     &nbsp;&nbsp;&nbsp;&nbsp;
                     <strong><u>Raison sociale :</u></strong> {{ $clientData['raison_sociale'] }}
                 </div>
-                <table>
+                <table class="report-table">
                     <thead>
                         <tr>
                             <th style="width: 30px">N°</th>
@@ -85,7 +64,7 @@
                 $grandPaye = collect($data)->sum('total_paye');
                 $grandReste = collect($data)->sum('total_reste');
             @endphp
-            <table style="margin-top: 20px;">
+            <table class="report-table" style="margin-top: 20px;">
                 <tfoot>
                     <tr class="total-row">
                         <td class="total-label" style="text-align: right;">TOTAL GÉNÉRAL :</td>
@@ -97,7 +76,7 @@
             </table>
         @endif
     @elseif($mode === 'tous_clients')
-        <table>
+        <table class="report-table">
             <thead>
                 <tr>
                     <th style="width: 30px">N°</th>
@@ -135,7 +114,4 @@
             </tfoot>
         </table>
     @endif
-
-    @include('pdf.rapports-clients._footer')
-</body>
-</html>
+@endsection

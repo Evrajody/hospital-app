@@ -53,16 +53,16 @@
         <template v-else>
           <div class="report-title">{{ titre }}</div>
 
-          <el-table :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryResume">
-            <el-table-column prop="numero_compte" label="N° Compte" width="130" />
+          <el-table style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryResume">
+            <el-table-column prop="numero_compte" label="N° Compte" min-width="130" />
             <el-table-column prop="intitule" label="Intitulé" min-width="250" />
-            <el-table-column label="Total Débit" width="170" align="right">
+            <el-table-column label="Total Débit" min-width="170" align="right">
               <template #default="{ row }">{{ fmt(row.total_debit) }}</template>
             </el-table-column>
-            <el-table-column label="Total Crédit" width="170" align="right">
+            <el-table-column label="Total Crédit" min-width="170" align="right">
               <template #default="{ row }">{{ fmt(row.total_credit) }}</template>
             </el-table-column>
-            <el-table-column label="Solde" width="170" align="right">
+            <el-table-column label="Solde" min-width="170" align="right">
               <template #default="{ row }">
                 <span :class="{ 'negatif': row.solde < 0 }">{{ fmt(row.solde) }}</span>
               </template>
@@ -84,8 +84,8 @@
               <strong>Banque :</strong> <em>{{ section.numero_compte }} {{ section.intitule }}</em>
             </div>
 
-            <el-table :data="section.displayRows" border size="small" :show-header="true" class="detail-table">
-              <el-table-column label="DATE" width="110">
+            <el-table style="width: 100%" :data="section.displayRows" border size="small" :show-header="true" class="detail-table">
+              <el-table-column label="DATE" min-width="110">
                 <template #default="{ row }">
                   <span :class="{ 'row-special': row._special }">{{ row.date_fmt }}</span>
                 </template>
@@ -95,17 +95,17 @@
                   <span :class="{ 'row-special': row._special }">{{ row.libelle }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="DEBIT" width="140" align="right">
+              <el-table-column label="DEBIT" min-width="140" align="right">
                 <template #default="{ row }">
                   <span :class="{ 'row-special': row._special }">{{ row.debit !== null ? fmt(row.debit) : '' }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="CREDIT" width="140" align="right">
+              <el-table-column label="CREDIT" min-width="140" align="right">
                 <template #default="{ row }">
                   <span :class="{ 'row-special': row._special }">{{ row.credit !== null ? fmt(row.credit) : '' }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="SOLDE" width="160" align="right">
+              <el-table-column label="SOLDE" min-width="160" align="right">
                 <template #default="{ row }">
                   <span :class="{ 'negatif': row.solde < 0, 'row-special': row._special }">{{ fmt(row.solde) }}</span>
                 </template>

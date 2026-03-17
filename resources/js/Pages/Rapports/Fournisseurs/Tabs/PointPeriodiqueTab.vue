@@ -39,10 +39,10 @@
           <div class="date-header-box">
             <strong>Date d'enregistrement :</strong> <em>{{ groupe.date_longue }}</em>
           </div>
-          <el-table :data="groupe.lignes" border size="small" stripe>
-            <el-table-column prop="numero_piece" label="N° Pièce" width="130" />
+          <el-table style="width: 100%" :data="groupe.lignes" border size="small" stripe>
+            <el-table-column prop="numero_piece" label="N° Pièce" min-width="130" />
             <el-table-column prop="libelle" label="Objet PC" min-width="300" />
-            <el-table-column label="Montant" width="140" align="right">
+            <el-table-column label="Montant" min-width="140" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
             </el-table-column>
           </el-table>

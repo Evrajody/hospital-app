@@ -483,6 +483,7 @@ import {
   ArrowLeft,
   ArrowRight
 } from '@element-plus/icons-vue';
+import { useMontant } from '@/Composables/useMontant';
 
 // Props
 const props = defineProps({
@@ -698,20 +699,7 @@ const clearErrors = () => {
   validationErrors.value = [];
 };
 
-const formatMontant = (montant) => {
-  return new Intl.NumberFormat('fr-FR').format(montant || 0);
-};
-
-const formatInputMontant = (val) => {
-  if (!val && val !== 0) return '';
-  return new Intl.NumberFormat('fr-FR').format(val);
-};
-
-const parseInputMontant = (val) => {
-  if (!val) return 0;
-  const cleaned = String(val).replace(/[^\d]/g, '');
-  return parseInt(cleaned, 10) || 0;
-};
+const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
 const genererNumeroPiece = async () => {
   loadingNumero.value = true;

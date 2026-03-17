@@ -82,14 +82,13 @@
             <template #label>
               <span>Montant <span class="required-star">*</span></span>
             </template>
-            <el-input-number
-              v-model="form.montant"
-              :min="0"
-              :precision="0"
-              controls-position="right"
-              style="width: 100%"
+            <el-input
+              :model-value="formatInputMontant(form.montant)"
+              @input="val => form.montant = parseInputMontant(val)"
               placeholder="0"
-            />
+            >
+              <template #append>XOF</template>
+            </el-input>
           </el-form-item>
         </el-col>
       </el-row>
@@ -97,15 +96,13 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="Ristourne">
-            <el-input-number
-              v-model="form.ristourne"
-              :min="0"
-              :max="form.montant || 0"
-              :precision="0"
-              controls-position="right"
-              style="width: 100%"
+            <el-input
+              :model-value="formatInputMontant(form.ristourne)"
+              @input="val => form.ristourne = parseInputMontant(val)"
               placeholder="0"
-            />
+            >
+              <template #append>XOF</template>
+            </el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -161,6 +158,7 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { MagicStick, Check, WarningFilled } from '@element-plus/icons-vue';
+import { useMontant } from '@/Composables/useMontant';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -252,13 +250,7 @@ const netAPayer = computed(() => {
   return (form.montant || 0) - (form.ristourne || 0);
 });
 
-const formatMontant = (montant) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    minimumFractionDigits: 0
-  }).format(montant || 0);
-};
+const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
 const autoReference = () => {
   form.reference = props.prochaineReference;

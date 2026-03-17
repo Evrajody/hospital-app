@@ -74,11 +74,11 @@
         <div class="client-header-box">
           <strong>{{ data.numero_compte }}</strong> — {{ data.raison_sociale }}
         </div>
-        <el-table :data="data.lignes" border size="small" stripe show-summary :summary-method="getClientSummary">
-          <el-table-column prop="numero" label="N°" width="50" align="center" />
+        <el-table style="width: 100%" :data="data.lignes" border size="small" stripe show-summary :summary-method="getClientSummary">
+          <el-table-column prop="numero" label="N°" min-width="50" align="center" />
           <el-table-column prop="reference" label="Réf. Facture" />
-          <el-table-column prop="date_facture" label="Date Facture" width="110" />
-          <el-table-column label="Montant CA" width="140" align="right">
+          <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
+          <el-table-column label="Montant CA" min-width="140" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
           </el-table-column>
         </el-table>

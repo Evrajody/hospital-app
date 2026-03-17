@@ -81,10 +81,9 @@
             <el-col :xs="24" :sm="8">
               <el-form-item label="Montant HT" prop="montant_ht">
                 <el-input
-                  v-model.number="form.montant_ht"
-                  type="number"
+                  :model-value="formatInputMontant(form.montant_ht)"
+                  @input="val => { form.montant_ht = parseInputMontant(val); calculerMontants(); }"
                   placeholder="0"
-                  @input="calculerMontants"
                 >
                   <template #append>XOF</template>
                 </el-input>
@@ -198,6 +197,7 @@
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useMontant } from '@/Composables/useMontant';
 import { DocumentCopy } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 
@@ -271,6 +271,8 @@ const rules = {
 const calculerMontants = () => {
   // Reactive computation via computed properties
 };
+
+const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
 const formatNumber = (value) => {
   return new Intl.NumberFormat('fr-FR', {

@@ -21,16 +21,6 @@
           <MouvementFacturesTab :fournisseurs="fournisseurs" />
         </el-tab-pane>
 
-        <el-tab-pane name="etat-reglement-facture" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Document /></el-icon>
-              État règlement facture
-            </span>
-          </template>
-          <PlaceholderTab description="État de règlement d'une facture — En cours de développement" />
-        </el-tab-pane>
-
         <el-tab-pane name="situation-fournisseurs" lazy>
           <template #label>
             <span class="tab-label">
@@ -48,7 +38,7 @@
               Factures réglées
             </span>
           </template>
-          <FacturesRegleesTab />
+          <FacturesRegleesTab :fournisseurs="fournisseurs" />
         </el-tab-pane>
 
         <el-tab-pane name="declaration-aib" lazy>

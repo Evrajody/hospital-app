@@ -54,17 +54,17 @@
           <div class="client-header-box">
             <strong>{{ clientData.numero_compte }}</strong> — {{ clientData.raison_sociale }}
           </div>
-          <el-table :data="clientData.lignes" border size="small" stripe>
-            <el-table-column prop="numero" label="N°" width="50" align="center" />
+          <el-table style="width: 100%" :data="clientData.lignes" border size="small" stripe>
+            <el-table-column prop="numero" label="N°" min-width="50" align="center" />
             <el-table-column prop="reference" label="Réf. Facture" />
-            <el-table-column prop="date_facture" label="Date Facture" width="110" />
-            <el-table-column label="Montant Facture" width="130" align="right">
+            <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
+            <el-table-column label="Montant Facture" min-width="130" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
             </el-table-column>
-            <el-table-column label="Montant Payé" width="120" align="right">
+            <el-table-column label="Montant Payé" min-width="120" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_paye) }}</template>
             </el-table-column>
-            <el-table-column label="Reste à Payer" width="120" align="right">
+            <el-table-column label="Reste à Payer" min-width="120" align="right">
               <template #default="{ row }">
                 <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.reste_a_payer) }}</span>
               </template>
@@ -86,17 +86,17 @@
 
       <!-- Mode tous_clients -->
       <template v-if="selectedMode === 'tous_clients' && data.length > 0">
-        <el-table :data="data" border size="small" stripe show-summary :summary-method="getSummary">
-          <el-table-column prop="numero" label="N°" width="50" align="center" />
-          <el-table-column prop="numero_compte" label="N° Compte" width="110" />
+        <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummary">
+          <el-table-column prop="numero" label="N°" min-width="50" align="center" />
+          <el-table-column prop="numero_compte" label="N° Compte" min-width="110" />
           <el-table-column prop="raison_sociale" label="Raison sociale" />
-          <el-table-column label="Total Factures" width="140" align="right">
+          <el-table-column label="Total Factures" min-width="140" align="right">
             <template #default="{ row }">{{ formatMontant(row.total_facture) }}</template>
           </el-table-column>
-          <el-table-column label="Total Règlements" width="150" align="right">
+          <el-table-column label="Total Règlements" min-width="150" align="right">
             <template #default="{ row }">{{ formatMontant(row.total_paye) }}</template>
           </el-table-column>
-          <el-table-column label="Reste à Payer" width="130" align="right">
+          <el-table-column label="Reste à Payer" min-width="130" align="right">
             <template #default="{ row }">
               <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.total_reste) }}</span>
             </template>

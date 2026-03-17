@@ -46,14 +46,13 @@
 
         <el-col :span="12">
           <el-form-item label="Montant" prop="montant">
-            <el-input-number
-              v-model="form.montant"
-              :min="0"
-              :precision="0"
-              controls-position="right"
-              style="width: 100%"
+            <el-input
+              :model-value="formatInputMontant(form.montant)"
+              @input="val => form.montant = parseInputMontant(val)"
               placeholder="0"
-            />
+            >
+              <template #append>XOF</template>
+            </el-input>
           </el-form-item>
         </el-col>
       </el-row>
@@ -101,6 +100,9 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Check, Upload } from '@element-plus/icons-vue';
+import { useMontant } from '@/Composables/useMontant';
+
+const { formatInputMontant, parseInputMontant } = useMontant();
 
 // Props
 const props = defineProps({

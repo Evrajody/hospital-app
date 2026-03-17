@@ -93,15 +93,23 @@ class PlanComptableOhadaSeeder extends Seeder
         $this->command->info("Lignes ignorées: $skipped");
 
         if (count($comptes) > 0) {
-            // Clear existing data
-            DB::table('plan_comptable_ohada')->truncate();
+            // Ne vider que si la table est vide ou si on force
+            $existingCount = DB::table('plan_comptable_ohada')->count();
+            if ($existingCount > 0) {
+                $this->command->info("La table contient déjà {$existingCount} comptes. Mise à jour par upsert...");
+            }
 
-            // Insert in chunks
+            // Upsert in chunks (insert or ignore si existe déjà)
             $chunks = array_chunk($comptes, 100);
             $bar = $this->command->getOutput()->createProgressBar(count($chunks));
 
             foreach ($chunks as $chunk) {
-                DB::table('plan_comptable_ohada')->insert($chunk);
+                foreach ($chunk as $compte) {
+                    DB::table('plan_comptable_ohada')->updateOrInsert(
+                        ['numero_compte' => $compte['numero_compte']],
+                        $compte
+                    );
+                }
                 $bar->advance();
             }
 

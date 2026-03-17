@@ -1,39 +1,36 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Bordereau de versement AIB</title>
-    <style>
-        @page { size: A4 portrait; margin: 15mm 20mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 11px; color: #000000; line-height: 1.5; padding: 8mm; }
-        .header-admin { text-align: center; font-size: 12px; line-height: 1.6; margin-bottom: 10px; }
-        .header-admin .bold { font-weight: bold; }
-        .header-admin .sep { font-size: 10px; color: #666; }
-        .titre-encadre { border: 3px solid #000; padding: 10px 15px; text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px auto; max-width: 500px; }
-        .annee-mois { display: flex; font-size: 13px; margin: 10px 0 20px; }
-        .section-header { background: #cccccc; border: 1px solid #000; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12px; text-transform: uppercase; }
-        .section-content { border: 1px solid #000; border-top: none; padding: 12px 15px; }
-        .info-line { margin: 4px 0; font-size: 11px; }
-        .info-line strong { font-weight: bold; }
-        table.droits { width: 100%; border-collapse: collapse; font-size: 11px; margin: 0; }
-        table.droits th { background: #cccccc; border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; }
-        table.droits td { border: 1px solid #000; padding: 5px 8px; }
-        table.droits .montant { text-align: right; font-family: 'Courier New', monospace; }
-        table.droits .cat-header td { background: #eeeeee; font-weight: bold; font-size: 11px; }
-        table.droits .total-row td { font-weight: bold; font-size: 12px; border-top: 2px solid #000; }
-        .lettres-row td { font-size: 10px; font-style: italic; padding: 8px; }
-        .paiement-section { margin-top: 5px; }
-        .paiement-line { margin: 8px 0; font-size: 11px; }
-        .paiement-line .box { display: inline-block; width: 20px; height: 14px; border: 1px solid #000; vertical-align: middle; margin: 0 8px; }
-        .paiement-line .underline { display: inline-block; border-bottom: 1px solid #000; min-width: 150px; }
-        .signature-table { width: 100%; margin-top: 15px; }
-        .signature-table td { border: 1px solid #000; padding: 10px 12px; vertical-align: top; font-size: 10px; height: 120px; }
-        .cachet-box { float: right; border: 1px solid #999; padding: 15px 10px; text-align: center; font-size: 9px; color: #666; font-style: italic; width: 140px; margin-top: -60px; }
-    </style>
-</head>
-<body>
-    {{-- EN-TÊTE ADMINISTRATIF --}}
+@extends('pdf.rapports._layout-rapport')
+
+@section('title', 'Bordereau de versement AIB')
+@section('page-size', 'A4 portrait')
+@section('page-margin', '15mm 20mm')
+@section('report-title', 'BORDEREAU DE VERSEMENT AIB')
+
+@section('extra-styles')
+    .header-admin { text-align: center; font-size: 12px; line-height: 1.6; margin-bottom: 10px; }
+    .header-admin .bold { font-weight: bold; }
+    .header-admin .sep { font-size: 10px; color: #666; }
+    .titre-encadre { border: 1px solid #000; padding: 10px 15px; text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px auto; max-width: 500px; }
+    .section-header { border: 1px solid #000; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12px; text-transform: uppercase; }
+    .section-content { border: 1px solid #000; border-top: none; padding: 12px 15px; }
+    .info-line { margin: 4px 0; font-size: 11px; }
+    .info-line strong { font-weight: bold; }
+    table.droits { width: 100%; border-collapse: collapse; font-size: 11px; margin: 0; }
+    table.droits th { background: #fff; border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; }
+    table.droits td { border: 1px solid #000; padding: 5px 8px; }
+    table.droits .montant { text-align: right; font-family: 'Courier New', monospace; }
+    table.droits .cat-header td { font-weight: bold; font-size: 11px; }
+    table.droits .total-row td { font-weight: bold; font-size: 12px; border-top: 1px solid #000; }
+    .lettres-row td { font-size: 10px; font-style: italic; padding: 8px; }
+    .paiement-section { margin-top: 5px; }
+    .paiement-line { margin: 8px 0; font-size: 11px; }
+    .paiement-line .box { display: inline-block; width: 20px; height: 14px; border: 1px solid #000; vertical-align: middle; margin: 0 8px; }
+    .paiement-line .underline { display: inline-block; border-bottom: 1px solid #000; min-width: 150px; }
+    .signature-table { width: 100%; margin-top: 15px; }
+    .signature-table td { border: 1px solid #000; padding: 10px 12px; vertical-align: top; font-size: 10px; height: 120px; }
+@endsection
+
+@section('content')
+    {{-- EN-TETE ADMINISTRATIF (replaces the standard header/title from layout) --}}
     <table style="width: 100%; border: none; margin-bottom: 10px;">
         <tr>
             <td style="width: 40%; border: none; vertical-align: top;">
@@ -177,5 +174,4 @@
             </td>
         </tr>
     </table>
-</body>
-</html>
+@endsection

@@ -26,16 +26,16 @@
       <template v-if="data.length > 0">
         <!-- Brouillard de chèques -->
         <h3 class="section-title">Brouillard de Chèques</h3>
-        <el-table :data="data" border size="small" stripe show-summary :summary-method="getBrouillardSummary">
-          <el-table-column prop="date" label="Date" width="100" />
+        <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getBrouillardSummary">
+          <el-table-column prop="date" label="Date" min-width="100" />
           <el-table-column prop="libelle" label="Libellés" />
-          <el-table-column label="Débit" width="130" align="right">
+          <el-table-column label="Débit" min-width="130" align="right">
             <template #default="{ row }">{{ row.debit ? formatMontant(row.debit) : '' }}</template>
           </el-table-column>
-          <el-table-column label="Crédit" width="130" align="right">
+          <el-table-column label="Crédit" min-width="130" align="right">
             <template #default="{ row }">{{ row.credit ? formatMontant(row.credit) : '' }}</template>
           </el-table-column>
-          <el-table-column label="Solde" width="130" align="right">
+          <el-table-column label="Solde" min-width="130" align="right">
             <template #default="{ row }">
               <strong>{{ formatMontant(row.solde) }}</strong>
             </template>
@@ -44,21 +44,21 @@
 
         <!-- Imputations Comptables -->
         <h3 class="section-title" style="margin-top: 30px;">Imputations Comptables</h3>
-        <el-table :data="data" border size="small" stripe show-summary :summary-method="getImputationSummary">
-          <el-table-column prop="date" label="Date" width="90" />
-          <el-table-column prop="reference" label="N° Pièce" width="120">
+        <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getImputationSummary">
+          <el-table-column prop="date" label="Date" min-width="90" />
+          <el-table-column prop="reference" label="N° Pièce" min-width="120">
             <template #default="{ row }"><strong>{{ row.reference }}</strong></template>
           </el-table-column>
           <el-table-column label="Libellé">
             <template #default="{ row }">{{ row.client_nom }} ({{ row.facture_ref }})</template>
           </el-table-column>
-          <el-table-column prop="compte_debit" label="Cpte Débit" width="100" align="center">
+          <el-table-column prop="compte_debit" label="Cpte Débit" min-width="100" align="center">
             <template #default="{ row }"><code>{{ row.compte_debit }}</code></template>
           </el-table-column>
-          <el-table-column prop="compte_credit" label="Cpte Crédit" width="100" align="center">
+          <el-table-column prop="compte_credit" label="Cpte Crédit" min-width="100" align="center">
             <template #default="{ row }"><code>{{ row.compte_credit }}</code></template>
           </el-table-column>
-          <el-table-column label="Montant" width="130" align="right">
+          <el-table-column label="Montant" min-width="130" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
           </el-table-column>
         </el-table>

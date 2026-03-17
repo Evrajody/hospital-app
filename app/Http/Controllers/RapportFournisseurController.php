@@ -314,6 +314,7 @@ class RapportFournisseurController extends Controller
         $date = $request->input('date');
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
+        $fournisseurId = $request->input('fournisseur_id');
 
         $emptyResult = [
             'mode' => $mode, 'titre' => '', 'date' => $date,
@@ -327,6 +328,10 @@ class RapportFournisseurController extends Controller
 
         // Build reglement query based on mode
         $reglementQuery = ReglementFournisseur::where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
+
+        if ($fournisseurId) {
+            $reglementQuery->where('fournisseur_id', $fournisseurId);
+        }
 
         if ($mode === 'date' && $date) {
             $reglementQuery->whereDate('date_reglement', $date);
@@ -461,14 +466,22 @@ class RapportFournisseurController extends Controller
             ];
         }
 
-        // Factures avec AIB dans la période
-        $factures = FactureFournisseur::whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-            ->where('taux', '>', 0)
-            ->whereBetween('date', [$dateDebut, $dateFin])
-            ->with('fournisseur.compteComptable')
-            ->orderBy('date')
-            ->orderBy('numero_piece')
+        // Règlements où l'AIB a été effectivement déduit dans la période
+        $reglements = ReglementFournisseur::where('deduire_aib', true)
+            ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+            ->where(function ($q) use ($dateDebut, $dateFin) {
+                $q->whereBetween('date_aib', [$dateDebut, $dateFin])
+                  ->orWhere(function ($q2) use ($dateDebut, $dateFin) {
+                      $q2->whereNull('date_aib')
+                          ->whereBetween('date_reglement', [$dateDebut, $dateFin]);
+                  });
+            })
+            ->with('facture.fournisseur.compteComptable')
+            ->orderBy('date_aib')
             ->get();
+
+        // Grouper par facture (1 facture = 1 déclaration AIB)
+        $reglementsByFacture = $reglements->groupBy('facture_id');
 
         // Lignes pour la Déclaration AIB
         $lignes = [];
@@ -482,18 +495,30 @@ class RapportFournisseurController extends Controller
         // Grouper par taux pour le bordereau
         $parTaux = [];
 
-        foreach ($factures as $f) {
+        foreach ($reglementsByFacture as $factureId => $factureReglements) {
+            $firstReglement = $factureReglements->sortBy('date_aib')->first();
+            $f = $firstReglement->facture;
+
+            if (!$f || $f->statut === FactureFournisseur::STATUT_ANNULEE) {
+                continue;
+            }
+
             $fournisseur = $f->fournisseur;
             $code = $fournisseur?->compteComptable?->numero_compte ?? '';
             $fournisseurLabel = $code ? "[{$code}] {$fournisseur->nom}" : ($fournisseur->nom ?? 'Inconnu');
 
-            $montantAib = (float) $f->montant_reduction;
             $montantMo = (float) $f->montant_mo;
             $tauxAib = (float) $f->taux;
+            // Utiliser montant_aib_deduit du règlement, fallback sur facture pour données existantes
+            $montantAib = (float) $firstReglement->montant_aib_deduit > 0
+                ? (float) $firstReglement->montant_aib_deduit
+                : (float) $f->montant_reduction;
+
+            $dateAib = $firstReglement->date_aib ?? $firstReglement->date_reglement;
 
             $lignes[] = [
                 'numero_piece' => $f->numero_piece,
-                'date' => $f->date?->format('d/m/Y'),
+                'date' => $dateAib?->format('d/m/Y'),
                 'fournisseur' => $fournisseurLabel,
                 'libelle' => $f->libelle,
                 'montant_facture' => (float) $f->montant_facture,
@@ -581,7 +606,7 @@ class RapportFournisseurController extends Controller
 
             $groupes[] = [
                 'date' => $dateObj->format('d/m/Y'),
-                'date_longue' => mb_strtoupper($dateObj->translatedFormat('l j F Y')),
+                'date_longue' => mb_strtoupper($dateObj->locale('fr')->translatedFormat('l j F Y')),
                 'lignes' => $lignes,
                 'total' => $totalJour,
             ];
@@ -950,7 +975,7 @@ class RapportFournisseurController extends Controller
         $result = $this->buildDeclarationAibData($request);
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
         $result['generatedBy'] = auth()->user()?->name ?? 'Utilisateur';
-        $result['generatedAtLong'] = now()->translatedFormat('l d F Y');
+        $result['generatedAtLong'] = now()->locale('fr')->translatedFormat('l d F Y');
 
         $type = $request->input('type', 'declaration');
         $views = [
@@ -995,7 +1020,7 @@ class RapportFournisseurController extends Controller
         $result = $this->buildSituationBanquesData($request);
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
         $result['generatedBy'] = auth()->user()?->name ?? 'Utilisateur';
-        $result['generatedAtLong'] = now()->translatedFormat('l d F Y');
+        $result['generatedAtLong'] = now()->locale('fr')->translatedFormat('l d F Y');
         $result['etablissement'] = \App\Models\Setting::getEtablissement();
 
         $view = $result['mode'] === 'par_banque'

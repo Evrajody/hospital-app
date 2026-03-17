@@ -191,14 +191,14 @@
 
                 <el-col :span="6">
                   <el-form-item label="Montant" prop="montant">
-                    <el-input-number
-                      v-model="form.montant"
-                      :min="0"
-                      :max="resteAPayer"
-                      :precision="0"
-                      controls-position="right"
-                      style="width: 100%"
-                    />
+                    <el-input
+                      :model-value="formatInputMontant(form.montant)"
+                      @input="val => form.montant = parseInputMontant(val)"
+                      placeholder="0"
+                      :prefix-icon="Money"
+                    >
+                      <template #append>XOF</template>
+                    </el-input>
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -435,6 +435,7 @@ import {
   WarningFilled
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useMontant } from '@/Composables/useMontant';
 
 // Props
 const props = defineProps({
@@ -569,13 +570,7 @@ const rules = {
 };
 
 // Methods
-const formatMontant = (montant) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    minimumFractionDigits: 0
-  }).format(montant || 0);
-};
+const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('fr-FR');

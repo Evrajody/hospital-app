@@ -4,7 +4,7 @@
     <el-dialog
       v-model="showCriteres"
       title="ÉTAT DES MOUVEMENTS FACTURES"
-      width="600px"
+      min-width="600px"
       :close-on-click-modal="false"
       :show-close="true"
       @close="handleBack"
