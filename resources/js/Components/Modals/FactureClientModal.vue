@@ -197,6 +197,7 @@ watch(() => props.facture, (newFacture) => {
     form.client_id = newFacture.client_id || null;
     form.montant = newFacture.montant || null;
     form.ristourne = newFacture.ristourne || 0;
+    castNumericFields(form, ['montant', 'ristourne']);
   }
 }, { immediate: true, deep: true });
 
@@ -209,6 +210,7 @@ watch(() => props.modelValue, (isOpen) => {
       form.client_id = props.facture.client_id || null;
       form.montant = props.facture.montant || null;
       form.ristourne = props.facture.ristourne || 0;
+      castNumericFields(form, ['montant', 'ristourne']);
     } else {
       // Mode création : auto-remplir la référence
       form.reference = props.prochaineReference;
@@ -250,7 +252,7 @@ const netAPayer = computed(() => {
   return (form.montant || 0) - (form.ristourne || 0);
 });
 
-const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
+const { formatMontant, formatInputMontant, parseInputMontant, castNumericFields } = useMontant();
 
 const autoReference = () => {
   form.reference = props.prochaineReference;

@@ -21,18 +21,30 @@ class BanqueController extends Controller
     public function index(): InertiaResponse
     {
         $comptes = CompteBancaire::with(['banque', 'compteOhada'])
+            ->withCount(['approvisionnements as nb_entrees'])
             ->orderBy('banque_id')
             ->get()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'nom' => $c->banque->nom . ' - ' . $c->numero_compte,
-                'banque' => $c->banque->nom,
-                'numero' => $c->numero_compte,
-                'compte_ohada' => $c->compteOhada ? $c->compteOhada->numero_compte . ' - ' . $c->compteOhada->libelle : null,
-                'solde' => (float) $c->solde,
-                'observations' => $c->observations,
-                'type' => 'banque',
-            ]);
+            ->map(function ($c) {
+                // Compter les sorties (règlements fournisseurs liés à ce compte par numéro)
+                $nbSorties = \App\Models\ReglementFournisseur::where('numero_compte_bancaire', $c->numero_compte)
+                    ->where('statut', '!=', \App\Models\ReglementFournisseur::STATUT_ANNULE)
+                    ->count();
+
+                return [
+                    'id' => $c->id,
+                    'nom' => $c->banque->nom . ' - ' . $c->numero_compte,
+                    'banque' => $c->banque->nom,
+                    'numero' => $c->numero_compte,
+                    'compte_ohada' => $c->compteOhada ? $c->compteOhada->numero_compte . ' - ' . $c->compteOhada->libelle : null,
+                    'solde' => (float) $c->solde,
+                    'observations' => $c->observations,
+                    'type' => 'banque',
+                    'mouvements' => [
+                        'entrees' => $c->nb_entrees,
+                        'sorties' => $nbSorties,
+                    ],
+                ];
+            });
 
         $banques = Banque::withCount('comptes')
             ->orderBy('nom')
@@ -210,6 +222,120 @@ class BanqueController extends Controller
         return response()->json([
             'success' => true,
             'data' => $comptes,
+        ]);
+    }
+
+    /**
+     * Afficher les mouvements d'un compte bancaire (Vue Inertia)
+     */
+    public function mouvements(int $id, Request $request): InertiaResponse
+    {
+        $compte = CompteBancaire::with('banque')->findOrFail($id);
+
+        // Approvisionnements (entrées)
+        $entrees = ApprovisionnementBanque::where('compte_bancaire_id', $id)
+            ->with('createur')
+            ->get()
+            ->map(fn($a) => [
+                'id' => 'appro-' . $a->id,
+                'date' => $a->date_depot->format('Y-m-d'),
+                'type' => 'entree',
+                'reference' => null,
+                'description' => $a->observations ?: 'Approvisionnement',
+                'montant' => (float) $a->montant,
+                'origine' => 'approvisionnement',
+                'user' => $a->createur ? ['name' => $a->createur->name] : null,
+                'created_at' => $a->created_at,
+            ]);
+
+        // Règlements fournisseurs (sorties) — ceux liés à ce compte
+        $sorties = \App\Models\ReglementFournisseur::where('numero_compte_bancaire', $compte->numero_compte)
+            ->where('statut', '!=', \App\Models\ReglementFournisseur::STATUT_ANNULE)
+            ->with(['fournisseur', 'createur'])
+            ->get()
+            ->map(fn($r) => [
+                'id' => 'reg-' . $r->id,
+                'date' => $r->date_reglement?->format('Y-m-d'),
+                'type' => 'sortie',
+                'reference' => $r->reference,
+                'description' => 'Règlement ' . ($r->fournisseur?->nom ?? ''),
+                'montant' => (float) $r->montant,
+                'origine' => 'reglement_fournisseur',
+                'user' => $r->createur ? ['name' => $r->createur->name] : null,
+                'created_at' => $r->created_at,
+            ]);
+
+        // Fusionner et trier par date desc
+        $mouvements = $entrees->concat($sorties)
+            ->sortByDesc('date')
+            ->values();
+
+        // Calculer solde_apres pour chaque mouvement
+        $soldeActuel = (float) $compte->solde;
+        $mouvementsArray = $mouvements->toArray();
+
+        // Parcourir depuis le plus récent, le solde après le dernier mouvement = solde actuel
+        $solde = $soldeActuel;
+        for ($i = 0; $i < count($mouvementsArray); $i++) {
+            $mouvementsArray[$i]['solde_apres'] = $solde;
+            if ($mouvementsArray[$i]['type'] === 'entree') {
+                $solde -= $mouvementsArray[$i]['montant'];
+            } else {
+                $solde += $mouvementsArray[$i]['montant'];
+            }
+        }
+
+        // Pagination manuelle
+        $perPage = $request->input('per_page', 20);
+        $page = $request->input('page', 1);
+        $total = count($mouvementsArray);
+        $paginatedItems = array_slice($mouvementsArray, ($page - 1) * $perPage, $perPage);
+
+        return Inertia::render('Banques/Mouvements', [
+            'banque' => [
+                'id' => $compte->id,
+                'nom' => $compte->banque->nom . ' - ' . $compte->numero_compte,
+                'numero' => $compte->numero_compte,
+                'banque_nom' => $compte->banque->nom,
+                'solde' => (float) $compte->solde,
+                'type' => 'banque',
+                'compte_comptable' => $compte->compteOhada?->numero_compte,
+            ],
+            'mouvements' => $paginatedItems,
+            'stats' => [
+                'total_entrees' => $entrees->sum('montant'),
+                'total_sorties' => $sorties->sum('montant'),
+                'nombre_mouvements' => $total,
+            ],
+            'pagination' => [
+                'current_page' => (int) $page,
+                'per_page' => (int) $perPage,
+                'total' => $total,
+            ],
+            'user' => [
+                'name' => auth()->user()?->name ?? 'Utilisateur',
+                'email' => auth()->user()?->email ?? '',
+            ],
+        ]);
+    }
+
+    /**
+     * Modifier un compte bancaire (API)
+     */
+    public function updateCompte(Request $request, CompteBancaire $compte): JsonResponse
+    {
+        $validated = $request->validate([
+            'numero_compte' => 'required|string|max:50',
+            'compte_ohada_id' => 'required|exists:plan_comptable_ohada,id',
+            'observations' => 'nullable|string',
+        ]);
+
+        $compte->update($validated);
+        $compte->load(['banque', 'compteOhada']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Compte bancaire modifié avec succès',
         ]);
     }
 

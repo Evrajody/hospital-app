@@ -71,10 +71,10 @@
         <table style="width: 100%; border: none;">
             <tr>
                 <td style="border: none; width: 65%; vertical-align: top;">
-                    <div class="info-line"><strong>Nom ou Raison sociale :</strong>&nbsp;&nbsp;<strong>HÔPITAL DE MÉNONTIN</strong></div>
+                    <div class="info-line"><strong>Nom ou Raison sociale :</strong>&nbsp;&nbsp;<strong>{{ $etablissement['nom'] ?? '' }}</strong></div>
                     <div class="info-line"><strong>Activit&eacute; :</strong></div>
-                    <div class="info-line"><strong>Adresse :</strong></div>
-                    <div class="info-line"><strong>T&eacute;l&eacute;phone :</strong></div>
+                    <div class="info-line"><strong>Adresse :</strong>&nbsp;&nbsp;{{ $etablissement['adresse'] ?? '' }}</div>
+                    <div class="info-line"><strong>T&eacute;l&eacute;phone :</strong>&nbsp;&nbsp;{{ $etablissement['telephone'] ?? '' }}</div>
                     <div class="info-line"><strong>N&deg; IFU :</strong>&nbsp;&nbsp;<strong>6201200887407</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>N&deg; INSAE :</strong></div>
                     <div class="info-line" style="margin-top: 8px;">
                         <strong>P&eacute;riode allant du</strong>&nbsp;&nbsp;&nbsp;&nbsp;<strong>{{ \Carbon\Carbon::parse($dateDebut)->format('d/m/Y') }}</strong>

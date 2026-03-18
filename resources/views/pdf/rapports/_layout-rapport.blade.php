@@ -120,12 +120,18 @@
     </style>
 </head>
 <body>
+    @php
+        $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement();
+    @endphp
     {{-- En-tête hôpital --}}
     <div class="header-section">
-        <div class="hospital-name">HÔPITAL DE MÉNONTIN</div>
+        <div class="hospital-name">{{ $etablissement['nom'] }}</div>
         <div class="hospital-info">
-            République du Bénin - Service Comptabilité<br>
-            BP 123 - Cotonou - Tél: +229 21 XX XX XX
+            {{ $etablissement['pays'] }} - {{ $etablissement['service'] }}<br>
+            {{ $etablissement['adresse'] }}
+            @if(!empty($etablissement['telephone']))
+                - Tél: {{ $etablissement['telephone'] }}
+            @endif
         </div>
     </div>
 

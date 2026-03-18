@@ -147,10 +147,6 @@
                   <el-icon><User /></el-icon>
                   Mon Profil
                 </el-dropdown-item>
-                <el-dropdown-item command="settings">
-                  <el-icon><Setting /></el-icon>
-                  Paramètres
-                </el-dropdown-item>
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>
                   Déconnexion
@@ -230,9 +226,6 @@ const handleCommand = (command) => {
   switch (command) {
     case 'profile':
       navigate('/profile');
-      break;
-    case 'settings':
-      navigate('/settings');
       break;
     case 'logout':
       router.post('/logout');

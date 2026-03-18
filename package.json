@@ -27,5 +27,9 @@
     "laravel-vite-plugin": "^2.0.1",
     "vite": "^7.3.0",
     "vue": "^3.5.26"
+  },
+  "dependencies": {
+    "echarts": "^6.0.0",
+    "vue-echarts": "^8.0.1"
   }
 }

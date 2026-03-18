@@ -17,11 +17,12 @@
               </div>
               <div class="kpi-info">
                 <p class="kpi-label">Chiffre d'affaires</p>
-                <h2 class="kpi-value">{{ formatCurrency(mockData.chiffreAffaires) }}</h2>
-                <span class="kpi-trend trend-up">
-                  <el-icon><CaretTop /></el-icon>
-                  +12.5% ce mois
+                <h2 class="kpi-value">{{ formatCurrency(kpis.chiffre_affaires) }}</h2>
+                <span v-if="kpis.trend_ca !== null" :class="['kpi-trend', kpis.trend_ca >= 0 ? 'trend-up' : 'trend-down']">
+                  <el-icon><component :is="kpis.trend_ca >= 0 ? CaretTop : CaretBottom" /></el-icon>
+                  {{ kpis.trend_ca >= 0 ? '+' : '' }}{{ kpis.trend_ca }}% ce mois
                 </span>
+                <span v-else class="kpi-trend trend-neutral">Ce mois</span>
               </div>
             </div>
           </el-card>
@@ -35,7 +36,7 @@
               </div>
               <div class="kpi-info">
                 <p class="kpi-label">Factures en attente</p>
-                <h2 class="kpi-value">{{ mockData.facturesEnAttente }}</h2>
+                <h2 class="kpi-value">{{ kpis.factures_en_attente }}</h2>
                 <span class="kpi-trend trend-neutral">
                   À traiter
                 </span>
@@ -52,11 +53,12 @@
               </div>
               <div class="kpi-info">
                 <p class="kpi-label">Dettes fournisseurs</p>
-                <h2 class="kpi-value">{{ formatCurrency(mockData.dettesFournisseurs) }}</h2>
-                <span class="kpi-trend trend-down">
-                  <el-icon><CaretBottom /></el-icon>
-                  -5.3% ce mois
+                <h2 class="kpi-value">{{ formatCurrency(kpis.dettes_fournisseurs) }}</h2>
+                <span v-if="kpis.trend_dettes !== null" :class="['kpi-trend', kpis.trend_dettes <= 0 ? 'trend-up' : 'trend-down']">
+                  <el-icon><component :is="kpis.trend_dettes <= 0 ? CaretBottom : CaretTop" /></el-icon>
+                  {{ kpis.trend_dettes >= 0 ? '+' : '' }}{{ kpis.trend_dettes }}% ce mois
                 </span>
+                <span v-else class="kpi-trend trend-neutral">Total</span>
               </div>
             </div>
           </el-card>
@@ -70,11 +72,12 @@
               </div>
               <div class="kpi-info">
                 <p class="kpi-label">Créances clients</p>
-                <h2 class="kpi-value">{{ formatCurrency(mockData.creancesClients) }}</h2>
-                <span class="kpi-trend trend-up">
-                  <el-icon><CaretTop /></el-icon>
-                  +8.2% ce mois
+                <h2 class="kpi-value">{{ formatCurrency(kpis.creances_clients) }}</h2>
+                <span v-if="kpis.trend_creances !== null" :class="['kpi-trend', kpis.trend_creances <= 0 ? 'trend-up' : 'trend-down']">
+                  <el-icon><component :is="kpis.trend_creances <= 0 ? CaretBottom : CaretTop" /></el-icon>
+                  {{ kpis.trend_creances >= 0 ? '+' : '' }}{{ kpis.trend_creances }}% ce mois
                 </span>
+                <span v-else class="kpi-trend trend-neutral">Total</span>
               </div>
             </div>
           </el-card>
@@ -95,18 +98,18 @@
               </div>
             </template>
 
-            <el-table :data="mockData.recentInvoices" style="width: 100%">
-              <el-table-column prop="numero" label="N° Facture" width="120" />
-              <el-table-column prop="fournisseur" label="Fournisseur" />
-              <el-table-column prop="montant" label="Montant" width="150">
+            <el-table :data="dernieres_factures" style="width: 100%">
+              <el-table-column prop="numero" label="N° Facture" width="120" sortable />
+              <el-table-column prop="fournisseur" label="Fournisseur" sortable />
+              <el-table-column prop="montant" label="Montant" width="150" sortable>
                 <template #default="{ row }">
                   {{ formatCurrency(row.montant) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="date" label="Date" width="120" />
-              <el-table-column label="Statut" width="150">
+              <el-table-column prop="date" label="Date" width="120" sortable />
+              <el-table-column prop="statut" label="Statut" width="150" sortable>
                 <template #default="{ row }">
-                  <el-tag :type="getStatusType(row.statut)">
+                  <el-tag :type="row.statut_type">
                     {{ row.statut }}
                   </el-tag>
                 </template>
@@ -125,7 +128,7 @@
             </template>
 
             <div class="bank-list">
-              <div v-for="bank in mockData.banks" :key="bank.id" class="bank-item">
+              <div v-for="bank in banques" :key="bank.id" class="bank-item">
                 <div class="bank-info">
                   <el-icon :size="24" color="#409EFF"><CreditCard /></el-icon>
                   <div>
@@ -143,7 +146,7 @@
 
             <div class="total-balance">
               <strong>Solde total:</strong>
-              <span class="total-amount">{{ formatCurrency(totalBankBalance) }}</span>
+              <span class="total-amount">{{ formatCurrency(solde_total_banques) }}</span>
             </div>
           </el-card>
         </el-col>
@@ -156,21 +159,19 @@
             <template #header>
               <h3>Évolution mensuelle</h3>
             </template>
-            <div class="chart-placeholder">
-              <el-icon :size="60" color="#ccc"><TrendCharts /></el-icon>
-              <p>Graphique à venir (intégrer Chart.js ou ECharts)</p>
-            </div>
+            <v-chart :option="evolutionChartOption" autoresize style="height: 350px;" />
           </el-card>
         </el-col>
 
         <el-col :xs="24" :lg="12">
           <el-card shadow="hover">
             <template #header>
-              <h3>Répartition des charges</h3>
+              <h3>Répartition des charges ({{ new Date().getFullYear() }})</h3>
             </template>
-            <div class="chart-placeholder">
+            <v-chart v-if="repartition_charges.length > 0" :option="repartitionChartOption" autoresize style="height: 350px;" />
+            <div v-else class="chart-placeholder">
               <el-icon :size="60" color="#ccc"><PieChart /></el-icon>
-              <p>Graphique à venir (intégrer Chart.js ou ECharts)</p>
+              <p>Aucune donnée pour cette année</p>
             </div>
           </el-card>
         </el-col>
@@ -185,6 +186,16 @@
 import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import VChart from 'vue-echarts';
+import { use } from 'echarts/core';
+import { BarChart, PieChart as EchartsPie } from 'echarts/charts';
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import {
   TrendCharts,
   DocumentCopy,
@@ -193,15 +204,44 @@ import {
   CreditCard,
   CaretTop,
   CaretBottom,
-  Plus,
   PieChart
 } from '@element-plus/icons-vue';
+
+use([BarChart, EchartsPie, TitleComponent, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer]);
 
 // Props
 const props = defineProps({
   user: {
     type: Object,
     default: () => ({ name: 'Utilisateur' })
+  },
+  kpis: {
+    type: Object,
+    default: () => ({})
+  },
+  dernieres_factures: {
+    type: Array,
+    default: () => []
+  },
+  banques: {
+    type: Array,
+    default: () => []
+  },
+  solde_total_banques: {
+    type: Number,
+    default: 0
+  },
+  stats: {
+    type: Object,
+    default: () => ({})
+  },
+  evolution_mensuelle: {
+    type: Array,
+    default: () => []
+  },
+  repartition_charges: {
+    type: Array,
+    default: () => []
   }
 });
 
@@ -210,84 +250,117 @@ const breadcrumbs = [
   { title: 'Tableau de bord', path: '/dashboard' }
 ];
 
-// Mock Data
-const mockData = {
-  chiffreAffaires: 45000000,
-  facturesEnAttente: 23,
-  dettesFournisseurs: 12500000,
-  creancesClients: 8750000,
-  recentInvoices: [
-    {
-      numero: 'F-2025-001',
-      fournisseur: 'SOBEBRA',
-      montant: 1250000,
-      date: '2025-12-28',
-      statut: 'Non réglée'
-    },
-    {
-      numero: 'F-2025-002',
-      fournisseur: 'IBEDC',
-      montant: 450000,
-      date: '2025-12-27',
-      statut: 'Partiellement réglée'
-    },
-    {
-      numero: 'F-2025-003',
-      fournisseur: 'SONEB',
-      montant: 320000,
-      date: '2025-12-26',
-      statut: 'Réglée'
-    },
-    {
-      numero: 'F-2025-004',
-      fournisseur: 'Pharmacie Centrale',
-      montant: 2800000,
-      date: '2025-12-25',
-      statut: 'Non réglée'
-    },
-    {
-      numero: 'F-2025-005',
-      fournisseur: 'MTN Bénin',
-      montant: 180000,
-      date: '2025-12-24',
-      statut: 'Réglée'
-    }
-  ],
-  banks: [
-    { id: 1, name: 'BOA Bénin', account: '0012345678', balance: 15500000 },
-    { id: 2, name: 'Ecobank', account: '0087654321', balance: 8200000 },
-    { id: 3, name: 'SGBB', account: '0054321098', balance: 3450000 },
-    { id: 4, name: 'Caisse', account: 'CAISSE-01', balance: 850000 }
-  ]
-};
-
-// Computed
-const totalBankBalance = computed(() => {
-  return mockData.banks.reduce((sum, bank) => sum + bank.balance, 0);
-});
-
 // Methods
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'XOF',
     minimumFractionDigits: 0
-  }).format(amount);
+  }).format(amount || 0);
 };
 
-const getStatusType = (status) => {
-  const types = {
-    'Non réglée': 'danger',
-    'Partiellement réglée': 'warning',
-    'Réglée': 'success',
-    'Soldée': 'info'
-  };
-  return types[status] || 'info';
+const formatCompact = (value) => {
+  if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+  if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
+  return value.toString();
 };
 
 const navigate = (path) => {
   router.visit(path);
 };
+
+// --- Charts ---
+
+const evolutionChartOption = computed(() => ({
+  tooltip: {
+    trigger: 'axis',
+    formatter: (params) => {
+      let html = `<strong>${params[0].axisValue}</strong><br/>`;
+      params.forEach(p => {
+        html += `${p.marker} ${p.seriesName}: ${formatCurrency(p.value)}<br/>`;
+      });
+      return html;
+    },
+  },
+  legend: {
+    data: ['Recettes', 'Dépenses'],
+    bottom: 0,
+  },
+  grid: {
+    left: '3%',
+    right: '4%',
+    bottom: '12%',
+    top: '8%',
+    containLabel: true,
+  },
+  xAxis: {
+    type: 'category',
+    data: props.evolution_mensuelle.map(e => e.mois),
+    axisLabel: {
+      rotate: 30,
+      fontSize: 11,
+    },
+  },
+  yAxis: {
+    type: 'value',
+    axisLabel: {
+      formatter: (v) => formatCompact(v),
+    },
+  },
+  series: [
+    {
+      name: 'Recettes',
+      type: 'bar',
+      data: props.evolution_mensuelle.map(e => e.recettes),
+      itemStyle: { color: '#22c55e', borderRadius: [4, 4, 0, 0] },
+      barMaxWidth: 30,
+    },
+    {
+      name: 'Dépenses',
+      type: 'bar',
+      data: props.evolution_mensuelle.map(e => e.depenses),
+      itemStyle: { color: '#ef4444', borderRadius: [4, 4, 0, 0] },
+      barMaxWidth: 30,
+    },
+  ],
+}));
+
+const repartitionChartOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: (params) => {
+      return `${params.name}<br/>${formatCurrency(params.value)} (${params.percent}%)`;
+    },
+  },
+  legend: {
+    orient: 'vertical',
+    right: '5%',
+    top: 'center',
+    textStyle: { fontSize: 12 },
+  },
+  series: [
+    {
+      type: 'pie',
+      radius: ['40%', '70%'],
+      center: ['35%', '50%'],
+      avoidLabelOverlap: true,
+      itemStyle: {
+        borderRadius: 6,
+        borderColor: '#fff',
+        borderWidth: 2,
+      },
+      label: { show: false },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 14,
+          fontWeight: 'bold',
+        },
+      },
+      data: props.repartition_charges,
+    },
+  ],
+}));
 </script>
 
 <style scoped>
@@ -487,9 +560,4 @@ const navigate = (path) => {
   border-radius: 8px;
 }
 
-.quick-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 </style>

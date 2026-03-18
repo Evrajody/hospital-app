@@ -201,7 +201,7 @@
         <tbody>
             @forelse($reglements as $index => $reglement)
             <tr>
-                <td>{{ $facture->numero_piece }}{{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</td>
+                <td>{{ $reglement->created_at?->format('dmY-Hi') }}</td>
                 <td>{{ $reglement->date_reglement?->format('d/m/Y') }}</td>
                 <td>
                     @php

@@ -33,6 +33,7 @@ class User extends Authenticatable
         'is_active',
         'telephone',
         'poste',
+        'signature_path',
     ];
 
     /**

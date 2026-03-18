@@ -32,8 +32,18 @@ class ClientController extends Controller
 
         // Tri
         $sort = $request->input('sort', 'nom');
-        $order = $request->input('order', 'asc');
-        $query->orderBy($sort, $order);
+        $order = $request->input('order', 'asc') === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['nom', 'telephone', 'adresse'];
+
+        if ($sort === 'code') {
+            $query->leftJoin('plan_comptable_ohada', 'clients.compte_comptable_id', '=', 'plan_comptable_ohada.id')
+                  ->orderBy('plan_comptable_ohada.numero_compte', $order)
+                  ->select('clients.*');
+        } elseif (in_array($sort, $allowedSorts)) {
+            $query->orderBy($sort, $order);
+        } else {
+            $query->orderBy('nom', $order);
+        }
 
         // Pagination
         $perPage = $request->input('per_page', 20);

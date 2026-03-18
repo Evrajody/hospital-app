@@ -91,6 +91,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
+import { useMontant } from '@/Composables/useMontant';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -102,6 +103,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'success']);
 
+const { castNumericFields } = useMontant();
 const formRef = ref(null);
 const validationErrors = ref([]);
 
@@ -170,6 +172,7 @@ watch(() => props.tauxFiscal, (val) => {
     form.taux = val.taux;
     form.actif = val.actif;
     form.par_defaut = val.par_defaut;
+    castNumericFields(form, ['taux']);
   } else {
     form.type = props.typeInitial || 'tva';
   }

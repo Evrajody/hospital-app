@@ -699,7 +699,7 @@ const clearErrors = () => {
   validationErrors.value = [];
 };
 
-const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
+const { formatMontant, formatInputMontant, parseInputMontant, castNumericFields } = useMontant();
 
 const genererNumeroPiece = async () => {
   loadingNumero.value = true;
@@ -837,6 +837,8 @@ const applyFactureData = (data) => {
       form[key] = data[key];
     }
   });
+  // Convertir les champs numériques (arrivent en string depuis les casts decimal)
+  castNumericFields(form, ['taux', 'montant_facture', 'montant_mo', 'avoir', 'taux_tva']);
   // S'assurer que le fournisseur_id est bien chargé
   if (!form.fournisseur_id && data.fournisseur?.id) {
     form.fournisseur_id = data.fournisseur.id;

@@ -224,7 +224,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="libelle" label="Libellé" min-width="300">
+          <el-table-column prop="libelle" label="Libellé" min-width="300" sortable="custom">
             <template #default="{ row }">
               <div class="compte-libelle">
                 {{ row.libelle }}
@@ -235,7 +235,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="type" label="Type" width="180">
+          <el-table-column prop="type" label="Type" width="180" sortable="custom">
             <template #default="{ row }">
               <el-tag :type="getTypeTagType(row.type)" size="small">
                 {{ getTypeLabel(row.type) }}
@@ -244,13 +244,13 @@
           </el-table-column>
 
 
-          <el-table-column prop="classe" label="Classe" width="100" align="center">
+          <el-table-column prop="classe" label="Classe" width="100" align="center" sortable="custom">
             <template #default="{ row }">
               <el-tag size="small" effect="plain">{{ row.classe }}</el-tag>
             </template>
           </el-table-column>
 
-          <el-table-column prop="utilisable" label="Utilisable" width="90" align="center">
+          <el-table-column prop="utilisable" label="Utilisable" width="90" align="center" sortable="custom">
             <template #default="{ row }">
               <el-icon v-if="row.utilisable" color="#16a34a"><CircleCheck /></el-icon>
               <el-icon v-else color="#d1d5db"><CircleClose /></el-icon>

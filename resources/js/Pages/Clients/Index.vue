@@ -85,8 +85,8 @@
               <strong>{{ row.nom }}</strong>
             </template>
           </el-table-column>
-          <el-table-column prop="telephone" label="Téléphone" width="180" />
-          <el-table-column prop="adresse" label="Adresse" />
+          <el-table-column prop="telephone" label="Téléphone" width="180" sortable />
+          <el-table-column prop="adresse" label="Adresse" sortable />
         </el-table>
 
         <!-- Pagination -->

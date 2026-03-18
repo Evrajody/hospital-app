@@ -516,7 +516,7 @@
             <td>{{ mandatData.facture.montant_facture }} <em>FCFA</em></td>
           </tr>
           <tr>
-            <td class="mandat-label">MONTANT AVOIR / ESCOMPT :</td>
+            <td class="mandat-label">MONTANT AVOIR  :</td>
             <td>{{ mandatData.facture.montant_avoir }} <em>FCFA</em></td>
           </tr>
           <tr v-if="mandatData.facture.taux_aib > 0">

@@ -79,17 +79,17 @@
               </el-popconfirm>
             </template>
           </el-table-column>
-          <el-table-column prop="libelle" label="Libellé">
+          <el-table-column prop="libelle" label="Libellé" sortable>
             <template #default="{ row }">
               <strong>{{ row.libelle }}</strong>
             </template>
           </el-table-column>
-          <el-table-column prop="taux" label="Taux" width="120">
+          <el-table-column prop="taux" label="Taux" width="120" sortable>
             <template #default="{ row }">
               <el-tag size="large" type="primary">{{ row.taux }}%</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="actif" label="Statut" width="120">
+          <el-table-column prop="actif" label="Statut" width="120" sortable>
             <template #default="{ row }">
               <el-switch
                 :model-value="row.actif"
@@ -99,7 +99,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="par_defaut" label="Par défaut" width="120">
+          <el-table-column prop="par_defaut" label="Par défaut" width="120" sortable>
             <template #default="{ row }">
               <el-tag v-if="row.par_defaut" type="success" size="small">Par défaut</el-tag>
               <span v-else style="color: #999">-</span>
@@ -135,17 +135,17 @@
               </el-popconfirm>
             </template>
           </el-table-column>
-          <el-table-column prop="libelle" label="Libellé">
+          <el-table-column prop="libelle" label="Libellé" sortable>
             <template #default="{ row }">
               <strong>{{ row.libelle }}</strong>
             </template>
           </el-table-column>
-          <el-table-column prop="taux" label="Taux" width="120">
+          <el-table-column prop="taux" label="Taux" width="120" sortable>
             <template #default="{ row }">
               <el-tag size="large" type="warning">{{ row.taux }}%</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="actif" label="Statut" width="120">
+          <el-table-column prop="actif" label="Statut" width="120" sortable>
             <template #default="{ row }">
               <el-switch
                 :model-value="row.actif"
@@ -155,7 +155,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="par_defaut" label="Par défaut" width="120">
+          <el-table-column prop="par_defaut" label="Par défaut" width="120" sortable>
             <template #default="{ row }">
               <el-tag v-if="row.par_defaut" type="success" size="small">Par défaut</el-tag>
               <span v-else style="color: #999">-</span>

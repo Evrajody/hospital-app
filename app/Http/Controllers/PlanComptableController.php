@@ -45,7 +45,9 @@ class PlanComptableController extends Controller
 
         // Tri
         $sortBy = $request->get('sort_by', 'numero_compte');
-        $sortOrder = $request->get('sort_order', 'asc');
+        $sortOrder = $request->get('sort_order', 'asc') === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['numero_compte', 'libelle', 'type', 'classe', 'utilisable'];
+        $sortBy = in_array($sortBy, $allowedSorts) ? $sortBy : 'numero_compte';
         $query->orderBy($sortBy, $sortOrder);
 
         // Pagination

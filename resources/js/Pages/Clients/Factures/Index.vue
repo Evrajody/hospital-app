@@ -163,19 +163,19 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Pay&eacute;" width="160" align="right">
+          <el-table-column label="Pay&eacute;" width="160" align="right" sortable sort-by="montant_paye">
             <template #default="{ row }">
               <span class="montant-paye">{{ formatMontant(row.montant_paye) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Reste" width="160" align="right">
+          <el-table-column label="Reste" width="160" align="right" sortable sort-by="reste_a_payer">
             <template #default="{ row }">
               <span :class="['montant-reste', row.reste_a_payer > 0 ? 'has-reste' : '']">
                 {{ formatMontant(row.reste_a_payer) }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="Statut" width="160" align="center">
+          <el-table-column prop="statut" label="Statut" width="160" align="center" sortable>
             <template #default="{ row }">
               <el-tag :type="getStatutType(row.statut)" size="small">
                 {{ getStatutLabel(row.statut) }}

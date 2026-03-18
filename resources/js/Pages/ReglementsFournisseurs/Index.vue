@@ -202,7 +202,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="facture" label="N° Pièce" width="140">
+          <el-table-column prop="facture" label="N° Pièce" width="140" sortable="custom">
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewFacture(row.facture)">
                 <strong>{{ row.facture.numero }}</strong>
@@ -210,16 +210,15 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200">
+          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" sortable="custom">
             <template #default="{ row }">
               <div class="fournisseur-cell">
                 <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
-                <!-- <div class="fournisseur-code">{{ row.fournisseur.code }}</div> -->
               </div>
             </template>
           </el-table-column>
 
-          <el-table-column prop="mode_paiement" label="Mode" width="140">
+          <el-table-column prop="mode_paiement" label="Mode" width="140" sortable="custom">
             <template #default="{ row }">
               <el-tag :type="getModeTagType(row.mode_paiement)" size="small">
                 {{ getModeLabel(row.mode_paiement) }}
@@ -227,21 +226,21 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference" label="Référence" width="140">
+          <el-table-column prop="reference" label="Référence" width="140" sortable="custom">
             <template #default="{ row }">
               <span v-if="row.reference">{{ row.reference }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="beneficiaire" label="Bénéficiaire" width="160">
+          <el-table-column prop="beneficiaire" label="Bénéficiaire" width="160" sortable="custom">
             <template #default="{ row }">
               <span v-if="row.beneficiaire">{{ row.beneficiaire }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="compte_bancaire" label="Compte Bancaire" width="180">
+          <el-table-column prop="compte_bancaire" label="Compte Bancaire" width="180" sortable="custom">
             <template #default="{ row }">
               <div v-if="row.compte_bancaire" class="compte-cell">
                 <el-icon><CreditCard /></el-icon>
@@ -575,8 +574,13 @@ const handleRefresh = () => {
 
 const handleSortChange = ({ prop, order }) => {
   const params = new URLSearchParams(window.location.search);
-  params.set('sort', prop);
-  params.set('order', order === 'ascending' ? 'asc' : 'desc');
+  if (order) {
+    params.set('sort', prop);
+    params.set('order', order === 'ascending' ? 'asc' : 'desc');
+  } else {
+    params.delete('sort');
+    params.delete('order');
+  }
 
   router.visit(`/reglements-fournisseurs?${params.toString()}`, {
     preserveState: true,

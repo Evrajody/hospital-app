@@ -156,7 +156,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="type" label="Type" width="100" align="center">
+          <el-table-column prop="type" label="Type" width="100" align="center" sortable>
             <template #default="{ row }">
               <el-tag :type="row.type === 'entree' ? 'success' : 'danger'" size="small">
                 <el-icon>
@@ -166,14 +166,14 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference" label="Référence" width="150">
+          <el-table-column prop="reference" label="Référence" width="150" sortable>
             <template #default="{ row }">
               <span v-if="row.reference" class="reference">{{ row.reference }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="description" label="Description" min-width="250">
+          <el-table-column prop="description" label="Description" min-width="250" sortable>
             <template #default="{ row }">
               <div class="description">{{ row.description }}</div>
               <div v-if="row.origine" class="origine">
@@ -183,7 +183,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant" label="Montant" width="150" align="right">
+          <el-table-column prop="montant" label="Montant" width="150" align="right" sortable>
             <template #default="{ row }">
               <span :class="getMontantClass(row.type)">
                 {{ row.type === 'entree' ? '+' : '-' }}{{ formatMontant(row.montant) }}
@@ -191,7 +191,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="solde_apres" label="Solde après" width="150" align="right">
+          <el-table-column prop="solde_apres" label="Solde après" width="150" align="right" sortable>
             <template #default="{ row }">
               <strong class="solde-apres">{{ formatMontant(row.solde_apres) }}</strong>
             </template>

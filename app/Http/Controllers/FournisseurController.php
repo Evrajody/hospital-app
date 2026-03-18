@@ -40,8 +40,18 @@ class FournisseurController extends Controller
 
         // Tri
         $sortField = $request->input('sort', 'nom');
-        $sortOrder = $request->input('order', 'asc');
-        $query->orderBy($sortField, $sortOrder);
+        $sortOrder = $request->input('order', 'asc') === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['nom', 'type_fournisseur', 'contact', 'telephone', 'email'];
+
+        if ($sortField === 'compte_comptable') {
+            $query->leftJoin('plan_comptable_ohada', 'fournisseurs.compte_comptable_id', '=', 'plan_comptable_ohada.id')
+                  ->orderBy('plan_comptable_ohada.numero_compte', $sortOrder)
+                  ->select('fournisseurs.*');
+        } elseif (in_array($sortField, $allowedSorts)) {
+            $query->orderBy($sortField, $sortOrder);
+        } else {
+            $query->orderBy('nom', $sortOrder);
+        }
 
         // Pagination
         $perPage = $request->input('per_page', 20);

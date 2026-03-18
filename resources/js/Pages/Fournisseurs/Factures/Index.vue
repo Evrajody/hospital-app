@@ -220,7 +220,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" fixed="left">
+          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" fixed="left" sortable="custom">
             <template #default="{ row }">
               <div class="fournisseur-cell">
                 <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
@@ -228,15 +228,15 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120">
+          <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120" sortable="custom">
             <template #default="{ row }">
               {{ row.date_facture_bc ? formatDate(row.date_facture_bc) : '-' }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference" label="Réf. Fact/B.C." width="140" />
+          <el-table-column prop="reference" label="Réf. Fact/B.C." width="140" sortable="custom" />
 
-          <el-table-column prop="libelle" label="Libellé" min-width="180">
+          <el-table-column prop="libelle" label="Libellé" min-width="180" sortable="custom">
             <template #default="{ row }">
               {{ row.libelle || '-' }}
             </template>
@@ -248,13 +248,13 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant_net" label="Net à payer" width="140" align="right">
+          <el-table-column prop="montant_net" label="Net à payer" width="140" align="right" sortable="custom">
             <template #default="{ row }">
               <strong>{{ formatMontant(row.montant_net) }}</strong>
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant_paye" label="Payé" width="130" align="right">
+          <el-table-column prop="montant_paye" label="Payé" width="130" align="right" sortable="custom">
             <template #default="{ row }">
               <el-tag :type="getPaymentTagType(row)" size="small">
                 {{ formatMontant(row.montant_paye) }}
@@ -262,7 +262,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="statut_paiement" label="Statut" width="130" align="center">
+          <el-table-column prop="statut_paiement" label="Statut" width="130" align="center" sortable="custom">
             <template #default="{ row }">
               <el-tag :type="getStatutType(row.statut_paiement)" size="small">
                 {{ getStatutLabel(row.statut_paiement) }}
@@ -736,6 +736,13 @@ const handleFactureSuccess = async (factureData) => {
       selectedFacture.value = null;
 
       // Si la facture a une imputation, demander confirmation
+      console.log('=== DEBUG IMPUTATION ===');
+      console.log('isEdit:', isEdit);
+      console.log('result.has_imputation:', result.has_imputation);
+      console.log('result.data?.id:', result.data?.id);
+      console.log('imputation_id:', result.data?.imputation_id);
+      console.log('compte_id:', result.data?.compte_id);
+      console.log('Full result:', JSON.stringify(result, null, 2));
       if (result.has_imputation && result.data?.id) {
         const factureId = result.data.id;
         // Attendre que le dialog se ferme complètement avant d'afficher le MessageBox

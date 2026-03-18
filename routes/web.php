@@ -15,6 +15,8 @@ use App\Http\Controllers\RapportFournisseurController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Models\Client;
 use App\Models\FactureClient;
 use App\Models\ReglementClient;
@@ -35,9 +37,7 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // Dashboard
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware('auth')->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 
 // ==========================================
 // TOUTES LES ROUTES PROTÉGÉES PAR AUTH
@@ -377,6 +377,7 @@ Route::prefix('api/plan-comptable')->group(function () {
 // Banques Routes
 Route::prefix('banques')->group(function () {
     Route::get('/', [BanqueController::class, 'index'])->name('banques.index');
+    Route::get('/{id}/mouvements', [BanqueController::class, 'mouvements'])->name('banques.mouvements');
 });
 
 // API Banques
@@ -388,6 +389,7 @@ Route::prefix('api')->group(function () {
 
     // Comptes bancaires
     Route::post('/comptes-bancaires', [BanqueController::class, 'storeCompte'])->name('api.comptes-bancaires.store');
+    Route::put('/comptes-bancaires/{compte}', [BanqueController::class, 'updateCompte'])->name('api.comptes-bancaires.update');
     Route::get('/comptes-bancaires/liste', [BanqueController::class, 'listeComptes'])->name('api.comptes-bancaires.liste');
 
     // Approvisionnements
@@ -471,6 +473,19 @@ Route::prefix('rapports')->group(function () {
         // Situation périodique des banques
         Route::get('/api/situation-banques', [RapportFournisseurController::class, 'situationBanques']);
         Route::get('/pdf/situation-banques', [RapportFournisseurController::class, 'situationBanquesPdf']);
+
+        // Bordereau de transmission
+        Route::get('/api/bordereau-transmission', [RapportFournisseurController::class, 'bordereauTransmission']);
+        Route::get('/pdf/bordereau-transmission', [RapportFournisseurController::class, 'bordereauTransmissionPdf']);
+        Route::get('/pdf/mandats', [RapportFournisseurController::class, 'mandatsMultiplesPdf']);
+
+        // Récapitulatif des charges
+        Route::get('/api/recap-charges', [RapportFournisseurController::class, 'recapCharges']);
+        Route::get('/pdf/recap-charges', [RapportFournisseurController::class, 'recapChargesPdf']);
+
+        // Récapitulatif des investissements
+        Route::get('/api/recap-investissements', [RapportFournisseurController::class, 'recapInvestissements']);
+        Route::get('/pdf/recap-investissements', [RapportFournisseurController::class, 'recapInvestissementsPdf']);
 
         // Situation des fournisseurs
         Route::get('/situation-fournisseurs', function () {
@@ -579,76 +594,6 @@ Route::prefix('rapports')->group(function () {
             ]);
         })->name('rapports.fournisseurs.declaration-tva');
 
-        // Bordereau de transmission
-        Route::get('/bordereau-transmission', function () {
-            $reglements = [
-                [
-                    'id' => 1,
-                    'date_reglement' => '2025-01-20',
-                    'fournisseur' => ['nom' => 'Pharmacie Centrale du Bénin'],
-                    'facture' => ['numero' => 'PC/025/0001'],
-                    'mode_paiement' => 'virement',
-                    'reference' => 'VIR-2025-001',
-                    'montant' => 2000000
-                ]
-            ];
-
-            return Inertia::render('Rapports/Fournisseurs/BordereauTransmission', [
-                'reglements' => $reglements,
-                'numero_bordereau' => 'BT-2025-001',
-                'date_bordereau' => '2025-01-31'
-            ]);
-        })->name('rapports.fournisseurs.bordereau-transmission');
-
-        // Récapitulatif des charges
-        Route::get('/recap-charges', function () {
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'PC/025/0001',
-                    'date_facture' => '2025-01-15',
-                    'fournisseur' => ['nom' => 'Pharmacie Centrale du Bénin'],
-                    'categorie' => 'Achats de médicaments',
-                    'compte_imputation' => '601100',
-                    'montant_ht' => 5000000,
-                    'montant_tva' => 900000,
-                    'montant_ttc' => 5900000
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Fournisseurs/RecapCharges', [
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.fournisseurs.recap-charges');
-
-        // Récapitulatif des investissements
-        Route::get('/recap-investissements', function () {
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'PC/025/0010',
-                    'date_facture' => '2025-01-10',
-                    'fournisseur' => ['nom' => 'SOBEMAP Matériel Médical'],
-                    'description' => 'Scanner médical',
-                    'type_immo' => 'Matériel médical',
-                    'compte_immo' => '221000',
-                    'montant_ht' => 15000000,
-                    'montant_tva' => 2700000,
-                    'montant_ttc' => 17700000
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Fournisseurs/RecapInvestissements', [
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.fournisseurs.recap-investissements');
-
         // Factures et soldes
         Route::get('/factures-soldes', function () {
             $factures = [
@@ -752,9 +697,12 @@ Route::prefix('api/permissions')->group(function () {
 });
 
 // User Profile Routes
-Route::get('/profile', function () {
-    return Inertia::render('Dashboard'); // Placeholder
-})->name('profile');
+Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+Route::post('/profile/signature', [ProfileController::class, 'uploadSignature'])->name('profile.signature');
+Route::delete('/profile/signature', [ProfileController::class, 'deleteSignature'])->name('profile.signature.delete');
+Route::put('/profile/etablissement', [ProfileController::class, 'updateEtablissement'])->name('profile.etablissement');
 
 Route::get('/settings', function () {
     return Inertia::render('Dashboard'); // Placeholder

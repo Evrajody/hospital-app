@@ -135,7 +135,7 @@ const breadcrumbs = [
   { title: 'Rôles & Permissions', path: '' },
 ];
 
-const selectedRole = ref(null);
+const selectedRole = ref(props.roles.find(r => r.name === 'admin') || props.roles[0] || null);
 const showRoleModal = ref(false);
 const editingRole = ref(null);
 const submitting = ref(false);

@@ -71,6 +71,16 @@
           <SituationBanquesTab :banques="banques" />
         </el-tab-pane>
 
+        <el-tab-pane name="bordereau-transmission" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Document /></el-icon>
+              Bordereau transmission
+            </span>
+          </template>
+          <BordereauTransmissionTab />
+        </el-tab-pane>
+
         <el-tab-pane name="recap-charges" lazy>
           <template #label>
             <span class="tab-label">
@@ -78,17 +88,17 @@
               Récap. charges
             </span>
           </template>
-          <PlaceholderTab description="Récapitulatif des charges — En cours de développement" />
+          <RecapChargesTab />
         </el-tab-pane>
 
-        <el-tab-pane name="autres" lazy>
+        <el-tab-pane name="recap-investissements" lazy>
           <template #label>
             <span class="tab-label">
-              <el-icon><More /></el-icon>
-              Autres rapports
+              <el-icon><DataBoard /></el-icon>
+              Récap. investissements
             </span>
           </template>
-          <PlaceholderTab description="Déclaration TVA, Bordereau de transmission, Récap. investissements, etc. — En cours de développement" />
+          <RecapInvestissementsTab />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -106,7 +116,7 @@ import {
   TrendCharts,
   Tickets,
   Money,
-  More,
+  DataBoard,
   OfficeBuilding,
 } from '@element-plus/icons-vue';
 
@@ -116,7 +126,9 @@ import FacturesRegleesTab from './Tabs/FacturesRegleesTab.vue';
 import DeclarationAibTab from './Tabs/DeclarationAibTab.vue';
 import PointPeriodiqueTab from './Tabs/PointPeriodiqueTab.vue';
 import SituationBanquesTab from './Tabs/SituationBanquesTab.vue';
-import PlaceholderTab from './Tabs/PlaceholderTab.vue';
+import BordereauTransmissionTab from './Tabs/BordereauTransmissionTab.vue';
+import RecapChargesTab from './Tabs/RecapChargesTab.vue';
+import RecapInvestissementsTab from './Tabs/RecapInvestissementsTab.vue';
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },

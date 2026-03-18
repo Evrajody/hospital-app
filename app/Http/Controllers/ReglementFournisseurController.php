@@ -49,8 +49,26 @@ class ReglementFournisseurController extends Controller
 
         // Tri
         $sortField = $request->input('sort', 'date_reglement');
-        $sortOrder = $request->input('order', 'desc');
-        $query->orderBy($sortField, $sortOrder);
+        $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $relationSortMap = [
+            'facture' => ['factures_fournisseurs', 'facture_id', 'numero_piece'],
+            'fournisseur' => ['fournisseurs', 'fournisseur_id', 'nom'],
+            'compte_bancaire' => ['comptes_bancaires', 'compte_bancaire_id', 'numero_compte'],
+        ];
+
+        $allowedDirectSorts = ['date_reglement', 'montant', 'mode_paiement', 'reference', 'beneficiaire', 'created_at'];
+
+        if (isset($relationSortMap[$sortField])) {
+            [$table, $fk, $column] = $relationSortMap[$sortField];
+            $query->leftJoin($table, "reglements_fournisseurs.{$fk}", '=', "{$table}.id")
+                  ->orderBy("{$table}.{$column}", $sortOrder)
+                  ->select('reglements_fournisseurs.*');
+        } elseif (in_array($sortField, $allowedDirectSorts)) {
+            $query->orderBy($sortField, $sortOrder);
+        } else {
+            $query->orderBy('date_reglement', $sortOrder);
+        }
 
         // Pagination
         $perPage = $request->input('per_page', 20);

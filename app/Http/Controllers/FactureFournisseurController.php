@@ -48,10 +48,28 @@ class FactureFournisseurController extends Controller
         }
 
         // Tri (mapping des noms Vue → colonnes SQL)
-        $sortMapping = ['numero' => 'numero_piece', 'date_facture' => 'date', 'montant_ttc' => 'montant_ttc'];
-        $sortField = $sortMapping[$request->input('sort', 'date')] ?? 'date';
+        $sortMapping = [
+            'numero' => 'numero_piece',
+            'date_facture' => 'date',
+            'date_facture_bc' => 'date_facture_bc',
+            'reference' => 'reference_facture',
+            'libelle' => 'libelle',
+            'montant_ttc' => 'montant_ttc',
+            'montant_net' => 'montant_net',
+            'montant_paye' => 'montant_paye',
+            'statut_paiement' => 'statut_paiement',
+        ];
+        $sortKey = $request->input('sort', 'date');
         $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
-        $query->orderBy($sortField, $sortOrder);
+
+        if ($sortKey === 'fournisseur') {
+            $query->leftJoin('fournisseurs', 'factures_fournisseurs.fournisseur_id', '=', 'fournisseurs.id')
+                  ->orderBy('fournisseurs.nom', $sortOrder)
+                  ->select('factures_fournisseurs.*');
+        } else {
+            $sortField = $sortMapping[$sortKey] ?? 'date';
+            $query->orderBy($sortField, $sortOrder);
+        }
 
         // Pagination
         $perPage = $request->input('per_page', 20);
@@ -237,6 +255,7 @@ class FactureFournisseurController extends Controller
                 'mode_paiement' => $r->mode_paiement,
                 'reference' => $r->reference,
                 'observations' => $r->observations,
+                'deduire_aib' => (bool) $r->deduire_aib,
                 'compte_bancaire' => $r->compteTresorerie ? [
                     'id' => $r->compteTresorerie->id,
                     'banque' => $r->compteTresorerie->libelle,
@@ -356,6 +375,7 @@ class FactureFournisseurController extends Controller
                 'montant' => (float) $r->montant,
                 'mode_paiement' => $r->mode_paiement,
                 'reference' => $r->reference,
+                'deduire_aib' => (bool) $r->deduire_aib,
                 'compte_bancaire' => $r->compteTresorerie ? [
                     'id' => $r->compteTresorerie->id,
                     'libelle' => $r->compteTresorerie->libelle,
@@ -459,10 +479,28 @@ class FactureFournisseurController extends Controller
         }
 
         // Tri (mapping des noms Vue → colonnes SQL)
-        $sortMapping = ['numero' => 'numero_piece', 'date_facture' => 'date', 'montant_ttc' => 'montant_ttc'];
-        $sortField = $sortMapping[$request->input('sort', 'date')] ?? 'date';
+        $sortMapping = [
+            'numero' => 'numero_piece',
+            'date_facture' => 'date',
+            'date_facture_bc' => 'date_facture_bc',
+            'reference' => 'reference_facture',
+            'libelle' => 'libelle',
+            'montant_ttc' => 'montant_ttc',
+            'montant_net' => 'montant_net',
+            'montant_paye' => 'montant_paye',
+            'statut_paiement' => 'statut_paiement',
+        ];
+        $sortKey = $request->input('sort', 'date');
         $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
-        $query->orderBy($sortField, $sortOrder);
+
+        if ($sortKey === 'fournisseur') {
+            $query->leftJoin('fournisseurs', 'factures_fournisseurs.fournisseur_id', '=', 'fournisseurs.id')
+                  ->orderBy('fournisseurs.nom', $sortOrder)
+                  ->select('factures_fournisseurs.*');
+        } else {
+            $sortField = $sortMapping[$sortKey] ?? 'date';
+            $query->orderBy($sortField, $sortOrder);
+        }
 
         // Pagination
         $perPage = $request->input('per_page', 20);
@@ -1072,7 +1110,7 @@ class FactureFournisseurController extends Controller
                 'code' => $facture->fournisseur?->compteComptable?->numero_compte,
             ],
             'reglements' => $reglements->values()->map(fn($r, $index) => [
-                'numero_ordre' => $facture->numero_piece . str_pad($index + 1, 2, '0', STR_PAD_LEFT),
+                'numero_ordre' => $r->created_at?->format('dmY-Hi'),
                 'date_reglement' => $r->date_reglement?->format('d/m/Y'),
                 'mode_paiement' => match($r->mode_paiement) {
                     'cheque' => 'Chèque',

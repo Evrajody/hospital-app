@@ -141,7 +141,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="N&deg; Facture Client" width="160">
+          <el-table-column prop="facture.reference" label="N&deg; Facture Client" width="160" sortable sort-by="facture.reference">
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewFacture(row.facture)">
                 <strong>{{ row.facture?.reference || '-' }}</strong>
@@ -149,27 +149,27 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="Client" min-width="180">
+          <el-table-column prop="client.nom" label="Client" min-width="180" sortable sort-by="client.nom">
             <template #default="{ row }">
               <strong>{{ row.client?.nom || '-' }}</strong>
             </template>
           </el-table-column>
 
-          <el-table-column label="Institution" width="180">
+          <el-table-column prop="institution" label="Institution" width="180" sortable>
             <template #default="{ row }">
               <span v-if="row.institution">{{ row.institution }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="R&eacute;f. Ch&egrave;que" width="140">
+          <el-table-column prop="reference_cheque" label="R&eacute;f. Ch&egrave;que" width="140" sortable>
             <template #default="{ row }">
               <span v-if="row.reference_cheque">{{ row.reference_cheque }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="Banque D&eacute;p&ocirc;t" width="160">
+          <el-table-column prop="banque_depot.nom" label="Banque D&eacute;p&ocirc;t" width="160" sortable sort-by="banque_depot.nom">
             <template #default="{ row }">
               <span v-if="row.banque_depot">{{ row.banque_depot.nom }}</span>
               <span v-else class="text-muted">-</span>

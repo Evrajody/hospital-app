@@ -220,7 +220,10 @@
                 </el-col>
 
                 <el-col :span="6" v-if="showBankField">
-                  <el-form-item label="Banque" prop="banque_id">
+                  <el-form-item prop="banque_id">
+                    <template #label>
+                      <span>Banque <span class="required-star">*</span></span>
+                    </template>
                     <el-select
                       v-model="form.banque_id"
                       filterable
@@ -239,7 +242,10 @@
                 </el-col>
 
                 <el-col :span="6" v-if="form.mode_paiement === 'virement' && form.banque_id">
-                  <el-form-item label="Compte bancaire" prop="compte_bancaire_id">
+                  <el-form-item prop="compte_bancaire_id">
+                    <template #label>
+                      <span>Compte bancaire <span class="required-star">*</span></span>
+                    </template>
                     <el-select
                       v-model="form.compte_bancaire_id"
                       filterable
@@ -262,7 +268,10 @@
                 </el-col>
 
                 <el-col :span="6" v-if="showBankField">
-                  <el-form-item label="Référence" prop="reference">
+                  <el-form-item prop="reference">
+                    <template #label>
+                      <span>Référence <span class="required-star">*</span></span>
+                    </template>
                     <el-input
                       v-model="form.reference"
                       :placeholder="form.mode_paiement === 'cheque' ? 'N° du chèque' : 'Réf. virement'"
@@ -271,7 +280,10 @@
                 </el-col>
 
                 <el-col :span="6" v-if="showBankField">
-                  <el-form-item label="Date Référence" prop="date_reference">
+                  <el-form-item prop="date_reference">
+                    <template #label>
+                      <span>Date Référence <span class="required-star">*</span></span>
+                    </template>
                     <el-date-picker
                       v-model="form.date_reference"
                       type="date"
@@ -293,13 +305,18 @@
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="12" v-if="facture.type_reduction && facture.taux > 0">
+                <el-col :span="12" v-if="facture.type_reduction && facture.taux > 0 && !aibDejaDeclaree">
                   <el-form-item label=" ">
                     <el-checkbox
                       v-model="form.deduire_aib"
                       :label="`Déclarer l'AIB (${facture.taux}%)`"
                       size="large"
                     />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12" v-else-if="facture.type_reduction && facture.taux > 0 && aibDejaDeclaree">
+                  <el-form-item label=" ">
+                    <el-tag type="success" size="large">AIB déjà déclaré</el-tag>
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -421,7 +438,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   ArrowLeft,
   Document,
@@ -472,6 +489,10 @@ const resteAPayer = computed(() => {
   const montantNet = parseFloat(props.facture.montant_net) || parseFloat(props.facture.montant_ttc) || 0;
   const montantPaye = parseFloat(props.facture.montant_paye) || 0;
   return montantNet - montantPaye;
+});
+
+const aibDejaDeclaree = computed(() => {
+  return props.reglements.some(r => r.deduire_aib);
 });
 
 const newReste = computed(() => {
@@ -663,23 +684,21 @@ const submitPayment = async (forceInsufficient = false) => {
     if (data.success) {
       ElMessage.success(data.message || 'Règlement enregistré avec succès');
 
-      // Proposer l'imputation comptable si la facture a une imputation
-      if (props.facture.imputation && props.facture.compte) {
-        try {
-          await ElMessageBox.confirm(
-            'Voulez-vous voir l\'imputation comptable de cette facture ?',
-            'Imputation Comptable',
-            {
-              confirmButtonText: 'Oui, voir',
-              cancelButtonText: 'Non',
-              type: 'info',
-            }
-          );
-          router.visit(`/factures-fournisseurs/${props.facture.id}`);
-          return;
-        } catch {
-          // L'utilisateur a annulé
-        }
+      // Proposer l'imputation comptable
+      try {
+        await ElMessageBox.confirm(
+          'Voulez-vous voir l\'imputation comptable de cette facture ?',
+          'Imputation Comptable',
+          {
+            confirmButtonText: 'Oui, voir',
+            cancelButtonText: 'Non',
+            type: 'info',
+          }
+        );
+        router.visit(`/factures-fournisseurs/${props.facture.id}`);
+        return;
+      } catch {
+        // L'utilisateur a annulé
       }
 
       router.visit(`/factures-fournisseurs/${props.facture.id}/regler`);
@@ -895,5 +914,10 @@ const forceSubmit = async () => {
   margin-top: 4px;
   font-size: 13px;
   color: #e6a23c;
+}
+
+.required-star {
+  color: #f56c6c;
+  margin-left: 2px;
 }
 </style>

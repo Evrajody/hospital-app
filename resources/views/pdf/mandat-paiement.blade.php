@@ -202,11 +202,21 @@
     <div class="montants-section">
         <table>
             <tr>
-                <td class="details-label">MONTANT FACTURE :</td>
+                <td class="details-label">MONTANT FACTURE HT :</td>
                 <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }} <em>FCFA</em></td>
             </tr>
+            @if($facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0)
             <tr>
-                <td class="details-label">MONTANT AVOIR / ESCOMPT :</td>
+                <td class="details-label">MONTANT TVA ({{ $facture->taux_tva }}%) :</td>
+                <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }} <em>FCFA</em></td>
+            </tr>
+            <tr>
+                <td class="details-label">MONTANT TTC :</td>
+                <td>{{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }} <em>FCFA</em></td>
+            </tr>
+            @endif
+            <tr>
+                <td class="details-label">MONTANT AVOIR:</td>
                 <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }} <em>FCFA</em></td>
             </tr>
             @if($facture->taux && (float) $facture->taux > 0)

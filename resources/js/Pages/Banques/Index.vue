@@ -213,9 +213,6 @@
                           <el-dropdown-item command="edit" :icon="Edit">
                             Modifier
                           </el-dropdown-item>
-                          <el-dropdown-item command="rapprochement" :icon="DocumentChecked">
-                            Rapprochement
-                          </el-dropdown-item>
                           <el-dropdown-item divided command="delete" :icon="Delete">
                             <span style="color: #f56c6c">Supprimer</span>
                           </el-dropdown-item>
@@ -250,12 +247,45 @@
       v-model="showBanqueModal"
       @success="handleBanqueSuccess"
     />
+
+    <!-- Modal Modifier Compte Bancaire -->
+    <el-dialog
+      v-model="showEditCompteModal"
+      title="Modifier le Compte Bancaire"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form v-if="editingCompte" label-position="top" size="large">
+        <el-form-item label="Numéro de compte">
+          <el-input v-model="editForm.numero_compte" placeholder="Numéro de compte" />
+        </el-form-item>
+        <el-form-item label="Compte OHADA">
+          <el-select v-model="editForm.compte_ohada_id" filterable placeholder="Sélectionner" style="width: 100%">
+            <el-option
+              v-for="c in comptesOhada"
+              :key="c.id"
+              :label="`${c.numero} - ${c.libelle}`"
+              :value="c.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Observations">
+          <el-input v-model="editForm.observations" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditCompteModal = false">Annuler</el-button>
+        <el-button type="primary" :loading="editLoading" @click="submitEditCompte">
+          Enregistrer
+        </el-button>
+      </template>
+    </el-dialog>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ApprovisionnementBanqueModal from '@/Components/Modals/ApprovisionnementBanqueModal.vue';
@@ -273,7 +303,6 @@ import {
   Delete,
   CreditCard,
   Coin,
-  DocumentChecked,
   InfoFilled,
   ArrowDown,
   OfficeBuilding
@@ -317,6 +346,10 @@ const breadcrumbs = [
 const showApprovisionnementModal = ref(false);
 const showCompteModal = ref(false);
 const showBanqueModal = ref(false);
+const showEditCompteModal = ref(false);
+const editingCompte = ref(null);
+const editForm = reactive({ numero_compte: '', compte_ohada_id: null, observations: '' });
+const editLoading = ref(false);
 const selectedCompteId = ref(null);
 
 // Methods
@@ -391,10 +424,16 @@ const handleViewMouvements = (banque) => {
 const handleMoreActions = async (command, compte) => {
   switch (command) {
     case 'edit':
-      ElMessage.info('Modification en cours de développement...');
-      break;
-    case 'rapprochement':
-      ElMessage.info('Rapprochement bancaire en cours de développement...');
+      editingCompte.value = compte;
+      editForm.numero_compte = compte.numero;
+      editForm.compte_ohada_id = null;
+      editForm.observations = compte.remarques || '';
+      // Trouver le compte ohada correspondant
+      if (compte.compte_comptable) {
+        const found = props.comptesOhada.find(c => c.numero === compte.compte_comptable);
+        if (found) editForm.compte_ohada_id = found.id;
+      }
+      showEditCompteModal.value = true;
       break;
     case 'delete':
       ElMessageBox.confirm(
@@ -409,6 +448,34 @@ const handleMoreActions = async (command, compte) => {
         ElMessage.success('Compte supprimé avec succès');
       });
       break;
+  }
+};
+
+const submitEditCompte = async () => {
+  if (!editingCompte.value) return;
+  editLoading.value = true;
+  try {
+    const response = await fetch(`/api/comptes-bancaires/${editingCompte.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify(editForm)
+    });
+    const result = await response.json();
+    if (result.success) {
+      ElMessage.success(result.message);
+      showEditCompteModal.value = false;
+      router.reload({ only: ['banques', 'stats'] });
+    } else {
+      ElMessage.error(result.message || 'Erreur lors de la modification');
+    }
+  } catch (error) {
+    ElMessage.error('Erreur lors de la modification');
+  } finally {
+    editLoading.value = false;
   }
 };
 

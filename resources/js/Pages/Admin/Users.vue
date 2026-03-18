@@ -12,8 +12,8 @@
         <el-table :data="props.users" stripe style="width: 100%">
           <el-table-column prop="name" label="Nom" sortable />
           <el-table-column prop="email" label="Email" sortable />
-          <el-table-column prop="poste" label="Poste" />
-          <el-table-column prop="telephone" label="Téléphone" />
+          <el-table-column prop="poste" label="Poste" sortable />
+          <el-table-column prop="telephone" label="Téléphone" sortable />
           <el-table-column label="Rôles">
             <template #default="{ row }">
               <el-tag v-for="role in row.roles" :key="role" size="small" style="margin-right: 4px;">

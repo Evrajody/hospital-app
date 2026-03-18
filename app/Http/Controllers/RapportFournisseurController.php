@@ -1045,4 +1045,289 @@ class RapportFournisseurController extends Controller
         $result['fournisseurs'] = $this->getFournisseursList();
         return Inertia::render('Rapports/Fournisseurs/MouvementPeriodique', $result);
     }
+
+    // ==========================================
+    // RECAP CHARGES & INVESTISSEMENTS
+    // ==========================================
+
+    public function recapCharges(Request $request): JsonResponse
+    {
+        return response()->json($this->buildRecapData($request, 'charges'));
+    }
+
+    public function recapChargesPdf(Request $request)
+    {
+        $result = $this->buildRecapData($request, 'charges');
+        $result['generatedAt'] = now()->format('d/m/Y à H:i');
+        $result['generatedBy'] = auth()->user()?->name ?? 'Utilisateur';
+
+        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.recap-depenses', $result);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('recap-charges.pdf')
+            : $pdf->download('recap-charges.pdf');
+    }
+
+    public function recapInvestissements(Request $request): JsonResponse
+    {
+        return response()->json($this->buildRecapData($request, 'investissements'));
+    }
+
+    public function recapInvestissementsPdf(Request $request)
+    {
+        $result = $this->buildRecapData($request, 'investissements');
+        $result['generatedAt'] = now()->format('d/m/Y à H:i');
+        $result['generatedBy'] = auth()->user()?->name ?? 'Utilisateur';
+
+        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.recap-depenses', $result);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('recap-investissements.pdf')
+            : $pdf->download('recap-investissements.pdf');
+    }
+
+    private function buildRecapData(Request $request, string $type): array
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+        $mode = $request->input('mode', 'toutes');
+        $compteId = $request->input('compte_id');
+
+        // Construire la liste des comptes disponibles (toujours retournée)
+        $comptesDisponibles = FactureFournisseur::whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
+            ->whereNotNull('compte_id')
+            ->whereHas('compte', function ($q) use ($type) {
+                if ($type === 'charges') {
+                    $q->where('numero_compte', 'LIKE', '6%')
+                      ->orWhere('numero_compte', 'LIKE', '42%');
+                } else {
+                    $q->where('numero_compte', 'LIKE', '2%');
+                }
+            })
+            ->with('compte')
+            ->get()
+            ->pluck('compte')
+            ->unique('id')
+            ->sortBy('numero_compte')
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'numero_compte' => $c->numero_compte,
+                'libelle' => $c->libelle,
+            ])
+            ->values()
+            ->toArray();
+
+        if (!$dateDebut || !$dateFin) {
+            return [
+                'titre' => '',
+                'lignes' => [],
+                'totalDepenses' => 0,
+                'comptesDisponibles' => $comptesDisponibles,
+                'dateDebut' => null,
+                'dateFin' => null,
+            ];
+        }
+
+        $labelType = $type === 'charges' ? 'DEPENSES' : 'INVESTISSEMENTS';
+        $titre = "POINT DES {$labelType} DU "
+            . Carbon::parse($dateDebut)->format('d/m/Y')
+            . ' au '
+            . Carbon::parse($dateFin)->format('d/m/Y');
+
+        // Requête de base : factures non annulées dans la période avec un compte d'imputation
+        $query = FactureFournisseur::whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
+            ->whereBetween('date', [$dateDebut, $dateFin])
+            ->whereNotNull('compte_id')
+            ->whereHas('compte', function ($q) use ($type) {
+                if ($type === 'charges') {
+                    $q->where('numero_compte', 'LIKE', '6%')
+                      ->orWhere('numero_compte', 'LIKE', '42%');
+                } else {
+                    $q->where('numero_compte', 'LIKE', '2%');
+                }
+            });
+
+        // Filtre par compte spécifique
+        if ($mode === 'par_compte' && $compteId) {
+            $query->where('compte_id', $compteId);
+        }
+
+        $factures = $query->with('compte')->get();
+
+        // Grouper par compte et totaliser
+        $parCompte = [];
+        foreach ($factures as $f) {
+            $compte = $f->compte;
+            if (!$compte) continue;
+
+            $key = $compte->numero_compte;
+            if (!isset($parCompte[$key])) {
+                $parCompte[$key] = [
+                    'numero_compte' => $compte->numero_compte,
+                    'libelle' => $compte->libelle,
+                    'montant' => 0,
+                ];
+            }
+            $parCompte[$key]['montant'] += (float) $f->montant_facture;
+        }
+
+        ksort($parCompte);
+        $lignes = array_values($parCompte);
+        $totalDepenses = array_sum(array_column($lignes, 'montant'));
+
+        return [
+            'titre' => $titre,
+            'labelTotal' => $type === 'charges' ? 'TOTAL DEPENSES' : 'TOTAL INVESTISSEMENTS',
+            'lignes' => $lignes,
+            'totalDepenses' => $totalDepenses,
+            'comptesDisponibles' => $comptesDisponibles,
+            'dateDebut' => $dateDebut,
+            'dateFin' => $dateFin,
+        ];
+    }
+
+    // ==========================================
+    // BORDEREAU DE TRANSMISSION
+    // ==========================================
+
+    public function bordereauTransmission(Request $request): JsonResponse
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+
+        $query = ReglementFournisseur::where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
+
+        if ($dateDebut && $dateFin) {
+            $query->whereBetween('date_reglement', [$dateDebut, $dateFin]);
+        }
+
+        $reglements = $query
+            ->with(['facture.fournisseur.compteComptable'])
+            ->orderBy('date_reglement')
+            ->get()
+            ->map(function ($r) {
+                $fournisseur = $r->facture?->fournisseur;
+                $code = $fournisseur?->compteComptable?->numero_compte ?? '';
+                $fournisseurLabel = $code ? "[{$code}] {$fournisseur->nom}" : ($fournisseur->nom ?? 'Inconnu');
+
+                $modeLabel = match($r->mode_paiement) {
+                    'cheque' => 'Chèque N°' . ($r->reference ?: ''),
+                    'virement' => 'Virement N°' . ($r->reference ?: ''),
+                    'especes' => 'Espèces',
+                    'mobile_money' => 'Mobile Money',
+                    default => $r->mode_paiement,
+                };
+
+                return [
+                    'id' => $r->id,
+                    'fournisseur_label' => $fournisseurLabel,
+                    'numero_piece' => $r->facture?->numero_piece ?? '',
+                    'montant' => (float) $r->montant,
+                    'reference' => $modeLabel,
+                    'date_reglement_formatted' => $r->date_reglement?->format('d/m/Y'),
+                    'institution' => $r->banque ?? '',
+                    'beneficiaire' => $r->beneficiaire ?? '',
+                    'mode_paiement' => $r->mode_paiement,
+                ];
+            });
+
+        return response()->json(['reglements' => $reglements]);
+    }
+
+    public function bordereauTransmissionPdf(Request $request)
+    {
+        $ids = array_filter(explode(',', $request->input('ids', '')));
+        if (empty($ids)) abort(400, 'Aucun règlement sélectionné');
+
+        $reglements = ReglementFournisseur::whereIn('id', $ids)
+            ->with(['facture.fournisseur.compteComptable'])
+            ->orderBy('date_reglement')
+            ->get();
+
+        $lignes = $reglements->map(function ($r) {
+            $fournisseur = $r->facture?->fournisseur;
+            $code = $fournisseur?->compteComptable?->numero_compte ?? '';
+            $fournisseurLabel = $code ? "[{$code}] {$fournisseur->nom}" : ($fournisseur->nom ?? 'Inconnu');
+
+            return [
+                'date' => $r->date_reglement?->format('d/m/Y'),
+                'fournisseur' => $fournisseurLabel,
+                'numero_piece' => $r->facture?->numero_piece ?? '',
+                'mode_paiement' => match($r->mode_paiement) {
+                    'cheque' => 'Chèque',
+                    'virement' => 'Virement',
+                    'especes' => 'Espèces',
+                    'mobile_money' => 'Mobile Money',
+                    default => $r->mode_paiement,
+                },
+                'institution' => $r->banque ?? '',
+                'montant' => (float) $r->montant,
+                'beneficiaire' => $r->beneficiaire ?? '',
+            ];
+        })->toArray();
+
+        $data = [
+            'titre' => 'BORDEREAU DE TRANSMISSION',
+            'lignes' => $lignes,
+            'generatedAt' => now()->format('d/m/Y à H:i'),
+            'generatedBy' => auth()->user()?->name ?? 'Utilisateur',
+        ];
+
+        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.bordereau-transmission', $data);
+        $pdf->setPaper('a4', 'landscape');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('bordereau-transmission.pdf')
+            : $pdf->download('bordereau-transmission.pdf');
+    }
+
+    public function mandatsMultiplesPdf(Request $request)
+    {
+        $ids = array_filter(explode(',', $request->input('ids', '')));
+        if (empty($ids)) abort(400, 'Aucun règlement sélectionné');
+
+        $reglements = ReglementFournisseur::whereIn('id', $ids)
+            ->with(['facture.fournisseur', 'fournisseur'])
+            ->orderBy('date_reglement')
+            ->get();
+
+        $etablissement = \App\Models\Setting::getEtablissement();
+        $user = auth()->user();
+
+        $mandats = $reglements->map(function ($reglement) use ($etablissement, $user) {
+            $facture = $reglement->facture;
+            $montantEnLettres = $this->montantEnLettres((int) round((float) $facture->montant_paye));
+            $resteAPayerLettres = strtoupper($this->montantEnLettres((int) round((float) $facture->reste_a_payer)) . ' FRANCS');
+
+            $modeLabel = match($reglement->mode_paiement) {
+                'especes' => 'Espèces',
+                'cheque' => 'Chèque',
+                'virement' => 'Virement bancaire',
+                'carte' => 'Carte bancaire',
+                'mobile_money' => 'Mobile Money',
+                default => $reglement->mode_paiement,
+            };
+
+            return [
+                'reglement' => $reglement,
+                'facture' => $facture,
+                'modeLabel' => $modeLabel,
+                'montantEnLettres' => $montantEnLettres,
+                'resteAPayerLettres' => $resteAPayerLettres,
+                'etablissement' => $etablissement,
+                'user' => $user,
+            ];
+        })->toArray();
+
+        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.mandats-multiples', [
+            'mandats' => $mandats,
+        ]);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('mandats-paiement.pdf')
+            : $pdf->download('mandats-paiement.pdf');
+    }
 }
