@@ -354,7 +354,7 @@
                       v-for="t in tauxAibList"
                       :key="t.id"
                       :label="`${t.taux}%`"
-                      :value="t.taux"
+                      :value="parseFloat(t.taux)"
                     >
                       {{ t.libelle }} ({{ t.taux }}%)
                     </el-option>
