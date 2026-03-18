@@ -177,9 +177,6 @@
                       <el-dropdown-item command="mandat" :icon="DocumentCopy">
                         Mandat de paiement
                       </el-dropdown-item>
-                      <el-dropdown-item command="imputation" :icon="Notebook">
-                        Fiche d'imputation
-                      </el-dropdown-item>
                       <el-dropdown-item command="edit" :icon="Edit">
                         Modifier
                       </el-dropdown-item>
@@ -355,9 +352,6 @@
             <el-button @click="detailDialogVisible = false">Fermer</el-button>
             <el-button type="primary" :icon="DocumentCopy" @click="handlePrintMandat">
               Mandat de paiement
-            </el-button>
-            <el-button type="warning" :icon="Notebook" @click="handlePrintImputation">
-              Fiche d'imputation
             </el-button>
             <el-button type="info" :icon="Document" @click="handleViewFactureFromModal">
               Voir la facture

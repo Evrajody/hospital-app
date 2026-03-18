@@ -59,8 +59,8 @@ class EcritureComptable extends Model
         $montant = (float) $facture->montant_facture;
         $montantAib = 0;
 
-        // Vérifier si la facture a un AIB défini
-        if ($facture->type_reduction && $facture->taux > 0) {
+        // Vérifier si la facture a un AIB défini (taux suffit, type_reduction peut être vide)
+        if ((float) $facture->taux > 0 && (float) $facture->montant_reduction > 0) {
             $montantAib = (float) $facture->montant_reduction;
         }
 
@@ -90,7 +90,7 @@ class EcritureComptable extends Model
             'type' => self::TYPE_FACTURE,
         ]);
 
-        // Crédit: compte AIB (si AIB défini sur la facture)
+        // Crédit: compte AIB (si AIB > 0)
         if ($montantAib > 0) {
             $compteAib = $facture->type_reduction ?: '44731';
             $compteAibModel = \App\Models\CompteComptable::where('numero_compte', $compteAib)->first();
@@ -143,9 +143,9 @@ class EcritureComptable extends Model
             'type' => self::TYPE_REGLEMENT,
         ]);
 
-        // AIB : toujours présent si la facture a un taux AIB défini
+        // AIB : présent si la facture a un taux AIB > 0
         $montantAib = 0;
-        if ($facture->type_reduction && $facture->taux > 0) {
+        if ((float) $facture->taux > 0 && (float) $facture->montant_reduction > 0) {
             $montantAib = (float) $facture->montant_reduction;
         }
 

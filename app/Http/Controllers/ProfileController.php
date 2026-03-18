@@ -38,11 +38,6 @@ class ProfileController extends Controller
             ],
         ];
 
-        // Paramètres établissement visibles uniquement par les admins
-        if ($user->role === User::ROLE_ADMIN) {
-            $data['etablissement'] = Setting::getEtablissement();
-        }
-
         return Inertia::render('Profile/Index', $data);
     }
 
@@ -130,6 +125,13 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function etablissement(): InertiaResponse
+    {
+        return Inertia::render('Admin/Etablissement', [
+            'etablissement' => Setting::getEtablissement(),
+        ]);
+    }
+
     public function updateEtablissement(Request $request): JsonResponse
     {
         $user = auth()->user();
@@ -148,6 +150,7 @@ class ProfileController extends Controller
             'adresse' => 'nullable|string|max:255',
             'telephone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
+            'directeur' => 'nullable|string|max:255',
         ]);
 
         foreach ($validated as $key => $value) {

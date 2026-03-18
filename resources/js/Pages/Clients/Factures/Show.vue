@@ -34,9 +34,9 @@
                 <el-dropdown-item v-if="!estPayee" command="edit" :icon="Edit" divided>
                   Modifier
                 </el-dropdown-item>
-                <el-dropdown-item command="print" :icon="Printer">
+                <!-- <el-dropdown-item command="print" :icon="Printer">
                   Imprimer
-                </el-dropdown-item>
+                </el-dropdown-item> -->
                 <el-dropdown-item divided command="delete" :icon="Delete">
                   <span style="color: #f56c6c">Supprimer</span>
                 </el-dropdown-item>

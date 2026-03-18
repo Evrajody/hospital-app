@@ -173,76 +173,6 @@
           </el-card>
         </el-col>
       </el-row>
-      <!-- Établissement Settings (admin only) -->
-      <el-card v-if="etablissement" shadow="hover" class="form-card" style="margin-top: 24px;">
-        <template #header>
-          <div class="card-header">
-            <h3>Paramètres de l'établissement</h3>
-            <el-tag type="warning" size="small">Admin</el-tag>
-          </div>
-        </template>
-
-        <el-form
-          ref="etablissementFormRef"
-          :model="etablissementForm"
-          :rules="etablissementRules"
-          label-position="top"
-        >
-          <el-row :gutter="20">
-            <el-col :xs="24" :sm="12">
-              <el-form-item label="Nom de l'établissement" prop="nom">
-                <el-input v-model="etablissementForm.nom" placeholder="Ex: Hôpital de Ménontin" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12">
-              <el-form-item label="Pays / Entité" prop="pays">
-                <el-input v-model="etablissementForm.pays" placeholder="Ex: République du Bénin" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-row :gutter="20">
-            <el-col :xs="24" :sm="12">
-              <el-form-item label="Service" prop="service">
-                <el-input v-model="etablissementForm.service" placeholder="Ex: Service Comptabilité" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12">
-              <el-form-item label="Adresse" prop="adresse">
-                <el-input v-model="etablissementForm.adresse" placeholder="Ex: BP 123 - Cotonou" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-row :gutter="20">
-            <el-col :xs="24" :sm="12">
-              <el-form-item label="Téléphone" prop="telephone">
-                <el-input v-model="etablissementForm.telephone" placeholder="+229 21 XX XX XX" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12">
-              <el-form-item label="Email" prop="email">
-                <el-input v-model="etablissementForm.email" type="email" placeholder="contact@hopital.bj" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-alert
-            type="info"
-            :closable="false"
-            show-icon
-            style="margin-bottom: 16px;"
-          >
-            Ces informations apparaissent dans les en-têtes de tous les rapports et documents PDF.
-          </el-alert>
-
-          <div class="form-actions">
-            <el-button type="primary" @click="submitEtablissement" :loading="etablissementLoading">
-              Enregistrer les paramètres
-            </el-button>
-          </div>
-        </el-form>
-      </el-card>
     </div>
   </AppLayout>
 </template>
@@ -264,7 +194,6 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 const props = defineProps({
   user: { type: Object, default: () => ({}) },
   profile: { type: Object, default: () => ({}) },
-  etablissement: { type: Object, default: null },
 });
 
 const breadcrumbs = [
@@ -401,37 +330,6 @@ const removeSignature = async () => {
   }
 };
 
-// --- Établissement ---
-const etablissementFormRef = ref(null);
-const etablissementLoading = ref(false);
-const etablissementForm = reactive({
-  nom: props.etablissement?.nom || '',
-  pays: props.etablissement?.pays || '',
-  service: props.etablissement?.service || '',
-  adresse: props.etablissement?.adresse || '',
-  telephone: props.etablissement?.telephone || '',
-  email: props.etablissement?.email || '',
-});
-
-const etablissementRules = {
-  nom: [{ required: true, message: "Le nom de l'établissement est requis", trigger: 'blur' }],
-};
-
-const submitEtablissement = async () => {
-  const valid = await etablissementFormRef.value?.validate().catch(() => false);
-  if (!valid) return;
-
-  etablissementLoading.value = true;
-  try {
-    const { data } = await axios.put('/profile/etablissement', etablissementForm);
-    ElMessage.success(data.message);
-  } catch (err) {
-    const msg = err.response?.data?.message || 'Erreur lors de la mise à jour';
-    ElMessage.error(msg);
-  } finally {
-    etablissementLoading.value = false;
-  }
-};
 </script>
 
 <style scoped>
@@ -571,15 +469,4 @@ const submitEtablissement = async () => {
   padding-top: 8px;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
 </style>

@@ -210,11 +210,11 @@
                 <td class="details-label">MONTANT TVA ({{ $facture->taux_tva }}%) :</td>
                 <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }} <em>FCFA</em></td>
             </tr>
+            @endif
             <tr>
                 <td class="details-label">MONTANT TTC :</td>
                 <td>{{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }} <em>FCFA</em></td>
             </tr>
-            @endif
             <tr>
                 <td class="details-label">MONTANT AVOIR:</td>
                 <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }} <em>FCFA</em></td>
@@ -284,7 +284,7 @@
             </td>
             <td style="text-align: right;">
                 <div class="signature-title">Le Directeur,</div>
-                <div class="signature-name">&nbsp;</div>
+                <div class="signature-name">{{ $etablissement['directeur'] ?? '' }}</div>
             </td>
         </tr>
     </table>

@@ -110,6 +110,10 @@
             <el-icon><List /></el-icon>
             <template #title>Taux Fiscaux</template>
           </el-menu-item>
+          <el-menu-item index="/parametres/etablissement" @click="navigate('/parametres/etablissement')">
+            <el-icon><OfficeBuilding /></el-icon>
+            <template #title>Établissement</template>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
 

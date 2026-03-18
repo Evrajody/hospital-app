@@ -668,7 +668,9 @@ Route::put('/profile', [ProfileController::class, 'update'])->name('profile.upda
 Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 Route::post('/profile/signature', [ProfileController::class, 'uploadSignature'])->name('profile.signature');
 Route::delete('/profile/signature', [ProfileController::class, 'deleteSignature'])->name('profile.signature.delete');
-Route::put('/profile/etablissement', [ProfileController::class, 'updateEtablissement'])->name('profile.etablissement');
+// Paramètres Établissement
+Route::get('/parametres/etablissement', [ProfileController::class, 'etablissement'])->name('parametres.etablissement');
+Route::put('/parametres/etablissement', [ProfileController::class, 'updateEtablissement'])->name('parametres.etablissement.update');
 
 Route::get('/settings', function () {
     return Inertia::render('Dashboard'); // Placeholder

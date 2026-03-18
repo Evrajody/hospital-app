@@ -131,7 +131,7 @@
             <span class="card-title">
               {{ pagination.total }} mouvement(s) trouvé(s)
             </span>
-            <div class="card-actions">
+            <!-- <div class="card-actions">
               <el-button :icon="Download" size="small" @click="handleExport">
                 Exporter
               </el-button>
@@ -139,7 +139,7 @@
                 Imprimer
               </el-button>
               <el-button :icon="Refresh" size="small" circle @click="handleRefresh" />
-            </div>
+            </div> -->
           </div>
         </template>
 
@@ -350,9 +350,9 @@
         <template #footer>
           <div class="dialog-footer">
             <el-button @click="detailDialogVisible = false">Fermer</el-button>
-            <el-button type="primary" :icon="Printer" @click="handlePrintMouvement">
+            <!-- <el-button type="primary" :icon="Printer" @click="handlePrintMouvement">
               Imprimer le reçu
-            </el-button>
+            </el-button> -->
           </div>
         </template>
       </el-dialog>

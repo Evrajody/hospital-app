@@ -49,9 +49,9 @@
                 <el-dropdown-item command="etat_reglement" :icon="Document">
                   État de Règlement
                 </el-dropdown-item>
-                <el-dropdown-item command="print" :icon="Printer">
+                <!-- <el-dropdown-item command="print" :icon="Printer">
                   Imprimer
-                </el-dropdown-item>
+                </el-dropdown-item> -->
                 <el-dropdown-item
                   v-if="facture.compte"
                   command="imputation"
@@ -512,11 +512,19 @@
           </tr>
           <tr><td colspan="2" style="height: 10px;"></td></tr>
           <tr>
-            <td class="mandat-label">MONTANT FACTURE :</td>
+            <td class="mandat-label">MONTANT FACTURE HT :</td>
             <td>{{ mandatData.facture.montant_facture }} <em>FCFA</em></td>
           </tr>
+          <tr v-if="mandatData.facture.montant_tva > 0">
+            <td class="mandat-label">MONTANT TVA ({{ mandatData.facture.taux_tva }}%) :</td>
+            <td>{{ mandatData.facture.montant_tva }} <em>FCFA</em></td>
+          </tr>
           <tr>
-            <td class="mandat-label">MONTANT AVOIR  :</td>
+            <td class="mandat-label">MONTANT TTC :</td>
+            <td>{{ mandatData.facture.montant_ttc }} <em>FCFA</em></td>
+          </tr>
+          <tr>
+            <td class="mandat-label">MONTANT AVOIR :</td>
             <td>{{ mandatData.facture.montant_avoir }} <em>FCFA</em></td>
           </tr>
           <tr v-if="mandatData.facture.taux_aib > 0">
@@ -567,7 +575,7 @@
             </td>
             <td style="text-align: right;">
               <strong>Le Directeur,</strong>
-              <div class="mandat-signature-name">&nbsp;</div>
+              <div class="mandat-signature-name">{{ mandatData.etablissement.directeur || '' }}</div>
             </td>
           </tr>
         </table>
