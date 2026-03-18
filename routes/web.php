@@ -487,6 +487,9 @@ Route::prefix('rapports')->group(function () {
         Route::get('/api/recap-investissements', [RapportFournisseurController::class, 'recapInvestissements']);
         Route::get('/pdf/recap-investissements', [RapportFournisseurController::class, 'recapInvestissementsPdf']);
 
+        // Factures et soldes
+        Route::get('/api/factures-soldes', [RapportFournisseurController::class, 'facturesSoldes']);
+
         // Situation des fournisseurs
         Route::get('/situation-fournisseurs', function () {
             $fournisseurs = [
@@ -594,43 +597,6 @@ Route::prefix('rapports')->group(function () {
             ]);
         })->name('rapports.fournisseurs.declaration-tva');
 
-        // Factures et soldes
-        Route::get('/factures-soldes', function () {
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'PC/025/0001',
-                    'date_facture' => '2025-01-15',
-                    'fournisseur' => ['nom' => 'Pharmacie Centrale du Bénin'],
-                    'montant_ttc' => 5950000,
-                    'reglements' => [
-                        [
-                            'id' => 1,
-                            'date_reglement' => '2025-01-20',
-                            'mode_paiement' => 'virement',
-                            'reference' => 'VIR-2025-001',
-                            'banque' => 'ORABANK',
-                            'montant' => 2000000
-                        ],
-                        [
-                            'id' => 2,
-                            'date_reglement' => '2025-01-25',
-                            'mode_paiement' => 'cheque',
-                            'reference' => 'CHQ-2025-010',
-                            'banque' => 'BOA BENIN',
-                            'montant' => 1950000
-                        ]
-                    ]
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Fournisseurs/FacturesSoldes', [
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.fournisseurs.factures-soldes');
     });
 
     // Rapports Clients

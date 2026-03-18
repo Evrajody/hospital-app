@@ -41,6 +41,16 @@
           <FacturesRegleesTab :fournisseurs="fournisseurs" />
         </el-tab-pane>
 
+        <el-tab-pane name="factures-soldes" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Coin /></el-icon>
+              Factures et Soldes
+            </span>
+          </template>
+          <FacturesSoldesTab :fournisseurs="fournisseurs" />
+        </el-tab-pane>
+
         <el-tab-pane name="declaration-aib" lazy>
           <template #label>
             <span class="tab-label">
@@ -118,6 +128,7 @@ import {
   Money,
   DataBoard,
   OfficeBuilding,
+  Coin,
 } from '@element-plus/icons-vue';
 
 import MouvementFacturesTab from './Tabs/MouvementFacturesTab.vue';
@@ -129,6 +140,7 @@ import SituationBanquesTab from './Tabs/SituationBanquesTab.vue';
 import BordereauTransmissionTab from './Tabs/BordereauTransmissionTab.vue';
 import RecapChargesTab from './Tabs/RecapChargesTab.vue';
 import RecapInvestissementsTab from './Tabs/RecapInvestissementsTab.vue';
+import FacturesSoldesTab from './Tabs/FacturesSoldesTab.vue';
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },

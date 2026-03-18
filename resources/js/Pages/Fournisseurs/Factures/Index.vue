@@ -148,9 +148,6 @@
               <el-button :icon="Download" size="small" @click="handleExport">
                 Exporter
               </el-button>
-              <el-button :icon="Printer" size="small" @click="handlePrint">
-                Imprimer
-              </el-button>
               <el-button :icon="Refresh" size="small" circle @click="handleRefresh" />
             </div>
           </div>
@@ -183,9 +180,6 @@
                     </el-dropdown-item>
                     <el-dropdown-item command="edit" :icon="Edit">
                       Modifier
-                    </el-dropdown-item>
-                    <el-dropdown-item command="print" :icon="Printer">
-                      Imprimer
                     </el-dropdown-item>
                     <el-dropdown-item command="etat_reglement" :icon="Document">
                       État de Règlement

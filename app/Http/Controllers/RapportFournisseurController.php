@@ -819,6 +819,56 @@ class RapportFournisseurController extends Controller
         ];
     }
 
+    private function buildFacturesSoldesData(Request $request): array
+    {
+        $fournisseurId = $request->input('fournisseur_id');
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+
+        $query = FactureFournisseur::with(['fournisseur.compteComptable'])
+            ->where('statut', '!=', FactureFournisseur::STATUT_ANNULEE);
+
+        if ($fournisseurId) {
+            $query->where('fournisseur_id', $fournisseurId);
+        }
+
+        if ($dateDebut) {
+            $query->where('date_facture_bc', '>=', $dateDebut);
+        }
+        if ($dateFin) {
+            $query->where('date_facture_bc', '<=', $dateFin);
+        }
+
+        $factures = $query->orderBy('date_facture_bc')->get();
+
+        $data = $factures->map(function ($f) {
+            $code = $f->fournisseur?->compteComptable?->numero_compte;
+            $nom = $f->fournisseur?->nom ?? '-';
+            $fournisseurLabel = $code ? "[{$code}] {$nom}" : $nom;
+
+            return [
+                'id' => $f->id,
+                'numero' => $f->numero_piece,
+                'date_facture' => $f->date_facture_bc?->format('Y-m-d'),
+                'fournisseur_label' => $fournisseurLabel,
+                'montant_ttc' => (float) $f->montant_net,
+                'montant_paye' => (float) $f->montant_paye,
+                'reste_a_payer' => (float) $f->reste_a_payer,
+            ];
+        });
+
+        $totaux = [
+            'montant_ttc' => $data->sum('montant_ttc'),
+            'montant_paye' => $data->sum('montant_paye'),
+            'reste_a_payer' => $data->sum('reste_a_payer'),
+        ];
+
+        return [
+            'factures' => $data->toArray(),
+            'totaux' => $totaux,
+        ];
+    }
+
     private function montantEnLettres(int $nombre): string
     {
         if ($nombre === 0) return 'ZÉRO FRANC';
@@ -910,6 +960,11 @@ class RapportFournisseurController extends Controller
     public function situationBanques(Request $request): JsonResponse
     {
         return response()->json($this->buildSituationBanquesData($request));
+    }
+
+    public function facturesSoldes(Request $request): JsonResponse
+    {
+        return response()->json($this->buildFacturesSoldesData($request));
     }
 
     // ==========================================
