@@ -209,6 +209,10 @@
                 <span class="total-label"><strong>Total TTC :</strong></span>
                 <span class="total-value total-ttc"><strong>{{ formatMontant(facture.montant_ttc) }}</strong></span>
               </div>
+              <div class="total-row" v-if="facture.avoir > 0">
+                <span class="total-label">Avoir :</span>
+                <span class="total-value" style="color: #f56c6c;">- {{ formatMontant(facture.avoir) }}</span>
+              </div>
               <div class="total-row" v-if="facture.montant_reduction > 0 || facture.montant_aib > 0">
                 <span class="total-label">{{ facture.type_reduction_libelle || 'AIB' }} ({{ facture.taux || 0 }}%) :</span>
                 <span class="total-value" style="color: #f56c6c;">- {{ formatMontant(facture.montant_reduction || facture.montant_aib) }}</span>
@@ -345,7 +349,7 @@
         <div class="imputation-header">
           <div class="imputation-hospital-name">{{ imputationData.etablissement.nom }}</div>
           <div class="imputation-hospital-info">
-            {{ imputationData.etablissement.pays }} - {{ imputationData.etablissement.service }}<br>
+            {{ imputationData.etablissement.pays }}<br>
             {{ imputationData.etablissement.adresse }}{{ imputationData.etablissement.telephone ? ' - Tel: ' + imputationData.etablissement.telephone : '' }}
           </div>
           <div class="imputation-title-box"><span>IMPUTATION COMPTABLE</span></div>
@@ -422,6 +426,10 @@
         <div class="etat-reglement-montants">
           <span><strong>Mt facture :</strong> {{ etatReglementData.facture.montant_facture }}</span>
           <span><strong>Mt M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
+        </div>
+        <div class="etat-reglement-montants" v-if="etatReglementData.facture.assujetti_tva && etatReglementData.facture.taux_tva > 0">
+          <span><strong>TVA ({{ etatReglementData.facture.taux_tva }}%) :</strong> {{ etatReglementData.facture.montant_tva }}</span>
+          <span><strong>Montant TTC :</strong> {{ etatReglementData.facture.montant_ttc }}</span>
         </div>
         <div class="etat-reglement-montants">
           <span><strong>Avoir :</strong> {{ etatReglementData.facture.avoir }}</span>

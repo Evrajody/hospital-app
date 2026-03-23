@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Banque;
 use App\Models\Client;
 use App\Models\FactureClient;
@@ -181,18 +182,24 @@ class FactureClientController extends Controller
 
         $ristourne = $request->ristourne ?? 0;
 
+        $client = \App\Models\Client::find($request->client_id);
+
         $facture = FactureClient::create([
             'reference' => $request->reference,
             'date_facture' => $request->date_facture,
             'montant' => $request->montant,
             'ristourne' => $ristourne,
             'client_id' => $request->client_id,
+            'client_nom' => $client?->nom,
             'reste_a_payer' => $request->montant - $ristourne,
             'statut' => FactureClient::STATUT_NON_PAYEE,
             'created_by' => auth()->id(),
+            'created_by_name' => auth()->user()->name,
         ]);
 
         $facture->load('client');
+
+        ActivityLog::log('create', 'facture_client', "Création de la facture {$facture->reference}", $facture);
 
         return response()->json([
             'success' => true,
@@ -216,15 +223,24 @@ class FactureClientController extends Controller
             'client_id' => ['required', 'integer', 'exists:clients,id'],
         ]);
 
+        // Re-snapshot si le client change
+        $clientNom = $facture->client_nom;
+        if ($request->client_id != $facture->client_id) {
+            $clientNom = \App\Models\Client::find($request->client_id)?->nom;
+        }
+
         $facture->update([
             'reference' => $request->reference,
             'date_facture' => $request->date_facture,
             'montant' => $request->montant,
             'ristourne' => $request->ristourne ?? 0,
             'client_id' => $request->client_id,
+            'client_nom' => $clientNom,
         ]);
 
         $facture->load('client');
+
+        ActivityLog::log('update', 'facture_client', "Modification de la facture {$facture->reference}", $facture);
 
         return response()->json([
             'success' => true,
@@ -254,6 +270,8 @@ class FactureClientController extends Controller
 
         $facture->load('client');
 
+        ActivityLog::log('settle', 'facture_client', "Solde de la facture {$facture->reference}", $facture);
+
         return response()->json([
             'success' => true,
             'message' => 'Facture marquée comme soldée',
@@ -275,7 +293,10 @@ class FactureClientController extends Controller
             ], 422);
         }
 
+        $reference = $facture->reference;
         $facture->delete();
+
+        ActivityLog::log('delete', 'facture_client', "Suppression de la facture {$reference}", null, ['reference' => $reference]);
 
         return response()->json([
             'success' => true,

@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4;
-            margin: 20mm 25mm;
+            margin: 20mm 30mm;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,6 +16,7 @@
             font-size: 13px;
             color: #000;
             line-height: 1.5;
+            padding: 0 15mm;
         }
 
         .header {
@@ -162,7 +163,7 @@
     </div>
 
     <div class="fournisseur-line">
-        <strong>Fournisseur :</strong> [{{ $fournisseur?->compteComptable?->numero_compte }}] {{ $fournisseur?->nom }}
+        <strong>Fournisseur :</strong> [{{ $fournisseur?->compteComptable?->numero_compte }}] {{ $fournisseurNom ?? $fournisseur?->nom }}
     </div>
 
     <table class="info-table">
@@ -182,6 +183,12 @@
             <td style="width: 50%;"><strong>Mt facture :</strong> {{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
             <td><strong>Mt M.O. :</strong> {{ number_format((float) $facture->montant_mo, 0, ',', ' ') }}</td>
         </tr>
+        @if($facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0)
+        <tr>
+            <td><strong>TVA ({{ $facture->taux_tva }}%) :</strong> {{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
+            <td><strong>Montant TTC :</strong> {{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }}</td>
+        </tr>
+        @endif
         <tr>
             <td><strong>Avoir :</strong> {{ number_format((float) $facture->avoir, 0, ',', ' ') }}</td>
             <td></td>
@@ -214,7 +221,7 @@
                     @endphp
                     {{ $modeLabel }}
                 </td>
-                <td>{{ $reglement->beneficiaire ?: $fournisseur?->nom }}</td>
+                <td>{{ $reglement->beneficiaire ?: ($fournisseurNom ?? $fournisseur?->nom) }}</td>
                 <td class="montant">{{ number_format((float) $reglement->montant, 0, ',', ' ') }}</td>
             </tr>
             @empty

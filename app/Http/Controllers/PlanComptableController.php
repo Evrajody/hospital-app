@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\CompteComptable;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -221,6 +222,8 @@ class PlanComptableController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        ActivityLog::log('create', 'plan_comptable', "Création du compte {$compte->numero_compte} - {$compte->libelle}", $compte);
+
         return response()->json([
             'success' => true,
             'message' => 'Compte créé avec succès',
@@ -281,6 +284,8 @@ class PlanComptableController extends Controller
             'parent_id' => $validated['parent_id'],
         ]);
 
+        ActivityLog::log('update', 'plan_comptable', "Modification du compte {$compte->numero_compte} - {$compte->libelle}", $compte);
+
         return response()->json([
             'success' => true,
             'message' => 'Compte modifié avec succès',
@@ -313,7 +318,11 @@ class PlanComptableController extends Controller
             ], 422);
         }
 
+        $numero = $compte->numero_compte;
+        $libelle = $compte->libelle;
         $compte->delete();
+
+        ActivityLog::log('delete', 'plan_comptable', "Suppression du compte {$numero} - {$libelle}", null, ['numero_compte' => $numero, 'libelle' => $libelle]);
 
         return response()->json([
             'success' => true,

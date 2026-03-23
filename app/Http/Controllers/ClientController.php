@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\CompteComptable;
 use Illuminate\Http\JsonResponse;
@@ -164,6 +165,8 @@ class ClientController extends Controller
 
             DB::commit();
 
+            ActivityLog::log('create', 'client', "Création du client {$client->nom}", $client, ['nom' => $client->nom]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Client créé avec succès',
@@ -241,6 +244,8 @@ class ClientController extends Controller
 
             DB::commit();
 
+            ActivityLog::log('update', 'client', "Modification du client {$client->nom}", $client, ['nom' => $client->nom]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Client modifié avec succès',
@@ -264,7 +269,10 @@ class ClientController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $client = Client::findOrFail($id);
+        $nom = $client->nom;
         $client->delete();
+
+        ActivityLog::log('delete', 'client', "Suppression du client {$nom}", null, ['nom' => $nom]);
 
         return response()->json([
             'success' => true,

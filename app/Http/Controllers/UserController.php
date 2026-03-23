@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,8 @@ class UserController extends Controller
             $user->syncRoles($validated['roles']);
         }
 
+        ActivityLog::log('create', 'utilisateur', "Création de l'utilisateur {$user->name}", $user);
+
         return response()->json([
             'success' => true,
             'message' => 'Utilisateur créé avec succès',
@@ -100,6 +103,8 @@ class UserController extends Controller
 
         $user->syncRoles($validated['roles'] ?? []);
 
+        ActivityLog::log('update', 'utilisateur', "Modification de l'utilisateur {$user->name}", $user);
+
         return response()->json([
             'success' => true,
             'message' => 'Utilisateur modifié avec succès',
@@ -117,7 +122,10 @@ class UserController extends Controller
             ], 422);
         }
 
+        $nom = $user->name;
         $user->delete();
+
+        ActivityLog::log('delete', 'utilisateur', "Suppression de l'utilisateur {$nom}", null, ['name' => $nom]);
 
         return response()->json([
             'success' => true,
@@ -137,6 +145,9 @@ class UserController extends Controller
         }
 
         $user->update(['is_active' => !$user->is_active]);
+
+        $action = $user->is_active ? 'Activation' : 'Désactivation';
+        ActivityLog::log('update', 'utilisateur', "{$action} de l'utilisateur {$user->name}", $user);
 
         return response()->json([
             'success' => true,

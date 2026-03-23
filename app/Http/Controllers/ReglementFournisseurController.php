@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\ReglementFournisseur;
 use App\Models\FactureFournisseur;
 use App\Models\Fournisseur;
@@ -257,12 +258,17 @@ class ReglementFournisseurController extends Controller
                 $dateAib = $request->date_aib ?? now()->toDateString();
             }
 
+            // Snapshot établissement pour le mandat
+            $etablissement = \App\Models\Setting::getEtablissement();
+
             // Créer le règlement (utiliser le montant converti en float)
             $reglement = ReglementFournisseur::create([
                 'numero_reglement' => $numeroReglement,
                 'date_reglement' => $request->date_reglement,
                 'facture_id' => $request->facture_id,
                 'fournisseur_id' => $facture->fournisseur_id,
+                'fournisseur_nom' => $facture->fournisseur_nom ?: $facture->fournisseur?->nom,
+                'facture_numero' => $facture->numero_piece,
                 'montant' => $montantReglement,
                 'mode_paiement' => $request->mode_paiement,
                 'reference' => $request->reference,
@@ -279,6 +285,9 @@ class ReglementFournisseurController extends Controller
                 'date_aib' => $dateAib,
                 'statut' => ReglementFournisseur::STATUT_VALIDE,
                 'created_by' => auth()->id(),
+                'created_by_name' => auth()->user()->name,
+                'etablissement_nom' => $etablissement['nom'],
+                'etablissement_directeur' => $etablissement['directeur'],
             ]);
 
             // Débiter le compte bancaire si applicable
@@ -297,6 +306,8 @@ class ReglementFournisseurController extends Controller
             }
 
             DB::commit();
+
+            ActivityLog::log('create', 'reglement_fournisseur', "Règlement {$reglement->numero_reglement} de {$montantReglement} XOF sur facture {$facture->numero_piece}", $reglement, ['numero_reglement' => $reglement->numero_reglement, 'montant' => $montantReglement, 'facture_numero' => $facture->numero_piece]);
 
             $reglement->load(['facture', 'fournisseur']);
 
@@ -391,6 +402,8 @@ class ReglementFournisseurController extends Controller
 
             DB::commit();
 
+            ActivityLog::log('update', 'reglement_fournisseur', "Modification du règlement {$reglement->numero_reglement}", $reglement, ['numero_reglement' => $reglement->numero_reglement]);
+
             $reglement->load(['facture', 'fournisseur']);
 
             return response()->json([
@@ -448,6 +461,8 @@ class ReglementFournisseurController extends Controller
             }
 
             DB::commit();
+
+            ActivityLog::log('delete', 'reglement_fournisseur', "Suppression du règlement {$reglement->numero_reglement}", null, ['numero_reglement' => $reglement->numero_reglement, 'montant' => $montant]);
 
             return response()->json([
                 'success' => true,
@@ -553,7 +568,13 @@ class ReglementFournisseurController extends Controller
 
         return response()->json([
             'success' => true,
-            'etablissement' => \App\Models\Setting::getEtablissement(),
+            'etablissement' => [
+                'nom' => $reglement->etablissement_nom ?: \App\Models\Setting::getEtablissement()['nom'],
+                'directeur' => $reglement->etablissement_directeur ?: \App\Models\Setting::getEtablissement()['directeur'],
+                'pays' => \App\Models\Setting::getEtablissement()['pays'],
+                'adresse' => \App\Models\Setting::getEtablissement()['adresse'],
+                'telephone' => \App\Models\Setting::getEtablissement()['telephone'],
+            ],
             'reglement' => [
                 'id' => $reglement->id,
                 'numero_reglement' => $reglement->numero_reglement,
@@ -568,7 +589,7 @@ class ReglementFournisseurController extends Controller
                 'numero_compte_bancaire' => $reglement->numero_compte_bancaire,
             ],
             'facture' => [
-                'numero_piece' => $facture->numero_piece,
+                'numero_piece' => $reglement->facture_numero ?: $facture->numero_piece,
                 'libelle' => $facture->libelle,
                 'reference_facture' => $facture->reference_facture,
                 'montant_facture' => number_format($montantFacture, 0, ',', ' '),
@@ -584,7 +605,7 @@ class ReglementFournisseurController extends Controller
                 'reste_a_payer_lettres' => strtoupper($this->convertirMontantEnLettres($resteAPayer) . ' FRANCS'),
             ],
             'fournisseur' => [
-                'nom' => $reglement->fournisseur?->nom,
+                'nom' => $reglement->fournisseur_nom ?: $reglement->fournisseur?->nom,
             ],
         ]);
     }
@@ -608,12 +629,20 @@ class ReglementFournisseurController extends Controller
         $montantFormate = number_format($montant, 0, ',', ' ') . ' FCFA';
         $montantEnLettres = $this->convertirMontantEnLettres($montant) . ' francs CFA';
 
+        $etablissementLive = \App\Models\Setting::getEtablissement();
+
         return [
             'reglement' => $reglement,
             'modeLabel' => $modeLabel,
             'montantFormate' => $montantFormate,
             'montantEnLettres' => $montantEnLettres,
-            'etablissement' => \App\Models\Setting::getEtablissement(),
+            'etablissement' => [
+                'nom' => $reglement->etablissement_nom ?: $etablissementLive['nom'],
+                'directeur' => $reglement->etablissement_directeur ?: $etablissementLive['directeur'],
+                'pays' => $etablissementLive['pays'],
+                'adresse' => $etablissementLive['adresse'],
+                'telephone' => $etablissementLive['telephone'],
+            ],
         ];
     }
 

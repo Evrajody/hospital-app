@@ -30,6 +30,7 @@ class FactureFournisseur extends Model
         'date',
         'reference_facture',
         'fournisseur_id',
+        'fournisseur_nom',
         'imputation_id',
         'compte_id',
         'libelle',
@@ -52,7 +53,9 @@ class FactureFournisseur extends Model
         'observations',
         'metadata',
         'created_by',
+        'created_by_name',
         'validated_by',
+        'validated_by_name',
         'validated_at',
     ];
 
@@ -365,6 +368,7 @@ class FactureFournisseur extends Model
 
         $this->statut = self::STATUT_VALIDEE;
         $this->validated_by = $userId;
+        $this->validated_by_name = $userId ? User::find($userId)?->name : null;
         $this->validated_at = now();
 
         return $this->save();
@@ -511,10 +515,10 @@ class FactureFournisseur extends Model
             'date' => $this->date?->format('Y-m-d'),
             'reference_facture' => $this->reference_facture,
             'fournisseur_id' => $this->fournisseur_id,
-            'fournisseur' => $this->fournisseur ? [
-                'id' => $this->fournisseur->id,
-                'nom' => $this->fournisseur->nom,
-            ] : null,
+            'fournisseur' => [
+                'id' => $this->fournisseur_id,
+                'nom' => $this->fournisseur_nom ?: $this->fournisseur?->nom,
+            ],
             'imputation_id' => $this->imputation_id,
             'imputation' => $this->imputation ? [
                 'id' => $this->imputation->id,

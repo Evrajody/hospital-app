@@ -28,31 +28,23 @@
 
           <el-row :gutter="20">
             <el-col :xs="24" :sm="12">
-              <el-form-item label="Service" prop="service">
-                <el-input v-model="form.service" placeholder="Ex: Service Comptabilité" />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12">
               <el-form-item label="Adresse" prop="adresse">
                 <el-input v-model="form.adresse" placeholder="Ex: BP 123 - Cotonou" />
               </el-form-item>
             </el-col>
-          </el-row>
-
-          <el-row :gutter="20">
             <el-col :xs="24" :sm="12">
               <el-form-item label="Téléphone" prop="telephone">
                 <el-input v-model="form.telephone" placeholder="+229 21 XX XX XX" />
               </el-form-item>
             </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
             <el-col :xs="24" :sm="12">
               <el-form-item label="Email" prop="email">
                 <el-input v-model="form.email" type="email" placeholder="contact@hopital.bj" />
               </el-form-item>
             </el-col>
-          </el-row>
-
-          <el-row :gutter="20">
             <el-col :xs="24" :sm="12">
               <el-form-item label="Nom du Directeur" prop="directeur">
                 <el-input v-model="form.directeur" placeholder="Ex: Dr. Jean DUPONT" />
@@ -94,7 +86,6 @@ const loading = ref(false);
 const form = reactive({
   nom: props.etablissement?.nom || '',
   pays: props.etablissement?.pays || '',
-  service: props.etablissement?.service || '',
   adresse: props.etablissement?.adresse || '',
   telephone: props.etablissement?.telephone || '',
   email: props.etablissement?.email || '',

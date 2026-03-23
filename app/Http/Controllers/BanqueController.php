@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Banque;
 use App\Models\CompteBancaire;
 use App\Models\ApprovisionnementBanque;
@@ -97,6 +98,8 @@ class BanqueController extends Controller
 
         $banque = Banque::create($validated);
 
+        ActivityLog::log('create', 'banque', "Création de la banque {$banque->nom}", $banque);
+
         return response()->json([
             'success' => true,
             'message' => 'Banque créée avec succès',
@@ -121,6 +124,8 @@ class BanqueController extends Controller
 
         $compte = CompteBancaire::create($validated);
         $compte->load(['banque', 'compteOhada']);
+
+        ActivityLog::log('create', 'compte_bancaire', "Création du compte bancaire {$compte->banque->nom} - {$compte->numero_compte}", $compte);
 
         return response()->json([
             'success' => true,
@@ -168,6 +173,9 @@ class BanqueController extends Controller
             );
 
             DB::commit();
+
+            $montant = (float) $validated['montant'];
+            ActivityLog::log('create', 'compte_bancaire', "Approvisionnement de " . number_format($montant, 0, ',', ' ') . " XOF sur {$compte->banque->nom} - {$compte->numero_compte}", $compte, ['montant' => $montant]);
 
             return response()->json([
                 'success' => true,
@@ -333,6 +341,8 @@ class BanqueController extends Controller
         $compte->update($validated);
         $compte->load(['banque', 'compteOhada']);
 
+        ActivityLog::log('update', 'compte_bancaire', "Modification du compte bancaire {$compte->banque->nom} - {$compte->numero_compte}", $compte);
+
         return response()->json([
             'success' => true,
             'message' => 'Compte bancaire modifié avec succès',
@@ -357,9 +367,12 @@ class BanqueController extends Controller
             $banque->comptes()->delete();
 
             // Supprimer la banque
+            $nom = $banque->nom;
             $banque->delete();
 
             DB::commit();
+
+            ActivityLog::log('delete', 'banque', "Suppression de la banque {$nom}", null, ['nom' => $nom]);
 
             return response()->json([
                 'success' => true,

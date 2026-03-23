@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\FactureFournisseur;
 use App\Models\Fournisseur;
 use App\Models\ReglementFournisseur;
@@ -88,7 +89,7 @@ class FactureFournisseurController extends Controller
                 'fournisseur' => $facture->fournisseur ? [
                     'id' => $facture->fournisseur->id,
                     'code' => 'FOUR' . str_pad($facture->fournisseur->id, 3, '0', STR_PAD_LEFT),
-                    'nom' => $facture->fournisseur->nom,
+                    'nom' => $facture->fournisseur_nom ?: $facture->fournisseur->nom,
                 ] : null,
                 'libelle' => $facture->libelle,
                 'montant_ht' => (float) $facture->montant_ht,
@@ -200,7 +201,7 @@ class FactureFournisseurController extends Controller
             'fournisseur' => $facture->fournisseur ? [
                 'id' => $facture->fournisseur->id,
                 'code' => 'FOUR' . str_pad($facture->fournisseur->id, 3, '0', STR_PAD_LEFT),
-                'nom' => $facture->fournisseur->nom,
+                'nom' => $facture->fournisseur_nom ?: $facture->fournisseur->nom,
                 'contact' => $facture->fournisseur->contact,
                 'telephone' => $facture->fournisseur->telephone,
                 'email' => $facture->fournisseur->email,
@@ -341,7 +342,7 @@ class FactureFournisseurController extends Controller
             'fournisseur' => $facture->fournisseur ? [
                 'id' => $facture->fournisseur->id,
                 'code' => 'FOUR' . str_pad($facture->fournisseur->id, 3, '0', STR_PAD_LEFT),
-                'nom' => $facture->fournisseur->nom,
+                'nom' => $facture->fournisseur_nom ?: $facture->fournisseur->nom,
             ] : null,
             'montant_ht' => (float) $facture->montant_ht,
             'montant_tva' => (float) $facture->montant_tva,
@@ -562,11 +563,15 @@ class FactureFournisseurController extends Controller
                 ], 422);
             }
 
+            // Snapshot du fournisseur
+            $fournisseur = Fournisseur::find($request->fournisseur_id);
+
             $facture = FactureFournisseur::create([
                 'numero_piece' => $numeroPiece,
                 'date' => $request->date,
                 'reference_facture' => $request->reference_facture,
                 'fournisseur_id' => $request->fournisseur_id,
+                'fournisseur_nom' => $fournisseur?->nom,
                 'imputation_id' => $request->imputation_id,
                 'compte_id' => $request->compte_id,
                 'libelle' => $request->libelle,
@@ -582,6 +587,7 @@ class FactureFournisseurController extends Controller
                 'metadata' => $request->metadata,
                 'statut' => 'brouillon',
                 'created_by' => auth()->id(),
+                'created_by_name' => auth()->user()->name,
             ]);
 
             $facture->load(['fournisseur', 'imputation', 'compte']);
@@ -590,6 +596,8 @@ class FactureFournisseurController extends Controller
             $hasImputation = $facture->imputation_id && $facture->compte_id;
 
             DB::commit();
+
+            ActivityLog::log('create', 'facture_fournisseur', "Création de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
 
             return response()->json([
                 'success' => true,
@@ -637,11 +645,19 @@ class FactureFournisseurController extends Controller
         try {
             DB::beginTransaction();
 
+            // Re-snapshot si le fournisseur change
+            $fournisseurId = $request->fournisseur_id ?? $facture->fournisseur_id;
+            $fournisseurNom = $facture->fournisseur_nom;
+            if ($request->fournisseur_id && $request->fournisseur_id != $facture->fournisseur_id) {
+                $fournisseurNom = Fournisseur::find($request->fournisseur_id)?->nom;
+            }
+
             $facture->update([
                 'numero_piece' => $request->numero_piece ?? $facture->numero_piece,
                 'date' => $request->date ?? $facture->date,
                 'reference_facture' => $request->reference_facture,
-                'fournisseur_id' => $request->fournisseur_id ?? $facture->fournisseur_id,
+                'fournisseur_id' => $fournisseurId,
+                'fournisseur_nom' => $fournisseurNom,
                 'imputation_id' => $request->imputation_id,
                 'compte_id' => $request->compte_id,
                 'libelle' => $request->libelle ?? $facture->libelle,
@@ -658,6 +674,8 @@ class FactureFournisseurController extends Controller
             ]);
 
             DB::commit();
+
+            ActivityLog::log('update', 'facture_fournisseur', "Modification de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
 
             $facture->load(['fournisseur', 'imputation', 'compte']);
 
@@ -706,7 +724,10 @@ class FactureFournisseurController extends Controller
         }
 
         try {
+            $numeroPiece = $facture->numero_piece;
             $facture->delete();
+
+            ActivityLog::log('delete', 'facture_fournisseur', "Suppression de la facture {$numeroPiece}", null, ['numero_piece' => $numeroPiece]);
 
             return response()->json([
                 'success' => true,
@@ -739,6 +760,8 @@ class FactureFournisseurController extends Controller
         try {
             $facture->valider(auth()->id());
 
+            ActivityLog::log('validate', 'facture_fournisseur', "Validation de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Facture validée avec succès',
@@ -770,6 +793,8 @@ class FactureFournisseurController extends Controller
 
         try {
             $facture->annuler();
+
+            ActivityLog::log('cancel', 'facture_fournisseur', "Annulation de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
 
             return response()->json([
                 'success' => true,
@@ -813,6 +838,8 @@ class FactureFournisseurController extends Controller
             $facture->statut = FactureFournisseur::STATUT_PAYEE;
             $facture->reste_a_payer = 0;
             $facture->save();
+
+            ActivityLog::log('settle', 'facture_fournisseur', "Solde de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
 
             return response()->json([
                 'success' => true,
@@ -1064,7 +1091,7 @@ class FactureFournisseurController extends Controller
                 'id' => $facture->id,
                 'numero_piece' => $facture->numero_piece,
                 'date' => $facture->date?->format('d/m/Y'),
-                'fournisseur' => $facture->fournisseur?->nom,
+                'fournisseur' => $facture->fournisseur_nom ?: $facture->fournisseur?->nom,
                 'libelle' => $facture->libelle,
             ],
             'ecritures' => $data,
@@ -1104,9 +1131,13 @@ class FactureFournisseurController extends Controller
                 'montant_facture' => number_format((float) $facture->montant_facture, 0, ',', ' '),
                 'montant_mo' => number_format((float) $facture->montant_mo, 0, ',', ' '),
                 'avoir' => number_format((float) $facture->avoir, 0, ',', ' '),
+                'assujetti_tva' => (bool) $facture->assujetti_tva,
+                'taux_tva' => $facture->taux_tva ? (float) $facture->taux_tva : 0,
+                'montant_tva' => number_format((float) ($facture->montant_tva ?? 0), 0, ',', ' '),
+                'montant_ttc' => number_format((float) ($facture->montant_ttc ?? 0), 0, ',', ' '),
             ],
             'fournisseur' => [
-                'nom' => $facture->fournisseur?->nom,
+                'nom' => $facture->fournisseur_nom ?: $facture->fournisseur?->nom,
                 'code' => $facture->fournisseur?->compteComptable?->numero_compte,
             ],
             'reglements' => $reglements->values()->map(fn($r, $index) => [
@@ -1118,7 +1149,7 @@ class FactureFournisseurController extends Controller
                     'especes' => 'Espèces',
                     default => ucfirst($r->mode_paiement ?? ''),
                 },
-                'beneficiaire' => $r->beneficiaire ?: $facture->fournisseur?->nom,
+                'beneficiaire' => $r->beneficiaire ?: ($facture->fournisseur_nom ?: $facture->fournisseur?->nom),
                 'montant' => number_format((float) $r->montant, 0, ',', ' '),
             ])->toArray(),
             'total_reglements' => number_format((float) $totalReglements, 0, ',', ' '),
@@ -1145,9 +1176,12 @@ class FactureFournisseurController extends Controller
         $montantDu = (float) $facture->montant_net;
         $solde = $montantDu - (float) $totalReglements;
 
+        $fournisseurNom = $facture->fournisseur_nom ?: $facture->fournisseur?->nom;
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.etat-reglement-facture', [
             'facture' => $facture,
             'fournisseur' => $facture->fournisseur,
+            'fournisseurNom' => $fournisseurNom,
             'reglements' => $reglements,
             'totalReglements' => $totalReglements,
             'montantDu' => $montantDu,

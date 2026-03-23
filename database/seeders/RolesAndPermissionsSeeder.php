@@ -77,6 +77,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'roles.supprimer',
             'parametres.voir',
             'parametres.modifier',
+
+            // Journal d'activité
+            'journal.voir',
         ];
 
         foreach ($permissions as $permission) {

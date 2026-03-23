@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Fournisseur;
 use App\Models\FactureFournisseur;
 use App\Models\ReglementFournisseur;
@@ -364,6 +365,8 @@ class FournisseurController extends Controller
 
             DB::commit();
 
+            ActivityLog::log('create', 'fournisseur', "Création du fournisseur {$fournisseur->nom}", $fournisseur, ['nom' => $fournisseur->nom]);
+
             // Recharger avec la relation
             $fournisseur->load('compteComptable');
 
@@ -457,6 +460,8 @@ class FournisseurController extends Controller
 
             DB::commit();
 
+            ActivityLog::log('update', 'fournisseur', "Modification du fournisseur {$fournisseur->nom}", $fournisseur, ['nom' => $fournisseur->nom]);
+
             $fournisseur->load('compteComptable');
 
             return response()->json([
@@ -493,7 +498,10 @@ class FournisseurController extends Controller
         }
 
         try {
+            $nom = $fournisseur->nom;
             $fournisseur->delete();
+
+            ActivityLog::log('delete', 'fournisseur', "Suppression du fournisseur {$nom}", null, ['nom' => $nom]);
 
             return response()->json([
                 'success' => true,

@@ -328,6 +328,7 @@
                     v-model="form.type_reduction"
                     placeholder="Sélectionner un compte AIB"
                     clearable
+                    :disabled="!form.montant_mo"
                     style="width: 100%"
                   >
                     <el-option
@@ -347,6 +348,7 @@
                     v-model="form.taux"
                     placeholder="Sélectionner un taux"
                     clearable
+                    :disabled="!form.montant_mo"
                     style="width: 100%"
                     @change="handleTauxAibChange"
                   >
@@ -964,6 +966,14 @@ const handleSubmit = async () => {
     });
   }
 };
+
+// Réinitialiser AIB si montant_mo est vidé
+watch(() => form.montant_mo, (val) => {
+  if (!val) {
+    form.type_reduction = '';
+    form.taux = '';
+  }
+});
 
 // Watchers
 watch(dialogVisible, async (val) => {

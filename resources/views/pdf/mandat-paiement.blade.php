@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4;
-            margin: 20mm 25mm;
+            margin: 20mm 30mm;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,6 +16,7 @@
             font-size: 13px;
             color: #000;
             line-height: 1.5;
+            padding: 0 15mm;
         }
 
         .header {
@@ -91,7 +92,8 @@
         .montant-lettres {
             display: block;
             font-size: 10px;
-            color: #cc0000;
+            color: #000;
+            font-weight: bold;
             text-transform: uppercase;
             margin-top: 2px;
         }
@@ -194,7 +196,7 @@
         <tr class="spacer"><td colspan="2"></td></tr>
         <tr>
             <td class="details-label">PRESTATAIRE :</td>
-            <td>{{ $reglement->fournisseur->nom }}</td>
+            <td>{{ $reglement->fournisseur_nom ?: $reglement->fournisseur?->nom }}</td>
         </tr>
     </table>
 
@@ -280,7 +282,7 @@
         <tr>
             <td>
                 <div class="signature-title">Le Bénéficiaire,</div>
-                <div class="signature-name">{{ strtoupper($reglement->fournisseur->nom) }}</div>
+                <div class="signature-name">{{ strtoupper($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '') }}</div>
             </td>
             <td style="text-align: right;">
                 <div class="signature-title">Le Directeur,</div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Banque;
 use App\Models\Client;
 use App\Models\FactureClient;
@@ -112,6 +113,8 @@ class ReglementClientController extends Controller
                 'date_reglement' => $request->date_reglement,
                 'facture_id' => $facture->id,
                 'client_id' => $facture->client_id,
+                'client_nom' => $facture->client_nom ?: $facture->client?->nom,
+                'facture_reference' => $facture->reference,
                 'montant' => $request->montant,
                 'institution' => $request->institution,
                 'reference_cheque' => $request->reference_cheque,
@@ -119,11 +122,15 @@ class ReglementClientController extends Controller
                 'compte_bancaire_id' => $request->compte_bancaire_id,
                 'observations' => $request->observations,
                 'created_by' => auth()->id(),
+                'created_by_name' => auth()->user()->name,
             ]);
 
             $facture->enregistrerPaiement($request->montant);
 
             DB::commit();
+
+            $montantReglement = (float) $request->montant;
+            ActivityLog::log('create', 'reglement_client', "Règlement de " . number_format($montantReglement, 0, ',', ' ') . " XOF sur facture {$facture->reference}", $reglement, ['montant' => $montantReglement]);
 
             $reglement->load(['facture', 'client', 'banqueDepot', 'compteBancaire']);
 
@@ -204,6 +211,8 @@ class ReglementClientController extends Controller
 
             DB::commit();
 
+            ActivityLog::log('update', 'reglement_client', "Modification du règlement #{$reglement->id}", $reglement);
+
             $reglement->load(['facture', 'client', 'banqueDepot', 'compteBancaire']);
 
             return response()->json([
@@ -250,6 +259,8 @@ class ReglementClientController extends Controller
             $facture->save();
 
             DB::commit();
+
+            ActivityLog::log('delete', 'reglement_client', "Suppression du règlement #{$id}", null, ['montant' => $montant]);
 
             return response()->json([
                 'success' => true,

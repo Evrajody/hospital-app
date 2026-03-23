@@ -152,7 +152,7 @@
     <div class="header">
         <div class="hospital-name">{{ $etablissement['nom'] }}</div>
         <div class="hospital-info">
-            {{ $etablissement['pays'] }} - {{ $etablissement['service'] }}<br>
+            {{ $etablissement['pays'] }}<br>
             {{ $etablissement['adresse'] }}{{ $etablissement['telephone'] ? ' - Tel: ' . $etablissement['telephone'] : '' }}
         </div>
     </div>

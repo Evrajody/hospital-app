@@ -29,6 +29,8 @@ class ReglementFournisseur extends Model
         'date_reglement',
         'facture_id',
         'fournisseur_id',
+        'fournisseur_nom',
+        'facture_numero',
         'montant',
         'mode_paiement',
         'reference',
@@ -43,8 +45,12 @@ class ReglementFournisseur extends Model
         'date_aib',
         'statut',
         'created_by',
+        'created_by_name',
         'validated_by',
+        'validated_by_name',
         'validated_at',
+        'etablissement_nom',
+        'etablissement_directeur',
     ];
 
     /**
@@ -401,18 +407,18 @@ class ReglementFournisseur extends Model
             'numero_reglement' => $this->numero_reglement,
             'date_reglement' => $this->date_reglement?->format('Y-m-d'),
             'facture_id' => $this->facture_id,
-            'facture' => $this->facture ? [
-                'id' => $this->facture->id,
-                'numero' => $this->facture->numero_piece,
-                'numero_piece' => $this->facture->numero_piece,
-                'date_facture' => $this->facture->date?->format('Y-m-d'),
-            ] : null,
+            'facture' => [
+                'id' => $this->facture_id,
+                'numero' => $this->facture_numero ?: $this->facture?->numero_piece,
+                'numero_piece' => $this->facture_numero ?: $this->facture?->numero_piece,
+                'date_facture' => $this->facture?->date?->format('Y-m-d'),
+            ],
             'fournisseur_id' => $this->fournisseur_id,
-            'fournisseur' => $this->fournisseur ? [
-                'id' => $this->fournisseur->id,
-                'code' => 'FOUR' . str_pad($this->fournisseur->id, 3, '0', STR_PAD_LEFT),
-                'nom' => $this->fournisseur->nom,
-            ] : null,
+            'fournisseur' => [
+                'id' => $this->fournisseur_id,
+                'code' => 'FOUR' . str_pad($this->fournisseur_id, 3, '0', STR_PAD_LEFT),
+                'nom' => $this->fournisseur_nom ?: $this->fournisseur?->nom,
+            ],
             'montant' => (float) $this->montant,
             'mode_paiement' => $this->mode_paiement,
             'mode_paiement_libelle' => $this->mode_paiement_libelle,
@@ -438,9 +444,9 @@ class ReglementFournisseur extends Model
             'statut_libelle' => $this->statut_libelle,
             'statut_couleur' => $this->statut_couleur,
             'est_modifiable' => $this->est_modifiable,
-            'user' => $this->createur ? [
-                'name' => $this->createur->name,
-            ] : null,
+            'user' => [
+                'name' => $this->created_by_name ?: $this->createur?->name,
+            ],
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

@@ -67,6 +67,10 @@
                   <span class="montant-label"><strong>Total TTC :</strong></span>
                   <span class="montant-value"><strong>{{ formatMontant(facture.montant_ttc) }}</strong></span>
                 </div>
+                <div class="montant-row" v-if="facture.avoir > 0">
+                  <span class="montant-label">Avoir :</span>
+                  <span class="montant-value" style="color: #f56c6c;">- {{ formatMontant(facture.avoir) }}</span>
+                </div>
                 <div class="montant-row" v-if="facture.montant_reduction > 0">
                   <span class="montant-label">{{ facture.type_reduction_libelle || 'AIB' }} ({{ facture.taux }}%) :</span>
                   <span class="montant-value" style="color: #f56c6c;">- {{ formatMontant(facture.montant_reduction) }}</span>
@@ -241,7 +245,7 @@
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="6" v-if="form.mode_paiement === 'virement' && form.banque_id">
+                <el-col :span="6" v-if="showBankField && form.banque_id">
                   <el-form-item prop="compte_bancaire_id">
                     <template #label>
                       <span>Compte bancaire <span class="required-star">*</span></span>
@@ -579,7 +583,7 @@ const rules = {
   compte_bancaire_id: [
     {
       validator: (rule, value, callback) => {
-        if (form.mode_paiement === 'virement' && !value) {
+        if (showBankField.value && form.banque_id && !value) {
           callback(new Error('Le compte bancaire est obligatoire'));
         } else {
           callback();
@@ -726,9 +730,20 @@ const handleSubmit = async () => {
   if (!formRef.value) return;
 
   await formRef.value.validate(async (valid) => {
-    if (valid) {
-      await submitPayment(false);
+    if (!valid) return;
+
+    // Vérifier le solde du compte si un compte bancaire est sélectionné
+    if (selectedCompte.value && form.montant > 0) {
+      const solde = parseFloat(selectedCompte.value.solde) || 0;
+      if (solde < form.montant) {
+        insufficientData.solde = solde;
+        insufficientData.montant = form.montant;
+        showInsufficientModal.value = true;
+        return;
+      }
     }
+
+    await submitPayment(false);
   });
 };
 

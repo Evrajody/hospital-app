@@ -312,7 +312,7 @@
         <div class="imputation-header">
           <div class="imputation-hospital-name">{{ imputationData.etablissement.nom }}</div>
           <div class="imputation-hospital-info">
-            {{ imputationData.etablissement.pays }} - {{ imputationData.etablissement.service }}<br>
+            {{ imputationData.etablissement.pays }}<br>
             {{ imputationData.etablissement.adresse }}{{ imputationData.etablissement.telephone ? ' - Tel: ' + imputationData.etablissement.telephone : '' }}
           </div>
           <div class="imputation-title-box">
@@ -401,6 +401,10 @@
           <span><strong>Mt facture :</strong> {{ etatReglementData.facture.montant_facture }}</span>
           <span><strong>Mt M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
         </div>
+        <div class="etat-reglement-montants" v-if="etatReglementData.facture.assujetti_tva && etatReglementData.facture.taux_tva > 0">
+          <span><strong>TVA ({{ etatReglementData.facture.taux_tva }}%) :</strong> {{ etatReglementData.facture.montant_tva }}</span>
+          <span><strong>Montant TTC :</strong> {{ etatReglementData.facture.montant_ttc }}</span>
+        </div>
         <div class="etat-reglement-montants">
           <span><strong>Avoir :</strong> {{ etatReglementData.facture.avoir }}</span>
         </div>
@@ -462,7 +466,6 @@ import {
   Search,
   RefreshLeft,
   Download,
-  Printer,
   Refresh,
   View,
   Edit,
@@ -730,13 +733,6 @@ const handleFactureSuccess = async (factureData) => {
       selectedFacture.value = null;
 
       // Si la facture a une imputation, demander confirmation
-      console.log('=== DEBUG IMPUTATION ===');
-      console.log('isEdit:', isEdit);
-      console.log('result.has_imputation:', result.has_imputation);
-      console.log('result.data?.id:', result.data?.id);
-      console.log('imputation_id:', result.data?.imputation_id);
-      console.log('compte_id:', result.data?.compte_id);
-      console.log('Full result:', JSON.stringify(result, null, 2));
       if (result.has_imputation && result.data?.id) {
         const factureId = result.data.id;
         // Attendre que le dialog se ferme complètement avant d'afficher le MessageBox
@@ -843,10 +839,6 @@ const handleMoreActions = async (command, facture) => {
 
 const handleExport = () => {
   ElMessage.info('Export en cours de développement...');
-};
-
-const handlePrint = () => {
-  ElMessage.info('Impression en cours de développement...');
 };
 
 // Imputation Comptable Drawer

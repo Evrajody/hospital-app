@@ -8,7 +8,7 @@
                 {{ $etablissement['nom'] }}
             </div>
             <div style="font-size: 10px; color: #666666; line-height: 1.6; margin-top: 4px;">
-                {{ $etablissement['pays'] }} - {{ $etablissement['service'] }}<br>
+                {{ $etablissement['pays'] }}<br>
                 {{ $etablissement['adresse'] }}
                 @if(!empty($etablissement['telephone']))
                     - Tél: {{ $etablissement['telephone'] }}

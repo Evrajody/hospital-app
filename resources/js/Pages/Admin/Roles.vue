@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Edit, Delete, Check, Close } from '@element-plus/icons-vue';
@@ -136,6 +136,14 @@ const breadcrumbs = [
 ];
 
 const selectedRole = ref(props.roles.find(r => r.name === 'admin') || props.roles[0] || null);
+
+// Resynchroniser selectedRole après un reload Inertia
+watch(() => props.roles, (newRoles) => {
+  if (selectedRole.value) {
+    const updated = newRoles.find(r => r.id === selectedRole.value.id);
+    selectedRole.value = updated || null;
+  }
+}, { deep: true });
 const showRoleModal = ref(false);
 const editingRole = ref(null);
 const submitting = ref(false);
@@ -212,7 +220,6 @@ const handleSubmitRole = async () => {
       if (result.success) {
         ElMessage.success(result.message);
         showRoleModal.value = false;
-        selectedRole.value = null;
         router.reload();
       } else {
         ElMessage.error(result.message || 'Erreur');

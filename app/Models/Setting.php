@@ -41,7 +41,6 @@ class Setting extends Model
             return [
                 'nom' => $settings['etablissement_nom'] ?? 'Hopital de Menontin',
                 'pays' => $settings['etablissement_pays'] ?? 'Republique du Benin',
-                'service' => $settings['etablissement_service'] ?? 'Service Comptabilite',
                 'adresse' => $settings['etablissement_adresse'] ?? '',
                 'telephone' => $settings['etablissement_telephone'] ?? '',
                 'email' => $settings['etablissement_email'] ?? '',

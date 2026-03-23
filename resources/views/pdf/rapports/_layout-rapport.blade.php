@@ -14,6 +14,7 @@
             font-size: 11px;
             color: #000;
             line-height: 1.4;
+            padding: 0 10mm;
         }
 
         /* En-tête hôpital — pas de cadre */
@@ -127,7 +128,7 @@
     <div class="header-section">
         <div class="hospital-name">{{ $etablissement['nom'] }}</div>
         <div class="hospital-info">
-            {{ $etablissement['pays'] }} - {{ $etablissement['service'] }}<br>
+            {{ $etablissement['pays'] }}<br>
             {{ $etablissement['adresse'] }}
             @if(!empty($etablissement['telephone']))
                 - Tél: {{ $etablissement['telephone'] }}

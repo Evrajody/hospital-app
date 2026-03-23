@@ -17,6 +17,8 @@ class ReglementClient extends Model
         'date_reglement',
         'facture_id',
         'client_id',
+        'client_nom',
+        'facture_reference',
         'montant',
         'institution',
         'reference_cheque',
@@ -24,6 +26,7 @@ class ReglementClient extends Model
         'compte_bancaire_id',
         'observations',
         'created_by',
+        'created_by_name',
     ];
 
     protected $casts = [
@@ -88,15 +91,15 @@ class ReglementClient extends Model
             'numero_ligne' => $this->numero_ligne,
             'date_reglement' => $this->date_reglement?->format('Y-m-d'),
             'facture_id' => $this->facture_id,
-            'facture' => $this->facture ? [
-                'id' => $this->facture->id,
-                'reference' => $this->facture->reference,
-            ] : null,
+            'facture' => [
+                'id' => $this->facture_id,
+                'reference' => $this->facture_reference ?: $this->facture?->reference,
+            ],
             'client_id' => $this->client_id,
-            'client' => $this->client ? [
-                'id' => $this->client->id,
-                'nom' => $this->client->nom,
-            ] : null,
+            'client' => [
+                'id' => $this->client_id,
+                'nom' => $this->client_nom ?: $this->client?->nom,
+            ],
             'montant' => (float) $this->montant,
             'institution' => $this->institution,
             'reference_cheque' => $this->reference_cheque,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -38,11 +39,15 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        ActivityLog::log('login', 'auth', "Connexion de " . auth()->user()->name);
+
         return redirect()->intended('/dashboard');
     }
 
     public function logout(Request $request)
     {
+        ActivityLog::log('logout', 'auth', "Déconnexion de " . auth()->user()->name);
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\FactureFournisseurController;
 use App\Http\Controllers\ReglementFournisseurController;
@@ -17,11 +16,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
-use App\Models\Client;
-use App\Models\FactureClient;
-use App\Models\ReglementClient;
-use App\Models\Banque;
-use App\Models\CompteBancaire;
+use App\Http\Controllers\ActivityLogController;
 
 // Page d'accueil → redirect to login or dashboard
 Route::get('/', function () {
@@ -47,11 +42,8 @@ Route::middleware('auth')->group(function () {
 // ==========================================
 // FOURNISSEURS ROUTES (CRUD FONCTIONNEL)
 // ==========================================
-Route::prefix('fournisseurs')->group(function () {
-    // Liste des fournisseurs (Vue)
+Route::prefix('fournisseurs')->middleware('permission:fournisseurs.voir')->group(function () {
     Route::get('/', [FournisseurController::class, 'index'])->name('fournisseurs.index');
-
-    // Détail fournisseur (Vue)
     Route::get('/{id}', [FournisseurController::class, 'show'])
         ->where('id', '[0-9]+')
         ->name('fournisseurs.show');
@@ -59,402 +51,162 @@ Route::prefix('fournisseurs')->group(function () {
 
 // API Fournisseurs (JSON)
 Route::prefix('api/fournisseurs')->group(function () {
-    // Créer un fournisseur
-    Route::post('/', [FournisseurController::class, 'store'])->name('api.fournisseurs.store');
-
-    // Modifier un fournisseur
-    Route::put('/{id}', [FournisseurController::class, 'update'])
+    Route::post('/', [FournisseurController::class, 'store'])->middleware('permission:fournisseurs.creer')->name('api.fournisseurs.store');
+    Route::put('/{id}', [FournisseurController::class, 'update'])->middleware('permission:fournisseurs.modifier')
         ->where('id', '[0-9]+')
         ->name('api.fournisseurs.update');
-
-    // Supprimer un fournisseur
-    Route::delete('/{id}', [FournisseurController::class, 'destroy'])
+    Route::delete('/{id}', [FournisseurController::class, 'destroy'])->middleware('permission:fournisseurs.supprimer')
         ->where('id', '[0-9]+')
         ->name('api.fournisseurs.destroy');
-
-    // Statistiques
-    Route::get('/stats', [FournisseurController::class, 'stats'])->name('api.fournisseurs.stats');
+    Route::get('/stats', [FournisseurController::class, 'stats'])->middleware('permission:fournisseurs.voir')->name('api.fournisseurs.stats');
 });
 
 // API Factures Fournisseurs (JSON)
 Route::prefix('api/factures-fournisseurs')->group(function () {
-    // Lister les factures
-    Route::get('/', [FactureFournisseurController::class, 'index'])->name('api.factures-fournisseurs.index');
-
-    // Générer un numéro de pièce
-    Route::get('/generer-numero', [FactureFournisseurController::class, 'genererNumero'])->name('api.factures-fournisseurs.generer-numero');
-
-    // Vérifier un numéro de pièce
-    Route::post('/verifier-numero', [FactureFournisseurController::class, 'verifierNumeroPiece'])->name('api.factures-fournisseurs.verifier-numero');
-
-    // Statistiques
-    Route::get('/stats', [FactureFournisseurController::class, 'stats'])->name('api.factures-fournisseurs.stats');
-
-    // Créer une facture
-    Route::post('/', [FactureFournisseurController::class, 'store'])->name('api.factures-fournisseurs.store');
-
-    // Voir une facture
-    Route::get('/{id}', [FactureFournisseurController::class, 'show'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.show');
-
-    // Modifier une facture
-    Route::put('/{id}', [FactureFournisseurController::class, 'update'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.update');
-
-    // Supprimer une facture
-    Route::delete('/{id}', [FactureFournisseurController::class, 'destroy'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.destroy');
-
-    // Valider une facture
-    Route::post('/{id}/valider', [FactureFournisseurController::class, 'valider'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.valider');
-
-    // Annuler une facture
-    Route::post('/{id}/annuler', [FactureFournisseurController::class, 'annuler'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.annuler');
-
-    // Solder une facture (marquer comme payée)
-    Route::post('/{id}/solder', [FactureFournisseurController::class, 'solder'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.solder');
-
-    // Créer l'imputation comptable d'une facture
-    Route::post('/{id}/imputation', [FactureFournisseurController::class, 'creerImputation'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.imputation');
-
-    // Données d'imputation comptable (JSON)
-    Route::get('/{id}/imputation-data', [FactureFournisseurController::class, 'imputationData'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.imputation-data');
-
-    // Données état de règlement facture (JSON)
-    Route::get('/{id}/etat-reglement-data', [FactureFournisseurController::class, 'etatReglementData'])
-        ->where('id', '[0-9]+')
-        ->name('api.factures-fournisseurs.etat-reglement-data');
+    Route::get('/', [FactureFournisseurController::class, 'index'])->middleware('permission:factures-fournisseurs.voir')->name('api.factures-fournisseurs.index');
+    Route::get('/generer-numero', [FactureFournisseurController::class, 'genererNumero'])->middleware('permission:factures-fournisseurs.creer')->name('api.factures-fournisseurs.generer-numero');
+    Route::post('/verifier-numero', [FactureFournisseurController::class, 'verifierNumeroPiece'])->middleware('permission:factures-fournisseurs.creer')->name('api.factures-fournisseurs.verifier-numero');
+    Route::get('/stats', [FactureFournisseurController::class, 'stats'])->middleware('permission:factures-fournisseurs.voir')->name('api.factures-fournisseurs.stats');
+    Route::post('/', [FactureFournisseurController::class, 'store'])->middleware('permission:factures-fournisseurs.creer')->name('api.factures-fournisseurs.store');
+    Route::get('/{id}', [FactureFournisseurController::class, 'show'])->middleware('permission:factures-fournisseurs.voir')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.show');
+    Route::put('/{id}', [FactureFournisseurController::class, 'update'])->middleware('permission:factures-fournisseurs.modifier')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.update');
+    Route::delete('/{id}', [FactureFournisseurController::class, 'destroy'])->middleware('permission:factures-fournisseurs.supprimer')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.destroy');
+    Route::post('/{id}/valider', [FactureFournisseurController::class, 'valider'])->middleware('permission:factures-fournisseurs.valider')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.valider');
+    Route::post('/{id}/annuler', [FactureFournisseurController::class, 'annuler'])->middleware('permission:factures-fournisseurs.modifier')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.annuler');
+    Route::post('/{id}/solder', [FactureFournisseurController::class, 'solder'])->middleware('permission:factures-fournisseurs.modifier')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.solder');
+    Route::post('/{id}/imputation', [FactureFournisseurController::class, 'creerImputation'])->middleware('permission:factures-fournisseurs.modifier')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.imputation');
+    Route::get('/{id}/imputation-data', [FactureFournisseurController::class, 'imputationData'])->middleware('permission:factures-fournisseurs.voir')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.imputation-data');
+    Route::get('/{id}/etat-reglement-data', [FactureFournisseurController::class, 'etatReglementData'])->middleware('permission:factures-fournisseurs.voir')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.etat-reglement-data');
 });
 
 // API Règlements Fournisseurs (JSON)
 Route::prefix('api/reglements-fournisseurs')->group(function () {
-    // Lister les règlements
-    Route::get('/', [ReglementFournisseurController::class, 'index'])->name('api.reglements-fournisseurs.index');
-
-    // Générer un numéro de règlement
-    Route::get('/generer-numero', [ReglementFournisseurController::class, 'genererNumero'])->name('api.reglements-fournisseurs.generer-numero');
-
-    // Statistiques
-    Route::get('/stats', [ReglementFournisseurController::class, 'stats'])->name('api.reglements-fournisseurs.stats');
-
-    // Créer un règlement
-    Route::post('/', [ReglementFournisseurController::class, 'store'])->name('api.reglements-fournisseurs.store');
-
-    // Voir un règlement
-    Route::get('/{id}', [ReglementFournisseurController::class, 'show'])
-        ->where('id', '[0-9]+')
-        ->name('api.reglements-fournisseurs.show');
-
-    // Modifier un règlement
-    Route::put('/{id}', [ReglementFournisseurController::class, 'update'])
-        ->where('id', '[0-9]+')
-        ->name('api.reglements-fournisseurs.update');
-
-    // Supprimer (annuler) un règlement
-    Route::delete('/{id}', [ReglementFournisseurController::class, 'destroy'])
-        ->where('id', '[0-9]+')
-        ->name('api.reglements-fournisseurs.destroy');
-
-    // Règlements d'une facture
-    Route::get('/facture/{factureId}', [ReglementFournisseurController::class, 'parFacture'])
-        ->where('factureId', '[0-9]+')
-        ->name('api.reglements-fournisseurs.par-facture');
-
-    // Données du mandat de paiement (JSON)
-    Route::get('/{id}/mandat-data', [ReglementFournisseurController::class, 'mandatData'])
-        ->where('id', '[0-9]+')
-        ->name('api.reglements-fournisseurs.mandat-data');
+    Route::get('/', [ReglementFournisseurController::class, 'index'])->middleware('permission:reglements-fournisseurs.voir')->name('api.reglements-fournisseurs.index');
+    Route::get('/generer-numero', [ReglementFournisseurController::class, 'genererNumero'])->middleware('permission:reglements-fournisseurs.creer')->name('api.reglements-fournisseurs.generer-numero');
+    Route::get('/stats', [ReglementFournisseurController::class, 'stats'])->middleware('permission:reglements-fournisseurs.voir')->name('api.reglements-fournisseurs.stats');
+    Route::post('/', [ReglementFournisseurController::class, 'store'])->middleware('permission:reglements-fournisseurs.creer')->name('api.reglements-fournisseurs.store');
+    Route::get('/{id}', [ReglementFournisseurController::class, 'show'])->middleware('permission:reglements-fournisseurs.voir')
+        ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.show');
+    Route::put('/{id}', [ReglementFournisseurController::class, 'update'])->middleware('permission:reglements-fournisseurs.modifier')
+        ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.update');
+    Route::delete('/{id}', [ReglementFournisseurController::class, 'destroy'])->middleware('permission:reglements-fournisseurs.supprimer')
+        ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.destroy');
+    Route::get('/facture/{factureId}', [ReglementFournisseurController::class, 'parFacture'])->middleware('permission:reglements-fournisseurs.voir')
+        ->where('factureId', '[0-9]+')->name('api.reglements-fournisseurs.par-facture');
+    Route::get('/{id}/mandat-data', [ReglementFournisseurController::class, 'mandatData'])->middleware('permission:reglements-fournisseurs.voir')
+        ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.mandat-data');
 });
 
 // Factures Fournisseurs Routes
-Route::prefix('factures-fournisseurs')->group(function () {
-    // Liste des factures (depuis la base de données)
-    Route::get('/', [FactureFournisseurController::class, 'indexView'])
-        ->name('factures-fournisseurs.index');
-
-    // Routes commentées - Création et édition se font maintenant via modal
-    /*
-    // Formulaire création
-    Route::get('/create', function () {
-        $fournisseurs = [
-            ['id' => 1, 'code' => 'FOUR001', 'nom' => 'Pharmacie Centrale du Bénin', 'compte_numero' => '401001'],
-            ['id' => 2, 'code' => 'FOUR002', 'nom' => 'SOBEMAP Matériel Médical', 'compte_numero' => '401002'],
-            ['id' => 3, 'code' => 'FOUR003', 'nom' => 'SONEB (Eau)', 'compte_numero' => '401003'],
-        ];
-
-        $comptesImputation = [
-            ['id' => 1, 'numero' => '601100', 'libelle' => 'Achats de médicaments'],
-            ['id' => 2, 'numero' => '601200', 'libelle' => 'Achats de matériel médical'],
-            ['id' => 3, 'numero' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
-            ['id' => 4, 'numero' => '605100', 'libelle' => 'Eau et électricité'],
-            ['id' => 5, 'numero' => '622100', 'libelle' => 'Services extérieurs'],
-        ];
-
-        return Inertia::render('Fournisseurs/Factures/Form', [
-            'fournisseurs' => $fournisseurs,
-            'comptesImputation' => $comptesImputation,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-fournisseurs.create');
-    */
-
-    // Détail facture (depuis la base de données)
-    Route::get('/{id}', [FactureFournisseurController::class, 'showView'])
-        ->where('id', '[0-9]+')
-        ->name('factures-fournisseurs.show');
-
-    // Formulaire règlement (depuis la base de données)
-    Route::get('/{id}/regler', [FactureFournisseurController::class, 'reglementView'])
-        ->where('id', '[0-9]+')
-        ->name('factures-fournisseurs.regler');
-
-    // PDF Imputation comptable d'une facture
-    Route::get('/{id}/imputation-pdf', [FactureFournisseurController::class, 'imputationPdf'])
-        ->where('id', '[0-9]+')
-        ->name('factures-fournisseurs.imputation-pdf');
-
-    // PDF État de règlement facture
-    Route::get('/{id}/etat-reglement-pdf', [FactureFournisseurController::class, 'etatReglementPdf'])
-        ->where('id', '[0-9]+')
-        ->name('factures-fournisseurs.etat-reglement-pdf');
-
-    // Routes commentées - Édition se fait maintenant via modal
-    /*
-    // Formulaire édition
-    Route::get('/{id}/edit', function ($id) {
-        // Facture existante avec ses lignes
-        $facture = [
-            'id' => $id,
-            'numero' => 'PC/025/0001',
-            'date_facture' => '2025-01-15',
-            'date_echeance' => '2025-02-15',
-            'reference' => 'REF-001',
-            'fournisseur_id' => 1,
-            'remarques' => 'Commande urgente de médicaments essentiels',
-            'lignes' => [
-                [
-                    'id' => 1,
-                    'description' => 'Paracétamol 500mg (Boîte de 1000)',
-                    'compte_imputation_id' => 1,
-                    'quantite' => 50,
-                    'prix_unitaire' => 80000,
-                    'taux_tva' => 18,
-                    'taux_aib' => 1,
-                    'taux_escompte' => 0,
-                    'montant_ht' => 4000000,
-                    'montant_tva' => 720000,
-                    'montant_aib' => 40000,
-                    'montant_escompte' => 0,
-                    'montant_ttc' => 4760000
-                ],
-                [
-                    'id' => 2,
-                    'description' => 'Amoxicilline 1g (Boîte de 500)',
-                    'compte_imputation_id' => 1,
-                    'quantite' => 20,
-                    'prix_unitaire' => 50000,
-                    'taux_tva' => 18,
-                    'taux_aib' => 1,
-                    'taux_escompte' => 0,
-                    'montant_ht' => 1000000,
-                    'montant_tva' => 180000,
-                    'montant_aib' => 10000,
-                    'montant_escompte' => 0,
-                    'montant_ttc' => 1190000
-                ]
-            ]
-        ];
-
-        $fournisseurs = [
-            ['id' => 1, 'code' => 'FOUR001', 'nom' => 'Pharmacie Centrale du Bénin', 'compte_numero' => '401001'],
-            ['id' => 2, 'code' => 'FOUR002', 'nom' => 'SOBEMAP Matériel Médical', 'compte_numero' => '401002'],
-            ['id' => 3, 'code' => 'FOUR003', 'nom' => 'SONEB (Eau)', 'compte_numero' => '401003'],
-        ];
-
-        $comptesImputation = [
-            ['id' => 1, 'numero' => '601100', 'libelle' => 'Achats de médicaments'],
-            ['id' => 2, 'numero' => '601200', 'libelle' => 'Achats de matériel médical'],
-            ['id' => 3, 'numero' => '604100', 'libelle' => 'Achats de fournitures de bureau'],
-            ['id' => 4, 'numero' => '605100', 'libelle' => 'Eau et électricité'],
-            ['id' => 5, 'numero' => '622100', 'libelle' => 'Services extérieurs'],
-        ];
-
-        return Inertia::render('Fournisseurs/Factures/Form', [
-            'facture' => $facture,
-            'fournisseurs' => $fournisseurs,
-            'comptesImputation' => $comptesImputation,
-            'user' => [
-                'name' => 'Utilisateur Test',
-                'email' => 'test@example.com'
-            ]
-        ]);
-    })->name('factures-fournisseurs.edit');
-    */
+Route::prefix('factures-fournisseurs')->middleware('permission:factures-fournisseurs.voir')->group(function () {
+    Route::get('/', [FactureFournisseurController::class, 'indexView'])->name('factures-fournisseurs.index');
+    Route::get('/{id}', [FactureFournisseurController::class, 'showView'])->where('id', '[0-9]+')->name('factures-fournisseurs.show');
+    Route::get('/{id}/regler', [FactureFournisseurController::class, 'reglementView'])->where('id', '[0-9]+')->name('factures-fournisseurs.regler');
+    Route::get('/{id}/imputation-pdf', [FactureFournisseurController::class, 'imputationPdf'])->where('id', '[0-9]+')->name('factures-fournisseurs.imputation-pdf');
+    Route::get('/{id}/etat-reglement-pdf', [FactureFournisseurController::class, 'etatReglementPdf'])->where('id', '[0-9]+')->name('factures-fournisseurs.etat-reglement-pdf');
 });
 
 // Règlements Fournisseurs Routes
-Route::prefix('reglements-fournisseurs')->group(function () {
-    // Liste des règlements (depuis la base de données)
-    Route::get('/', [ReglementFournisseurController::class, 'indexView'])
-        ->name('reglements-fournisseurs.index');
-
+Route::prefix('reglements-fournisseurs')->middleware('permission:reglements-fournisseurs.voir')->group(function () {
+    Route::get('/', [ReglementFournisseurController::class, 'indexView'])->name('reglements-fournisseurs.index');
     Route::get('/{id}/mandat', [ReglementFournisseurController::class, 'mandat'])->name('reglements-fournisseurs.mandat');
 });
 
 // Clients Routes
-Route::prefix('clients')->group(function () {
+Route::prefix('clients')->middleware('permission:clients.voir')->group(function () {
     Route::get('/', [App\Http\Controllers\ClientController::class, 'index'])->name('clients.index');
 });
 
 // API Clients
 Route::prefix('api/clients')->group(function () {
-    Route::post('/', [App\Http\Controllers\ClientController::class, 'store'])->name('api.clients.store');
-    Route::put('/{id}', [App\Http\Controllers\ClientController::class, 'update'])->name('api.clients.update');
-    Route::delete('/{id}', [App\Http\Controllers\ClientController::class, 'destroy'])->name('api.clients.destroy');
+    Route::post('/', [App\Http\Controllers\ClientController::class, 'store'])->middleware('permission:clients.creer')->name('api.clients.store');
+    Route::put('/{id}', [App\Http\Controllers\ClientController::class, 'update'])->middleware('permission:clients.modifier')->name('api.clients.update');
+    Route::delete('/{id}', [App\Http\Controllers\ClientController::class, 'destroy'])->middleware('permission:clients.supprimer')->name('api.clients.destroy');
 });
 
 // Factures Clients Routes
-Route::prefix('factures-clients')->group(function () {
+Route::prefix('factures-clients')->middleware('permission:factures-clients.voir')->group(function () {
     Route::get('/', [FactureClientController::class, 'indexView'])->name('factures-clients.index');
     Route::get('/{id}', [FactureClientController::class, 'showView'])
-        ->where('id', '[0-9]+')
-        ->name('factures-clients.show');
+        ->where('id', '[0-9]+')->name('factures-clients.show');
     Route::get('/{id}/regler', [FactureClientController::class, 'reglementView'])
-        ->where('id', '[0-9]+')
-        ->name('factures-clients.regler');
+        ->where('id', '[0-9]+')->name('factures-clients.regler');
 });
 
 // API Factures Clients
 Route::prefix('api/factures-clients')->group(function () {
-    Route::post('/', [FactureClientController::class, 'store'])->name('api.factures-clients.store');
-    Route::put('/{id}', [FactureClientController::class, 'update'])->name('api.factures-clients.update');
-    Route::post('/{id}/solder', [FactureClientController::class, 'solder'])->name('api.factures-clients.solder');
-    Route::delete('/{id}', [FactureClientController::class, 'destroy'])->name('api.factures-clients.destroy');
+    Route::post('/', [FactureClientController::class, 'store'])->middleware('permission:factures-clients.creer')->name('api.factures-clients.store');
+    Route::put('/{id}', [FactureClientController::class, 'update'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.update');
+    Route::post('/{id}/solder', [FactureClientController::class, 'solder'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.solder');
+    Route::delete('/{id}', [FactureClientController::class, 'destroy'])->middleware('permission:factures-clients.supprimer')->name('api.factures-clients.destroy');
 });
 
 // Règlements Clients Routes
-Route::prefix('reglements-clients')->group(function () {
+Route::prefix('reglements-clients')->middleware('permission:reglements-clients.voir')->group(function () {
     Route::get('/', [ReglementClientController::class, 'indexView'])->name('reglements-clients.index');
 });
 
 // API Règlements Clients
 Route::prefix('api/reglements-clients')->group(function () {
-    Route::post('/', [ReglementClientController::class, 'store'])->name('api.reglements-clients.store');
-    Route::put('/{id}', [ReglementClientController::class, 'update'])->name('api.reglements-clients.update');
-    Route::delete('/{id}', [ReglementClientController::class, 'destroy'])->name('api.reglements-clients.destroy');
+    Route::post('/', [ReglementClientController::class, 'store'])->middleware('permission:reglements-clients.creer')->name('api.reglements-clients.store');
+    Route::put('/{id}', [ReglementClientController::class, 'update'])->middleware('permission:reglements-clients.modifier')->name('api.reglements-clients.update');
+    Route::delete('/{id}', [ReglementClientController::class, 'destroy'])->middleware('permission:reglements-clients.supprimer')->name('api.reglements-clients.destroy');
 });
 
 // Plan Comptable Routes
-Route::prefix('plan-comptable')->group(function () {
+Route::prefix('plan-comptable')->middleware('permission:plan-comptable.voir')->group(function () {
     Route::get('/', [PlanComptableController::class, 'index'])->name('plan-comptable.index');
 });
 
 // API Plan Comptable
 Route::prefix('api/plan-comptable')->group(function () {
-    Route::get('/search', [PlanComptableController::class, 'search'])->name('api.plan-comptable.search');
-    Route::post('/', [PlanComptableController::class, 'store'])->name('api.plan-comptable.store');
-    Route::get('/{compte}', [PlanComptableController::class, 'show'])->name('api.plan-comptable.show');
-    Route::put('/{compte}', [PlanComptableController::class, 'update'])->name('api.plan-comptable.update');
-    Route::delete('/{compte}', [PlanComptableController::class, 'destroy'])->name('api.plan-comptable.destroy');
+    Route::get('/search', [PlanComptableController::class, 'search'])->middleware('permission:plan-comptable.voir')->name('api.plan-comptable.search');
+    Route::post('/', [PlanComptableController::class, 'store'])->middleware('permission:plan-comptable.modifier')->name('api.plan-comptable.store');
+    Route::get('/{compte}', [PlanComptableController::class, 'show'])->middleware('permission:plan-comptable.voir')->name('api.plan-comptable.show');
+    Route::put('/{compte}', [PlanComptableController::class, 'update'])->middleware('permission:plan-comptable.modifier')->name('api.plan-comptable.update');
+    Route::delete('/{compte}', [PlanComptableController::class, 'destroy'])->middleware('permission:plan-comptable.modifier')->name('api.plan-comptable.destroy');
 });
 
 // Banques Routes
-Route::prefix('banques')->group(function () {
+Route::prefix('banques')->middleware('permission:banques.voir')->group(function () {
     Route::get('/', [BanqueController::class, 'index'])->name('banques.index');
     Route::get('/{id}/mouvements', [BanqueController::class, 'mouvements'])->name('banques.mouvements');
 });
 
 // API Banques
 Route::prefix('api')->group(function () {
-    // Banques
-    Route::post('/banques', [BanqueController::class, 'storeBanque'])->name('api.banques.store');
-    Route::get('/banques/liste', [BanqueController::class, 'listeBanques'])->name('api.banques.liste');
-    Route::delete('/banques/{banque}', [BanqueController::class, 'destroyBanque'])->name('api.banques.destroy');
+    Route::post('/banques', [BanqueController::class, 'storeBanque'])->middleware('permission:banques.creer')->name('api.banques.store');
+    Route::get('/banques/liste', [BanqueController::class, 'listeBanques'])->middleware('permission:banques.voir')->name('api.banques.liste');
+    Route::delete('/banques/{banque}', [BanqueController::class, 'destroyBanque'])->middleware('permission:banques.supprimer')->name('api.banques.destroy');
 
-    // Comptes bancaires
-    Route::post('/comptes-bancaires', [BanqueController::class, 'storeCompte'])->name('api.comptes-bancaires.store');
-    Route::put('/comptes-bancaires/{compte}', [BanqueController::class, 'updateCompte'])->name('api.comptes-bancaires.update');
-    Route::get('/comptes-bancaires/liste', [BanqueController::class, 'listeComptes'])->name('api.comptes-bancaires.liste');
+    Route::post('/comptes-bancaires', [BanqueController::class, 'storeCompte'])->middleware('permission:banques.creer')->name('api.comptes-bancaires.store');
+    Route::put('/comptes-bancaires/{compte}', [BanqueController::class, 'updateCompte'])->middleware('permission:banques.modifier')->name('api.comptes-bancaires.update');
+    Route::get('/comptes-bancaires/liste', [BanqueController::class, 'listeComptes'])->middleware('permission:banques.voir')->name('api.comptes-bancaires.liste');
 
-    // Approvisionnements
-    Route::post('/banques/approvisionnement', [BanqueController::class, 'storeApprovisionnement'])->name('api.banques.approvisionnement');
+    Route::post('/banques/approvisionnement', [BanqueController::class, 'storeApprovisionnement'])->middleware('permission:banques.modifier')->name('api.banques.approvisionnement');
 });
 
 // Rapports Routes
-Route::prefix('rapports')->group(function () {
+Route::prefix('rapports')->middleware('permission:rapports.voir')->group(function () {
     // Rapports Fournisseurs
     Route::prefix('fournisseurs')->group(function () {
-        // Page index des rapports fournisseurs (dashboard avec onglets)
         Route::get('/', [RapportFournisseurController::class, 'index'])->name('rapports.fournisseurs');
 
-        // État de règlement d'une facture
-        Route::get('/etat-reglement-facture', function () {
-            $facture = [
-                'id' => 1,
-                'numero' => 'PC/025/0001',
-                'date_facture' => '2025-01-15',
-                'date_echeance' => '2025-02-15',
-                'reference' => 'REF-001',
-                'fournisseur' => [
-                    'code' => 'FOUR001',
-                    'nom' => 'Pharmacie Centrale du Bénin'
-                ],
-                'montant_ht' => 5000000,
-                'montant_tva' => 900000,
-                'montant_aib' => 50000,
-                'montant_escompte' => 0,
-                'montant_ttc' => 5950000
-            ];
-
-            $reglements = [
-                [
-                    'id' => 1,
-                    'date_reglement' => '2025-01-20',
-                    'mode_paiement' => 'virement',
-                    'reference' => 'VIR-2025-001',
-                    'compte_bancaire' => ['banque' => 'ORABANK', 'numero' => 'BJ123456789'],
-                    'montant' => 2000000,
-                    'user' => ['name' => 'Admin User']
-                ],
-                [
-                    'id' => 2,
-                    'date_reglement' => '2025-01-25',
-                    'mode_paiement' => 'cheque',
-                    'reference' => 'CHQ-2025-010',
-                    'compte_bancaire' => ['banque' => 'BOA BENIN', 'numero' => 'BJ987654321'],
-                    'montant' => 1950000,
-                    'user' => ['name' => 'Admin User']
-                ]
-            ];
-
-            return Inertia::render('Rapports/Fournisseurs/EtatReglementFacture', [
-                'facture' => $facture,
-                'reglements' => $reglements
-            ]);
-        })->name('rapports.fournisseurs.etat-reglement-facture');
-
-        // Mouvement périodique fournisseur
+        // Mouvement périodique
         Route::get('/mouvement-periodique', [RapportFournisseurController::class, 'mouvementFacturesPage'])->name('rapports.fournisseurs.mouvement-periodique');
         Route::get('/api/mouvement-factures', [RapportFournisseurController::class, 'mouvementFactures']);
         Route::get('/pdf/mouvement-factures', [RapportFournisseurController::class, 'mouvementFacturesPdf']);
 
-        // Situation des fournisseurs (point des dettes)
+        // Situation des fournisseurs
         Route::get('/api/situation-fournisseurs', [RapportFournisseurController::class, 'situationFournisseurs']);
         Route::get('/pdf/situation-fournisseurs', [RapportFournisseurController::class, 'situationFournisseursPdf']);
 
@@ -489,114 +241,6 @@ Route::prefix('rapports')->group(function () {
 
         // Factures et soldes
         Route::get('/api/factures-soldes', [RapportFournisseurController::class, 'facturesSoldes']);
-
-        // Situation des fournisseurs
-        Route::get('/situation-fournisseurs', function () {
-            $fournisseurs = [
-                [
-                    'id' => 1,
-                    'code' => 'FOUR001',
-                    'nom' => 'Pharmacie Centrale du Bénin',
-                    'compte_numero' => '401001',
-                    'nb_factures' => 5,
-                    'total_facture' => 15000000,
-                    'total_paye' => 10000000,
-                    'dette' => 5000000
-                ],
-                [
-                    'id' => 2,
-                    'code' => 'FOUR002',
-                    'nom' => 'SOBEMAP Matériel Médical',
-                    'compte_numero' => '401002',
-                    'nb_factures' => 3,
-                    'total_facture' => 8000000,
-                    'total_paye' => 8000000,
-                    'dette' => 0
-                ]
-            ];
-
-            return Inertia::render('Rapports/Fournisseurs/SituationFournisseurs', [
-                'fournisseurs' => $fournisseurs,
-                'date_situation' => '2025-01-31'
-            ]);
-        })->name('rapports.fournisseurs.situation-fournisseurs');
-
-        // Factures réglées
-        Route::get('/factures-reglees', function () {
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'PC/025/0002',
-                    'date_reglement_final' => '2025-01-20',
-                    'fournisseur' => ['nom' => 'SOBEMAP Matériel Médical'],
-                    'montant_ttc' => 3570000,
-                    'montant_paye' => 3570000,
-                    'mode_paiement_final' => 'Virement',
-                    'reference_final' => 'VIR-2025-002'
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Fournisseurs/FacturesReglees', [
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.fournisseurs.factures-reglees');
-
-        // Déclaration AIB
-        Route::get('/declaration-aib', function () {
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'PC/025/0001',
-                    'date_facture' => '2025-01-15',
-                    'fournisseur' => ['nom' => 'Pharmacie Centrale du Bénin'],
-                    'montant_ht' => 5000000,
-                    'taux_aib' => 1,
-                    'montant_aib' => 50000
-                ],
-                [
-                    'id' => 2,
-                    'numero' => 'PC/025/0003',
-                    'date_facture' => '2025-01-20',
-                    'fournisseur' => ['nom' => 'SOBEMAP Matériel Médical'],
-                    'montant_ht' => 3000000,
-                    'taux_aib' => 3,
-                    'montant_aib' => 90000
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Fournisseurs/DeclarationAIB', [
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.fournisseurs.declaration-aib');
-
-        // Déclaration TVA
-        Route::get('/declaration-tva', function () {
-            $factures = [
-                [
-                    'id' => 1,
-                    'numero' => 'PC/025/0001',
-                    'date_facture' => '2025-01-15',
-                    'fournisseur' => ['nom' => 'Pharmacie Centrale du Bénin'],
-                    'montant_ht' => 5000000,
-                    'montant_tva' => 900000,
-                    'montant_ttc' => 5900000
-                ]
-            ];
-
-            $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-
-            return Inertia::render('Rapports/Fournisseurs/DeclarationTVA', [
-                'factures' => $factures,
-                'periode' => $periode
-            ]);
-        })->name('rapports.fournisseurs.declaration-tva');
-
     });
 
     // Rapports Clients
@@ -625,16 +269,13 @@ Route::prefix('rapports')->group(function () {
         Route::get('/pertes-rejets', [RapportClientController::class, 'pertesRejetsPage'])->name('rapports.clients.pertes-rejets');
     });
 
-    Route::get('/comptables', function () {
-        return Inertia::render('Dashboard'); // Placeholder
-    })->name('rapports.comptables');
 });
 
 // Paramètres Routes
-Route::get('/taux-fiscaux', [TauxFiscalController::class, 'index'])->name('taux-fiscaux.index');
+Route::get('/taux-fiscaux', [TauxFiscalController::class, 'index'])->middleware('permission:parametres.voir')->name('taux-fiscaux.index');
 
 // API Taux Fiscaux
-Route::prefix('api/taux-fiscaux')->group(function () {
+Route::prefix('api/taux-fiscaux')->middleware('permission:parametres.modifier')->group(function () {
     Route::post('/', [TauxFiscalController::class, 'store'])->name('api.taux-fiscaux.store');
     Route::put('/{id}', [TauxFiscalController::class, 'update'])->name('api.taux-fiscaux.update');
     Route::delete('/{id}', [TauxFiscalController::class, 'destroy'])->name('api.taux-fiscaux.destroy');
@@ -642,25 +283,28 @@ Route::prefix('api/taux-fiscaux')->group(function () {
 });
 
 // Administration - Utilisateurs
-Route::get('/utilisateurs', [UserController::class, 'index'])->name('utilisateurs.index');
+Route::get('/utilisateurs', [UserController::class, 'index'])->middleware('permission:utilisateurs.voir')->name('utilisateurs.index');
 Route::prefix('api/utilisateurs')->group(function () {
-    Route::post('/', [UserController::class, 'store'])->name('api.utilisateurs.store');
-    Route::put('/{id}', [UserController::class, 'update'])->name('api.utilisateurs.update');
-    Route::delete('/{id}', [UserController::class, 'destroy'])->name('api.utilisateurs.destroy');
-    Route::patch('/{id}/toggle-active', [UserController::class, 'toggleActive'])->name('api.utilisateurs.toggle-active');
+    Route::post('/', [UserController::class, 'store'])->middleware('permission:utilisateurs.creer')->name('api.utilisateurs.store');
+    Route::put('/{id}', [UserController::class, 'update'])->middleware('permission:utilisateurs.modifier')->name('api.utilisateurs.update');
+    Route::delete('/{id}', [UserController::class, 'destroy'])->middleware('permission:utilisateurs.supprimer')->name('api.utilisateurs.destroy');
+    Route::patch('/{id}/toggle-active', [UserController::class, 'toggleActive'])->middleware('permission:utilisateurs.modifier')->name('api.utilisateurs.toggle-active');
 });
 
 // Administration - Rôles & Permissions
-Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+Route::get('/roles', [RoleController::class, 'index'])->middleware('permission:roles.voir')->name('roles.index');
 Route::prefix('api/roles')->group(function () {
-    Route::post('/', [RoleController::class, 'storeRole'])->name('api.roles.store');
-    Route::put('/{id}', [RoleController::class, 'updateRole'])->name('api.roles.update');
-    Route::delete('/{id}', [RoleController::class, 'destroyRole'])->name('api.roles.destroy');
+    Route::post('/', [RoleController::class, 'storeRole'])->middleware('permission:roles.creer')->name('api.roles.store');
+    Route::put('/{id}', [RoleController::class, 'updateRole'])->middleware('permission:roles.modifier')->name('api.roles.update');
+    Route::delete('/{id}', [RoleController::class, 'destroyRole'])->middleware('permission:roles.supprimer')->name('api.roles.destroy');
 });
-Route::prefix('api/permissions')->group(function () {
+Route::prefix('api/permissions')->middleware('permission:roles.modifier')->group(function () {
     Route::post('/', [RoleController::class, 'storePermission'])->name('api.permissions.store');
     Route::delete('/{id}', [RoleController::class, 'destroyPermission'])->name('api.permissions.destroy');
 });
+
+// Journal d'activité
+Route::get('/journal-activite', [ActivityLogController::class, 'index'])->middleware('permission:journal.voir')->name('journal-activite.index');
 
 // User Profile Routes
 Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
@@ -669,11 +313,7 @@ Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->n
 Route::post('/profile/signature', [ProfileController::class, 'uploadSignature'])->name('profile.signature');
 Route::delete('/profile/signature', [ProfileController::class, 'deleteSignature'])->name('profile.signature.delete');
 // Paramètres Établissement
-Route::get('/parametres/etablissement', [ProfileController::class, 'etablissement'])->name('parametres.etablissement');
-Route::put('/parametres/etablissement', [ProfileController::class, 'updateEtablissement'])->name('parametres.etablissement.update');
-
-Route::get('/settings', function () {
-    return Inertia::render('Dashboard'); // Placeholder
-})->name('settings');
+Route::get('/parametres/etablissement', [ProfileController::class, 'etablissement'])->middleware('permission:parametres.voir')->name('parametres.etablissement');
+Route::put('/parametres/etablissement', [ProfileController::class, 'updateEtablissement'])->middleware('permission:parametres.modifier')->name('parametres.etablissement.update');
 
 }); // Fin du middleware auth

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,8 @@ class RoleController extends Controller
             $role->syncPermissions($validated['permissions']);
         }
 
+        ActivityLog::log('create', 'role', "Création du rôle {$role->name}", $role);
+
         return response()->json([
             'success' => true,
             'message' => 'Rôle créé avec succès',
@@ -80,6 +83,8 @@ class RoleController extends Controller
         $role->update(['name' => $validated['name']]);
         $role->syncPermissions($validated['permissions'] ?? []);
 
+        ActivityLog::log('update', 'role', "Modification du rôle {$role->name}", $role);
+
         return response()->json([
             'success' => true,
             'message' => 'Rôle modifié avec succès',
@@ -97,7 +102,10 @@ class RoleController extends Controller
             ], 422);
         }
 
+        $nom = $role->name;
         $role->delete();
+
+        ActivityLog::log('delete', 'role', "Suppression du rôle {$nom}", null, ['name' => $nom]);
 
         return response()->json([
             'success' => true,

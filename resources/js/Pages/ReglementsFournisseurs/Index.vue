@@ -422,7 +422,6 @@ import {
   User,
   Document,
   DocumentCopy,
-  Notebook,
   Edit
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -630,12 +629,6 @@ const handleViewFactureFromModal = () => {
 const handlePrintMandat = () => {
   if (selectedReglement.value) {
     window.open(`/reglements-fournisseurs/${selectedReglement.value.id}/mandat`, '_blank');
-  }
-};
-
-const handlePrintImputation = () => {
-  if (selectedReglement.value) {
-    window.open(`/reglements-fournisseurs/${selectedReglement.value.id}/imputation`, '_blank');
   }
 };
 

@@ -24,59 +24,59 @@
         </el-menu-item>
 
         <!-- Factures Fournisseurs -->
-        <el-sub-menu index="fournisseurs">
+        <el-sub-menu v-if="can('fournisseurs.voir') || can('factures-fournisseurs.voir') || can('reglements-fournisseurs.voir')" index="fournisseurs">
           <template #title>
             <el-icon><Document /></el-icon>
             <span>Factures Fournisseurs</span>
           </template>
-          <el-menu-item index="/fournisseurs" @click="navigate('/fournisseurs')">
+          <el-menu-item v-if="can('fournisseurs.voir')" index="/fournisseurs" @click="navigate('/fournisseurs')">
             <el-icon><User /></el-icon>
             <template #title>Fournisseurs</template>
           </el-menu-item>
-          <el-menu-item index="/factures-fournisseurs" @click="navigate('/factures-fournisseurs')">
+          <el-menu-item v-if="can('factures-fournisseurs.voir')" index="/factures-fournisseurs" @click="navigate('/factures-fournisseurs')">
             <el-icon><Document /></el-icon>
             <template #title>Factures</template>
           </el-menu-item>
-          <el-menu-item index="/reglements-fournisseurs" @click="navigate('/reglements-fournisseurs')">
+          <el-menu-item v-if="can('reglements-fournisseurs.voir')" index="/reglements-fournisseurs" @click="navigate('/reglements-fournisseurs')">
             <el-icon><Money /></el-icon>
             <template #title>Règlements</template>
           </el-menu-item>
         </el-sub-menu>
 
         <!-- Factures Clients -->
-        <el-sub-menu index="clients">
+        <el-sub-menu v-if="can('clients.voir') || can('factures-clients.voir') || can('reglements-clients.voir')" index="clients">
           <template #title>
             <el-icon><Money /></el-icon>
             <span>Factures Clients</span>
           </template>
-          <el-menu-item index="/clients" @click="navigate('/clients')">
+          <el-menu-item v-if="can('clients.voir')" index="/clients" @click="navigate('/clients')">
             <el-icon><User /></el-icon>
             <template #title>Clients</template>
           </el-menu-item>
-          <el-menu-item index="/factures-clients" @click="navigate('/factures-clients')">
+          <el-menu-item v-if="can('factures-clients.voir')" index="/factures-clients" @click="navigate('/factures-clients')">
             <el-icon><Document /></el-icon>
             <template #title>Factures</template>
           </el-menu-item>
-          <el-menu-item index="/reglements-clients" @click="navigate('/reglements-clients')">
+          <el-menu-item v-if="can('reglements-clients.voir')" index="/reglements-clients" @click="navigate('/reglements-clients')">
             <el-icon><Money /></el-icon>
             <template #title>Règlements</template>
           </el-menu-item>
         </el-sub-menu>
 
         <!-- Plan Comptable -->
-        <el-menu-item index="/plan-comptable" @click="navigate('/plan-comptable')">
+        <el-menu-item v-if="can('plan-comptable.voir')" index="/plan-comptable" @click="navigate('/plan-comptable')">
           <el-icon><Notebook /></el-icon>
           <template #title>Plan Comptable</template>
         </el-menu-item>
 
         <!-- Banques -->
-        <el-menu-item index="/banques" @click="navigate('/banques')">
+        <el-menu-item v-if="can('banques.voir')" index="/banques" @click="navigate('/banques')">
           <el-icon><CreditCard /></el-icon>
           <template #title>Banques</template>
         </el-menu-item>
 
         <!-- Rapports -->
-        <el-sub-menu index="rapports">
+        <el-sub-menu v-if="can('rapports.voir')" index="rapports">
           <template #title>
             <el-icon><Printer /></el-icon>
             <span>Rapports</span>
@@ -87,13 +87,10 @@
           <el-menu-item index="/rapports/clients" @click="navigate('/rapports/clients')">
             Clients
           </el-menu-item>
-          <el-menu-item index="/rapports/comptables" @click="navigate('/rapports/comptables')">
-            Comptables
-          </el-menu-item>
         </el-sub-menu>
 
         <!-- Paramètres -->
-        <el-sub-menu index="parametres">
+        <el-sub-menu v-if="can('utilisateurs.voir') || can('roles.voir') || can('parametres.voir')" index="parametres">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>Paramètres</span>
@@ -106,15 +103,21 @@
             <el-icon><Key /></el-icon>
             <template #title>Rôles & Permissions</template>
           </el-menu-item>
-          <el-menu-item index="/taux-fiscaux" @click="navigate('/taux-fiscaux')">
+          <el-menu-item v-if="can('parametres.voir')" index="/taux-fiscaux" @click="navigate('/taux-fiscaux')">
             <el-icon><List /></el-icon>
             <template #title>Taux Fiscaux</template>
           </el-menu-item>
-          <el-menu-item index="/parametres/etablissement" @click="navigate('/parametres/etablissement')">
+          <el-menu-item v-if="can('parametres.voir')" index="/parametres/etablissement" @click="navigate('/parametres/etablissement')">
             <el-icon><OfficeBuilding /></el-icon>
             <template #title>Établissement</template>
           </el-menu-item>
         </el-sub-menu>
+
+        <!-- Journal d'Activité -->
+        <el-menu-item v-if="can('journal.voir')" index="/journal-activite" @click="navigate('/journal-activite')">
+          <el-icon><List /></el-icon>
+          <template #title>Journal d'Activité</template>
+        </el-menu-item>
       </el-menu>
 
       <!-- Toggle button -->
@@ -172,6 +175,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { usePermissions } from '@/Composables/usePermissions';
 import {
   OfficeBuilding,
   HomeFilled,
@@ -206,12 +210,9 @@ const props = defineProps({
 // Auth partagé via Inertia
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user || props.user);
-const userPermissions = computed(() => authUser.value?.permissions || []);
 
-const can = (permission) => {
-  if (!userPermissions.value.length) return true; // Si pas de permissions chargées, accès libre (fallback)
-  return userPermissions.value.includes(permission);
-};
+// Permissions
+const { can } = usePermissions();
 
 // State
 const isCollapse = ref(false);

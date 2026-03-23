@@ -19,10 +19,12 @@ class FactureClient extends Model
         'montant',
         'ristourne',
         'client_id',
+        'client_nom',
         'montant_paye',
         'reste_a_payer',
         'statut',
         'created_by',
+        'created_by_name',
     ];
 
     protected $casts = [
@@ -158,11 +160,11 @@ class FactureClient extends Model
             'ristourne' => $ristourne,
             'net_a_payer' => $montant - $ristourne,
             'client_id' => $this->client_id,
-            'client' => $this->client ? [
-                'id' => $this->client->id,
-                'nom' => $this->client->nom,
-                'telephone' => $this->client->telephone,
-            ] : null,
+            'client' => [
+                'id' => $this->client_id,
+                'nom' => $this->client_nom ?: $this->client?->nom,
+                'telephone' => $this->client?->telephone,
+            ],
             'montant_paye' => (float) $this->montant_paye,
             'reste_a_payer' => (float) $this->reste_a_payer,
             'statut' => $this->statut,
