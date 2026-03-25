@@ -1365,7 +1365,7 @@ class RapportFournisseurController extends Controller
                 default => $reglement->mode_paiement,
             };
 
-            // Use snapshot data for nom/directeur, live data for adresse/telephone
+            // Snapshot nom/directeur, live pour le reste
             $etabForMandat = array_merge($etablissement, [
                 'nom' => $reglement->etablissement_nom ?: $etablissement['nom'],
                 'directeur' => $reglement->etablissement_directeur ?: $etablissement['directeur'],

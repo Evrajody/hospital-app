@@ -413,7 +413,7 @@
           <strong>Fournisseur :</strong> [{{ etatReglementData.fournisseur.code }}] {{ etatReglementData.fournisseur.nom }}
         </div>
 
-        <div class="etat-reglement-info">
+        <div class="etat-reglement-info etat-reglement-info-framed">
           <span><strong>N° PC :</strong> {{ etatReglementData.facture.numero_piece }}</span>
           <span><strong>Date PC :</strong> {{ etatReglementData.facture.date }}</span>
           <span><strong>Réf facture :</strong> {{ etatReglementData.facture.reference_facture }}</span>
@@ -424,14 +424,13 @@
         </div>
 
         <div class="etat-reglement-montants">
-          <span><strong>Mt facture :</strong> {{ etatReglementData.facture.montant_facture }}</span>
-          <span><strong>Mt M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
-        </div>
-        <div class="etat-reglement-montants" v-if="etatReglementData.facture.assujetti_tva && etatReglementData.facture.taux_tva > 0">
-          <span><strong>TVA ({{ etatReglementData.facture.taux_tva }}%) :</strong> {{ etatReglementData.facture.montant_tva }}</span>
-          <span><strong>Montant TTC :</strong> {{ etatReglementData.facture.montant_ttc }}</span>
+          <span><strong>Mt HT :</strong> {{ etatReglementData.facture.montant_facture }}</span>
+          <span><strong>TVA{{ etatReglementData.facture.assujetti_tva && etatReglementData.facture.taux_tva > 0 ? ` (${etatReglementData.facture.taux_tva}%)` : '' }} :</strong> {{ etatReglementData.facture.montant_tva || '0' }}</span>
+          <span><strong>TTC :</strong> {{ etatReglementData.facture.montant_ttc }}</span>
         </div>
         <div class="etat-reglement-montants">
+          <span><strong>Mt M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
+          <span><strong>AIB :</strong> {{ etatReglementData.facture.montant_aib || '0' }}</span>
           <span><strong>Avoir :</strong> {{ etatReglementData.facture.avoir }}</span>
         </div>
 
@@ -465,7 +464,7 @@
             <span class="etat-reglement-total-value">{{ etatReglementData.total_reglements }}</span>
           </div>
           <div class="etat-reglement-total-row">
-            <span class="etat-reglement-total-label">Montant dû :</span>
+            <span class="etat-reglement-total-label">Montant Dû (Net à payer) :</span>
             <span class="etat-reglement-total-value">{{ etatReglementData.montant_du }}</span>
           </div>
           <div class="etat-reglement-total-row">
@@ -622,6 +621,7 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -814,13 +814,8 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
         }
       ).then(async () => {
         try {
-          const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}/solder`, {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            }
+          const response = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}/solder`, {
+            method: 'POST'
           });
 
           const result = await response.json();
@@ -873,14 +868,9 @@ const handleFactureSuccess = async (factureData) => {
   const url = `/api/factures-fournisseurs/${props.facture.id}`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify(factureData)
+      body: factureData
     });
 
     const result = await response.json();
@@ -905,9 +895,7 @@ const openMandatDrawer = async (reglementId) => {
   showMandatDrawer.value = true;
 
   try {
-    const response = await fetch(`/api/reglements-fournisseurs/${reglementId}/mandat-data`, {
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await fetchApi(`/api/reglements-fournisseurs/${reglementId}/mandat-data`);
     const result = await response.json();
     if (result.success) {
       mandatData.value = result;
@@ -933,9 +921,7 @@ const openImputationDrawer = async () => {
   showImputationDrawer.value = true;
 
   try {
-    const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}/imputation-data`, {
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}/imputation-data`);
     const result = await response.json();
     if (result.success) {
       imputationData.value = result;
@@ -959,9 +945,7 @@ const openEtatReglementDrawer = async () => {
   showEtatReglementDrawer.value = true;
 
   try {
-    const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}/etat-reglement-data`, {
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}/etat-reglement-data`);
     const result = await response.json();
     if (result.success) {
       etatReglementData.value = result;
@@ -1233,6 +1217,7 @@ const downloadEtatReglementPdf = () => {
 .etat-reglement-header { margin-bottom: 15px; text-align: center; }
 .etat-reglement-fournisseur { margin: 10px 0; font-size: 13px; }
 .etat-reglement-info { display: flex; gap: 25px; margin: 8px 0; font-size: 13px; }
+.etat-reglement-info-framed { border: 1px solid #000; padding: 8px; }
 .etat-reglement-objet { margin: 10px 0; font-size: 13px; }
 .etat-reglement-montants { display: flex; gap: 40px; margin: 3px 0; font-size: 13px; }
 .etat-reglement-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }

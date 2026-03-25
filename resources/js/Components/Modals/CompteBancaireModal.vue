@@ -92,6 +92,7 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Check } from '@element-plus/icons-vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -178,14 +179,9 @@ const handleSubmit = async () => {
 
     // Si c'est une nouvelle banque, la créer d'abord
     if (newBanqueName.value) {
-      const banqueResponse = await fetch('/api/banques', {
+      const banqueResponse = await fetchApi('/api/banques', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-        },
-        body: JSON.stringify({ nom: newBanqueName.value })
+        body: { nom: newBanqueName.value }
       });
 
       const banqueResult = await banqueResponse.json();
@@ -197,19 +193,14 @@ const handleSubmit = async () => {
     }
 
     // Créer le compte bancaire
-    const response = await fetch('/api/comptes-bancaires', {
+    const response = await fetchApi('/api/comptes-bancaires', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify({
+      body: {
         banque_id: banqueId,
         numero_compte: form.numero_compte,
         compte_ohada_id: form.compte_ohada_id,
         observations: form.observations || null
-      })
+      }
     });
 
     const result = await response.json();

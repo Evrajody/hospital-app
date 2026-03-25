@@ -117,7 +117,7 @@ class ClientController extends Controller
             'compte_comptable_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'create_compte' => ['nullable', 'boolean'],
             'compte_parent_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
-            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(41|4111|424100)[\d.]+$/'],
+            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(41|4111|424100)[a-zA-Z0-9.]+$/'],
             'nouveau_compte_libelle' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -198,7 +198,7 @@ class ClientController extends Controller
             'compte_comptable_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'create_compte' => ['nullable', 'boolean'],
             'compte_parent_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
-            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(41|4111|424100)[\d.]+$/'],
+            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(41|4111|424100)[a-zA-Z0-9.]+$/'],
             'nouveau_compte_libelle' => ['nullable', 'string', 'max:255'],
         ]);
 

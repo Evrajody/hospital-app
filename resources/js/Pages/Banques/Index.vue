@@ -291,6 +291,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import ApprovisionnementBanqueModal from '@/Components/Modals/ApprovisionnementBanqueModal.vue';
 import CompteBancaireModal from '@/Components/Modals/CompteBancaireModal.vue';
 import BanqueModal from '@/Components/Modals/BanqueModal.vue';
+import { fetchApi } from '@/Composables/useFetch';
 import {
   Plus,
   Money,
@@ -455,14 +456,9 @@ const submitEditCompte = async () => {
   if (!editingCompte.value) return;
   editLoading.value = true;
   try {
-    const response = await fetch(`/api/comptes-bancaires/${editingCompte.value.id}`, {
+    const response = await fetchApi(`/api/comptes-bancaires/${editingCompte.value.id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify(editForm)
+      body: editForm,
     });
     const result = await response.json();
     if (result.success) {
@@ -498,12 +494,8 @@ const handleBanqueAction = async (command, banque) => {
         }
       ).then(async () => {
         try {
-          const response = await fetch(`/api/banques/${banque.id}`, {
+          const response = await fetchApi(`/api/banques/${banque.id}`, {
             method: 'DELETE',
-            headers: {
-              'Accept': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-            }
           });
           const result = await response.json();
           if (result.success) {

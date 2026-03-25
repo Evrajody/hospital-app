@@ -41,32 +41,6 @@
             </div>
           </el-card>
         </el-col> -->
-        <el-col :xs="24" :sm="6">
-          <el-card shadow="hover">
-            <div class="stat-card">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
-                <el-icon :size="24"><Document /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ stats.factures_en_cours || 0 }}</div>
-                <div class="stat-label">Factures en cours</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :xs="24" :sm="6">
-          <el-card shadow="hover">
-            <div class="stat-card">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)">
-                <el-icon :size="24"><Wallet /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ formatMontant(stats.dettes_total || 0) }}</div>
-                <div class="stat-label">Dettes totales</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
       </el-row>
 
       <!-- Filters Card -->
@@ -136,10 +110,11 @@
           v-loading="loading"
           :data="fournisseurs"
           stripe
+          border
           style="width: 100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column label="Actions" width="100" fixed="left" align="center">
+          <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
             <template #default="{ row }">
               <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, row)">
                 <el-button size="small" type="primary">
@@ -162,9 +137,9 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="nom" label="Raison Sociale" min-width="200" sortable="custom" show-overflow-tooltip />
+          <el-table-column prop="nom" label="Raison Sociale" min-width="200" sortable="custom" show-overflow-tooltip resizable />
 
-          <el-table-column prop="type_fournisseur" label="Type" min-width="140" sortable="custom">
+          <el-table-column prop="type_fournisseur" label="Type" min-width="140" sortable="custom" resizable>
             <template #default="{ row }">
               <el-tag v-if="row.type_fournisseur" size="small" type="info">
                 {{ getTypeFournisseurLabel(row.type_fournisseur) }}
@@ -173,7 +148,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="compte_comptable" label="Compte Comptable" min-width="200" show-overflow-tooltip sortable="custom">
+          <el-table-column prop="compte_comptable" label="Compte Comptable" min-width="200" show-overflow-tooltip sortable="custom" resizable>
             <template #default="{ row }">
               <div v-if="row.compte_comptable" class="compte-cell">
                 <el-tag size="small">{{ row.compte_comptable.numero }}</el-tag>
@@ -183,9 +158,9 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="contact" label="Contact" min-width="140" show-overflow-tooltip sortable="custom" />
+          <el-table-column prop="contact" label="Contact" min-width="140" show-overflow-tooltip sortable="custom" resizable />
 
-          <el-table-column prop="telephone" label="Téléphone" min-width="130" sortable="custom">
+          <el-table-column prop="telephone" label="Téléphone" min-width="130" sortable="custom" resizable>
             <template #default="{ row }">
               <el-link v-if="row.telephone" :href="`tel:${row.telephone}`" :icon="Phone">
                 {{ row.telephone }}
@@ -194,7 +169,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="email" label="Email" min-width="180" show-overflow-tooltip sortable="custom">
+          <el-table-column prop="email" label="Email" min-width="180" show-overflow-tooltip sortable="custom" resizable>
             <template #default="{ row }">
               <el-link v-if="row.email" :href="`mailto:${row.email}`" :icon="Message">
                 {{ row.email }}
@@ -249,13 +224,12 @@ import {
   Phone,
   Message,
   User,
-  Document,
-  Wallet,
   CircleCheck,
   ArrowDown
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Simple debounce function
 const debounce = (fn, delay) => {
@@ -301,9 +275,7 @@ const props = defineProps({
     default: () => ({
       total: 0,
       actifs: 0,
-      inactifs: 0,
-      factures_en_cours: 0,
-      dettes_total: 0
+      inactifs: 0
     })
   }
 });
@@ -467,14 +439,9 @@ const handleFournisseurSuccess = async (fournisseurData) => {
     : '/api/fournisseurs';
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: isEdit ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify(fournisseurData)
+      body: fournisseurData
     });
 
     const result = await response.json();
@@ -514,12 +481,8 @@ const handleDelete = async (id) => {
   loading.value = true;
 
   try {
-    const response = await fetch(`/api/fournisseurs/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      }
+    const response = await fetchApi(`/api/fournisseurs/${id}`, {
+      method: 'DELETE'
     });
 
     const result = await response.json();
@@ -542,13 +505,6 @@ const handleExport = () => {
   ElMessage.info('Export en cours de développement...');
 };
 
-const formatMontant = (montant) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    minimumFractionDigits: 0
-  }).format(montant || 0);
-};
 </script>
 
 <script>

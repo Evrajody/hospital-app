@@ -110,11 +110,12 @@
           v-loading="loading"
           :data="factures"
           stripe
+          border
           style="width: 100%"
           @sort-change="handleSortChange"
           class="factures-table"
         >
-          <el-table-column label="Actions" width="200" fixed="left" align="center">
+          <el-table-column label="Actions" width="200" fixed="left" align="center" resizable>
             <template #default="{ row }">
               <el-button-group>
                 <el-button :icon="View" size="small" type="primary" @click="handleView(row)">
@@ -140,46 +141,50 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference" label="R&eacute;f&eacute;rence" width="160" sortable>
+          <el-table-column prop="reference" label="R&eacute;f&eacute;rence" width="160" sortable resizable>
             <template #default="{ row }">
-              <a class="ref-link" @click="handleView(row)">{{ row.reference }}</a>
+              <span class="nowrap-cell"><a class="ref-link" @click="handleView(row)">{{ row.reference }}</a></span>
             </template>
           </el-table-column>
-          <el-table-column prop="date_facture" label="Date" width="120" sortable>
+          <el-table-column prop="date_facture" label="Date" width="120" sortable resizable>
             <template #default="{ row }">
               {{ formatDate(row.date_facture) }}
             </template>
           </el-table-column>
-          <el-table-column prop="client.nom" label="Client" sortable>
+          <el-table-column prop="client.nom" label="Client" sortable resizable>
             <template #default="{ row }">
               <strong>{{ row.client?.nom || '-' }}</strong>
             </template>
           </el-table-column>
-          <el-table-column label="Montant" width="160" align="right" sortable sort-by="montant">
+          <el-table-column label="Montant" width="160" align="right" sortable sort-by="montant" resizable>
             <template #default="{ row }">
-              <div>{{ formatMontant(row.montant) }}</div>
-              <div v-if="row.ristourne > 0" style="font-size: 11px; color: #e6a23c;">
-                Rist. -{{ formatMontant(row.ristourne) }}
-              </div>
+              <span class="nowrap-cell">
+                <div>{{ formatMontant(row.montant) }}</div>
+                <div v-if="row.ristourne > 0" style="font-size: 11px; color: #e6a23c;">
+                  Rist. -{{ formatMontant(row.ristourne) }}
+                </div>
+              </span>
             </template>
           </el-table-column>
-          <el-table-column label="Pay&eacute;" width="160" align="right" sortable sort-by="montant_paye">
+          <el-table-column label="Pay&eacute;" width="160" align="right" sortable sort-by="montant_paye" resizable>
             <template #default="{ row }">
-              <span class="montant-paye">{{ formatMontant(row.montant_paye) }}</span>
+              <span class="nowrap-cell montant-paye">{{ formatMontant(row.montant_paye) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Reste" width="160" align="right" sortable sort-by="reste_a_payer">
+          <el-table-column label="Reste" width="160" align="right" sortable sort-by="reste_a_payer" resizable>
             <template #default="{ row }">
-              <span :class="['montant-reste', row.reste_a_payer > 0 ? 'has-reste' : '']">
+              <span :class="['nowrap-cell', 'montant-reste', row.reste_a_payer > 0 ? 'has-reste' : '']">
                 {{ formatMontant(row.reste_a_payer) }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="statut" label="Statut" width="160" align="center" sortable>
+          <el-table-column prop="statut" label="Statut" width="160" align="center" sortable resizable>
             <template #default="{ row }">
-              <el-tag :type="getStatutType(row.statut)" size="small">
-                {{ getStatutLabel(row.statut) }}
-              </el-tag>
+              <span class="nowrap-cell">
+                <el-tag :type="getStatutType(row.statut)" size="small">
+                  {{ getStatutLabel(row.statut) }}
+                </el-tag>
+              </span>
             </template>
           </el-table-column>
         </el-table>
@@ -222,6 +227,7 @@ import {
   Plus, Search, Edit, Delete, View, More,
   Document, Money, SuccessFilled, Warning
 } from '@element-plus/icons-vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Simple debounce function
 const debounce = (fn, delay) => {
@@ -373,12 +379,8 @@ const handleAction = (command, facture) => {
 
 const handleDelete = async (facture) => {
   try {
-    const response = await fetch(`/api/factures-clients/${facture.id}`, {
+    const response = await fetchApi(`/api/factures-clients/${facture.id}`, {
       method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      }
     });
     const result = await response.json();
     if (result.success) {
@@ -399,14 +401,9 @@ const handleFactureSuccess = async (data) => {
   const url = isEdit ? `/api/factures-clients/${selectedFacture.value.id}` : '/api/factures-clients';
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: isEdit ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      },
-      body: JSON.stringify(data)
+      body: data,
     });
 
     const result = await response.json();
@@ -467,4 +464,5 @@ const formatDate = (date) => {
 .card-title { font-size: 16px; font-weight: 600; color: #374151; }
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
 .pagination-container { margin-top: 16px; padding: 0 20px 16px; display: flex; justify-content: flex-end; }
+.nowrap-cell { white-space: nowrap; }
 </style>

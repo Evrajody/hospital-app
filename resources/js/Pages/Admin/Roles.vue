@@ -123,6 +123,7 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Edit, Delete, Check, Close } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   roles: { type: Array, default: () => [] },
@@ -154,8 +155,6 @@ const roleForm = reactive({ name: '', permissions: [] });
 const roleRules = {
   name: [{ required: true, message: 'Le nom est requis', trigger: 'blur' }],
 };
-
-const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
 
 const selectRole = (role) => {
   selectedRole.value = selectedRole.value?.id === role.id ? null : role;
@@ -211,10 +210,9 @@ const handleSubmitRole = async () => {
     const method = editingRole.value ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchApi(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-        body: JSON.stringify(roleForm),
+        body: { ...roleForm },
       });
       const result = await response.json();
       if (result.success) {
@@ -241,9 +239,8 @@ const handleDeleteRole = (role) => {
     confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', type: 'warning',
   }).then(async () => {
     try {
-      const response = await fetch(`/api/roles/${role.id}`, {
+      const response = await fetchApi(`/api/roles/${role.id}`, {
         method: 'DELETE',
-        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
       });
       const result = await response.json();
       if (result.success) {

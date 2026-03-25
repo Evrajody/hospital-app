@@ -139,10 +139,14 @@
         }
 
         .footer {
-            margin-top: 40px;
+            position: fixed;
+            bottom: 10mm;
+            left: 0;
+            right: 0;
             font-size: 10px;
             color: #666;
             font-style: italic;
+            padding: 0 10mm;
         }
     </style>
 </head>
@@ -166,11 +170,11 @@
         <strong>Fournisseur :</strong> [{{ $fournisseur?->compteComptable?->numero_compte }}] {{ $fournisseurNom ?? $fournisseur?->nom }}
     </div>
 
-    <table class="info-table">
+    <table class="info-table" style="border: 1px solid #000; padding: 8px;">
         <tr>
             <td><strong>N° PC :</strong> {{ $facture->numero_piece }}</td>
             <td><strong>Date PC :</strong> {{ $facture->date?->format('d/m/Y') }}</td>
-            <td><strong>Réf facture :</strong> {{ $facture->reference_facture }}</td>
+            <td><strong>Réf. Facture :</strong> {{ $facture->reference_facture }}</td>
         </tr>
     </table>
 
@@ -180,18 +184,14 @@
 
     <table class="info-table">
         <tr>
-            <td style="width: 50%;"><strong>Mt facture :</strong> {{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
-            <td><strong>Mt M.O. :</strong> {{ number_format((float) $facture->montant_mo, 0, ',', ' ') }}</td>
-        </tr>
-        @if($facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0)
-        <tr>
-            <td><strong>TVA ({{ $facture->taux_tva }}%) :</strong> {{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
+            <td><strong>Montant HT :</strong> {{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
+            <td><strong>TVA{{ $facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0 ? ' (' . $facture->taux_tva . '%)' : '' }} :</strong> {{ number_format((float) ($facture->montant_tva ?? 0), 0, ',', ' ') }}</td>
             <td><strong>Montant TTC :</strong> {{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }}</td>
         </tr>
-        @endif
         <tr>
+            <td><strong>Montant M.O. :</strong> {{ number_format((float) $facture->montant_mo, 0, ',', ' ') }}</td>
+            <td><strong>AIB{{ $facture->taux && (float) $facture->taux > 0 ? ' (' . $facture->taux . '%)' : '' }} :</strong> {{ number_format((float) ($facture->montant_aib ?? 0), 0, ',', ' ') }}</td>
             <td><strong>Avoir :</strong> {{ number_format((float) $facture->avoir, 0, ',', ' ') }}</td>
-            <td></td>
         </tr>
     </table>
 
@@ -208,7 +208,7 @@
         <tbody>
             @forelse($reglements as $index => $reglement)
             <tr>
-                <td>{{ $reglement->created_at?->format('dmY-Hi') }}</td>
+                <td>{{ $reglement->date_reglement?->format('dmY') }}-{{ $reglement->created_at?->format('Hi') }}</td>
                 <td>{{ $reglement->date_reglement?->format('d/m/Y') }}</td>
                 <td>
                     @php
@@ -238,7 +238,7 @@
             <td class="totaux-value">{{ number_format((float) $totalReglements, 0, ',', ' ') }}</td>
         </tr>
         <tr>
-            <td class="totaux-label">Montant dû :</td>
+            <td class="totaux-label">Montant Dû (Net à payer) :</td>
             <td class="totaux-value">{{ number_format($montantDu, 0, ',', ' ') }}</td>
         </tr>
         <tr>

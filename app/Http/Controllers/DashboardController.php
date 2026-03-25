@@ -37,10 +37,18 @@ class DashboardController extends Controller
             : null;
 
         // Factures fournisseurs en attente de règlement
-        $facturesEnAttente = FactureFournisseur::whereIn('statut', [
+        $facturesFournisseursEnAttente = FactureFournisseur::whereIn('statut', [
             FactureFournisseur::STATUT_VALIDEE,
             FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE,
         ])->count();
+
+        // Factures clients en attente de règlement
+        $facturesClientsEnAttente = FactureClient::whereIn('statut', [
+            FactureClient::STATUT_NON_PAYEE,
+            FactureClient::STATUT_PARTIELLEMENT_PAYEE,
+        ])->count();
+
+        $facturesEnAttente = $facturesFournisseursEnAttente + $facturesClientsEnAttente;
 
         // Dettes fournisseurs (reste à payer sur factures non soldées)
         $dettesFournisseurs = FactureFournisseur::whereIn('statut', [
@@ -165,6 +173,8 @@ class DashboardController extends Controller
                 'chiffre_affaires' => (float) $chiffreAffaires,
                 'trend_ca' => $trendCA,
                 'factures_en_attente' => $facturesEnAttente,
+                'factures_clients_en_attente' => $facturesClientsEnAttente,
+                'factures_fournisseurs_en_attente' => $facturesFournisseursEnAttente,
                 'dettes_fournisseurs' => (float) $dettesFournisseurs,
                 'trend_dettes' => $trendDettes,
                 'creances_clients' => (float) $creancesClients,

@@ -157,10 +157,11 @@
           v-loading="loading"
           :data="factures"
           stripe
+          border
           style="width: 100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column label="Actions" width="100" fixed="left" align="center">
+          <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
             <template #default="{ row }">
               <el-dropdown trigger="click" @command="(cmd) => handleMoreActions(cmd, row)">
                 <el-button size="small" type="primary">
@@ -200,21 +201,23 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="numero" label="N° Pièce" width="140" sortable="custom" fixed="left">
+          <el-table-column prop="numero" label="N° Pièce" width="140" sortable="custom" fixed="left" resizable>
             <template #default="{ row }">
-              <el-link type="primary" @click="handleView(row)">
-                <strong>{{ row.numero }}</strong>
-              </el-link>
+              <span class="nowrap-cell">
+                <el-link type="primary" @click="handleView(row)">
+                  <strong>{{ row.numero }}</strong>
+                </el-link>
+              </span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_facture" label="Date" width="110" sortable="custom" fixed="left">
+          <el-table-column prop="date_facture" label="Date" width="110" sortable="custom" fixed="left" resizable>
             <template #default="{ row }">
               {{ formatDate(row.date_facture) }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" fixed="left" sortable="custom">
+          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" fixed="left" sortable="custom" resizable>
             <template #default="{ row }">
               <div class="fournisseur-cell">
                 <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
@@ -222,45 +225,49 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120" sortable="custom">
+          <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120" sortable="custom" resizable>
             <template #default="{ row }">
               {{ row.date_facture_bc ? formatDate(row.date_facture_bc) : '-' }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference" label="Réf. Fact/B.C." width="140" sortable="custom" />
+          <el-table-column prop="reference" label="Réf. Fact/B.C." width="140" sortable="custom" resizable />
 
-          <el-table-column prop="libelle" label="Libellé" min-width="180" sortable="custom">
+          <el-table-column prop="libelle" label="Libellé" min-width="180" sortable="custom" resizable>
             <template #default="{ row }">
               {{ row.libelle || '-' }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant_ttc" label="Montant TTC" width="140" align="right" sortable="custom">
+          <el-table-column prop="montant_ttc" label="Montant TTC" width="140" align="right" sortable="custom" resizable>
             <template #default="{ row }">
-              <strong class="montant-ttc">{{ formatMontant(row.montant_ttc) }}</strong>
+              <span class="nowrap-cell"><strong class="montant-ttc">{{ formatMontant(row.montant_ttc) }}</strong></span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant_net" label="Net à payer" width="140" align="right" sortable="custom">
+          <el-table-column prop="montant_net" label="Net à payer" width="140" align="right" sortable="custom" resizable>
             <template #default="{ row }">
-              <strong>{{ formatMontant(row.montant_net) }}</strong>
+              <span class="nowrap-cell"><strong>{{ formatMontant(row.montant_net) }}</strong></span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant_paye" label="Payé" width="130" align="right" sortable="custom">
+          <el-table-column prop="montant_paye" label="Payé" width="130" align="right" sortable="custom" resizable>
             <template #default="{ row }">
-              <el-tag :type="getPaymentTagType(row)" size="small">
-                {{ formatMontant(row.montant_paye) }}
-              </el-tag>
+              <span class="nowrap-cell">
+                <el-tag :type="getPaymentTagType(row)" size="small">
+                  {{ formatMontant(row.montant_paye) }}
+                </el-tag>
+              </span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="statut_paiement" label="Statut" width="130" align="center" sortable="custom">
+          <el-table-column prop="statut_paiement" label="Statut" width="130" align="center" sortable="custom" resizable>
             <template #default="{ row }">
-              <el-tag :type="getStatutType(row.statut_paiement)" size="small">
-                {{ getStatutLabel(row.statut_paiement) }}
-              </el-tag>
+              <span class="nowrap-cell">
+                <el-tag :type="getStatutType(row.statut_paiement)" size="small">
+                  {{ getStatutLabel(row.statut_paiement) }}
+                </el-tag>
+              </span>
             </template>
           </el-table-column>
 
@@ -387,10 +394,10 @@
           <strong>Fournisseur :</strong> [{{ etatReglementData.fournisseur.code }}] {{ etatReglementData.fournisseur.nom }}
         </div>
 
-        <div class="etat-reglement-info">
+        <div class="etat-reglement-info etat-reglement-info-framed">
           <span><strong>N° PC :</strong> {{ etatReglementData.facture.numero_piece }}</span>
           <span><strong>Date PC :</strong> {{ etatReglementData.facture.date }}</span>
-          <span><strong>Réf facture :</strong> {{ etatReglementData.facture.reference_facture }}</span>
+          <span><strong>Réf. Facture :</strong> {{ etatReglementData.facture.reference_facture }}</span>
         </div>
 
         <div class="etat-reglement-objet">
@@ -398,14 +405,13 @@
         </div>
 
         <div class="etat-reglement-montants">
-          <span><strong>Mt facture :</strong> {{ etatReglementData.facture.montant_facture }}</span>
-          <span><strong>Mt M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
-        </div>
-        <div class="etat-reglement-montants" v-if="etatReglementData.facture.assujetti_tva && etatReglementData.facture.taux_tva > 0">
-          <span><strong>TVA ({{ etatReglementData.facture.taux_tva }}%) :</strong> {{ etatReglementData.facture.montant_tva }}</span>
+          <span><strong>Montant HT :</strong> {{ etatReglementData.facture.montant_facture }}</span>
+          <span><strong>TVA{{ etatReglementData.facture.assujetti_tva && etatReglementData.facture.taux_tva > 0 ? ` (${etatReglementData.facture.taux_tva}%)` : '' }} :</strong> {{ etatReglementData.facture.montant_tva || '0' }}</span>
           <span><strong>Montant TTC :</strong> {{ etatReglementData.facture.montant_ttc }}</span>
         </div>
         <div class="etat-reglement-montants">
+          <span><strong>Montant M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
+          <span><strong>AIB :</strong> {{ etatReglementData.facture.montant_aib || '0' }}</span>
           <span><strong>Avoir :</strong> {{ etatReglementData.facture.avoir }}</span>
         </div>
 
@@ -439,7 +445,7 @@
             <span class="etat-reglement-total-value">{{ etatReglementData.total_reglements }}</span>
           </div>
           <div class="etat-reglement-total-row">
-            <span class="etat-reglement-total-label">Montant dû :</span>
+            <span class="etat-reglement-total-label">Montant Dû (Net à payer) :</span>
             <span class="etat-reglement-total-value">{{ etatReglementData.montant_du }}</span>
           </div>
           <div class="etat-reglement-total-row">
@@ -481,6 +487,7 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -715,14 +722,9 @@ const handleFactureSuccess = async (factureData) => {
     : '/api/factures-fournisseurs';
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: isEdit ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify(factureData)
+      body: factureData
     });
 
     const result = await response.json();
@@ -749,13 +751,8 @@ const handleFactureSuccess = async (factureData) => {
           );
           // L'utilisateur a confirmé
           try {
-            const impResponse = await fetch(`/api/factures-fournisseurs/${factureId}/imputation`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-              }
+            const impResponse = await fetchApi(`/api/factures-fournisseurs/${factureId}/imputation`, {
+              method: 'POST'
             });
             const impResult = await impResponse.json();
             if (impResult.success) {
@@ -815,12 +812,8 @@ const handleMoreActions = async (command, facture) => {
         }
       ).then(async () => {
         try {
-          const response = await fetch(`/api/factures-fournisseurs/${facture.id}`, {
-            method: 'DELETE',
-            headers: {
-              'Accept': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-            }
+          const response = await fetchApi(`/api/factures-fournisseurs/${facture.id}`, {
+            method: 'DELETE'
           });
           const result = await response.json();
           if (result.success) {
@@ -849,9 +842,7 @@ const openImputationDrawer = async (factureId) => {
   showImputationDrawer.value = true;
 
   try {
-    const response = await fetch(`/api/factures-fournisseurs/${factureId}/imputation-data`, {
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await fetchApi(`/api/factures-fournisseurs/${factureId}/imputation-data`);
     const result = await response.json();
     if (result.success) {
       imputationData.value = result;
@@ -878,9 +869,7 @@ const openEtatReglementDrawer = async (factureId) => {
   showEtatReglementDrawer.value = true;
 
   try {
-    const response = await fetch(`/api/factures-fournisseurs/${factureId}/etat-reglement-data`, {
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await fetchApi(`/api/factures-fournisseurs/${factureId}/etat-reglement-data`);
     const result = await response.json();
     if (result.success) {
       etatReglementData.value = result;
@@ -1167,6 +1156,7 @@ export default {
 .etat-reglement-header { margin-bottom: 15px; text-align: center; }
 .etat-reglement-fournisseur { margin: 10px 0; font-size: 13px; }
 .etat-reglement-info { display: flex; gap: 25px; margin: 8px 0; font-size: 13px; }
+.etat-reglement-info-framed { border: 1px solid #000; padding: 8px; }
 .etat-reglement-objet { margin: 10px 0; font-size: 13px; }
 .etat-reglement-montants { display: flex; gap: 40px; margin: 3px 0; font-size: 13px; }
 .etat-reglement-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
@@ -1176,4 +1166,6 @@ export default {
 .etat-reglement-total-row { display: flex; gap: 15px; padding: 3px 0; font-size: 13px; }
 .etat-reglement-total-label { font-weight: bold; min-width: 140px; text-align: right; }
 .etat-reglement-total-value { min-width: 100px; text-align: right; }
+
+.nowrap-cell { white-space: nowrap; }
 </style>

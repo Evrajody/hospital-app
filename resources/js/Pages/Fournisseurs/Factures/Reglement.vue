@@ -457,6 +457,7 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -673,14 +674,9 @@ const submitPayment = async (forceInsufficient = false) => {
   submitting.value = true;
 
   try {
-    const response = await fetch('/api/reglements-fournisseurs', {
+    const response = await fetchApi('/api/reglements-fournisseurs', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      },
-      body: JSON.stringify(buildPayload(forceInsufficient))
+      body: buildPayload(forceInsufficient)
     });
 
     const data = await response.json();
@@ -691,7 +687,7 @@ const submitPayment = async (forceInsufficient = false) => {
       // Proposer l'imputation comptable
       try {
         await ElMessageBox.confirm(
-          'Voulez-vous voir l\'imputation comptable de cette facture ?',
+          "Autorisez-vous une imputation comptable à l'enregistrement de cette pièce comptable ?",
           'Imputation Comptable',
           {
             confirmButtonText: 'Oui, voir',

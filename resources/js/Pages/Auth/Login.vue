@@ -18,6 +18,7 @@
           label-position="top"
           size="large"
           class="login-form"
+          @submit.prevent="handleLogin"
         >
           <el-form-item label="Email" prop="email">
             <el-input
@@ -69,10 +70,10 @@
     <div class="login-image-section">
       <div class="image-overlay">
         <div class="overlay-content">
-          <h2>Système de Gestion Administrative</h2>
+          <h2>Système de Gestion Financière</h2>
           <p>
             Une plateforme complète pour gérer efficacement les opérations
-            financières et administratives de votre établissement
+            financières de votre établissement
           </p>
           <div class="features-list">
             <div class="feature-item">
@@ -89,7 +90,7 @@
             </div>
             <div class="feature-item">
               <el-icon :size="20" color="#fff"><Check /></el-icon>
-              <span>Gestion bancaire en temps réel</span>
+              <span>Suivi des comptes bancaires en temps réel </span>
             </div>
           </div>
         </div>
@@ -102,7 +103,7 @@
 import { ref, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
-import { User, Lock, OfficeBuilding, Check } from '@element-plus/icons-vue';
+import { User, Lock, OfficeBuilding } from '@element-plus/icons-vue';
 
 // Form reference
 const loginFormRef = ref(null);
@@ -223,7 +224,7 @@ const handleLogin = async () => {
 /* Right Side - Image */
 .login-image-section {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #001529 0%, #003a5c 100%);
   position: relative;
   overflow: hidden;
 }

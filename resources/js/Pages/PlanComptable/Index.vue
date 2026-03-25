@@ -135,22 +135,6 @@
             />
           </el-form-item>
 
-          <el-form-item label="Type de compte">
-            <el-select
-              v-model="filters.type"
-              placeholder="Tous"
-              clearable
-              style="width: 160px"
-              @change="handleSearch"
-            >
-              <el-option label="Actif" value="actif" />
-              <el-option label="Passif" value="passif" />
-              <el-option label="Charge" value="charge" />
-              <el-option label="Produit" value="produit" />
-              <el-option label="Spécial" value="special" />
-            </el-select>
-          </el-form-item>
-
           <el-form-item label="Classe">
             <el-select
               v-model="filters.classe"
@@ -215,16 +199,17 @@
           v-loading="loading"
           :data="comptes"
           stripe
+          border
           style="width: 100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column prop="numero" label="N° Compte" width="140" sortable="custom">
+          <el-table-column prop="numero" label="N° Compte" width="140" sortable="custom" resizable>
             <template #default="{ row }">
               <span class="compte-numero">{{ row.numero }}</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="libelle" label="Libellé" min-width="300" sortable="custom">
+          <el-table-column prop="libelle" label="Libellé" min-width="300" sortable="custom" resizable>
             <template #default="{ row }">
               <div class="compte-libelle">
                 {{ row.libelle }}
@@ -235,29 +220,13 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="type" label="Type" width="180" sortable="custom">
-            <template #default="{ row }">
-              <el-tag :type="getTypeTagType(row.type)" size="small">
-                {{ getTypeLabel(row.type) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-
-
-          <el-table-column prop="classe" label="Classe" width="100" align="center" sortable="custom">
+          <el-table-column prop="classe" label="Classe" width="100" align="center" sortable="custom" resizable>
             <template #default="{ row }">
               <el-tag size="small" effect="plain">{{ row.classe }}</el-tag>
             </template>
           </el-table-column>
 
-          <el-table-column prop="utilisable" label="Utilisable" width="90" align="center" sortable="custom">
-            <template #default="{ row }">
-              <el-icon v-if="row.utilisable" color="#16a34a"><CircleCheck /></el-icon>
-              <el-icon v-else color="#d1d5db"><CircleClose /></el-icon>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="Actions" width="120" align="center">
+          <el-table-column label="Actions" width="120" align="center" resizable>
             <template #default="{ row }">
               <el-button
                 :icon="Edit"
@@ -268,7 +237,6 @@
                 @click="handleEdit(row)"
               />
               <el-button
-                v-if="row.is_custom"
                 type="danger"
                 :icon="Delete"
                 size="small"
@@ -326,11 +294,10 @@ import {
   Coin,
   Goods,
   TrendCharts,
-  CircleCheck,
-  CircleClose
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CompteComptableModal from '@/Components/Modals/CompteComptableModal.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -368,7 +335,6 @@ const props = defineProps({
     type: Object,
     default: () => ({
       search: '',
-      type: '',
       classe: '',
       source: ''
     })
@@ -385,7 +351,6 @@ const showCompteModal = ref(false);
 const selectedCompte = ref(null);
 const filters = reactive({
   search: props.filters.search || '',
-  type: props.filters.type || '',
   classe: props.filters.classe || '',
   source: props.filters.source || ''
 });
@@ -396,32 +361,9 @@ const breadcrumbs = [
 ];
 
 // Methods
-const getTypeTagType = (type) => {
-  const types = {
-    actif: 'success',
-    passif: 'primary',
-    charge: 'danger',
-    produit: 'warning',
-    special: 'info'
-  };
-  return types[type] || '';
-};
-
-const getTypeLabel = (type) => {
-  const labels = {
-    actif: 'Actif',
-    passif: 'Passif',
-    charge: 'Charge',
-    produit: 'Produit',
-    special: 'Spécial'
-  };
-  return labels[type] || type;
-};
-
 const handleSearch = () => {
   const params = new URLSearchParams();
   if (filters.search) params.append('search', filters.search);
-  if (filters.type) params.append('type', filters.type);
   if (filters.classe) params.append('classe', filters.classe);
   if (filters.source) params.append('source', filters.source);
 
@@ -433,7 +375,6 @@ const handleSearch = () => {
 
 const handleReset = () => {
   filters.search = '';
-  filters.type = '';
   filters.classe = '';
   filters.source = '';
   router.get('/plan-comptable', {}, {
@@ -510,12 +451,8 @@ const handleDelete = async (compte) => {
       }
     );
 
-    const response = await fetch(`/api/plan-comptable/${compte.id}`, {
+    const response = await fetchApi(`/api/plan-comptable/${compte.id}`, {
       method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      }
     });
 
     const result = await response.json();

@@ -104,9 +104,14 @@
 
         /* Pied de page */
         .footer-section {
-            margin-top: 30px;
+            position: fixed;
+            bottom: 10mm;
+            left: 0;
+            right: 0;
             font-size: 10px;
-            width: 100%;
+            padding: 0 10mm;
+            color: #666;
+            font-style: italic;
         }
         .footer-section td {
             border: none !important;

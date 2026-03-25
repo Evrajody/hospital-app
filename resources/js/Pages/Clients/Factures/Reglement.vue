@@ -444,6 +444,7 @@ import {
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
+import { fetchApi } from '@/Composables/useFetch';
 
 // OfficeBuilding might not exist in all versions, use a fallback
 const OfficeBuilding = DocumentCopy;
@@ -542,14 +543,9 @@ const handleSubmit = async () => {
     : form.value.date_reglement;
 
   try {
-    const response = await fetch('/api/reglements-clients', {
+    const response = await fetchApi('/api/reglements-clients', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      },
-      body: JSON.stringify({
+      body: {
         facture_id: props.facture.id,
         numero_ligne: form.value.numero_ligne,
         date_reglement: dateReglement,
@@ -559,7 +555,7 @@ const handleSubmit = async () => {
         banque_depot_id: form.value.banque_depot_id || null,
         compte_bancaire_id: form.value.compte_bancaire_id || null,
         observations: form.value.observations || null,
-      })
+      },
     });
 
     const result = await response.json();
@@ -595,14 +591,9 @@ const handleEditReglement = (reglement) => {
 const handleEditSubmit = async () => {
   editLoading.value = true;
   try {
-    const response = await fetch(`/api/reglements-clients/${editingReglementId.value}`, {
+    const response = await fetchApi(`/api/reglements-clients/${editingReglementId.value}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      },
-      body: JSON.stringify(editForm.value)
+      body: editForm.value,
     });
     const result = await response.json();
     if (result.success) {
@@ -629,12 +620,8 @@ const handleSolder = async () => {
   } catch { return; }
 
   try {
-    const response = await fetch(`/api/factures-clients/${props.facture.id}/solder`, {
+    const response = await fetchApi(`/api/factures-clients/${props.facture.id}/solder`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      }
     });
     const result = await response.json();
     if (result.success) {

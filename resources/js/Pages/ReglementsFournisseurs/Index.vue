@@ -161,10 +161,11 @@
           v-loading="loading"
           :data="reglements"
           stripe
+          border
           style="width: 100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column label="Actions" width="180" fixed="left" align="center">
+          <el-table-column label="Actions" width="180" fixed="left" align="center" resizable>
             <template #default="{ row }">
               <el-button-group>
                 <el-button :icon="View" size="small" type="primary" @click="handleView(row)">
@@ -193,21 +194,23 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_reglement" label="Date" width="120" sortable="custom">
+          <el-table-column prop="date_reglement" label="Date" width="120" sortable="custom" resizable>
             <template #default="{ row }">
               {{ formatDate(row.date_reglement) }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="facture" label="N° Pièce" width="140" sortable="custom">
+          <el-table-column prop="facture" label="N° Pièce" width="140" sortable="custom" resizable>
             <template #default="{ row }">
-              <el-link type="primary" @click="handleViewFacture(row.facture)">
-                <strong>{{ row.facture.numero }}</strong>
-              </el-link>
+              <span class="nowrap-cell">
+                <el-link type="primary" @click="handleViewFacture(row.facture)">
+                  <strong>{{ row.facture.numero }}</strong>
+                </el-link>
+              </span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" sortable="custom">
+          <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" sortable="custom" resizable>
             <template #default="{ row }">
               <div class="fournisseur-cell">
                 <div class="fournisseur-nom">{{ row.fournisseur.nom }}</div>
@@ -215,7 +218,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="mode_paiement" label="Mode" width="140" sortable="custom">
+          <el-table-column prop="mode_paiement" label="Mode" width="140" sortable="custom" resizable>
             <template #default="{ row }">
               <el-tag :type="getModeTagType(row.mode_paiement)" size="small">
                 {{ getModeLabel(row.mode_paiement) }}
@@ -223,21 +226,21 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference" label="Référence" width="140" sortable="custom">
+          <el-table-column prop="reference" label="Référence" width="140" sortable="custom" resizable>
             <template #default="{ row }">
               <span v-if="row.reference">{{ row.reference }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="beneficiaire" label="Bénéficiaire" width="160" sortable="custom">
+          <el-table-column prop="beneficiaire" label="Bénéficiaire" width="160" sortable="custom" resizable>
             <template #default="{ row }">
               <span v-if="row.beneficiaire">{{ row.beneficiaire }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="compte_bancaire" label="Compte Bancaire" width="180" sortable="custom">
+          <el-table-column prop="compte_bancaire" label="Compte Bancaire" width="180" sortable="custom" resizable>
             <template #default="{ row }">
               <div v-if="row.compte_bancaire" class="compte-cell">
                 <el-icon><CreditCard /></el-icon>
@@ -247,13 +250,13 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="montant" label="Montant" width="140" align="right" sortable="custom">
+          <el-table-column prop="montant" label="Montant" width="140" align="right" sortable="custom" resizable>
             <template #default="{ row }">
-              <strong class="montant-reglement">{{ formatMontant(row.montant) }}</strong>
+              <span class="nowrap-cell"><strong class="montant-reglement">{{ formatMontant(row.montant) }}</strong></span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="user" label="Saisi par" width="140">
+          <el-table-column prop="user" label="Saisi par" width="140" resizable>
             <template #default="{ row }">
               <div v-if="row.user" class="user-cell">
                 <el-icon><User /></el-icon>
@@ -425,6 +428,7 @@ import {
   Edit
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Simple debounce function
 const debounce = (fn, delay) => {
@@ -661,12 +665,8 @@ const handleMoreActions = async (command, reglement) => {
         }
       ).then(async () => {
         try {
-          const response = await fetch(`/api/reglements-fournisseurs/${reglement.id}`, {
-            method: 'DELETE',
-            headers: {
-              'Accept': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            }
+          const response = await fetchApi(`/api/reglements-fournisseurs/${reglement.id}`, {
+            method: 'DELETE'
           });
 
           const data = await response.json();
@@ -979,4 +979,6 @@ export default {
   font-weight: 600;
   color: #059669;
 }
+
+.nowrap-cell { white-space: nowrap; }
 </style>

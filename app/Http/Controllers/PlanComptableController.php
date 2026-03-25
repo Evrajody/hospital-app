@@ -31,10 +31,6 @@ class PlanComptableController extends Controller
             $query->where('classe', $classe);
         }
 
-        if ($type = $request->get('type')) {
-            $query->where('type_compte', strtoupper($type));
-        }
-
         // Filtre par source (standard ou personnalisé)
         if ($source = $request->get('source')) {
             if ($source === 'custom') {
@@ -47,7 +43,7 @@ class PlanComptableController extends Controller
         // Tri
         $sortBy = $request->get('sort_by', 'numero_compte');
         $sortOrder = $request->get('sort_order', 'asc') === 'asc' ? 'asc' : 'desc';
-        $allowedSorts = ['numero_compte', 'libelle', 'type', 'classe', 'utilisable'];
+        $allowedSorts = ['numero_compte', 'libelle', 'classe'];
         $sortBy = in_array($sortBy, $allowedSorts) ? $sortBy : 'numero_compte';
         $query->orderBy($sortBy, $sortOrder);
 
@@ -61,10 +57,8 @@ class PlanComptableController extends Controller
             'libelle' => $c->libelle,
             'classe' => $c->classe,
             'niveau' => $c->niveau,
-            'type' => $c->type_compte ? strtolower($c->type_compte) : null,
             'is_custom' => $c->is_custom ?? false,
             'parent_id' => $c->parent_id,
-            'utilisable' => $c->est_feuille ?? ($c->niveau >= 4),
         ]);
 
         // Statistiques par classe
@@ -80,9 +74,8 @@ class PlanComptableController extends Controller
             'stocks' => CompteComptable::where('classe', 3)->count(),
         ];
 
-        // Comptes parents disponibles pour la création (niveaux 1-4)
-        $comptesParents = CompteComptable::where('niveau', '<', 5)
-            ->orderBy('numero_compte')
+        // Comptes parents disponibles pour la création
+        $comptesParents = CompteComptable::orderBy('numero_compte')
             ->get()
             ->map(fn($c) => [
                 'id' => $c->id,
@@ -104,7 +97,6 @@ class PlanComptableController extends Controller
             'filters' => [
                 'search' => $request->get('search', ''),
                 'classe' => $request->get('classe', ''),
-                'type' => $request->get('type', ''),
                 'source' => $request->get('source', ''),
             ],
             'user' => [
@@ -181,7 +173,7 @@ class PlanComptableController extends Controller
                 'required',
                 'string',
                 'max:10',
-                'regex:/^[0-9]+$/',
+                'regex:/^[a-zA-Z0-9.]+$/',
                 Rule::unique('plan_comptable_ohada', 'numero_compte'),
             ],
             'libelle' => 'required|string|max:500',
@@ -245,7 +237,7 @@ class PlanComptableController extends Controller
                 'required',
                 'string',
                 'max:10',
-                'regex:/^[0-9]+$/',
+                'regex:/^[a-zA-Z0-9.]+$/',
                 Rule::unique('plan_comptable_ohada', 'numero_compte')->ignore($compte->id),
             ],
             'libelle' => 'required|string|max:500',
@@ -302,14 +294,6 @@ class PlanComptableController extends Controller
      */
     public function destroy(CompteComptable $compte): JsonResponse
     {
-        // Ne pas permettre la suppression des comptes OHADA standard
-        if (!$compte->is_custom) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Les comptes OHADA standard ne peuvent pas être supprimés',
-            ], 403);
-        }
-
         // Vérifier si le compte a des enfants
         if ($compte->comptesEnfants()->exists()) {
             return response()->json([

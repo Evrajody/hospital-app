@@ -44,6 +44,7 @@
             <span class="tab-label">
               <el-icon><OfficeBuilding /></el-icon>
               Informations Générales
+              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('general')">*</span>
             </span>
           </template>
 
@@ -216,6 +217,7 @@
             <span class="tab-label">
               <el-icon><Wallet /></el-icon>
               Compte Comptable
+              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('comptable')">*</span>
             </span>
           </template>
 
@@ -729,6 +731,21 @@ watch(() => form.nom, (newNom) => {
   }
 });
 
+// Computed pour vérifier si un onglet a des champs requis vides
+const tabHasRequiredEmpty = (tabName) => {
+  if (tabName === 'general') {
+    return !form.nom || form.nom.trim() === '';
+  }
+  if (tabName === 'comptable') {
+    if (compteMode.value === 'select') {
+      return !form.compte_comptable_id;
+    } else {
+      return !form.nouveau_compte_numero || form.nouveau_compte_numero.trim() === '';
+    }
+  }
+  return false;
+};
+
 // Computed pour le compte sélectionné
 const selectedCompte = computed(() => {
   if (compteMode.value === 'select' && form.compte_comptable_id) {
@@ -769,7 +786,7 @@ const rules = computed(() => ({
       validator: (rule, value, callback) => {
         if (compteMode.value === 'create' && !value) {
           callback(new Error('Le numéro de compte est obligatoire'));
-        } else if (compteMode.value === 'create' && !/^(401|4812)[\d.]+$/.test(value)) {
+        } else if (compteMode.value === 'create' && !/^(401|4812)[a-zA-Z0-9.]+$/.test(value)) {
           callback(new Error('Le numéro doit commencer par 401 ou 4812 (ex: 401.001, 4812.001)'));
         } else {
           callback();
@@ -999,6 +1016,14 @@ const handleSubmit = async () => {
   align-items: center;
   gap: 6px;
   font-size: 14px;
+}
+
+.tab-required-dot {
+  color: #f56c6c;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 4px;
+  vertical-align: middle;
 }
 
 .tab-content {

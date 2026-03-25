@@ -208,6 +208,7 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   facture: { type: Object, required: true },
@@ -306,12 +307,8 @@ const handleAction = (command) => {
         { confirmButtonText: 'Oui, solder', cancelButtonText: 'Annuler', type: 'warning' }
       ).then(async () => {
         try {
-          const response = await fetch(`/api/factures-clients/${props.facture.id}/solder`, {
+          const response = await fetchApi(`/api/factures-clients/${props.facture.id}/solder`, {
             method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            }
           });
           const result = await response.json();
           if (result.success) {
@@ -336,12 +333,8 @@ const handleAction = (command) => {
         }
       ).then(async () => {
         try {
-          const response = await fetch(`/api/factures-clients/${props.facture.id}`, {
+          const response = await fetchApi(`/api/factures-clients/${props.facture.id}`, {
             method: 'DELETE',
-            headers: {
-              'Accept': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            }
           });
           const result = await response.json();
           if (result.success) {
@@ -362,14 +355,9 @@ const handleFactureSuccess = async (data) => {
   modalLoading.value = true;
 
   try {
-    const response = await fetch(`/api/factures-clients/${props.facture.id}`, {
+    const response = await fetchApi(`/api/factures-clients/${props.facture.id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      },
-      body: JSON.stringify(data)
+      body: data,
     });
 
     const result = await response.json();

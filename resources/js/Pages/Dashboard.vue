@@ -38,7 +38,7 @@
                 <p class="kpi-label">Factures en attente</p>
                 <h2 class="kpi-value">{{ kpis.factures_en_attente }}</h2>
                 <span class="kpi-trend trend-neutral">
-                  À traiter
+                  {{ kpis.factures_clients_en_attente ?? 0 }} client{{ (kpis.factures_clients_en_attente ?? 0) > 1 ? 's' : '' }} &middot; {{ kpis.factures_fournisseurs_en_attente ?? 0 }} fournisseur{{ (kpis.factures_fournisseurs_en_attente ?? 0) > 1 ? 's' : '' }}
                 </span>
               </div>
             </div>
@@ -124,6 +124,9 @@
             <template #header>
               <div class="card-header">
                 <h3>Situation des banques</h3>
+                <el-button type="primary" size="small" @click="navigate('/banques')">
+                  Voir tout
+                </el-button>
               </div>
             </template>
 

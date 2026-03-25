@@ -1135,13 +1135,14 @@ class FactureFournisseurController extends Controller
                 'taux_tva' => $facture->taux_tva ? (float) $facture->taux_tva : 0,
                 'montant_tva' => number_format((float) ($facture->montant_tva ?? 0), 0, ',', ' '),
                 'montant_ttc' => number_format((float) ($facture->montant_ttc ?? 0), 0, ',', ' '),
+                'montant_aib' => number_format((float) ($facture->montant_reduction ?? 0), 0, ',', ' '),
             ],
             'fournisseur' => [
                 'nom' => $facture->fournisseur_nom ?: $facture->fournisseur?->nom,
                 'code' => $facture->fournisseur?->compteComptable?->numero_compte,
             ],
             'reglements' => $reglements->values()->map(fn($r, $index) => [
-                'numero_ordre' => $r->created_at?->format('dmY-Hi'),
+                'numero_ordre' => $r->date_reglement?->format('dmY') . '-' . $r->created_at?->format('Hi'),
                 'date_reglement' => $r->date_reglement?->format('d/m/Y'),
                 'mode_paiement' => match($r->mode_paiement) {
                     'cheque' => 'Chèque',

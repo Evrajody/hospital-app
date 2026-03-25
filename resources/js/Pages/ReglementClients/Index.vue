@@ -113,10 +113,11 @@
         <el-table
           :data="filteredReglements"
           stripe
+          border
           style="width: 100%"
           :default-sort="{ prop: 'date_reglement', order: 'descending' }"
         >
-          <el-table-column label="Actions" width="220" fixed="left" align="center">
+          <el-table-column label="Actions" width="220" fixed="left" align="center" resizable>
             <template #default="{ row }">
               <el-button size="small" type="primary" @click="handleView(row)">
                 D&eacute;tails
@@ -135,50 +136,52 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_reglement" label="Date" width="120" sortable>
+          <el-table-column prop="date_reglement" label="Date" width="120" sortable resizable>
             <template #default="{ row }">
               {{ formatDate(row.date_reglement) }}
             </template>
           </el-table-column>
 
-          <el-table-column prop="facture.reference" label="N&deg; Facture Client" width="160" sortable sort-by="facture.reference">
+          <el-table-column prop="facture.reference" label="N&deg; Facture Client" width="160" sortable sort-by="facture.reference" resizable>
             <template #default="{ row }">
-              <el-link type="primary" @click="handleViewFacture(row.facture)">
-                <strong>{{ row.facture?.reference || '-' }}</strong>
-              </el-link>
+              <span class="nowrap-cell">
+                <el-link type="primary" @click="handleViewFacture(row.facture)">
+                  <strong>{{ row.facture?.reference || '-' }}</strong>
+                </el-link>
+              </span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="client.nom" label="Client" min-width="180" sortable sort-by="client.nom">
+          <el-table-column prop="client.nom" label="Client" min-width="180" sortable sort-by="client.nom" resizable>
             <template #default="{ row }">
               <strong>{{ row.client?.nom || '-' }}</strong>
             </template>
           </el-table-column>
 
-          <el-table-column prop="institution" label="Institution" width="180" sortable>
+          <el-table-column prop="institution" label="Institution" width="180" sortable resizable>
             <template #default="{ row }">
               <span v-if="row.institution">{{ row.institution }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference_cheque" label="R&eacute;f. Ch&egrave;que" width="140" sortable>
+          <el-table-column prop="reference_cheque" label="R&eacute;f. Ch&egrave;que" width="140" sortable resizable>
             <template #default="{ row }">
               <span v-if="row.reference_cheque">{{ row.reference_cheque }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="banque_depot.nom" label="Banque D&eacute;p&ocirc;t" width="160" sortable sort-by="banque_depot.nom">
+          <el-table-column prop="banque_depot.nom" label="Banque D&eacute;p&ocirc;t" width="160" sortable sort-by="banque_depot.nom" resizable>
             <template #default="{ row }">
               <span v-if="row.banque_depot">{{ row.banque_depot.nom }}</span>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="Montant" width="140" align="right" sortable sort-by="montant">
+          <el-table-column label="Montant" width="140" align="right" sortable sort-by="montant" resizable>
             <template #default="{ row }">
-              <strong class="montant-reglement">{{ formatMontant(row.montant) }}</strong>
+              <span class="nowrap-cell"><strong class="montant-reglement">{{ formatMontant(row.montant) }}</strong></span>
             </template>
           </el-table-column>
 
@@ -354,6 +357,7 @@ import {
 } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   reglements: { type: Array, default: () => [] },
@@ -437,14 +441,9 @@ const handleEdit = (reglement) => {
 const handleEditSubmit = async () => {
   editLoading.value = true;
   try {
-    const response = await fetch(`/api/reglements-clients/${editingReglementId.value}`, {
+    const response = await fetchApi(`/api/reglements-clients/${editingReglementId.value}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      },
-      body: JSON.stringify(editForm.value)
+      body: editForm.value,
     });
     const result = await response.json();
     if (result.success) {
@@ -463,12 +462,8 @@ const handleEditSubmit = async () => {
 
 const handleDelete = async (reglement) => {
   try {
-    const response = await fetch(`/api/reglements-clients/${reglement.id}`, {
+    const response = await fetchApi(`/api/reglements-clients/${reglement.id}`, {
       method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      }
     });
     const result = await response.json();
     if (result.success) {
@@ -532,4 +527,5 @@ const formatDate = (date) => {
 :deep(.el-table th) { background-color: #f9fafb; font-weight: 600; color: #374151; }
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
 :deep(.el-descriptions__label) { font-weight: 600; width: 180px; }
+.nowrap-cell { white-space: nowrap; }
 </style>

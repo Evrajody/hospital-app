@@ -77,6 +77,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   modelValue: {
@@ -115,8 +116,8 @@ const form = reactive({
 const rules = {
   numero_compte: [
     { required: true, message: 'Le numéro est obligatoire', trigger: 'blur' },
-    { pattern: /^[0-9]+$/, message: 'Le numéro doit contenir uniquement des chiffres', trigger: 'blur' },
-    { min: 2, max: 10, message: 'Le numéro doit contenir entre 2 et 10 chiffres', trigger: 'blur' }
+    { pattern: /^[a-zA-Z0-9.]+$/, message: 'Le numéro doit contenir uniquement des chiffres, lettres ou points', trigger: 'blur' },
+    { min: 2, max: 10, message: 'Le numéro doit contenir entre 2 et 10 caractères', trigger: 'blur' }
   ],
   libelle: [
     { required: true, message: 'Le libellé est obligatoire', trigger: 'blur' },
@@ -172,18 +173,13 @@ const handleSubmit = async () => {
       ? `/api/plan-comptable/${props.compte.id}`
       : '/api/plan-comptable';
 
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: isEdit.value ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify({
+      body: {
         parent_id: form.parent_id,
         numero_compte: fullNumero,
         libelle: form.libelle,
-      })
+      }
     });
 
     const result = await response.json();

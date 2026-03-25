@@ -43,6 +43,7 @@
             <span class="tab-label">
               <el-icon><User /></el-icon>
               Informations
+              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('general')">*</span>
             </span>
           </template>
 
@@ -93,6 +94,7 @@
             <span class="tab-label">
               <el-icon><Wallet /></el-icon>
               Compte Comptable
+              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('comptable')">*</span>
             </span>
           </template>
 
@@ -355,6 +357,21 @@ watch(() => form.nom, (newNom) => {
   }
 });
 
+// Vérifier si un onglet a des champs requis vides
+const tabHasRequiredEmpty = (tabName) => {
+  if (tabName === 'general') {
+    return !form.nom || form.nom.trim() === '';
+  }
+  if (tabName === 'comptable') {
+    if (compteMode.value === 'select') {
+      return !form.compte_comptable_id;
+    } else {
+      return !form.nouveau_compte_numero || form.nouveau_compte_numero.trim() === '';
+    }
+  }
+  return false;
+};
+
 const selectedCompte = computed(() => {
   if (compteMode.value === 'select' && form.compte_comptable_id) {
     return props.comptesClients.find(c => c.id === form.compte_comptable_id);
@@ -372,7 +389,7 @@ const rules = computed(() => ({
       validator: (rule, value, callback) => {
         if (compteMode.value === 'create' && !value) {
           callback(new Error('Le numéro de compte est obligatoire'));
-        } else if (compteMode.value === 'create' && !/^(41|4111|424100)[\d.]+$/.test(value)) {
+        } else if (compteMode.value === 'create' && !/^(41|4111|424100)[a-zA-Z0-9.]+$/.test(value)) {
           callback(new Error('Le numéro doit commencer par 41, 4111 ou 424100'));
         } else {
           callback();
@@ -479,6 +496,7 @@ const handleSubmit = async () => {
 .client-modal :deep(.el-tab-pane) { padding: 20px; }
 
 .tab-label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.tab-required-dot { color: #f56c6c; font-size: 16px; font-weight: bold; margin-left: 4px; vertical-align: middle; }
 .tab-content { min-height: 200px; }
 .required-star { color: #f56c6c; margin-left: 2px; }
 .form-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }

@@ -45,6 +45,7 @@
             <span class="tab-label">
               <el-icon><Document /></el-icon>
               Informations
+              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('general')">*</span>
             </span>
           </template>
 
@@ -239,6 +240,7 @@
             <span class="tab-label">
               <el-icon><Money /></el-icon>
               Montants
+              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('montants')">*</span>
             </span>
           </template>
 
@@ -486,6 +488,7 @@ import {
   ArrowRight
 } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -697,6 +700,16 @@ const rules = computed(() => ({
 }));
 
 // Methods
+const tabHasRequiredEmpty = (tab) => {
+  if (tab === 'general') {
+    return !form.numero_piece || !form.fournisseur_id || !form.date || !form.libelle;
+  }
+  if (tab === 'montants') {
+    return !form.montant_facture || form.montant_facture <= 0;
+  }
+  return false;
+};
+
 const clearErrors = () => {
   validationErrors.value = [];
 };
@@ -709,12 +722,7 @@ const genererNumeroPiece = async () => {
   numeroError.value = '';
 
   try {
-    const response = await fetch('/api/factures-fournisseurs/generer-numero', {
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      }
-    });
+    const response = await fetchApi('/api/factures-fournisseurs/generer-numero');
 
     const result = await response.json();
 
@@ -748,14 +756,9 @@ const verifierNumeroPiece = async () => {
   }
 
   try {
-    const response = await fetch('/api/factures-fournisseurs/verifier-numero', {
+    const response = await fetchApi('/api/factures-fournisseurs/verifier-numero', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify({ numero_piece: form.numero_piece })
+      body: { numero_piece: form.numero_piece }
     });
 
     const result = await response.json();
@@ -782,12 +785,7 @@ const verifierNumeroPiece = async () => {
 
 const chargerProchainNumero = async () => {
   try {
-    const response = await fetch('/api/factures-fournisseurs/generer-numero', {
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      }
-    });
+    const response = await fetchApi('/api/factures-fournisseurs/generer-numero');
 
     const result = await response.json();
     if (result.success) {
@@ -853,12 +851,7 @@ const loadFormData = async () => {
     // car les données du listing ne contiennent pas tous les champs du formulaire
     loadingForm.value = true;
     try {
-      const response = await fetch(`/api/factures-fournisseurs/${props.facture.id}`, {
-        headers: {
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-        }
-      });
+      const response = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}`);
       const result = await response.json();
       if (result.success && result.data) {
         applyFactureData(result.data);
@@ -1064,6 +1057,14 @@ watch(() => props.serverErrors, (errors) => {
   align-items: center;
   gap: 6px;
   font-size: 14px;
+}
+
+.tab-required-dot {
+  color: #f56c6c;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 4px;
+  vertical-align: middle;
 }
 
 .tab-content {

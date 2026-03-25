@@ -120,7 +120,7 @@
         .signature-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; }
         .signature-name { margin-top: 55px; font-size: 13px; font-weight: bold; }
 
-        .footer { margin-top: 50px; font-size: 10px; color: #666; font-style: italic; }
+        .footer { position: fixed; bottom: 10mm; left: 0; right: 0; font-size: 10px; color: #666; font-style: italic; padding: 0 10mm; }
     </style>
 </head>
 <body>

@@ -103,6 +103,7 @@
         .date-row td {
             font-weight: bold;
             padding-top: 10px;
+            border-top: 3px solid #000000;
         }
 
         .col-date {
@@ -128,7 +129,11 @@
 
         /* Footer */
         .footer-info {
-            margin-top: 15px;
+            position: fixed;
+            bottom: 10mm;
+            left: 0;
+            right: 0;
+            padding: 0 15mm;
             font-size: 11px;
             color: #444444;
         }

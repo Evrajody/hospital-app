@@ -555,7 +555,7 @@ class FournisseurController extends Controller
             'observations' => ['nullable', 'string'],
             'create_compte' => ['nullable', 'boolean'],
             'compte_parent_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
-            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(401|4812)[\d.]+$/'],
+            'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(401|4812)[a-zA-Z0-9.]+$/'],
             'nouveau_compte_libelle' => ['nullable', 'string', 'max:255'],
         ];
     }

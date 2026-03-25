@@ -151,10 +151,14 @@
         }
 
         .footer {
-            margin-top: 50px;
+            position: fixed;
+            bottom: 10mm;
+            left: 0;
+            right: 0;
             font-size: 10px;
             color: #666;
             font-style: italic;
+            padding: 0 10mm;
         }
     </style>
 </head>

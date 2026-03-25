@@ -184,6 +184,7 @@ import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TauxFiscalModal from '@/Components/Modals/TauxFiscalModal.vue';
 import { Plus, Edit, Delete, Money, Tickets, CircleCheck } from '@element-plus/icons-vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },
@@ -220,12 +221,8 @@ const handleEdit = (taux) => {
 
 const handleDelete = async (taux) => {
   try {
-    const response = await fetch(`/api/taux-fiscaux/${taux.id}`, {
+    const response = await fetchApi(`/api/taux-fiscaux/${taux.id}`, {
       method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-      },
     });
     const result = await response.json();
     if (result.success) {
@@ -241,12 +238,8 @@ const handleDelete = async (taux) => {
 
 const handleToggle = async (taux) => {
   try {
-    const response = await fetch(`/api/taux-fiscaux/${taux.id}/toggle`, {
+    const response = await fetchApi(`/api/taux-fiscaux/${taux.id}/toggle`, {
       method: 'PATCH',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-      },
     });
     const result = await response.json();
     if (result.success) {
@@ -268,14 +261,9 @@ const handleSuccess = async (data) => {
   const url = isEdit ? `/api/taux-fiscaux/${selectedTaux.value.id}` : '/api/taux-fiscaux';
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: isEdit ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-      },
-      body: JSON.stringify(data),
+      body: data,
     });
 
     const result = await response.json();

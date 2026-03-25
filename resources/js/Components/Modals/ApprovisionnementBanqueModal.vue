@@ -101,6 +101,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Check, Upload } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
+import { fetchApi } from '@/Composables/useFetch';
 
 const { formatInputMontant, parseInputMontant } = useMontant();
 
@@ -195,12 +196,8 @@ const handleSubmit = async () => {
       formData.append('piece_jointe', selectedFile.value);
     }
 
-    const response = await fetch('/api/banques/approvisionnement', {
+    const response = await fetchApi('/api/banques/approvisionnement', {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
       body: formData
     });
 

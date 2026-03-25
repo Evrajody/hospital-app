@@ -112,6 +112,7 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Edit, Delete } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   users: { type: Array, default: () => [] },
@@ -192,14 +193,9 @@ const handleSubmit = async () => {
         delete payload.password;
       }
 
-      const response = await fetch(url, {
+      const response = await fetchApi(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-        },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       const result = await response.json();
@@ -225,12 +221,8 @@ const handleDelete = (user) => {
     { confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', type: 'warning' }
   ).then(async () => {
     try {
-      const response = await fetch(`/api/utilisateurs/${user.id}`, {
+      const response = await fetchApi(`/api/utilisateurs/${user.id}`, {
         method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-        },
       });
       const result = await response.json();
       if (result.success) {
@@ -247,12 +239,8 @@ const handleDelete = (user) => {
 
 const toggleActive = async (user) => {
   try {
-    const response = await fetch(`/api/utilisateurs/${user.id}/toggle-active`, {
+    const response = await fetchApi(`/api/utilisateurs/${user.id}/toggle-active`, {
       method: 'PATCH',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-      },
     });
     const result = await response.json();
     if (result.success) {

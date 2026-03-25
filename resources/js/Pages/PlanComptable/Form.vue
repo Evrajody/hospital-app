@@ -256,8 +256,8 @@ const rules = {
     { required: true, message: 'Le numéro de compte est requis', trigger: 'blur' },
     { min: 3, max: 10, message: 'Le numéro doit contenir entre 3 et 10 caractères', trigger: 'blur' },
     {
-      pattern: /^[0-9]+$/,
-      message: 'Le numéro doit contenir uniquement des chiffres',
+      pattern: /^[a-zA-Z0-9.]+$/,
+      message: 'Le numéro doit contenir uniquement des chiffres, lettres ou points',
       trigger: 'blur'
     }
   ],

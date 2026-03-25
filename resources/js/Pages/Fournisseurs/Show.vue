@@ -491,6 +491,7 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -637,12 +638,8 @@ const handleDelete = async () => {
       }
     );
 
-    const response = await fetch(`/api/fournisseurs/${props.fournisseur.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      }
+    const response = await fetchApi(`/api/fournisseurs/${props.fournisseur.id}`, {
+      method: 'DELETE'
     });
 
     const result = await response.json();
@@ -680,14 +677,9 @@ const handleFournisseurSuccess = async (fournisseurData) => {
   modalLoading.value = true;
 
   try {
-    const response = await fetch(`/api/fournisseurs/${props.fournisseur.id}`, {
+    const response = await fetchApi(`/api/fournisseurs/${props.fournisseur.id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify(fournisseurData)
+      body: fournisseurData
     });
 
     const result = await response.json();
@@ -779,12 +771,8 @@ const handleReglementActions = async (command, reglement) => {
           }
         );
 
-        const response = await fetch(`/api/reglements-fournisseurs/${reglement.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-          }
+        const response = await fetchApi(`/api/reglements-fournisseurs/${reglement.id}`, {
+          method: 'DELETE'
         });
 
         const result = await response.json();
@@ -814,14 +802,9 @@ const handleFactureSuccess = async (factureData) => {
     : '/api/factures-fournisseurs';
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: isEdit ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify(factureData)
+      body: factureData
     });
 
     const result = await response.json();

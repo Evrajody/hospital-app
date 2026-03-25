@@ -180,7 +180,6 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
-import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import {
   UserFilled,
@@ -190,6 +189,7 @@ import {
   Edit,
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },
@@ -225,12 +225,19 @@ const submitProfile = async () => {
 
   profileLoading.value = true;
   try {
-    const { data } = await axios.put('/profile', profileForm);
-    ElMessage.success(data.message);
-    router.reload({ only: ['profile', 'user'] });
+    const response = await fetchApi('/profile', {
+      method: 'PUT',
+      body: profileForm,
+    });
+    const data = await response.json();
+    if (response.ok) {
+      ElMessage.success(data.message);
+      router.reload({ only: ['profile', 'user'] });
+    } else {
+      ElMessage.error(data.message || 'Erreur lors de la mise à jour');
+    }
   } catch (err) {
-    const msg = err.response?.data?.message || 'Erreur lors de la mise à jour';
-    ElMessage.error(msg);
+    ElMessage.error('Erreur lors de la mise à jour');
   } finally {
     profileLoading.value = false;
   }
@@ -272,14 +279,21 @@ const submitPassword = async () => {
 
   passwordLoading.value = true;
   try {
-    const { data } = await axios.put('/profile/password', passwordForm);
-    ElMessage.success(data.message);
-    passwordForm.current_password = '';
-    passwordForm.password = '';
-    passwordForm.password_confirmation = '';
+    const response = await fetchApi('/profile/password', {
+      method: 'PUT',
+      body: passwordForm,
+    });
+    const data = await response.json();
+    if (response.ok) {
+      ElMessage.success(data.message);
+      passwordForm.current_password = '';
+      passwordForm.password = '';
+      passwordForm.password_confirmation = '';
+    } else {
+      ElMessage.error(data.message || 'Erreur');
+    }
   } catch (err) {
-    const msg = err.response?.data?.message || 'Erreur';
-    ElMessage.error(msg);
+    ElMessage.error('Erreur');
   } finally {
     passwordLoading.value = false;
   }
@@ -304,14 +318,19 @@ const handleSignatureSelect = async (file) => {
   formData.append('signature', file.raw);
 
   try {
-    const { data } = await axios.post('/profile/signature', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const response = await fetchApi('/profile/signature', {
+      method: 'POST',
+      body: formData,
     });
-    ElMessage.success(data.message);
-    signatureUrl.value = data.signature_url;
+    const data = await response.json();
+    if (response.ok) {
+      ElMessage.success(data.message);
+      signatureUrl.value = data.signature_url;
+    } else {
+      ElMessage.error(data.message || "Erreur lors de l'upload");
+    }
   } catch (err) {
-    const msg = err.response?.data?.message || "Erreur lors de l'upload";
-    ElMessage.error(msg);
+    ElMessage.error("Erreur lors de l'upload");
   } finally {
     signatureLoading.value = false;
   }
@@ -320,9 +339,16 @@ const handleSignatureSelect = async (file) => {
 const removeSignature = async () => {
   signatureLoading.value = true;
   try {
-    const { data } = await axios.delete('/profile/signature');
-    ElMessage.success(data.message);
-    signatureUrl.value = null;
+    const response = await fetchApi('/profile/signature', {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (response.ok) {
+      ElMessage.success(data.message);
+      signatureUrl.value = null;
+    } else {
+      ElMessage.error(data.message || 'Erreur lors de la suppression');
+    }
   } catch (err) {
     ElMessage.error('Erreur lors de la suppression');
   } finally {

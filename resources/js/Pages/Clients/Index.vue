@@ -54,11 +54,12 @@
           v-loading="loading"
           :data="clients"
           stripe
+          border
           style="width: 100%"
           @sort-change="handleSortChange"
           class="clients-table"
         >
-          <el-table-column label="Actions" width="200" fixed="left">
+          <el-table-column label="Actions" width="200" fixed="left" resizable>
             <template #default="{ row }">
               <el-button size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
               <el-popconfirm
@@ -74,19 +75,19 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="code" label="N° Compte" width="160" sortable>
+          <el-table-column prop="code" label="N° Compte" width="160" sortable resizable>
             <template #default="{ row }">
               <el-tag v-if="row.code !== '-'" size="small" type="info">{{ row.code }}</el-tag>
               <span v-else style="color: #999">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="nom" label="Raison Sociale" sortable>
+          <el-table-column prop="nom" label="Raison Sociale" sortable resizable>
             <template #default="{ row }">
               <strong>{{ row.nom }}</strong>
             </template>
           </el-table-column>
-          <el-table-column prop="telephone" label="Téléphone" width="180" sortable />
-          <el-table-column prop="adresse" label="Adresse" sortable />
+          <el-table-column prop="telephone" label="Téléphone" width="180" sortable resizable />
+          <el-table-column prop="adresse" label="Adresse" sortable resizable />
         </el-table>
 
         <!-- Pagination -->
@@ -124,6 +125,7 @@ import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ClientModal from '@/Components/Modals/ClientModal.vue';
 import { Plus, Search, Edit, Delete, User } from '@element-plus/icons-vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Simple debounce function
 const debounce = (fn, delay) => {
@@ -230,13 +232,8 @@ const handleEdit = (client) => {
 
 const handleDelete = async (client) => {
   try {
-    const response = await fetch(`/api/clients/${client.id}`, {
+    const response = await fetchApi(`/api/clients/${client.id}`, {
       method: 'DELETE',
-      credentials: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      }
     });
     const result = await response.json();
     if (result.success) {
@@ -258,15 +255,9 @@ const handleClientSuccess = async (data) => {
   const url = isEdit ? `/api/clients/${selectedClient.value.id}` : '/api/clients';
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchApi(url, {
       method: isEdit ? 'PUT' : 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify(data)
+      body: data,
     });
 
     const result = await response.json();

@@ -33,6 +33,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { ElMessage } from 'element-plus';
+import { fetchApi } from '@/Composables/useFetch';
 
 const props = defineProps({
   modelValue: {
@@ -76,14 +77,9 @@ const handleSubmit = async () => {
     await formRef.value.validate();
     loading.value = true;
 
-    const response = await fetch('/api/banques', {
+    const response = await fetchApi('/api/banques', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-      },
-      body: JSON.stringify({ nom: form.nom })
+      body: { nom: form.nom }
     });
 
     const result = await response.json();
