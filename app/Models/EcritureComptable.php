@@ -41,6 +41,8 @@ class EcritureComptable extends Model
 
     /**
      * Créer les écritures d'imputation pour une facture
+     * Débit charge = Crédit fournisseur = montant_net (NAP)
+     * Pas d'AIB au niveau facture
      */
     public static function creerEcrituresFacture(FactureFournisseur $facture): void
     {
@@ -56,61 +58,38 @@ class EcritureComptable extends Model
             return;
         }
 
-        $montant = (float) $facture->montant_facture;
-        $montantAib = 0;
+        $montantNet = (float) $facture->montant_net;
 
-        // Vérifier si la facture a un AIB défini (taux suffit, type_reduction peut être vide)
-        if ((float) $facture->taux > 0 && (float) $facture->montant_reduction > 0) {
-            $montantAib = (float) $facture->montant_reduction;
-        }
-
-        $montantCredit = $montant - $montantAib;
-
-        // Débit: compte d'imputation (ex: 60111)
+        // Débit: compte d'imputation (ex: 60111) = NAP
         self::create([
             'facture_id' => $facture->id,
             'reglement_id' => null,
             'date_ecriture' => $facture->date,
             'numero_compte' => $compteDebit,
-            'debit' => $montant,
+            'debit' => $montantNet,
             'credit' => 0,
             'libelle' => 'S/ ' . $facture->libelle,
             'type' => self::TYPE_FACTURE,
         ]);
 
-        // Crédit: compte fournisseur (ex: 401111.092)
+        // Crédit: compte fournisseur (ex: 401111.092) = NAP
         self::create([
             'facture_id' => $facture->id,
             'reglement_id' => null,
             'date_ecriture' => $facture->date,
             'numero_compte' => $compteCredit,
             'debit' => 0,
-            'credit' => $montantCredit,
+            'credit' => $montantNet,
             'libelle' => null,
             'type' => self::TYPE_FACTURE,
         ]);
-
-        // Crédit: compte AIB (si AIB > 0)
-        if ($montantAib > 0) {
-            $compteAib = $facture->type_reduction ?: '44731';
-            $compteAibModel = \App\Models\CompteComptable::where('numero_compte', $compteAib)->first();
-            $libelleAib = $compteAibModel ? 'S/ ' . $compteAibModel->libelle : 'S/ AIB ' . $facture->taux . '%';
-
-            self::create([
-                'facture_id' => $facture->id,
-                'reglement_id' => null,
-                'date_ecriture' => $facture->date,
-                'numero_compte' => $compteAib,
-                'debit' => 0,
-                'credit' => $montantAib,
-                'libelle' => $libelleAib,
-                'type' => self::TYPE_FACTURE,
-            ]);
-        }
     }
 
     /**
      * Créer les écritures d'imputation pour un règlement
+     * Débit fournisseur = montant_net (NAP) de la facture
+     * Crédit banque = montant du règlement
+     * Crédit AIB = montant_aib_deduit du règlement (si deduire_aib)
      */
     public static function creerEcrituresReglement(
         ReglementFournisseur $reglement,
@@ -120,6 +99,7 @@ class EcritureComptable extends Model
             ? $facture->fournisseur->compteComptable->numero_compte
             : '401' . str_pad($facture->fournisseur_id, 3, '0', STR_PAD_LEFT);
 
+        $montantNet = (float) $facture->montant_net;
         $montantReglement = (float) $reglement->montant;
 
         // Libellé du mode de paiement
@@ -131,25 +111,17 @@ class EcritureComptable extends Model
             default => 'S/' . $reglement->mode_paiement,
         };
 
-        // Débit: compte fournisseur
+        // Débit: compte fournisseur = NAP de la facture
         self::create([
             'facture_id' => $facture->id,
             'reglement_id' => $reglement->id,
             'date_ecriture' => $reglement->date_reglement,
             'numero_compte' => $compteFournisseur,
-            'debit' => $montantReglement,
+            'debit' => $montantNet,
             'credit' => 0,
             'libelle' => $modeLibelle,
             'type' => self::TYPE_REGLEMENT,
         ]);
-
-        // AIB : présent si la facture a un taux AIB > 0
-        $montantAib = 0;
-        if ((float) $facture->taux > 0 && (float) $facture->montant_reduction > 0) {
-            $montantAib = (float) $facture->montant_reduction;
-        }
-
-        $montantBanque = $montantReglement - $montantAib;
 
         // Déterminer le compte de trésorerie
         $compteTresorerie = $reglement->compteTresorerie
@@ -162,20 +134,21 @@ class EcritureComptable extends Model
         // Libellé pour le crédit banque
         $libelleBanque = $reglement->beneficiaire ?: ($reglement->banque ?: 'Trésorerie');
 
-        // Crédit: compte de trésorerie (banque)
+        // Crédit: compte de trésorerie (banque) = montant du règlement
         self::create([
             'facture_id' => $facture->id,
             'reglement_id' => $reglement->id,
             'date_ecriture' => $reglement->date_reglement,
             'numero_compte' => $compteTresorerie,
             'debit' => 0,
-            'credit' => $montantBanque,
+            'credit' => $montantReglement,
             'libelle' => $libelleBanque,
             'type' => self::TYPE_REGLEMENT,
         ]);
 
-        // Crédit: compte AIB (automatique si la facture a un AIB)
-        if ($montantAib > 0) {
+        // Crédit: compte AIB (si la facture est soumise à un taux AIB)
+        if ((float) $facture->taux > 0) {
+            $montantAib = (float) $facture->montant_reduction;
             $compteAib = $facture->type_reduction ?: '44731';
             $compteAibModel = \App\Models\CompteComptable::where('numero_compte', $compteAib)->first();
             $libelleAib = $compteAibModel ? 'S/ ' . $compteAibModel->libelle : 'S/ AIB';

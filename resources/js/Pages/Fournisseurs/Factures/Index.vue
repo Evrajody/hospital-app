@@ -341,7 +341,7 @@
           </thead>
           <tbody>
             <template v-for="(group, gIndex) in imputationData.ecritures" :key="gIndex">
-              <tr v-for="(ligne, lIndex) in group.lignes" :key="`${gIndex}-${lIndex}`">
+              <tr v-for="(ligne, lIndex) in group.lignes" :key="`${gIndex}-${lIndex}`" :style="lIndex === 0 && gIndex > 0 ? 'border-top: 2px solid #000;' : ''">
                 <td style="font-weight: 600;">{{ lIndex === 0 ? group.date : '' }}</td>
                 <td>{{ ligne.numero_compte }}</td>
                 <td style="text-align: right;">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
@@ -350,14 +350,6 @@
               </tr>
             </template>
           </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="2" style="font-weight: 700;">TOTAUX</td>
-              <td style="text-align: right; font-weight: 700;">{{ formatMontant(imputationData.total_debit) }}</td>
-              <td style="text-align: right; font-weight: 700;">{{ formatMontant(imputationData.total_credit) }}</td>
-              <td></td>
-            </tr>
-          </tfoot>
         </table>
 
         <!-- Bouton télécharger PDF -->

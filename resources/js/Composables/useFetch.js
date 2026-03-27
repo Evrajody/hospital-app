@@ -1,10 +1,18 @@
 /**
  * Helper fetch centralisé avec CSRF token automatique.
- * Lit le token depuis la meta tag (comme le comportement par défaut de Laravel).
+ * Lit le token depuis le cookie XSRF-TOKEN (mis à jour par Laravel à chaque réponse),
+ * avec fallback sur la meta tag.
  */
 
+function getCsrfTokenFromCookie() {
+  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function getCsrfToken() {
-  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+  return getCsrfTokenFromCookie()
+    || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    || '';
 }
 
 /**
@@ -18,7 +26,7 @@ function getCsrfToken() {
 export async function fetchApi(url, options = {}) {
   const headers = {
     'Accept': 'application/json',
-    'X-CSRF-TOKEN': getCsrfToken(),
+    'X-XSRF-TOKEN': getCsrfToken(),
     ...(options.headers || {}),
   };
 
@@ -33,6 +41,7 @@ export async function fetchApi(url, options = {}) {
     ...options,
     headers,
     body,
+    credentials: 'same-origin',
   });
 }
 
