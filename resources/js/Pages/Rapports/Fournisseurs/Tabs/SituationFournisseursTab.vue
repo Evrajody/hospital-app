@@ -45,13 +45,23 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Date">
+        <el-form-item label="Période">
           <el-date-picker
-            v-model="dateRef"
+            v-model="dateDebut"
             type="date"
             format="DD/MM/YYYY"
             value-format="YYYY-MM-DD"
-            placeholder="Indiquer une date"
+            placeholder="Date début"
+            style="width: 160px"
+          />
+          <span style="margin: 0 8px;">à</span>
+          <el-date-picker
+            v-model="dateFin"
+            type="date"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            placeholder="Date fin"
+            style="width: 160px"
           />
         </el-form-item>
 
@@ -197,7 +207,8 @@ const props = defineProps({
 const selectedMode = ref('tous');
 const selectedCompteId = ref(null);
 const selectedFournisseurId = ref(null);
-const dateRef = ref('');
+const dateDebut = ref('');
+const dateFin = ref('');
 const loading = ref(false);
 const fetched = ref(false);
 const data = ref([]);
@@ -222,7 +233,8 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const params = new URLSearchParams({ mode: selectedMode.value });
-    if (dateRef.value) params.append('date', dateRef.value);
+    if (dateDebut.value) params.append('date_debut', dateDebut.value);
+    if (dateFin.value) params.append('date_fin', dateFin.value);
     if (selectedMode.value === 'par_compte' && selectedCompteId.value) {
       params.append('compte_id', selectedCompteId.value);
     }
@@ -257,7 +269,8 @@ const getSummaryTous = ({ columns, data: tableData }) => {
 
 const buildPdfParams = () => {
   const params = new URLSearchParams({ mode: selectedMode.value });
-  if (dateRef.value) params.append('date', dateRef.value);
+  if (dateDebut.value) params.append('date_debut', dateDebut.value);
+  if (dateFin.value) params.append('date_fin', dateFin.value);
   if (selectedMode.value === 'par_compte' && selectedCompteId.value) {
     params.append('compte_id', selectedCompteId.value);
   }

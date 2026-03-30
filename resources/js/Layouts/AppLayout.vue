@@ -24,11 +24,8 @@
         </el-menu-item>
 
         <!-- Factures Fournisseurs -->
-        <el-sub-menu v-if="can('fournisseurs.voir') || can('factures-fournisseurs.voir') || can('reglements-fournisseurs.voir')" index="fournisseurs">
-          <template #title>
-            <el-icon><Document /></el-icon>
-            <span>Factures Fournisseurs</span>
-          </template>
+        <el-menu-item-group v-if="can('fournisseurs.voir') || can('factures-fournisseurs.voir') || can('reglements-fournisseurs.voir')">
+          <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><Document /></el-icon> Factures Fournisseurs</span></template>
           <el-menu-item v-if="can('fournisseurs.voir')" index="/fournisseurs" @click="navigate('/fournisseurs')">
             <el-icon><User /></el-icon>
             <template #title>Fournisseurs</template>
@@ -41,14 +38,11 @@
             <el-icon><Money /></el-icon>
             <template #title>Règlements</template>
           </el-menu-item>
-        </el-sub-menu>
+        </el-menu-item-group>
 
         <!-- Factures Clients -->
-        <el-sub-menu v-if="can('clients.voir') || can('factures-clients.voir') || can('reglements-clients.voir')" index="clients">
-          <template #title>
-            <el-icon><Money /></el-icon>
-            <span>Factures Clients</span>
-          </template>
+        <el-menu-item-group v-if="can('clients.voir') || can('factures-clients.voir') || can('reglements-clients.voir')">
+          <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><Money /></el-icon> Factures Clients</span></template>
           <el-menu-item v-if="can('clients.voir')" index="/clients" @click="navigate('/clients')">
             <el-icon><User /></el-icon>
             <template #title>Clients</template>
@@ -61,7 +55,7 @@
             <el-icon><Money /></el-icon>
             <template #title>Règlements</template>
           </el-menu-item>
-        </el-sub-menu>
+        </el-menu-item-group>
 
         <!-- Plan Comptable -->
         <el-menu-item v-if="can('plan-comptable.voir')" index="/plan-comptable" @click="navigate('/plan-comptable')">
@@ -76,25 +70,19 @@
         </el-menu-item>
 
         <!-- Rapports -->
-        <el-sub-menu v-if="can('rapports.voir')" index="rapports">
-          <template #title>
-            <el-icon><Printer /></el-icon>
-            <span>Rapports</span>
-          </template>
+        <el-menu-item-group v-if="can('rapports.voir')">
+          <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><Printer /></el-icon> Rapports</span></template>
           <el-menu-item index="/rapports/fournisseurs" @click="navigate('/rapports/fournisseurs')">
-            Fournisseurs
+            <template #title>Fournisseurs</template>
           </el-menu-item>
           <el-menu-item index="/rapports/clients" @click="navigate('/rapports/clients')">
-            Clients
+            <template #title>Clients</template>
           </el-menu-item>
-        </el-sub-menu>
+        </el-menu-item-group>
 
         <!-- Paramètres -->
-        <el-sub-menu v-if="can('utilisateurs.voir') || can('roles.voir') || can('parametres.voir')" index="parametres">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>Paramètres</span>
-          </template>
+        <el-menu-item-group v-if="can('utilisateurs.voir') || can('roles.voir') || can('parametres.voir')">
+          <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><Setting /></el-icon> Paramètres</span></template>
           <el-menu-item v-if="can('utilisateurs.voir')" index="/utilisateurs" @click="navigate('/utilisateurs')">
             <el-icon><User /></el-icon>
             <template #title>Utilisateurs</template>
@@ -111,7 +99,7 @@
             <el-icon><OfficeBuilding /></el-icon>
             <template #title>Établissement</template>
           </el-menu-item>
-        </el-sub-menu>
+        </el-menu-item-group>
 
         <!-- Journal d'Activité -->
         <el-menu-item v-if="can('journal.voir')" index="/journal-activite" @click="navigate('/journal-activite')">
@@ -284,6 +272,16 @@ const handleCommand = (command) => {
 .sidebar-menu::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
+}
+
+.menu-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .sidebar-toggle {

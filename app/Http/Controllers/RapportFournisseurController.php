@@ -160,14 +160,18 @@ class RapportFournisseurController extends Controller
     private function buildSituationFournisseursData(Request $request): array
     {
         $mode = $request->input('mode', 'tous');
-        $dateRef = $request->input('date');
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
         $compteId = $request->input('compte_id');
 
-        $baseFilter = function ($q) use ($dateRef) {
+        $baseFilter = function ($q) use ($dateDebut, $dateFin) {
             $q->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
               ->where('reste_a_payer', '>', 0);
-            if ($dateRef) {
-                $q->where('date', '<=', $dateRef);
+            if ($dateDebut) {
+                $q->where('date', '>=', $dateDebut);
+            }
+            if ($dateFin) {
+                $q->where('date', '<=', $dateFin);
             }
         };
 
@@ -190,7 +194,8 @@ class RapportFournisseurController extends Controller
                 $factures = $f->factures()
                     ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
                     ->where('reste_a_payer', '>', 0)
-                    ->when($dateRef, fn($q) => $q->where('date', '<=', $dateRef))
+                    ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
+                    ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
                     ->get();
 
                 $code = $f->compteComptable?->numero_compte ?? '-';
@@ -228,7 +233,8 @@ class RapportFournisseurController extends Controller
             return [
                 'mode' => $mode,
                 'data' => $data,
-                'date' => $dateRef,
+                'date_debut' => $dateDebut,
+                'date_fin' => $dateFin,
                 'grandTotal' => $grandTotal,
                 'compte' => $compteInfo,
             ];
@@ -256,7 +262,8 @@ class RapportFournisseurController extends Controller
             $factures = $f->factures()
                 ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
                 ->where('reste_a_payer', '>', 0)
-                ->when($dateRef, fn($q) => $q->where('date', '<=', $dateRef))
+                ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
+                ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
                 ->orderBy('date')
                 ->get();
 
@@ -303,7 +310,8 @@ class RapportFournisseurController extends Controller
         return [
             'mode' => $mode,
             'data' => $data,
-            'date' => $dateRef,
+            'date_debut' => $dateDebut,
+            'date_fin' => $dateFin,
             'grandTotaux' => $grandTotaux,
         ];
     }

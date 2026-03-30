@@ -193,7 +193,7 @@
 
           <el-table-column prop="solde_apres" label="Solde après" width="150" align="right" sortable>
             <template #default="{ row }">
-              <strong class="solde-apres">{{ formatMontant(row.solde_apres) }}</strong>
+              <strong class="solde-apres" :style="row.solde_apres < 0 ? 'color: #f56c6c;' : ''">{{ formatMontant(row.solde_apres) }}</strong>
             </template>
           </el-table-column>
 
@@ -438,7 +438,7 @@ const formatMontant = (montant) => {
     style: 'currency',
     currency: 'XOF',
     minimumFractionDigits: 0
-  }).format(Math.abs(montant) || 0);
+  }).format(montant || 0);
 };
 
 const formatDate = (date) => {
