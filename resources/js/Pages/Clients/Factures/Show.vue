@@ -143,26 +143,26 @@
                 style="margin-top: 16px"
               />
 
-              <div v-if="!estPayee" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+              <div v-if="!estPayee" style="display: flex; gap: 8px; margin-top: 16px;">
                 <el-button
                   type="primary"
-                  size="large"
-                  style="width: 100%;"
+                  size="default"
+                  style="flex: 1;"
                   @click="handleAction('regler')"
                 >
                   <el-icon><Money /></el-icon>
-                  Enregistrer un r&#232;glement
+                  Enregistrer un règlement
                 </el-button>
 
                 <el-button
                   type="success"
-                  size="large"
+                  size="default"
                   plain
-                  style="width: 100%;"
+                  style="flex: 1;"
                   @click="handleAction('solder')"
                 >
                   <el-icon><CircleCheck /></el-icon>
-                  Marquer comme sold&#233;e
+                  Marquer comme soldée
                 </el-button>
               </div>
 

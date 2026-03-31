@@ -3,7 +3,21 @@
 @section('title', 'Situation des Fournisseurs')
 @section('page-size', 'A4 {{ $mode === "par_fournisseur" ? "landscape" : "portrait" }}')
 @section('page-margin', '15mm 25mm')
-@section('report-title', ($titre ?? 'Situation des fournisseurs (point des dettes)') . ($date ? ' au ' . \Carbon\Carbon::parse($date)->format('d/m/Y') : ''))
+@php
+    $suffixe = '';
+    $dd = $date_debut ?? null;
+    $df = $date_fin ?? null;
+    if ($dd && $df && $dd === $df) {
+        $suffixe = ' au ' . \Carbon\Carbon::parse($df)->format('d/m/Y');
+    } elseif ($dd && $df) {
+        $suffixe = ' du ' . \Carbon\Carbon::parse($dd)->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($df)->format('d/m/Y');
+    } elseif ($dd) {
+        $suffixe = ' à partir du ' . \Carbon\Carbon::parse($dd)->format('d/m/Y');
+    } elseif ($df) {
+        $suffixe = ' au ' . \Carbon\Carbon::parse($df)->format('d/m/Y');
+    }
+@endphp
+@section('report-title', ($titre ?? 'Situation des fournisseurs (point des dettes)') . $suffixe)
 
 @section('extra-styles')
     .compte-header { font-size: 12px; margin: 20px 0 10px; font-style: italic; }

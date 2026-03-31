@@ -58,7 +58,7 @@
               Pertes & Rejets
             </span>
           </template>
-          <PertesRejetsTab />
+          <PertesRejetsTab :clients="clients" />
         </el-tab-pane>
       </el-tabs>
     </div>

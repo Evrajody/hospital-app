@@ -59,19 +59,26 @@
           @sort-change="handleSortChange"
           class="clients-table"
         >
-          <el-table-column label="Actions" width="200" fixed="left" resizable>
+          <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
             <template #default="{ row }">
-              <el-button size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
-              <el-popconfirm
-                title="Supprimer ce client ?"
-                confirm-button-text="Oui"
-                cancel-button-text="Non"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete" />
+              <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, row)">
+                <el-button size="small" type="primary">
+                  Actions <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="factures" :icon="Document">
+                      Voir les factures
+                    </el-dropdown-item>
+                    <el-dropdown-item command="edit" :icon="Edit">
+                      Modifier
+                    </el-dropdown-item>
+                    <el-dropdown-item divided command="delete" :icon="Delete">
+                      <span style="color: #f56c6c">Supprimer</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
                 </template>
-              </el-popconfirm>
+              </el-dropdown>
             </template>
           </el-table-column>
 
@@ -124,7 +131,8 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ClientModal from '@/Components/Modals/ClientModal.vue';
-import { Plus, Search, Edit, Delete, User } from '@element-plus/icons-vue';
+import { Plus, Search, Edit, Delete, User, ArrowDown, Document } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import { fetchApi } from '@/Composables/useFetch';
 
 // Simple debounce function
@@ -224,6 +232,24 @@ const handleCreate = () => {
   showClientModal.value = true;
 };
 
+const handleAction = (command, client) => {
+  switch (command) {
+    case 'factures':
+      router.visit(`/factures-clients?client_id=${client.id}`);
+      break;
+    case 'edit':
+      handleEdit(client);
+      break;
+    case 'delete':
+      ElMessageBox.confirm(
+        'Êtes-vous sûr de vouloir supprimer ce client ?',
+        'Confirmation',
+        { confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', type: 'warning' }
+      ).then(() => handleDelete(client)).catch(() => {});
+      break;
+  }
+};
+
 const handleEdit = (client) => {
   selectedClient.value = client;
   serverErrors.value = null;
@@ -282,7 +308,7 @@ const handleClientSuccess = async (data) => {
 </script>
 
 <style scoped>
-.clients-container { max-width: 1400px; margin: 0 auto; }
+.clients-container { }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .page-header h1 { font-size: 28px; font-weight: 600; color: #333; margin: 0 0 8px 0; }
 .subtitle { color: #666; font-size: 14px; margin: 0; }

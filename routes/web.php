@@ -260,6 +260,7 @@ Route::prefix('rapports')->middleware('permission:rapports.voir')->group(functio
         Route::get('/pdf/etat-creances', [RapportClientController::class, 'etatCreancesPdf']);
         Route::get('/pdf/brouillard-cheques', [RapportClientController::class, 'brouillardChequesPdf']);
         Route::get('/pdf/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesPdf']);
+        Route::get('/pdf/pertes-rejets', [RapportClientController::class, 'pertesRejetsPdf']);
 
         // Pages standalone (backward compat)
         Route::get('/etat-reglements', [RapportClientController::class, 'etatReglementsPage'])->name('rapports.clients.etat-reglements');

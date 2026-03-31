@@ -71,20 +71,21 @@
 
       <!-- Filters Card -->
       <el-card class="filter-card" shadow="never">
-        <el-form :inline="true" class="filter-form">
-          <el-form-item>
+        <el-form :inline="true" :model="filters" class="filter-form">
+          <el-form-item label="Recherche">
             <el-input
-              v-model="searchQuery"
-              placeholder="Rechercher (r&eacute;f&eacute;rence, institution, client...)"
+              v-model="filters.search"
+              placeholder="N° ligne, référence, institution..."
               :prefix-icon="Search"
               clearable
-              style="width: 350px"
+              style="width: 250px"
             />
           </el-form-item>
-          <el-form-item>
+
+          <el-form-item label="Client">
             <el-select
-              v-model="filterClientId"
-              placeholder="Tous les clients"
+              v-model="filters.client_id"
+              placeholder="Tous"
               clearable
               filterable
               style="width: 200px"
@@ -96,6 +97,39 @@
                 :value="client.id"
               />
             </el-select>
+          </el-form-item>
+
+          <el-form-item label="Type">
+            <el-select
+              v-model="filters.type_reglement"
+              placeholder="Tous"
+              clearable
+              style="width: 160px"
+            >
+              <el-option label="Règlement" value="reglement" />
+              <el-option label="Perte" value="perte" />
+              <el-option label="Rejet" value="rejet" />
+              <el-option label="Régularisation" value="regularisation" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Période">
+            <el-date-picker
+              v-model="filters.date_range"
+              type="daterange"
+              range-separator="à"
+              start-placeholder="Date début"
+              end-placeholder="Date fin"
+              format="DD/MM/YYYY"
+              style="width: 280px"
+            />
+          </el-form-item>
+
+          <el-form-item>
+            <el-button type="default" @click="handleReset">
+              <el-icon><RefreshLeft /></el-icon>
+              Réinitialiser
+            </el-button>
           </el-form-item>
         </el-form>
       </el-card>
@@ -117,28 +151,46 @@
           style="width: 100%"
           :default-sort="{ prop: 'date_reglement', order: 'descending' }"
         >
-          <el-table-column label="Actions" width="220" fixed="left" align="center" resizable>
+          <el-table-column label="Actions" width="180" fixed="left" align="center" resizable>
             <template #default="{ row }">
-              <el-button size="small" type="primary" @click="handleView(row)">
-                D&eacute;tails
-              </el-button>
-              <el-button size="small" type="warning" :icon="Edit" @click="handleEdit(row)" />
-              <el-popconfirm
-                title="Supprimer ce r&egrave;glement ?"
-                confirm-button-text="Oui"
-                cancel-button-text="Non"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete" />
-                </template>
-              </el-popconfirm>
+              <el-button-group>
+                <el-button :icon="View" size="small" type="primary" @click="handleView(row)">
+                  Détails
+                </el-button>
+                <el-dropdown @command="(cmd) => handleMoreActions(cmd, row)">
+                  <el-button :icon="More" size="small" />
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="edit" :icon="Edit">
+                        Modifier
+                      </el-dropdown-item>
+                      <el-dropdown-item command="facture" :icon="Document">
+                        Voir la facture
+                      </el-dropdown-item>
+                      <el-dropdown-item divided command="delete" :icon="Delete">
+                        <span style="color: #f56c6c">Supprimer</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </el-button-group>
             </template>
           </el-table-column>
 
           <el-table-column prop="date_reglement" label="Date" width="120" sortable resizable>
             <template #default="{ row }">
               {{ formatDate(row.date_reglement) }}
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="type_reglement" label="Type" width="130" sortable resizable>
+            <template #default="{ row }">
+              <el-tag
+                :type="row.type_reglement_couleur === 'danger' ? 'danger' : row.type_reglement_couleur === 'warning' ? 'warning' : row.type_reglement_couleur === 'success' ? 'success' : 'primary'"
+                size="small"
+              >
+                {{ row.type_reglement_libelle || 'Règlement' }}
+              </el-tag>
             </template>
           </el-table-column>
 
@@ -353,7 +405,8 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
   Plus, Search, Delete, Money, Calendar,
-  DocumentChecked, TrendCharts, Edit
+  DocumentChecked, TrendCharts, Edit, View, More,
+  Document, RefreshLeft
 } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -380,8 +433,12 @@ const breadcrumbs = [
   { title: 'R\u00e8glements Clients', path: '/reglements-clients' }
 ];
 
-const searchQuery = ref('');
-const filterClientId = ref(null);
+const filters = ref({
+  search: '',
+  client_id: null,
+  type_reglement: '',
+  date_range: null,
+});
 const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
 const showNewReglementModal = ref(false);
@@ -394,8 +451,8 @@ const editingReglementId = ref(null);
 const filteredReglements = computed(() => {
   let result = props.reglements;
 
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase();
+  if (filters.value.search) {
+    const q = filters.value.search.toLowerCase();
     result = result.filter(r =>
       r.facture?.reference?.toLowerCase().includes(q) ||
       r.client?.nom?.toLowerCase().includes(q) ||
@@ -405,12 +462,30 @@ const filteredReglements = computed(() => {
     );
   }
 
-  if (filterClientId.value) {
-    result = result.filter(r => r.client_id === filterClientId.value);
+  if (filters.value.client_id) {
+    result = result.filter(r => r.client_id === filters.value.client_id);
+  }
+
+  if (filters.value.type_reglement) {
+    result = result.filter(r => r.type_reglement === filters.value.type_reglement);
+  }
+
+  if (filters.value.date_range && filters.value.date_range.length === 2) {
+    const [start, end] = filters.value.date_range;
+    const startDate = new Date(start).setHours(0, 0, 0, 0);
+    const endDate = new Date(end).setHours(23, 59, 59, 999);
+    result = result.filter(r => {
+      const d = new Date(r.date_reglement).getTime();
+      return d >= startDate && d <= endDate;
+    });
   }
 
   return result;
 });
+
+const handleReset = () => {
+  filters.value = { search: '', client_id: null, type_reglement: '', date_range: null };
+};
 
 const handleView = (reglement) => {
   selectedReglement.value = reglement;
@@ -420,6 +495,24 @@ const handleView = (reglement) => {
 const handleViewFacture = (facture) => {
   if (facture?.id) {
     router.visit(`/factures-clients/${facture.id}`);
+  }
+};
+
+const handleMoreActions = (command, reglement) => {
+  switch (command) {
+    case 'edit':
+      handleEdit(reglement);
+      break;
+    case 'facture':
+      handleViewFacture(reglement.facture);
+      break;
+    case 'delete':
+      ElMessageBox.confirm(
+        'Êtes-vous sûr de vouloir supprimer ce règlement ?',
+        'Confirmation',
+        { confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', type: 'warning' }
+      ).then(() => handleDelete(reglement)).catch(() => {});
+      break;
   }
 };
 

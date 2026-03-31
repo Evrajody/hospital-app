@@ -164,9 +164,19 @@ class RapportFournisseurController extends Controller
         $dateFin = $request->input('date_fin');
         $compteId = $request->input('compte_id');
 
+        // Calculer le montant payé pour une facture à une date donnée
+        $getReglementsPeriode = function (FactureFournisseur $facture) use ($dateFin) {
+            $query = $facture->reglements()
+                ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
+            if ($dateFin) {
+                $query->where('date_reglement', '<=', $dateFin);
+            }
+            return (float) $query->sum('montant');
+        };
+
+        // Filtre de base : factures émises dans la période
         $baseFilter = function ($q) use ($dateDebut, $dateFin) {
-            $q->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-              ->where('reste_a_payer', '>', 0);
+            $q->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE]);
             if ($dateDebut) {
                 $q->where('date', '>=', $dateDebut);
             }
@@ -180,7 +190,6 @@ class RapportFournisseurController extends Controller
                 ->whereHas('factures', $baseFilter)
                 ->orderBy('nom');
 
-            // par_compte : filtrer par le compte sélectionné
             if ($mode === 'par_compte' && $compteId) {
                 $query->where('compte_comptable_id', $compteId);
             }
@@ -193,10 +202,24 @@ class RapportFournisseurController extends Controller
             foreach ($fournisseurs as $f) {
                 $factures = $f->factures()
                     ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-                    ->where('reste_a_payer', '>', 0)
                     ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
                     ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
                     ->get();
+
+                $montantDu = 0;
+                $montantReglements = 0;
+
+                foreach ($factures as $fact) {
+                    $reglePeriode = $getReglementsPeriode($fact);
+                    $restePeriode = (float) $fact->montant_net - $reglePeriode;
+                    if ($restePeriode > 0.01) {
+                        $montantDu += (float) $fact->montant_net;
+                        $montantReglements += $reglePeriode;
+                    }
+                }
+
+                $restantDu = $montantDu - $montantReglements;
+                if ($restantDu <= 0.01) continue;
 
                 $code = $f->compteComptable?->numero_compte ?? '-';
 
@@ -206,9 +229,9 @@ class RapportFournisseurController extends Controller
                     'numero_compte' => $code,
                     'libelle_compte' => $f->compteComptable?->libelle ?? '',
                     'raison_sociale' => $f->nom,
-                    'montant_du' => (float) $factures->sum('montant_net'),
-                    'montant_reglements' => (float) $factures->sum('montant_paye'),
-                    'restant_du' => (float) $factures->sum('reste_a_payer'),
+                    'montant_du' => $montantDu,
+                    'montant_reglements' => $montantReglements,
+                    'restant_du' => $restantDu,
                 ];
             }
 
@@ -218,7 +241,6 @@ class RapportFournisseurController extends Controller
                 'restant_du' => collect($data)->sum('restant_du'),
             ];
 
-            // Pour par_compte, inclure les infos du compte sélectionné
             $compteInfo = null;
             if ($mode === 'par_compte' && $compteId) {
                 $compte = CompteComptable::find($compteId);
@@ -240,7 +262,7 @@ class RapportFournisseurController extends Controller
             ];
         }
 
-        // mode === 'par_fournisseur' : un seul fournisseur sélectionné
+        // mode === 'par_fournisseur'
         $fournisseurId = $request->input('fournisseur_id');
         $query = Fournisseur::with('compteComptable')
             ->whereHas('factures', $baseFilter)
@@ -261,7 +283,6 @@ class RapportFournisseurController extends Controller
         foreach ($fournisseurs as $f) {
             $factures = $f->factures()
                 ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-                ->where('reste_a_payer', '>', 0)
                 ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
                 ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
                 ->orderBy('date')
@@ -272,6 +293,11 @@ class RapportFournisseurController extends Controller
             $totaux = array_fill_keys(array_keys($grandTotaux), 0);
 
             foreach ($factures as $fact) {
+                $reglePeriode = $getReglementsPeriode($fact);
+                $soldePeriode = (float) $fact->montant_net - $reglePeriode;
+
+                if ($soldePeriode <= 0.01) continue;
+
                 $row = [
                     'numero_piece' => $fact->numero_piece,
                     'date' => $fact->date?->format('d/m/Y'),
@@ -282,8 +308,8 @@ class RapportFournisseurController extends Controller
                     'taux_aib' => (float) $fact->taux,
                     'montant_aib' => (float) $fact->montant_reduction,
                     'montant_du' => (float) $fact->montant_net,
-                    'total_reglement' => (float) $fact->montant_paye,
-                    'solde' => (float) $fact->reste_a_payer,
+                    'total_reglement' => $reglePeriode,
+                    'solde' => $soldePeriode,
                 ];
                 $lignes[] = $row;
 
@@ -295,6 +321,8 @@ class RapportFournisseurController extends Controller
                 $totaux['total_reglement'] += $row['total_reglement'];
                 $totaux['solde'] += $row['solde'];
             }
+
+            if (empty($lignes)) continue;
 
             $data[] = [
                 'fournisseur' => "[{$code}] {$f->nom}",

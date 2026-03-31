@@ -102,7 +102,7 @@
               >
                 <el-card class="reglement-item">
                   <div class="reglement-header">
-                    <el-tag size="small" type="primary">Ch&egrave;que</el-tag>
+                    <el-tag size="small" :type="reglement.type_reglement_couleur || 'primary'">{{ reglement.type_reglement_libelle || 'Règlement' }}</el-tag>
                     <strong class="reglement-montant">{{ formatMontant(reglement.montant) }}</strong>
                   </div>
                   <div class="reglement-details">
@@ -154,7 +154,7 @@
               @submit.prevent="handleSubmit"
             >
               <el-row :gutter="20">
-                <el-col :span="8">
+                <el-col :span="6">
                   <el-form-item label="N&deg; de ligne" prop="numero_ligne">
                     <el-input
                       v-model="form.numero_ligne"
@@ -163,10 +163,20 @@
                     />
                   </el-form-item>
                 </el-col>
-                <el-col :span="8">
+                <el-col :span="6">
+                  <el-form-item label="Type" prop="type_reglement">
+                    <el-select v-model="form.type_reglement" style="width: 100%">
+                      <el-option value="reglement" label="Règlement" />
+                      <el-option value="perte" label="Perte" />
+                      <el-option value="rejet" label="Rejet" />
+                      <el-option value="regularisation" label="Régularisation" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
                   <el-form-item prop="date_reglement">
                     <template #label>
-                      <span>Date R&egrave;glement <span class="required-star">*</span></span>
+                      <span>Date <span class="required-star">*</span></span>
                     </template>
                     <el-date-picker
                       v-model="form.date_reglement"
@@ -177,7 +187,7 @@
                     />
                   </el-form-item>
                 </el-col>
-                <el-col :span="8">
+                <el-col :span="6">
                   <el-form-item prop="montant">
                     <template #label>
                       <span>Montant <span class="required-star">*</span></span>
@@ -194,79 +204,81 @@
                 </el-col>
               </el-row>
 
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="Institution">
-                    <el-select
-                      v-model="form.institution"
-                      filterable
-                      allow-create
-                      default-first-option
-                      placeholder="S&eacute;lectionner ou saisir"
-                      style="width: 100%"
-                      clearable
-                    >
-                      <el-option
-                        v-for="inst in institutions"
-                        :key="inst"
-                        :label="inst"
-                        :value="inst"
+              <template v-if="form.type_reglement !== 'perte' && form.type_reglement !== 'rejet'">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="Institution">
+                      <el-select
+                        v-model="form.institution"
+                        filterable
+                        allow-create
+                        default-first-option
+                        placeholder="S&eacute;lectionner ou saisir"
+                        style="width: 100%"
+                        clearable
+                      >
+                        <el-option
+                          v-for="inst in institutions"
+                          :key="inst"
+                          :label="inst"
+                          :value="inst"
+                        />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="R&eacute;f&eacute;rence ch&egrave;que">
+                      <el-input
+                        v-model="form.reference_cheque"
+                        placeholder="N&deg; du ch&egrave;que"
                       />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="R&eacute;f&eacute;rence ch&egrave;que">
-                    <el-input
-                      v-model="form.reference_cheque"
-                      placeholder="N&deg; du ch&egrave;que"
-                    />
-                  </el-form-item>
-                </el-col>
-              </el-row>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
 
-              <el-divider>D&eacute;p&ocirc;t bancaire</el-divider>
+                <el-divider>D&eacute;p&ocirc;t bancaire</el-divider>
 
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="Banque de d&eacute;p&ocirc;t">
-                    <el-select
-                      v-model="form.banque_depot_id"
-                      filterable
-                      placeholder="S&eacute;lectionner une banque"
-                      style="width: 100%"
-                      clearable
-                      @change="handleBanqueChange"
-                    >
-                      <el-option
-                        v-for="banque in banques"
-                        :key="banque.id"
-                        :label="banque.nom"
-                        :value="banque.id"
-                      />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="R&eacute;f&eacute;rence bordereau">
-                    <el-select
-                      v-model="form.compte_bancaire_id"
-                      filterable
-                      placeholder="S&eacute;lectionner un compte"
-                      style="width: 100%"
-                      clearable
-                      :disabled="!form.banque_depot_id"
-                    >
-                      <el-option
-                        v-for="compte in filteredComptes"
-                        :key="compte.id"
-                        :label="compte.numero_compte"
-                        :value="compte.id"
-                      />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-              </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="Banque de d&eacute;p&ocirc;t">
+                      <el-select
+                        v-model="form.banque_depot_id"
+                        filterable
+                        placeholder="S&eacute;lectionner une banque"
+                        style="width: 100%"
+                        clearable
+                        @change="handleBanqueChange"
+                      >
+                        <el-option
+                          v-for="banque in banques"
+                          :key="banque.id"
+                          :label="banque.nom"
+                          :value="banque.id"
+                        />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="R&eacute;f&eacute;rence bordereau">
+                      <el-select
+                        v-model="form.compte_bancaire_id"
+                        filterable
+                        placeholder="S&eacute;lectionner un compte"
+                        style="width: 100%"
+                        clearable
+                        :disabled="!form.banque_depot_id"
+                      >
+                        <el-option
+                          v-for="compte in filteredComptes"
+                          :key="compte.id"
+                          :label="compte.numero_compte"
+                          :value="compte.id"
+                        />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </template>
 
               <el-form-item label="Notes / Remarques">
                 <el-input
@@ -480,6 +492,7 @@ const showDetail = (reglement) => {
 
 const form = ref({
   numero_ligne: String(props.reglements.length + 1).padStart(3, '0'),
+  type_reglement: 'reglement',
   date_reglement: new Date(),
   montant: null,
   institution: '',
@@ -548,6 +561,7 @@ const handleSubmit = async () => {
       body: {
         facture_id: props.facture.id,
         numero_ligne: form.value.numero_ligne,
+        type_reglement: form.value.type_reglement,
         date_reglement: dateReglement,
         montant: form.value.montant,
         institution: form.value.institution || null,

@@ -70,30 +70,70 @@
 
       <!-- Recherche et filtres -->
       <el-card class="filter-card" shadow="never">
-        <el-form :inline="true">
-          <el-form-item>
+        <el-form :inline="true" :model="localFilters" class="filter-form">
+          <el-form-item label="Recherche">
             <el-input
               v-model="localFilters.search"
-              placeholder="Rechercher (r&eacute;f&eacute;rence, client...)"
+              placeholder="Référence, client..."
               :prefix-icon="Search"
-              style="width: 350px"
               clearable
+              style="width: 250px"
               @input="debouncedSearch"
               @clear="handleSearch"
             />
           </el-form-item>
-          <el-form-item>
+
+          <el-form-item label="Client">
             <el-select
-              v-model="localFilters.statut"
-              placeholder="Tous les statuts"
+              v-model="localFilters.client_id"
+              placeholder="Tous"
               clearable
+              filterable
               style="width: 200px"
               @change="handleSearch"
             >
-              <el-option label="Non pay&eacute;e" value="non_payee" />
-              <el-option label="Partiellement pay&eacute;e" value="partiellement_payee" />
-              <el-option label="Pay&eacute;e" value="payee" />
+              <el-option
+                v-for="client in clients"
+                :key="client.id"
+                :label="client.nom"
+                :value="client.id"
+              />
             </el-select>
+          </el-form-item>
+
+          <el-form-item label="Statut">
+            <el-select
+              v-model="localFilters.statut"
+              placeholder="Tous"
+              clearable
+              style="width: 150px"
+              @change="handleSearch"
+            >
+              <el-option label="Non payée" value="non_payee" />
+              <el-option label="Partielle" value="partiellement_payee" />
+              <el-option label="Payée" value="payee" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Période">
+            <el-date-picker
+              v-model="localFilters.date_range"
+              type="daterange"
+              range-separator="à"
+              start-placeholder="Date début"
+              end-placeholder="Date fin"
+              format="DD/MM/YYYY"
+              value-format="YYYY-MM-DD"
+              style="width: 280px"
+              @change="handleSearch"
+            />
+          </el-form-item>
+
+          <el-form-item>
+            <el-button type="default" @click="handleReset">
+              <el-icon><RefreshLeft /></el-icon>
+              Réinitialiser
+            </el-button>
           </el-form-item>
         </el-form>
       </el-card>
@@ -115,29 +155,29 @@
           @sort-change="handleSortChange"
           class="factures-table"
         >
-          <el-table-column label="Actions" width="200" fixed="left" align="center" resizable>
+          <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
             <template #default="{ row }">
-              <el-button-group>
-                <el-button :icon="View" size="small" type="primary" @click="handleView(row)">
-                  D&eacute;tails
+              <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, row)">
+                <el-button size="small" type="primary">
+                  Actions <el-icon class="el-icon--right"><ArrowDown /></el-icon>
                 </el-button>
-                <el-dropdown @command="(cmd) => handleAction(cmd, row)">
-                  <el-button :icon="More" size="small" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item v-if="row.statut !== 'payee'" command="regler" :icon="Money">
-                        R&eacute;gler
-                      </el-dropdown-item>
-                      <el-dropdown-item command="edit" :icon="Edit">
-                        Modifier
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="delete" :icon="Delete">
-                        <span style="color: #f56c6c">Supprimer</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </el-button-group>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="view" :icon="View">
+                      Voir
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="row.statut !== 'payee'" command="regler" :icon="Money">
+                      Régler
+                    </el-dropdown-item>
+                    <el-dropdown-item command="edit" :icon="Edit">
+                      Modifier
+                    </el-dropdown-item>
+                    <el-dropdown-item divided command="delete" :icon="Delete">
+                      <span style="color: #f56c6c">Supprimer</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </template>
           </el-table-column>
 
@@ -224,8 +264,8 @@ import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
 import {
-  Plus, Search, Edit, Delete, View, More,
-  Document, Money, SuccessFilled, Warning
+  Plus, Search, Edit, Delete, View, More, ArrowDown,
+  Document, Money, SuccessFilled, Warning, RefreshLeft
 } from '@element-plus/icons-vue';
 import { fetchApi } from '@/Composables/useFetch';
 
@@ -267,7 +307,11 @@ const factureModalRef = ref(null);
 
 const localFilters = reactive({
   search: props.filters?.search || '',
-  statut: props.filters?.statut || ''
+  client_id: props.filters?.client_id || null,
+  statut: props.filters?.statut || '',
+  date_range: (props.filters?.date_debut && props.filters?.date_fin)
+    ? [props.filters.date_debut, props.filters.date_fin]
+    : null,
 });
 
 const localPagination = reactive({
@@ -275,32 +319,46 @@ const localPagination = reactive({
   per_page: props.pagination.per_page
 });
 
+const buildSearchParams = (page = 1) => {
+  const params = {
+    per_page: localPagination.per_page,
+    page,
+  };
+  if (localFilters.search) params.search = localFilters.search;
+  if (localFilters.client_id) params.client_id = localFilters.client_id;
+  if (localFilters.statut) params.statut = localFilters.statut;
+  if (localFilters.date_range && localFilters.date_range.length === 2) {
+    params.date_debut = localFilters.date_range[0];
+    params.date_fin = localFilters.date_range[1];
+  }
+  return params;
+};
+
 const handleSearch = () => {
   loading.value = true;
-  router.get('/factures-clients', {
-    search: localFilters.search || undefined,
-    statut: localFilters.statut || undefined,
-    per_page: localPagination.per_page,
-    page: 1
-  }, {
+  router.get('/factures-clients', buildSearchParams(1), {
     preserveState: true,
     preserveScroll: true,
     onFinish: () => { loading.value = false; }
   });
 };
 
+const handleReset = () => {
+  localFilters.search = '';
+  localFilters.client_id = null;
+  localFilters.statut = '';
+  localFilters.date_range = null;
+  handleSearch();
+};
+
 const debouncedSearch = debounce(handleSearch, 300);
 
 const handleSortChange = ({ prop, order }) => {
   loading.value = true;
-  router.get('/factures-clients', {
-    search: localFilters.search || undefined,
-    statut: localFilters.statut || undefined,
-    per_page: localPagination.per_page,
-    page: localPagination.current_page,
-    sort: prop,
-    order: order === 'ascending' ? 'asc' : 'desc'
-  }, {
+  const params = buildSearchParams(localPagination.current_page);
+  params.sort = prop;
+  params.order = order === 'ascending' ? 'asc' : 'desc';
+  router.get('/factures-clients', params, {
     preserveState: true,
     preserveScroll: true,
     onFinish: () => { loading.value = false; }
@@ -315,12 +373,7 @@ const handleSizeChange = (size) => {
 
 const handlePageChange = (page) => {
   loading.value = true;
-  router.get('/factures-clients', {
-    search: localFilters.search || undefined,
-    statut: localFilters.statut || undefined,
-    per_page: localPagination.per_page,
-    page
-  }, {
+  router.get('/factures-clients', buildSearchParams(page), {
     preserveState: true,
     preserveScroll: true,
     onFinish: () => { loading.value = false; }
@@ -365,6 +418,9 @@ const handleEdit = (facture) => {
 
 const handleAction = (command, facture) => {
   switch (command) {
+    case 'view':
+      handleView(facture);
+      break;
     case 'regler':
       handleRegler(facture);
       break;
@@ -446,6 +502,7 @@ const formatDate = (date) => {
 .page-header h1 { font-size: 28px; font-weight: 600; color: #333; margin: 0 0 8px 0; }
 .subtitle { color: #666; font-size: 14px; margin: 0; }
 .filter-card { margin-bottom: 20px; border: 1px solid #e8e8e8; }
+.filter-form { display: flex; flex-wrap: wrap; gap: 8px; }
 .stats-row { margin-bottom: 20px; }
 .stat-card { display: flex; align-items: center; gap: 16px; }
 .stat-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; }

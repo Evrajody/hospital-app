@@ -14,6 +14,7 @@ class ReglementClient extends Model
 
     protected $fillable = [
         'numero_ligne',
+        'type_reglement',
         'date_reglement',
         'facture_id',
         'client_id',
@@ -28,6 +29,41 @@ class ReglementClient extends Model
         'created_by',
         'created_by_name',
     ];
+
+    const TYPE_REGLEMENT = 'reglement';
+    const TYPE_PERTE = 'perte';
+    const TYPE_REJET = 'rejet';
+    const TYPE_REGULARISATION = 'regularisation';
+
+    public static function getTypesReglement(): array
+    {
+        return [
+            ['value' => self::TYPE_REGLEMENT, 'label' => 'Règlement'],
+            ['value' => self::TYPE_PERTE, 'label' => 'Perte'],
+            ['value' => self::TYPE_REJET, 'label' => 'Rejet'],
+            ['value' => self::TYPE_REGULARISATION, 'label' => 'Régularisation'],
+        ];
+    }
+
+    public function getTypeReglementLibelleAttribute(): string
+    {
+        return match($this->type_reglement) {
+            self::TYPE_PERTE => 'Perte',
+            self::TYPE_REJET => 'Rejet',
+            self::TYPE_REGULARISATION => 'Régularisation',
+            default => 'Règlement',
+        };
+    }
+
+    public function getTypeReglementCouleurAttribute(): string
+    {
+        return match($this->type_reglement) {
+            self::TYPE_PERTE => 'danger',
+            self::TYPE_REJET => 'warning',
+            self::TYPE_REGULARISATION => 'success',
+            default => 'primary',
+        };
+    }
 
     protected $casts = [
         'date_reglement' => 'date',
@@ -89,6 +125,9 @@ class ReglementClient extends Model
         return [
             'id' => $this->id,
             'numero_ligne' => $this->numero_ligne,
+            'type_reglement' => $this->type_reglement ?? 'reglement',
+            'type_reglement_libelle' => $this->type_reglement_libelle,
+            'type_reglement_couleur' => $this->type_reglement_couleur,
             'date_reglement' => $this->date_reglement?->format('Y-m-d'),
             'facture_id' => $this->facture_id,
             'facture' => [

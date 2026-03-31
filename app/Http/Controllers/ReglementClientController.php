@@ -88,6 +88,7 @@ class ReglementClientController extends Controller
             'date_reglement' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
+            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet,regularisation'],
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
@@ -110,6 +111,7 @@ class ReglementClientController extends Controller
 
             $reglement = ReglementClient::create([
                 'numero_ligne' => $request->numero_ligne,
+                'type_reglement' => $request->type_reglement ?? 'reglement',
                 'date_reglement' => $request->date_reglement,
                 'facture_id' => $facture->id,
                 'client_id' => $facture->client_id,
@@ -160,6 +162,7 @@ class ReglementClientController extends Controller
             'date_reglement' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
+            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet,regularisation'],
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
@@ -186,6 +189,7 @@ class ReglementClientController extends Controller
             $reglement->update([
                 'date_reglement' => $request->date_reglement,
                 'montant' => $nouveauMontant,
+                'type_reglement' => $request->type_reglement ?? $reglement->type_reglement,
                 'numero_ligne' => $request->numero_ligne,
                 'institution' => $request->institution,
                 'reference_cheque' => $request->reference_cheque,

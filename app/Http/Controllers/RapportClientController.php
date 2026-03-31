@@ -403,6 +403,104 @@ class RapportClientController extends Controller
         ];
     }
 
+    private function buildPertesRejetsData(Request $request): array
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+        $typeFilter = $request->input('type_reglement'); // perte, rejet, regularisation or null for all
+        $clientId = $request->input('client_id');
+
+        $query = ReglementClient::with(['client.compteComptable', 'facture', 'banqueDepot'])
+            ->whereIn('type_reglement', ['perte', 'rejet', 'regularisation']);
+
+        if ($typeFilter) {
+            $query->where('type_reglement', $typeFilter);
+        }
+
+        if ($clientId) {
+            $query->where('client_id', $clientId);
+        }
+
+        if ($dateDebut) {
+            $query->where('date_reglement', '>=', $dateDebut);
+        }
+        if ($dateFin) {
+            $query->where('date_reglement', '<=', $dateFin);
+        }
+
+        $reglements = $query->orderBy('date_reglement')->orderBy('id')->get();
+
+        $data = [];
+        $totaux = ['pertes' => 0, 'rejets' => 0, 'regularisations' => 0];
+
+        foreach ($reglements as $r) {
+            $montant = (float) $r->montant;
+            $type = $r->type_reglement;
+
+            if ($type === 'perte') $totaux['pertes'] += $montant;
+            elseif ($type === 'rejet') $totaux['rejets'] += $montant;
+            elseif ($type === 'regularisation') $totaux['regularisations'] += $montant;
+
+            $data[] = [
+                'id' => $r->id,
+                'date_reglement' => $r->date_reglement?->format('d/m/Y'),
+                'date_reglement_raw' => $r->date_reglement?->format('Y-m-d'),
+                'type_reglement' => $type,
+                'type_reglement_libelle' => $r->type_reglement_libelle,
+                'type_reglement_couleur' => $r->type_reglement_couleur,
+                'client_nom' => $r->client_nom ?: $r->client?->nom,
+                'client_code' => $r->client?->compteComptable?->numero_compte ?? '-',
+                'facture_reference' => $r->facture_reference ?: $r->facture?->reference,
+                'montant' => $montant,
+                'reference_cheque' => $r->reference_cheque,
+                'institution' => $r->institution,
+                'banque_depot' => $r->banqueDepot?->nom,
+                'observations' => $r->observations,
+            ];
+        }
+
+        $totaux['solde'] = $totaux['pertes'] + $totaux['rejets'] - $totaux['regularisations'];
+
+        // Grouper par client pour le PDF
+        $dataParClient = [];
+        foreach ($reglements->groupBy('client_id') as $cId => $clientReglements) {
+            $client = $clientReglements->first()->client;
+            $lignes = [];
+            $totalClient = 0;
+
+            foreach ($clientReglements as $index => $r) {
+                $montant = (float) $r->montant;
+                $totalClient += $montant;
+                $lignes[] = [
+                    'numero' => $index + 1,
+                    'date_reglement' => $r->date_reglement?->format('d/m/Y'),
+                    'type_reglement' => $r->type_reglement,
+                    'type_reglement_libelle' => $r->type_reglement_libelle,
+                    'facture_reference' => $r->facture_reference ?: $r->facture?->reference,
+                    'montant' => $montant,
+                    'observations' => $r->observations,
+                ];
+            }
+
+            $dataParClient[] = [
+                'client_id' => $cId,
+                'numero_compte' => $client?->compteComptable?->numero_compte ?? '-',
+                'raison_sociale' => $client?->nom ?? '-',
+                'lignes' => $lignes,
+                'total' => $totalClient,
+            ];
+        }
+
+        return [
+            'data' => $data,
+            'dataParClient' => $dataParClient,
+            'totaux' => $totaux,
+            'periode' => ['debut' => $dateDebut, 'fin' => $dateFin],
+            'typeFilter' => $typeFilter,
+            'selectedClientId' => $clientId ? (int) $clientId : null,
+        ];
+    }
+
     // ==========================================
     // JSON API ENDPOINTS
     // ==========================================
@@ -429,7 +527,7 @@ class RapportClientController extends Controller
 
     public function pertesRejets(Request $request): JsonResponse
     {
-        return response()->json(['data' => [], 'message' => 'En cours de développement']);
+        return response()->json($this->buildPertesRejetsData($request));
     }
 
     // ==========================================
@@ -492,6 +590,20 @@ class RapportClientController extends Controller
             : $pdf->download('chiffre-affaires.pdf');
     }
 
+    public function pertesRejetsPdf(Request $request)
+    {
+        $result = $this->buildPertesRejetsData($request);
+        $result['titre'] = 'Pertes, Rejets et Régularisations';
+        $result['generatedAt'] = now()->format('d/m/Y à H:i');
+
+        $pdf = Pdf::loadView('pdf.rapports-clients.pertes-rejets', $result);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('pertes-rejets.pdf')
+            : $pdf->download('pertes-rejets.pdf');
+    }
+
     // ==========================================
     // STANDALONE PAGES (backward compat)
     // ==========================================
@@ -523,14 +635,10 @@ class RapportClientController extends Controller
         return Inertia::render('Rapports/Clients/ChiffreAffaires', $result);
     }
 
-    public function pertesRejetsPage()
+    public function pertesRejetsPage(Request $request)
     {
-        $periode = ['debut' => '2025-01-01', 'fin' => '2025-01-31'];
-        return Inertia::render('Rapports/Clients/PertesRejets', [
-            'pertes' => [],
-            'rejets' => [],
-            'regularisations' => [],
-            'periode' => $periode,
-        ]);
+        $result = $this->buildPertesRejetsData($request);
+        $result['clients'] = $this->getClientsList();
+        return Inertia::render('Rapports/Clients/PertesRejets', $result);
     }
 }
