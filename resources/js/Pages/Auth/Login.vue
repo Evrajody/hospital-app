@@ -51,6 +51,7 @@
               type="primary"
               style="width: 100%"
               size="large"
+              native-type="submit"
               :loading="form.processing"
               @click="handleLogin"
             >
@@ -73,7 +74,7 @@
           <h2>Système de Gestion Financière</h2>
           <p>
             Une plateforme complète pour gérer efficacement les opérations
-            financières de votre établissement
+            financières
           </p>
           <div class="features-list">
             <div class="feature-item">

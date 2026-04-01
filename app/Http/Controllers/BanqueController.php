@@ -33,9 +33,12 @@ class BanqueController extends Controller
 
                 return [
                     'id' => $c->id,
+                    'banque_id' => $c->banque_id,
                     'nom' => $c->banque->nom . ' - ' . $c->numero_compte,
                     'banque' => $c->banque->nom,
                     'numero' => $c->numero_compte,
+                    'compte_comptable' => $c->compteOhada ? $c->compteOhada->numero_compte : null,
+                    'compte_ohada_id' => $c->compte_ohada_id,
                     'compte_ohada' => $c->compteOhada ? $c->compteOhada->numero_compte . ' - ' . $c->compteOhada->libelle : null,
                     'solde' => (float) $c->solde,
                     'observations' => $c->observations,

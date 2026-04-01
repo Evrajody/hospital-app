@@ -960,6 +960,12 @@ class RapportFournisseurController extends Controller
         return Inertia::render('Rapports/Fournisseurs/Index', [
             'fournisseurs' => $this->getFournisseursList(),
             'comptes' => $this->getComptesList(),
+        ]);
+    }
+
+    public function indexBanques()
+    {
+        return Inertia::render('Rapports/Banques/Index', [
             'banques' => $this->getBanquesList(),
         ]);
     }

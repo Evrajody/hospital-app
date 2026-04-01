@@ -95,6 +95,8 @@
                 v-for="banque in listeBanques"
                 :key="banque.id"
                 class="banque-item"
+                :class="{ 'banque-item-active': selectedBanqueId === banque.id }"
+                @click="selectBanque(banque)"
               >
                 <div class="banque-item-icon">
                   <el-icon><OfficeBuilding /></el-icon>
@@ -135,9 +137,12 @@
 
         <!-- Comptes Bancaires - Right Side -->
         <el-col :span="18">
-          <el-row :gutter="16">
+          <div v-if="!selectedBanqueId" class="empty-comptes">
+            <el-empty description="Sélectionnez une banque pour afficher ses comptes" :image-size="80" />
+          </div>
+          <el-row v-else :gutter="16">
             <el-col
-              v-for="compte in banques"
+              v-for="compte in filteredComptes"
               :key="compte.id"
               :span="12"
             >
@@ -223,6 +228,9 @@
                 </div>
               </el-card>
             </el-col>
+            <el-col v-if="filteredComptes.length === 0" :span="24">
+              <el-empty description="Aucun compte pour cette banque" :image-size="60" />
+            </el-col>
           </el-row>
         </el-col>
       </el-row>
@@ -252,25 +260,53 @@
     <el-dialog
       v-model="showEditCompteModal"
       title="Modifier le Compte Bancaire"
-      width="500px"
+      width="550px"
       :close-on-click-modal="false"
+      :close-on-press-escape="false"
     >
-      <el-form v-if="editingCompte" label-position="top" size="large">
-        <el-form-item label="Numéro de compte">
-          <el-input v-model="editForm.numero_compte" placeholder="Numéro de compte" />
-        </el-form-item>
-        <el-form-item label="Compte OHADA">
-          <el-select v-model="editForm.compte_ohada_id" filterable placeholder="Sélectionner" style="width: 100%">
+      <el-form v-if="editingCompte" ref="editFormRef" :model="editForm" :rules="editRules" label-position="top" size="large">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="Banque" prop="banque_id">
+              <el-select
+                v-model="editForm.banque_id"
+                placeholder="Sélectionner"
+                filterable
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="banque in listeBanques"
+                  :key="banque.id"
+                  :label="banque.nom"
+                  :value="banque.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Numéro de compte" prop="numero_compte">
+              <el-input v-model="editForm.numero_compte" placeholder="Ex: 001234567890" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="Compte OHADA" prop="compte_ohada_id">
+          <el-select v-model="editForm.compte_ohada_id" filterable placeholder="Sélectionner le compte OHADA" style="width: 100%">
             <el-option
               v-for="c in comptesOhada"
               :key="c.id"
               :label="`${c.numero} - ${c.libelle}`"
               :value="c.id"
-            />
+            >
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <el-tag size="small" type="info">{{ c.numero }}</el-tag>
+                <span style="font-size: 13px; color: #6b7280;">{{ c.libelle }}</span>
+              </div>
+            </el-option>
           </el-select>
+          <div style="font-size: 12px; color: #909399; margin-top: 4px;">Compte de trésorerie (classe 5)</div>
         </el-form-item>
         <el-form-item label="Observations">
-          <el-input v-model="editForm.observations" type="textarea" :rows="3" />
+          <el-input v-model="editForm.observations" type="textarea" :rows="2" placeholder="Observations..." />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -285,7 +321,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ApprovisionnementBanqueModal from '@/Components/Modals/ApprovisionnementBanqueModal.vue';
@@ -344,12 +380,29 @@ const breadcrumbs = [
 ];
 
 // State
+const selectedBanqueId = ref(null);
+
+const filteredComptes = computed(() => {
+  if (!selectedBanqueId.value) return [];
+  return props.banques.filter(c => c.banque_id === selectedBanqueId.value);
+});
+
+const selectBanque = (banque) => {
+  selectedBanqueId.value = selectedBanqueId.value === banque.id ? null : banque.id;
+};
+
 const showApprovisionnementModal = ref(false);
 const showCompteModal = ref(false);
 const showBanqueModal = ref(false);
 const showEditCompteModal = ref(false);
 const editingCompte = ref(null);
-const editForm = reactive({ numero_compte: '', compte_ohada_id: null, observations: '' });
+const editFormRef = ref(null);
+const editForm = reactive({ banque_id: null, numero_compte: '', compte_ohada_id: null, observations: '' });
+const editRules = {
+  banque_id: [{ required: true, message: 'La banque est obligatoire', trigger: 'change' }],
+  numero_compte: [{ required: true, message: 'Le numéro de compte est obligatoire', trigger: 'blur' }],
+  compte_ohada_id: [{ required: true, message: 'Le compte OHADA est obligatoire', trigger: 'change' }],
+};
 const editLoading = ref(false);
 const selectedCompteId = ref(null);
 
@@ -426,14 +479,10 @@ const handleMoreActions = async (command, compte) => {
   switch (command) {
     case 'edit':
       editingCompte.value = compte;
+      editForm.banque_id = compte.banque_id;
       editForm.numero_compte = compte.numero;
-      editForm.compte_ohada_id = null;
-      editForm.observations = compte.remarques || '';
-      // Trouver le compte ohada correspondant
-      if (compte.compte_comptable) {
-        const found = props.comptesOhada.find(c => c.numero === compte.compte_comptable);
-        if (found) editForm.compte_ohada_id = found.id;
-      }
+      editForm.compte_ohada_id = compte.compte_ohada_id || null;
+      editForm.observations = compte.observations || '';
       showEditCompteModal.value = true;
       break;
     case 'delete':
@@ -453,7 +502,10 @@ const handleMoreActions = async (command, compte) => {
 };
 
 const submitEditCompte = async () => {
-  if (!editingCompte.value) return;
+  if (!editingCompte.value || !editFormRef.value) return;
+  try {
+    await editFormRef.value.validate();
+  } catch { return; }
   editLoading.value = true;
   try {
     const response = await fetchApi(`/api/comptes-bancaires/${editingCompte.value.id}`, {
@@ -805,8 +857,24 @@ export default {
   transition: background-color 0.2s;
 }
 
+.banque-item {
+  cursor: pointer;
+}
+
 .banque-item:hover {
   background-color: #f3f4f6;
+}
+
+.banque-item-active {
+  background-color: #dbeafe !important;
+  border: 1px solid #93c5fd;
+}
+
+.empty-comptes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
 }
 
 .banque-item-icon {

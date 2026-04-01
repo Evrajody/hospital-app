@@ -243,6 +243,13 @@ Route::prefix('rapports')->middleware('permission:rapports.voir')->group(functio
         Route::get('/api/factures-soldes', [RapportFournisseurController::class, 'facturesSoldes']);
     });
 
+    // Rapports Banques
+    Route::prefix('banques')->group(function () {
+        Route::get('/', [RapportFournisseurController::class, 'indexBanques'])->name('rapports.banques');
+        Route::get('/api/situation-banques', [RapportFournisseurController::class, 'situationBanques']);
+        Route::get('/pdf/situation-banques', [RapportFournisseurController::class, 'situationBanquesPdf']);
+    });
+
     // Rapports Clients
     Route::prefix('clients')->group(function () {
         // Page index (dashboard avec onglets)

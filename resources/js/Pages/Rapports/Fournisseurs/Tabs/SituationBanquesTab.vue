@@ -224,7 +224,8 @@ const fetchData = async () => {
     if (mode.value === 'par_banque' && banqueId.value) {
       params.append('banque_id', banqueId.value);
     }
-    const res = await fetch(`/rapports/fournisseurs/api/situation-banques?${params}`);
+    const basePath = window.location.pathname.includes('/rapports/banques') ? '/rapports/banques' : '/rapports/fournisseurs';
+    const res = await fetch(`${basePath}/api/situation-banques?${params}`);
     const json = await res.json();
 
     titre.value = json.titre || '';
@@ -260,14 +261,16 @@ const buildPdfParams = () => {
   return params;
 };
 
+const getBasePath = () => window.location.pathname.includes('/rapports/banques') ? '/rapports/banques' : '/rapports/fournisseurs';
+
 const exportPdf = () => {
-  window.open(`/rapports/fournisseurs/pdf/situation-banques?${buildPdfParams()}`, '_blank');
+  window.open(`${getBasePath()}/pdf/situation-banques?${buildPdfParams()}`, '_blank');
 };
 
 const printReport = () => {
   const params = buildPdfParams();
   params.append('action', 'stream');
-  const w = window.open(`/rapports/fournisseurs/pdf/situation-banques?${params}`, '_blank');
+  const w = window.open(`${getBasePath()}/pdf/situation-banques?${params}`, '_blank');
   if (w) w.onload = () => setTimeout(() => w.print(), 500);
 };
 </script>

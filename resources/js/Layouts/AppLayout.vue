@@ -57,17 +57,18 @@
           </el-menu-item>
         </el-menu-item-group>
 
-        <!-- Plan Comptable -->
-        <el-menu-item v-if="can('plan-comptable.voir')" index="/plan-comptable" @click="navigate('/plan-comptable')">
-          <el-icon><Notebook /></el-icon>
-          <template #title>Plan Comptable</template>
-        </el-menu-item>
-
-        <!-- Banques -->
-        <el-menu-item v-if="can('banques.voir')" index="/banques" @click="navigate('/banques')">
-          <el-icon><CreditCard /></el-icon>
-          <template #title>Banques</template>
-        </el-menu-item>
+        <!-- Autres -->
+        <el-menu-item-group v-if="can('plan-comptable.voir') || can('banques.voir')">
+          <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><More /></el-icon> Autres</span></template>
+          <el-menu-item v-if="can('plan-comptable.voir')" index="/plan-comptable" @click="navigate('/plan-comptable')">
+            <el-icon><Notebook /></el-icon>
+            <template #title>Plan Comptable</template>
+          </el-menu-item>
+          <el-menu-item v-if="can('banques.voir')" index="/banques" @click="navigate('/banques')">
+            <el-icon><CreditCard /></el-icon>
+            <template #title>Banques</template>
+          </el-menu-item>
+        </el-menu-item-group>
 
         <!-- Rapports -->
         <el-menu-item-group v-if="can('rapports.voir')">
@@ -77,6 +78,9 @@
           </el-menu-item>
           <el-menu-item index="/rapports/clients" @click="navigate('/rapports/clients')">
             <template #title>Clients</template>
+          </el-menu-item>
+          <el-menu-item index="/rapports/banques" @click="navigate('/rapports/banques')">
+            <template #title>Banques</template>
           </el-menu-item>
         </el-menu-item-group>
 
@@ -164,6 +168,7 @@
 import { ref, computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useInactivityLogout } from '@/Composables/useInactivityLogout';
 import {
   OfficeBuilding,
   HomeFilled,
@@ -180,7 +185,8 @@ import {
   Expand,
   Fold,
   List,
-  Key
+  Key,
+  More
 } from '@element-plus/icons-vue';
 
 // Props
@@ -201,6 +207,9 @@ const authUser = computed(() => page.props.auth?.user || props.user);
 
 // Permissions
 const { can } = usePermissions();
+
+// Auto-logout on inactivity
+useInactivityLogout();
 
 // State
 const isCollapse = ref(false);
@@ -282,6 +291,14 @@ const handleCommand = (command) => {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+:deep(.el-menu-item-group) {
+  margin-top: 8px;
+}
+
+:deep(.el-menu-item-group__title) {
+  padding-bottom: 4px;
 }
 
 .sidebar-toggle {

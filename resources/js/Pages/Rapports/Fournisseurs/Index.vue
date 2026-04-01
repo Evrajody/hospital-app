@@ -71,16 +71,6 @@
           <PointPeriodiqueTab />
         </el-tab-pane>
 
-        <el-tab-pane name="situation-banques" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><OfficeBuilding /></el-icon>
-              Situation banques
-            </span>
-          </template>
-          <SituationBanquesTab :banques="banques" />
-        </el-tab-pane>
-
         <el-tab-pane name="bordereau-transmission" lazy>
           <template #label>
             <span class="tab-label">
@@ -127,7 +117,6 @@ import {
   Tickets,
   Money,
   DataBoard,
-  OfficeBuilding,
   Coin,
 } from '@element-plus/icons-vue';
 
@@ -136,7 +125,6 @@ import SituationFournisseursTab from './Tabs/SituationFournisseursTab.vue';
 import FacturesRegleesTab from './Tabs/FacturesRegleesTab.vue';
 import DeclarationAibTab from './Tabs/DeclarationAibTab.vue';
 import PointPeriodiqueTab from './Tabs/PointPeriodiqueTab.vue';
-import SituationBanquesTab from './Tabs/SituationBanquesTab.vue';
 import BordereauTransmissionTab from './Tabs/BordereauTransmissionTab.vue';
 import RecapChargesTab from './Tabs/RecapChargesTab.vue';
 import RecapInvestissementsTab from './Tabs/RecapInvestissementsTab.vue';
@@ -146,7 +134,6 @@ const props = defineProps({
   user: { type: Object, default: () => ({}) },
   fournisseurs: { type: Array, default: () => [] },
   comptes: { type: Array, default: () => [] },
-  banques: { type: Array, default: () => [] },
 });
 
 const breadcrumbs = [
