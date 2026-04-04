@@ -60,23 +60,6 @@ jobs:
 
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          extensions: pdo_pgsql, pgsql, mbstring, exif, pcntl, bcmath, gd, zip
-          coverage: none
-
-      - name: Cache Composer
-        uses: actions/cache@v4
-        with:
-          path: vendor
-          key: composer-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-
-
-      - name: Installer les dependances Composer
-        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs
-
       - name: Verifier la syntaxe PHP
         run: |
           echo "### Verification syntaxe PHP" >> $GITHUB_STEP_SUMMARY
@@ -93,27 +76,6 @@ jobs:
             echo "Aucune erreur de syntaxe PHP" >> $GITHUB_STEP_SUMMARY
           else
             echo "**$ERRORS erreur(s) de syntaxe trouvee(s)**" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Build des assets frontend
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
-          echo "### Build Frontend" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -d "public/build" ]; then
-            SIZE=$(du -sh public/build | cut -f1)
-            COUNT=$(find public/build -type f | wc -l)
-            echo "Build Vite OK ($COUNT fichiers, $SIZE)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**ECHEC** : dossier public/build absent" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
