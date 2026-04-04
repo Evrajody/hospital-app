@@ -75,7 +75,7 @@ jobs:
           restore-keys: composer-
 
       - name: Installer les dependances Composer
-        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs
 
       - name: Verifier la syntaxe PHP
         run: |
