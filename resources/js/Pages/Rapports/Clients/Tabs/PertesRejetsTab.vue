@@ -11,6 +11,15 @@
           </el-select>
         </el-form-item>
 
+        <el-form-item label="Type client">
+          <el-select v-model="selectedTypeClient" placeholder="Tous" clearable style="width: 180px">
+            <el-option label="Société" value="societe" />
+            <el-option label="Divers" value="divers" />
+            <el-option label="Personnel" value="personnel" />
+            <el-option label="Autre" value="autre" />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="Client">
           <el-select
             v-model="selectedClientId"
@@ -93,6 +102,11 @@
               <small style="color: #999">{{ row.client_code }}</small>
             </template>
           </el-table-column>
+          <el-table-column label="Type" min-width="100">
+            <template #default="{ row }">
+              <el-tag size="small" effect="plain">{{ row.type_client_label || '-' }}</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="facture_reference" label="Réf. Facture" min-width="120" />
           <el-table-column label="Montant" min-width="120" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
@@ -123,6 +137,7 @@ const props = defineProps({
 });
 
 const selectedType = ref('');
+const selectedTypeClient = ref('');
 const selectedClientId = ref(null);
 const dateDebut = ref('');
 const dateFin = ref('');
@@ -136,6 +151,7 @@ const formatMontant = (v) => new Intl.NumberFormat('fr-FR', { minimumFractionDig
 const buildParams = () => {
   const params = new URLSearchParams();
   if (selectedType.value) params.append('type_reglement', selectedType.value);
+  if (selectedTypeClient.value) params.append('type_client', selectedTypeClient.value);
   if (selectedClientId.value) params.append('client_id', selectedClientId.value);
   if (dateDebut.value) params.append('date_debut', dateDebut.value);
   if (dateFin.value) params.append('date_fin', dateFin.value);

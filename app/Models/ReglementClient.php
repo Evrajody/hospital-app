@@ -21,11 +21,13 @@ class ReglementClient extends Model
         'client_nom',
         'facture_reference',
         'montant',
+        'montant_rejet',
         'institution',
         'reference_cheque',
         'banque_depot_id',
         'compte_bancaire_id',
         'observations',
+        'bordereau_depot_path',
         'created_by',
         'created_by_name',
     ];

@@ -3,6 +3,17 @@
     <!-- Filtres -->
     <div class="filters-section">
       <el-form :inline="true" class="filters-form">
+        <el-form-item label="Banque">
+          <el-select v-model="selectedBanqueId" placeholder="Toutes" clearable style="width: 200px">
+            <el-option
+              v-for="b in banques"
+              :key="b.id"
+              :label="b.nom"
+              :value="b.id"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="Date début">
           <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date début" />
         </el-form-item>
@@ -77,8 +88,13 @@
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 
+const props = defineProps({
+  banques: { type: Array, default: () => [] },
+});
+
 const dateDebut = ref('');
 const dateFin = ref('');
+const selectedBanqueId = ref(null);
 const loading = ref(false);
 const fetched = ref(false);
 const data = ref([]);
@@ -98,6 +114,7 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const params = new URLSearchParams({ date_debut: dateDebut.value, date_fin: dateFin.value });
+    if (selectedBanqueId.value) params.append('banque_id', selectedBanqueId.value);
     const res = await fetch(`/rapports/clients/api/brouillard-cheques?${params}`);
     const json = await res.json();
     data.value = json.data || [];
@@ -132,7 +149,11 @@ const getImputationSummary = ({ columns }) => {
   return sums;
 };
 
-const buildPdfParams = () => new URLSearchParams({ date_debut: dateDebut.value, date_fin: dateFin.value });
+const buildPdfParams = () => {
+  const p = new URLSearchParams({ date_debut: dateDebut.value, date_fin: dateFin.value });
+  if (selectedBanqueId.value) p.append('banque_id', selectedBanqueId.value);
+  return p;
+};
 
 const exportPdf = () => {
   window.open(`/rapports/clients/pdf/brouillard-cheques?${buildPdfParams()}`, '_blank');

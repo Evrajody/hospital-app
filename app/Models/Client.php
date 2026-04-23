@@ -17,8 +17,20 @@ class Client extends Model
     protected $fillable = [
         'nom',
         'telephone',
+        'ifu',
+        'type_client',
+        'observation',
         'adresse',
         'compte_comptable_id',
+    ];
+
+    public const TYPES = ['societe', 'divers', 'personnel', 'autre'];
+
+    public const TYPES_LABELS = [
+        'societe' => 'Société',
+        'divers' => 'Divers',
+        'personnel' => 'Personnel',
+        'autre' => 'Autre',
     ];
 
     protected $casts = [
@@ -54,7 +66,8 @@ class Client extends Model
     {
         return $query->where(function ($q) use ($terme) {
             $q->where('nom', 'ILIKE', "%{$terme}%")
-              ->orWhere('telephone', 'LIKE', "%{$terme}%");
+              ->orWhere('telephone', 'LIKE', "%{$terme}%")
+              ->orWhere('ifu', 'LIKE', "%{$terme}%");
         });
     }
 
@@ -78,6 +91,10 @@ class Client extends Model
             'id' => $this->id,
             'nom' => $this->nom,
             'telephone' => $this->telephone,
+            'ifu' => $this->ifu,
+            'type_client' => $this->type_client,
+            'type_client_label' => self::TYPES_LABELS[$this->type_client] ?? $this->type_client,
+            'observation' => $this->observation,
             'adresse' => $this->adresse,
             'compte_comptable_id' => $this->compte_comptable_id,
             'compte_comptable' => $this->compteComptable ? [

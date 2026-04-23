@@ -14,9 +14,10 @@
                 <tr>
                     <th style="width: 80px">N&deg;PC</th>
                     <th style="width: 70px">Date AIB</th>
-                    <th style="width: 180px">Fournisseur</th>
+                    <th style="width: 95px">IFU</th>
+                    <th style="width: 160px">Fournisseur</th>
                     <th>Libell&eacute; facture</th>
-                    <th class="montant" style="width: 90px">Mt Fac</th>
+                    <th class="montant" style="width: 90px">Mt TTC</th>
                     <th class="montant" style="width: 90px">Mt M.O.</th>
                     <th class="montant" style="width: 60px">Taux AIB</th>
                     <th class="montant" style="width: 90px">Montant AIB</th>
@@ -27,6 +28,7 @@
                     <tr>
                         <td>{{ $ligne['numero_piece'] }}</td>
                         <td>{{ $ligne['date'] }}</td>
+                        <td>{{ $ligne['ifu'] ?? '' }}</td>
                         <td>{{ $ligne['fournisseur'] }}</td>
                         <td>{{ $ligne['libelle'] }}</td>
                         <td class="montant">{{ number_format($ligne['montant_facture'], 0, ',', ' ') }}</td>
@@ -38,7 +40,7 @@
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="5" class="total-label">TOTAL :</td>
+                    <td colspan="6" class="total-label">TOTAL :</td>
                     <td class="montant">{{ number_format($totaux['montant_mo'], 0, ',', ' ') }}</td>
                     <td class="montant"></td>
                     <td class="montant">{{ number_format($totaux['montant_aib'], 0, ',', ' ') }}</td>

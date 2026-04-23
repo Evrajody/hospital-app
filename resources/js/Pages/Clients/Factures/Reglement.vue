@@ -169,7 +169,6 @@
                       <el-option value="reglement" label="Règlement" />
                       <el-option value="perte" label="Perte" />
                       <el-option value="rejet" label="Rejet" />
-                      <el-option value="regularisation" label="Régularisation" />
                     </el-select>
                   </el-form-item>
                 </el-col>
@@ -278,7 +277,43 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
+
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="Bordereau de dépôt (PDF ou image)">
+                      <el-upload
+                        :auto-upload="false"
+                        :on-change="handleBordereauChange"
+                        :on-remove="handleBordereauRemove"
+                        :file-list="bordereauFileList"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        :limit="1"
+                      >
+                        <el-button :icon="UploadFilled">Joindre un bordereau</el-button>
+                      </el-upload>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
               </template>
+
+              <el-row v-if="form.type_reglement === 'rejet'" :gutter="20">
+                <el-col :span="12">
+                  <el-form-item prop="montant_rejet">
+                    <template #label>
+                      <span>Montant rejeté</span>
+                    </template>
+                    <el-input
+                      :model-value="formatInputMontant(form.montant_rejet)"
+                      @input="val => form.montant_rejet = parseInputMontant(val)"
+                      placeholder="0"
+                      :prefix-icon="Money"
+                    >
+                      <template #append>XOF</template>
+                    </el-input>
+                    <div class="form-hint">Comptabilisé dans l'état des pertes / rejets.</div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
 
               <el-form-item label="Notes / Remarques">
                 <el-input
@@ -388,7 +423,45 @@
               <el-input v-model="editForm.reference_cheque" />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="Type">
+              <el-select v-model="editForm.type_reglement" style="width: 100%">
+                <el-option value="reglement" label="R&egrave;glement" />
+                <el-option value="perte" label="Perte" />
+                <el-option value="rejet" label="Rejet" />
+              </el-select>
+            </el-form-item>
+          </el-col>
         </el-row>
+        <el-row v-if="editForm.type_reglement === 'rejet'" :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="Montant rejet&eacute;">
+              <el-input-number
+                v-model="editForm.montant_rejet"
+                :min="0"
+                :precision="0"
+                controls-position="right"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="Bordereau de d&eacute;p&ocirc;t">
+          <el-upload
+            :auto-upload="false"
+            :on-change="handleEditBordereauChange"
+            :on-remove="handleEditBordereauRemove"
+            :file-list="editBordereauFileList"
+            accept=".pdf,.jpg,.jpeg,.png"
+            :limit="1"
+          >
+            <el-button :icon="UploadFilled">Remplacer le bordereau</el-button>
+          </el-upload>
+          <div v-if="editForm.bordereau_depot_path" class="form-hint">
+            Fichier actuel :
+            <a :href="`/storage/${editForm.bordereau_depot_path}`" target="_blank">voir</a>
+          </div>
+        </el-form-item>
         <el-form-item label="Observations">
           <el-input v-model="editForm.observations" type="textarea" :rows="3" />
         </el-form-item>
@@ -451,7 +524,7 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
   ArrowLeft, Document, Clock, Money, Check,
-  DocumentCopy, CreditCard, SuccessFilled, CircleCheck
+  DocumentCopy, CreditCard, SuccessFilled, CircleCheck, UploadFilled
 } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -495,12 +568,26 @@ const form = ref({
   type_reglement: 'reglement',
   date_reglement: new Date(),
   montant: null,
+  montant_rejet: 0,
   institution: '',
   reference_cheque: '',
   banque_depot_id: null,
   compte_bancaire_id: null,
   observations: '',
 });
+
+const bordereauFile = ref(null);
+const bordereauFileList = ref([]);
+
+const handleBordereauChange = (file) => {
+  bordereauFile.value = file.raw;
+  bordereauFileList.value = [file];
+};
+
+const handleBordereauRemove = () => {
+  bordereauFile.value = null;
+  bordereauFileList.value = [];
+};
 
 const rules = {
   date_reglement: [
@@ -556,20 +643,29 @@ const handleSubmit = async () => {
     : form.value.date_reglement;
 
   try {
-    const response = await fetchApi('/api/reglements-clients', {
+    const formData = new FormData();
+    formData.append('facture_id', props.facture.id);
+    formData.append('numero_ligne', form.value.numero_ligne);
+    formData.append('type_reglement', form.value.type_reglement);
+    formData.append('date_reglement', dateReglement);
+    formData.append('montant', form.value.montant);
+    if (form.value.type_reglement === 'rejet') {
+      formData.append('montant_rejet', form.value.montant_rejet || 0);
+    }
+    if (form.value.institution) formData.append('institution', form.value.institution);
+    if (form.value.reference_cheque) formData.append('reference_cheque', form.value.reference_cheque);
+    if (form.value.banque_depot_id) formData.append('banque_depot_id', form.value.banque_depot_id);
+    if (form.value.compte_bancaire_id) formData.append('compte_bancaire_id', form.value.compte_bancaire_id);
+    if (form.value.observations) formData.append('observations', form.value.observations);
+    if (bordereauFile.value) formData.append('bordereau_depot', bordereauFile.value);
+
+    const response = await fetch('/api/reglements-clients', {
       method: 'POST',
-      body: {
-        facture_id: props.facture.id,
-        numero_ligne: form.value.numero_ligne,
-        type_reglement: form.value.type_reglement,
-        date_reglement: dateReglement,
-        montant: form.value.montant,
-        institution: form.value.institution || null,
-        reference_cheque: form.value.reference_cheque || null,
-        banque_depot_id: form.value.banque_depot_id || null,
-        compte_bancaire_id: form.value.compte_bancaire_id || null,
-        observations: form.value.observations || null,
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        'Accept': 'application/json',
       },
+      body: formData,
     });
 
     const result = await response.json();
@@ -587,27 +683,58 @@ const handleSubmit = async () => {
   }
 };
 
+const editBordereauFile = ref(null);
+const editBordereauFileList = ref([]);
+
+const handleEditBordereauChange = (file) => {
+  editBordereauFile.value = file.raw;
+  editBordereauFileList.value = [file];
+};
+
+const handleEditBordereauRemove = () => {
+  editBordereauFile.value = null;
+  editBordereauFileList.value = [];
+};
+
 const handleEditReglement = (reglement) => {
   editingReglementId.value = reglement.id;
   editForm.value = {
     date_reglement: reglement.date_reglement,
     montant: reglement.montant,
+    montant_rejet: reglement.montant_rejet || 0,
     numero_ligne: reglement.numero_ligne || '',
+    type_reglement: reglement.type_reglement || 'reglement',
     institution: reglement.institution || '',
     reference_cheque: reglement.reference_cheque || '',
     banque_depot_id: reglement.banque_depot?.id || null,
     compte_bancaire_id: reglement.compte_bancaire?.id || null,
     observations: reglement.observations || '',
+    bordereau_depot_path: reglement.bordereau_depot_path || null,
   };
+  editBordereauFile.value = null;
+  editBordereauFileList.value = [];
   editVisible.value = true;
 };
 
 const handleEditSubmit = async () => {
   editLoading.value = true;
   try {
-    const response = await fetchApi(`/api/reglements-clients/${editingReglementId.value}`, {
-      method: 'PUT',
-      body: editForm.value,
+    const formData = new FormData();
+    formData.append('_method', 'PUT');
+    Object.entries(editForm.value).forEach(([k, v]) => {
+      if (v !== null && v !== undefined && k !== 'bordereau_depot_path') {
+        formData.append(k, v);
+      }
+    });
+    if (editBordereauFile.value) formData.append('bordereau_depot', editBordereauFile.value);
+
+    const response = await fetch(`/api/reglements-clients/${editingReglementId.value}`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        'Accept': 'application/json',
+      },
+      body: formData,
     });
     const result = await response.json();
     if (result.success) {

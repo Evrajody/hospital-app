@@ -67,6 +67,7 @@ Route::prefix('api/factures-fournisseurs')->group(function () {
     Route::get('/generer-numero', [FactureFournisseurController::class, 'genererNumero'])->middleware('permission:factures-fournisseurs.creer')->name('api.factures-fournisseurs.generer-numero');
     Route::post('/verifier-numero', [FactureFournisseurController::class, 'verifierNumeroPiece'])->middleware('permission:factures-fournisseurs.creer')->name('api.factures-fournisseurs.verifier-numero');
     Route::get('/stats', [FactureFournisseurController::class, 'stats'])->middleware('permission:factures-fournisseurs.voir')->name('api.factures-fournisseurs.stats');
+    Route::get('/cumul-imputations', [FactureFournisseurController::class, 'cumulImputations'])->middleware('permission:factures-fournisseurs.voir')->name('api.factures-fournisseurs.cumul-imputations');
     Route::post('/', [FactureFournisseurController::class, 'store'])->middleware('permission:factures-fournisseurs.creer')->name('api.factures-fournisseurs.store');
     Route::get('/{id}', [FactureFournisseurController::class, 'show'])->middleware('permission:factures-fournisseurs.voir')
         ->where('id', '[0-9]+')->name('api.factures-fournisseurs.show');
@@ -104,6 +105,8 @@ Route::prefix('api/reglements-fournisseurs')->group(function () {
         ->where('factureId', '[0-9]+')->name('api.reglements-fournisseurs.par-facture');
     Route::get('/{id}/mandat-data', [ReglementFournisseurController::class, 'mandatData'])->middleware('permission:reglements-fournisseurs.voir')
         ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.mandat-data');
+    Route::get('/{id}/imputation-data', [ReglementFournisseurController::class, 'imputationData'])->middleware('permission:reglements-fournisseurs.voir')
+        ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.imputation-data');
 });
 
 // Factures Fournisseurs Routes
@@ -119,6 +122,7 @@ Route::prefix('factures-fournisseurs')->middleware('permission:factures-fourniss
 Route::prefix('reglements-fournisseurs')->middleware('permission:reglements-fournisseurs.voir')->group(function () {
     Route::get('/', [ReglementFournisseurController::class, 'indexView'])->name('reglements-fournisseurs.index');
     Route::get('/{id}/mandat', [ReglementFournisseurController::class, 'mandat'])->name('reglements-fournisseurs.mandat');
+    Route::get('/{id}/imputation-pdf', [ReglementFournisseurController::class, 'imputationPdf'])->where('id', '[0-9]+')->name('reglements-fournisseurs.imputation-pdf');
 });
 
 // Clients Routes
@@ -241,6 +245,24 @@ Route::prefix('rapports')->middleware('permission:rapports.voir')->group(functio
 
         // Factures et soldes
         Route::get('/api/factures-soldes', [RapportFournisseurController::class, 'facturesSoldes']);
+
+        // Déclaration TVA
+        Route::get('/api/declaration-tva', [RapportFournisseurController::class, 'declarationTva']);
+        Route::get('/pdf/declaration-tva', [RapportFournisseurController::class, 'declarationTvaPdf']);
+        Route::get('/excel/declaration-tva', [RapportFournisseurController::class, 'declarationTvaExcel']);
+
+        // Situation fournisseurs à date donnée
+        Route::get('/api/situation-a-date', [RapportFournisseurController::class, 'situationADate']);
+        Route::get('/pdf/situation-a-date', [RapportFournisseurController::class, 'situationADatePdf']);
+        Route::get('/excel/situation-a-date', [RapportFournisseurController::class, 'situationFournisseursExcel']);
+
+        // État banques par compte
+        Route::get('/api/banques-par-compte', [RapportFournisseurController::class, 'etatBanquesParCompte']);
+        Route::get('/pdf/banques-par-compte', [RapportFournisseurController::class, 'etatBanquesParComptePdf']);
+        Route::get('/excel/banques-par-compte', [RapportFournisseurController::class, 'banquesParCompteExcel']);
+
+        // Export Excel Déclaration AIB
+        Route::get('/excel/declaration-aib', [RapportFournisseurController::class, 'declarationAibExcel']);
     });
 
     // Rapports Banques
@@ -261,6 +283,7 @@ Route::prefix('rapports')->middleware('permission:rapports.voir')->group(functio
         Route::get('/api/brouillard-cheques', [RapportClientController::class, 'brouillardCheques']);
         Route::get('/api/chiffre-affaires', [RapportClientController::class, 'chiffreAffaires']);
         Route::get('/api/pertes-rejets', [RapportClientController::class, 'pertesRejets']);
+        Route::get('/api/reglements-par-type-client', [RapportClientController::class, 'reglementsParTypeClient']);
 
         // Export PDF
         Route::get('/pdf/etat-reglements', [RapportClientController::class, 'etatReglementsPdf']);

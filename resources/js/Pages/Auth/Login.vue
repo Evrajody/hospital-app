@@ -6,7 +6,7 @@
         <!-- Logo -->
         <div class="login-header">
           <el-icon :size="48" color="#409EFF"><OfficeBuilding /></el-icon>
-          <h1>Hôpital de Ménontin</h1>
+          <h1>Hôpital de zone de Ménontin</h1>
           <p class="welcome-text">Bienvenue ! Connectez-vous à votre compte</p>
         </div>
 
@@ -62,7 +62,7 @@
 
         <!-- Footer -->
         <div class="login-footer">
-          <p>&copy; 2025 Hôpital de Ménontin</p>
+          <p>&copy; 2025 Hôpital de zone de Ménontin</p>
         </div>
       </div>
     </div>

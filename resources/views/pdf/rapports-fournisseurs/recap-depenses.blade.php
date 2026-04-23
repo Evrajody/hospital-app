@@ -14,7 +14,7 @@
                 <tr>
                     <th style="width: 120px">N&deg; Compte</th>
                     <th>Intitul&eacute;</th>
-                    <th class="montant" style="width: 150px">Montant</th>
+                    <th class="montant" style="width: 150px">Montant TTC</th>
                 </tr>
             </thead>
             <tbody>

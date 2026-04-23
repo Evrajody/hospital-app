@@ -88,11 +88,24 @@ class Fournisseur extends Model
     // ==========================================
 
     /**
-     * Relation avec le compte comptable
+     * Relation avec le compte comptable principal (legacy).
      */
     public function compteComptable(): BelongsTo
     {
         return $this->belongsTo(CompteComptable::class, 'compte_comptable_id');
+    }
+
+    /**
+     * Tous les comptes comptables rattachés (plusieurs possibles).
+     */
+    public function comptes()
+    {
+        return $this->belongsToMany(
+            CompteComptable::class,
+            'fournisseur_comptes',
+            'fournisseur_id',
+            'compte_comptable_id'
+        )->withPivot('principal')->withTimestamps();
     }
 
     /**
@@ -252,6 +265,17 @@ class Fournisseur extends Model
     /**
      * Convertir en tableau pour l'API
      */
+    /**
+     * IDs des comptes supplémentaires (hors principal).
+     */
+    public function getComptesSupplementairesIdsAttribute(): array
+    {
+        return $this->comptes()
+            ->where('fournisseur_comptes.principal', false)
+            ->pluck('plan_comptable_ohada.id')
+            ->toArray();
+    }
+
     public function toApiArray(): array
     {
         return [
@@ -270,6 +294,7 @@ class Fournisseur extends Model
             'pays' => $this->pays,
             'pays_nom' => $this->pays_nom,
             'compte_comptable_id' => $this->compte_comptable_id,
+            'comptes_supplementaires' => $this->comptes_supplementaires_ids,
             'compte_comptable' => $this->compteComptable ? [
                 'id' => $this->compteComptable->id,
                 'numero' => $this->compteComptable->numero_compte,

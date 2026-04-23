@@ -163,11 +163,18 @@
               <el-row :gutter="20">
                 <el-col :span="6">
                   <el-form-item label="Année d'exercice" prop="annee_exercice">
-                    <el-input
+                    <el-select
                       v-model="form.annee_exercice"
-                      placeholder="2025"
-                      readonly
-                    />
+                      placeholder="Exercice"
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="y in anneesExercice"
+                        :key="y"
+                        :label="y"
+                        :value="String(y)"
+                      />
+                    </el-select>
                   </el-form-item>
                 </el-col>
 
@@ -302,9 +309,13 @@
               <el-row :gutter="20">
                 <el-col :span="12">
                   <el-form-item label="B&eacute;n&eacute;ficiaire">
-                    <el-input
+                    <el-autocomplete
                       v-model="form.beneficiaire"
+                      :fetch-suggestions="fetchBeneficiaireSuggestions"
                       placeholder="Nom du b&eacute;n&eacute;ficiaire du ch&egrave;que"
+                      clearable
+                      style="width: 100%"
+                      :trigger-on-focus="true"
                     />
                   </el-form-item>
                 </el-col>
@@ -473,11 +484,22 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  beneficiaires: {
+    type: Array,
+    default: () => []
+  },
   user: {
     type: Object,
     default: () => null
   }
 });
+
+const fetchBeneficiaireSuggestions = (query, cb) => {
+  const source = (props.beneficiaires || []).map(name => ({ value: name }));
+  if (!query) return cb(source);
+  const q = query.toLowerCase();
+  cb(source.filter(s => s.value.toLowerCase().includes(q)));
+};
 
 // Computed
 const breadcrumbs = [
@@ -528,6 +550,11 @@ const formRef = ref(null);
 const submitting = ref(false);
 const showInsufficientModal = ref(false);
 const insufficientData = reactive({ solde: 0, montant: 0 });
+
+const anneesExercice = computed(() => {
+  const annee = new Date().getFullYear();
+  return [annee - 2, annee - 1, annee, annee + 1];
+});
 
 const form = reactive({
   annee_exercice: new Date().getFullYear().toString(),
@@ -684,21 +711,30 @@ const submitPayment = async (forceInsufficient = false) => {
     if (data.success) {
       ElMessage.success(data.message || 'Règlement enregistré avec succès');
 
-      // Proposer l'imputation comptable
+      const reglementId = data.data?.id || data.reglement?.id;
+
+      // Proposer au choix : bordereau de règlement ou imputation comptable
       try {
-        await ElMessageBox.confirm(
-          "Autorisez-vous une imputation comptable à l'enregistrement de cette pièce comptable ?",
-          'Imputation Comptable',
-          {
-            confirmButtonText: 'Oui, voir',
-            cancelButtonText: 'Non',
-            type: 'info',
-          }
-        );
-        router.visit(`/factures-fournisseurs/${props.facture.id}`);
-        return;
-      } catch {
-        // L'utilisateur a annulé
+        const action = await ElMessageBox({
+          title: 'Règlement enregistré',
+          message: 'Souhaitez-vous consulter le bordereau de règlement ou l\'imputation comptable ?',
+          showCancelButton: true,
+          confirmButtonText: 'Bordereau de règlement',
+          cancelButtonText: 'Imputation comptable',
+          distinguishCancelAndClose: true,
+          type: 'info',
+        });
+        if (action === 'confirm' && reglementId) {
+          window.open(`/reglements-fournisseurs/${reglementId}/mandat`, '_blank');
+          router.visit(`/factures-fournisseurs/${props.facture.id}`);
+          return;
+        }
+      } catch (action) {
+        if (action === 'cancel') {
+          router.visit(`/factures-fournisseurs/${props.facture.id}`);
+          return;
+        }
+        // Fermeture → retour à la page de règlement
       }
 
       router.visit(`/factures-fournisseurs/${props.facture.id}/regler`);

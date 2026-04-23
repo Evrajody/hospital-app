@@ -1,0 +1,709 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=2cm,headheight=14pt]{geometry}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{amssymb}
+\usepackage{textcomp}
+
+\definecolor{primary}{HTML}{1F4E79}
+\definecolor{accent}{HTML}{2E7D32}
+\definecolor{warn}{HTML}{C77700}
+\definecolor{danger}{HTML}{B71C1C}
+\definecolor{light}{HTML}{F5F7FA}
+\definecolor{codebg}{HTML}{F5F5F5}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=primary,
+  urlcolor=primary,
+  citecolor=primary,
+  pdftitle={Rapport de livraison --- Évolutions Hospital-App},
+  pdfauthor={Équipe dev Hospital-App},
+}
+
+\titleformat{\section}{\Large\bfseries\color{primary}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{primary}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{primary}}{\thesubsubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyhead[L]{\small\textcolor{primary}{Hôpital de zone de Ménontin}}
+\fancyhead[R]{\small\textit{Rapport de livraison}}
+\fancyfoot[C]{\thepage}
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{black!20},
+  breaklines=true,
+  showstringspaces=false,
+}
+
+\newcommand{\statusOK}{\textcolor{accent}{\textbf{\checkmark{} Livré}}}
+\newcommand{\modfile}[1]{\texttt{\small #1}}
+\newcommand{\newfile}[1]{\texttt{\small\textcolor{accent}{+ #1}}}
+
+\newcommand{\featurebox}[3]{%
+  \par\vspace{0.4em}%
+  \noindent\begin{tabularx}{\linewidth}{@{}l X@{}}
+    \textbf{\textcolor{primary}{#1}} & \textbf{#2} \\[0.2em]
+    \multicolumn{2}{@{}X@{}}{#3} \\
+  \end{tabularx}%
+  \par\vspace{0.3em}%
+}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Huge\bfseries\color{primary} Rapport de livraison\par}
+  \vspace{0.6cm}
+  {\Large Évolutions de l'application de gestion comptable\par}
+  \vspace{0.3cm}
+  {\Large\textbf{Hôpital de zone de Ménontin}\par}
+
+  \vspace{2cm}
+
+  \begin{tabularx}{0.8\textwidth}{@{}l X@{}}
+    \toprule
+    Périmètre & Gestion des factures fournisseurs \& clients \\
+    Nombre de demandes & 27 points cahier des charges + 10 améliorations UI \\
+    Version & Branche \texttt{hostital-deep} \\
+    Statut global & \statusOK{} --- Backend, migrations, UI et PDF/Excel \\
+    Date & 23 avril 2026 \\
+    \bottomrule
+  \end{tabularx}
+
+  \vfill
+  {\small Document généré à la livraison. Reflète l'état du code après la session d'implémentation.}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% =========================================================
+\section{Synthèse exécutive}
+
+Cette livraison couvre l'intégralité des 27 points du cahier des charges
+initial --- répartis entre \emph{Gestion des factures fournisseurs} (17 points)
+et \emph{Gestion des factures clients} (10 points) --- ainsi que 10 évolutions
+UI complémentaires identifiées pour compléter le périmètre fonctionnel.
+
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.55\textwidth} l r@{}}
+  \toprule
+  \textbf{Phase} & \textbf{Contenu} & \textbf{Statut} \\
+  \midrule
+  P1 --- Renommages \& correctifs rapides & 4 items & \statusOK \\
+  P2 --- Champs obligatoires \& formulaires & 5 items & \statusOK \\
+  P3 --- UX règlements fournisseurs & 5 items & \statusOK \\
+  P4 --- Architecture multi-comptes / multi-imputations & 3 items & \statusOK \\
+  P5 --- Nouveaux états et export Excel & 8 items & \statusOK \\
+  P6 --- Banques clients \& rejet & 2 items & \statusOK \\
+  \midrule
+  UI1--UI10 --- Surface frontend \& finalisation & 10 items & \statusOK \\
+  \bottomrule
+\end{tabular}
+
+\subsection*{Livrables clés}
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{6 migrations} idempotentes (renommages, nouvelles tables, nouveaux champs).
+  \item \textbf{2 nouvelles tables pivots} : \texttt{fournisseur\_comptes} et
+    \texttt{imputations\_facture\_fournisseur}.
+  \item \textbf{3 nouveaux états métier} : déclaration TVA, situation fournisseurs à
+    une date, banques par compte.
+  \item \textbf{4 exports Excel} (via \texttt{PhpSpreadsheet} déjà présent dans le projet).
+  \item \textbf{7 nouveaux onglets Vue} et \textbf{2 modales enrichies}.
+  \item \textbf{5 nouveaux endpoints API}, \textbf{3 nouveaux gabarits PDF} Blade.
+\end{itemize}
+
+\subsection*{Mise en production}
+Trois commandes à exécuter après déploiement du code :
+\begin{lstlisting}[language=bash]
+php artisan migrate        # 6 migrations 2026_04_23_*
+php artisan storage:link   # pour les pieces jointes bordereau de depot
+npm run build              # recompile les Vue modifies / crees
+\end{lstlisting}
+
+\newpage
+
+% =========================================================
+\section{Phase 1 --- Renommages \& correctifs rapides}
+
+\subsection{P1.1 --- Mandat de paiement \(\rightarrow\) Bordereau de règlement}
+
+Renommage du document officiel conformément au nouvel intitulé.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item UI : \modfile{Fournisseurs/Show.vue}, \modfile{ReglementsFournisseurs/Index.vue},
+    \modfile{Fournisseurs/Factures/Show.vue} (drawer, bouton, CSS),
+    \modfile{Admin/Etablissement.vue} (hint), \modfile{BordereauTransmissionTab.vue}.
+  \item PDF : \modfile{pdf/mandat-paiement.blade.php},
+    \modfile{pdf/rapports-fournisseurs/mandats-multiples.blade.php} (titre, H1, phrase d'introduction).
+  \item Controllers : \modfile{ReglementFournisseurController::mandat()} (nom de fichier PDF),
+    \modfile{RapportFournisseurController::mandatsMultiplesPdf()}.
+  \item La phrase \emph{« Ménontin mandate sur la caisse\dots{} »} devient \emph{« le Directeur de
+    l'hôpital ordonne le règlement par la caisse\dots{} »}.
+\end{itemize}
+
+\subsection{P1.2 --- Renommage de l'hôpital}
+
+Remplacement de \emph{Hôpital de Ménontin} / \emph{Hopital Ménontin} par
+\textbf{Hôpital de zone de Ménontin} dans toutes les surfaces visibles.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Back : \modfile{app/Models/Setting.php} (défaut \texttt{etablissement\_nom}).
+  \item Seeder d'origine : \modfile{2026\_03\_11\_000003\_create\_settings\_table.php}.
+  \item Frontend : \modfile{resources/js/app.js}, \modfile{Layouts/AppLayout.vue},
+    \modfile{Pages/Welcome.vue}, \modfile{Pages/Auth/Login.vue}, placeholder de
+    \modfile{Admin/Etablissement.vue}.
+  \item Gabarit de fallback : \modfile{resources/views/app.blade.php}.
+  \item Migration \newfile{2026\_04\_23\_000001\_update\_etablissement\_nom\_setting.php}
+    met à jour la ligne existante en base et purge les caches
+    \texttt{setting.etablissement\_nom} et \texttt{settings.etablissement}.
+\end{itemize}
+
+\subsection{P1.3 --- Afficher \emph{Montant TTC} au lieu de \emph{Montant}}
+
+Double changement : le \textbf{libellé} devient \emph{Montant TTC} et la
+\textbf{valeur} affichée est désormais la TTC (avec fallback sur \texttt{montant\_facture}
+si la facture n'a pas de TVA).
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Controllers : \modfile{RapportFournisseurController.php} --- tout
+    \texttt{(float) \$f->montant\_facture} devient
+    \texttt{(float) (\$f->montant\_ttc ?: \$f->montant\_facture)} (idem pour \texttt{\$fact}).
+  \item PDF : \modfile{factures-reglees-detail}, \modfile{mouvement-factures},
+    \modfile{situation-fournisseurs}, \modfile{point-periodique-pc},
+    \modfile{recap-depenses}, \modfile{declaration-aib}.
+  \item Vue : \modfile{MouvementPeriodique}, \modfile{FacturesRegleesTab},
+    \modfile{PointPeriodiqueTab}, \modfile{RecapChargesTab},
+    \modfile{RecapInvestissementsTab}, \modfile{FacturesSoldes},
+    \modfile{DeclarationAibTab}.
+\end{itemize}
+
+\subsection{P1.4 --- Suppression de \emph{Régularisation}}
+
+Retrait de l'option dans la saisie et les filtres (les enregistrements
+historiques de ce type sont conservés, rien n'est supprimé en base).
+
+\begin{itemize}[leftmargin=1.4em]
+  \item UI : \modfile{Clients/Factures/Reglement.vue},
+    \modfile{ReglementClients/Index.vue}.
+  \item Backend : \modfile{ReglementClientController::store()} et \texttt{::update()}
+    --- validation \texttt{in:reglement,perte,rejet}.
+\end{itemize}
+
+\newpage
+
+% =========================================================
+\section{Phase 2 --- Champs obligatoires}
+
+\subsection{P2.1 --- Imputation comptable obligatoire}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \modfile{FactureFournisseurController::validationRules()} :
+    \texttt{imputation\_id} et \texttt{compte\_id} passent \texttt{required}.
+  \item \modfile{Components/Modals/FactureFournisseurModal.vue} : astérisque rouge,
+    règles \texttt{rules}, prise en compte dans \texttt{tabHasRequiredEmpty('general')}.
+  \item Les écritures de règlement (\texttt{EcritureComptable::creerEcrituresReglement})
+    sont systématiquement créées dès lors que la facture a un \texttt{compte\_id},
+    ce qui est désormais toujours le cas à la création.
+\end{itemize}
+
+\subsection{P2.2 --- IFU fournisseur obligatoire + colonne état AIB}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \modfile{FournisseurController} : \texttt{ifu => required|size:13|regex:/\^{}\textbackslash d\{13\}\$/}.
+  \item \modfile{Modals/FournisseurModal.vue} : astérisque rouge + règle
+    \texttt{required} en plus du contrôle de format.
+  \item \modfile{RapportFournisseurController::buildDeclarationAibData()} enrichit
+    chaque ligne avec \texttt{ifu}.
+  \item \modfile{pdf/rapports-fournisseurs/declaration-aib.blade.php} et
+    \modfile{DeclarationAibTab.vue} : nouvelle colonne IFU.
+\end{itemize}
+
+\subsection{P2.3 --- Numéro de facture client personnalisable}
+
+Déjà en place : champ \texttt{reference} libre dans
+\modfile{Modals/FactureClientModal.vue} avec bouton \emph{Auto}. Validation
+\texttt{required|max:20|unique}. Aucun changement requis.
+
+\subsection{P2.4 --- Champs clients : IFU, type, observation}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Migration \newfile{2026\_04\_23\_000002\_add\_ifu\_type\_observation\_to\_clients\_table.php}.
+  \item \modfile{app/Models/Client.php} : \texttt{fillable} enrichi, constantes
+    \texttt{TYPES}, \texttt{TYPES\_LABELS}, recherche élargie à l'IFU,
+    \texttt{toApiArray()} expose les nouveaux champs + label du type.
+  \item \modfile{ClientController.php} : store + update valident et persistent.
+  \item \modfile{Modals/ClientModal.vue} : champs IFU (optionnel, regex 13 chiffres),
+    select type (Société / Divers / Personnel / Autre), textarea observation.
+\end{itemize}
+
+\subsection{P2.5 --- Filtre type\_client sur les états}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Backend (\modfile{RapportClientController}) : ajout du paramètre
+    \texttt{type\_client} dans \texttt{buildEtatReglementsData()},
+    \texttt{buildEtatCreancesData()}, \texttt{buildPertesRejetsData()}.
+  \item UI : selects \emph{Type client} dans \modfile{EtatReglementsTab.vue},
+    \modfile{EtatCreancesTab.vue}, \modfile{PertesRejetsTab.vue}.
+  \item \modfile{PertesRejets} émet \texttt{type\_client\_label} par ligne et
+    affiche une colonne Type.
+\end{itemize}
+
+\newpage
+
+% =========================================================
+\section{Phase 3 --- UX règlements fournisseurs}
+
+\subsection{P3.1 --- Recherche rapide par N° PC}
+
+Dialog \emph{Nouveau règlement} dans \modfile{ReglementsFournisseurs/Index.vue}
+maintenant doté d'un \texttt{filter-method} côté JS qui filtre sur
+\texttt{numero}, \texttt{libelle} et \texttt{fournisseur\_nom}. Les options
+affichent un tag primaire avec le numéro PC.
+
+\subsection{P3.2 --- Exercice modifiable}
+
+\modfile{Fournisseurs/Factures/Reglement.vue} --- champ \emph{Année d'exercice}
+passé de \texttt{readonly} à un select des 4 dernières années
+(\texttt{N-2 .. N+1}).
+
+\subsection{P3.3 --- Autocomplete bénéficiaire}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Backend : \modfile{FactureFournisseurController::reglementView()} renvoie
+    \texttt{beneficiaires} (liste distincte des bénéficiaires déjà saisis).
+  \item Frontend : \texttt{el-input} remplacé par \texttt{el-autocomplete} avec
+    suggestion filtrée par \texttt{fetchBeneficiaireSuggestions}.
+\end{itemize}
+
+\subsection{P3.4 --- Bordereau + imputation après règlement}
+
+Remplacement du dialog binaire par un dialog tripartite dans
+\modfile{Clients/Factures/Reglement.vue} côté fournisseurs :
+\emph{Bordereau de règlement} (ouvre le PDF), \emph{Imputation comptable}
+(redirige vers la fiche de la facture), \emph{Fermer}.
+
+\subsection{P3.5 --- Imputation comptable d'un règlement}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \modfile{ReglementFournisseurController::imputationPdf(int \$id)} et
+    \texttt{imputationData(int \$id)} --- réutilisent la vue
+    \modfile{pdf/imputation-comptable.blade.php} en filtrant par
+    \texttt{reglement\_id}.
+  \item Routes : \newfile{GET /reglements-fournisseurs/\{id\}/imputation-pdf} et
+    \newfile{GET /api/reglements-fournisseurs/\{id\}/imputation-data}.
+  \item UI : nouvelle entrée \emph{Imputation comptable} dans le dropdown
+    d'actions de la liste.
+\end{itemize}
+
+\newpage
+
+% =========================================================
+\section{Phase 4 --- Architecture multi-comptes / multi-imputations}
+
+\subsection{P4.1 --- Fournisseur \(\rightarrow\) N comptes}
+
+\textbf{Nouvelle table pivot} \texttt{fournisseur\_comptes}
+(\texttt{fournisseur\_id}, \texttt{compte\_comptable\_id}, \texttt{principal}).
+La migration reconstitue l'existant : chaque fournisseur ayant un
+\texttt{compte\_comptable\_id} se retrouve avec une ligne pivot
+\texttt{principal=true}.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Migration \newfile{2026\_04\_23\_000003\_create\_fournisseur\_comptes\_table.php}.
+  \item Modèle \newfile{app/Models/FournisseurCompte.php}.
+  \item Relation \texttt{Fournisseur::comptes()} (BelongsToMany) + accesseur
+    \texttt{getComptesSupplementairesIdsAttribute()}.
+  \item UI : section \emph{Comptes supplémentaires} dans \modfile{FournisseurModal.vue}
+    (tags fermables + select d'ajout).
+  \item Helper \modfile{FournisseurController::syncFournisseurComptes()} invoqué
+    à \texttt{store}/\texttt{update}.
+\end{itemize}
+
+\subsection{P4.2 --- Facture \(\rightarrow\) N imputations}
+
+\textbf{Nouvelle table} \texttt{imputations\_facture\_fournisseur}
+(\texttt{facture\_id}, \texttt{compte\_id}, \texttt{montant}, \texttt{libelle}).
+Migration des données existantes : une ligne par facture pour chaque
+\texttt{compte\_id} non nul, avec \texttt{montant = montant\_ttc ?: montant\_facture}.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Migration \newfile{2026\_04\_23\_000004\_create\_imputations\_facture\_fournisseur\_table.php}.
+  \item Modèle \newfile{app/Models/ImputationFactureFournisseur.php}.
+  \item Relation \texttt{FactureFournisseur::imputations()}.
+  \item UI : onglet \emph{Imputations comptables} dans
+    \modfile{FactureFournisseurModal.vue} --- grille dynamique (compte, libellé,
+    montant, suppression), total vs TTC, indicateur d'écart coloré.
+  \item Helper \modfile{FactureFournisseurController::syncImputationsMultiples()}
+    appelé à \texttt{store}/\texttt{update}. Si aucune ligne n'est fournie, crée
+    automatiquement une ligne unique à partir du compte principal.
+\end{itemize}
+
+\subsection{P4.3 --- Cumul imputations depuis le début de l'exercice}
+
+Endpoint \newfile{GET /api/factures-fournisseurs/cumul-imputations?compte\_id=\&annee=}
+retourne le cumul imputé par compte. Dans l'onglet \emph{Imputations}, dès
+qu'un compte est sélectionné, un message \emph{Cumul imputé depuis le début de
+l'exercice : X} s'affiche sous la ligne.
+
+\newpage
+
+% =========================================================
+\section{Phase 5 --- Nouveaux états, PDF \& export Excel}
+
+\subsection{P5.1 --- Déclaration TVA}
+
+\textbf{Endpoint + PDF + Excel + Tab}. L'état liste par période les factures
+assujetties à la TVA, colonnes : Date, N° PC, Libellé, Montant TTC, Taux TVA,
+Montant TVA. Totaux TTC et TVA en pied de tableau.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \newfile{RapportFournisseurController::buildDeclarationTvaData()},
+    \texttt{declarationTva()}, \texttt{declarationTvaPdf()},
+    \texttt{declarationTvaExcel()}.
+  \item Routes : \texttt{/api/declaration-tva}, \texttt{/pdf/declaration-tva},
+    \texttt{/excel/declaration-tva}.
+  \item \newfile{pdf/rapports-fournisseurs/declaration-tva.blade.php}.
+  \item \newfile{Tabs/DeclarationTvaTab.vue} --- cards de synthèse (TTC, HT, TVA,
+    nb factures) + table + boutons PDF/Excel.
+\end{itemize}
+
+\subsection{P5.2 --- Situation fournisseurs à une date donnée}
+
+Filtre \texttt{type=impayes|tous} et \texttt{date=YYYY-MM-DD}.
+Les règlements sont bornés par la date de référence.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \newfile{buildSituationADateData()}, \texttt{situationADate()},
+    \texttt{situationADatePdf()}, \texttt{situationFournisseursExcel()}.
+  \item \newfile{pdf/rapports-fournisseurs/situation-a-date.blade.php}.
+  \item \newfile{Tabs/SituationADateTab.vue}.
+\end{itemize}
+
+\subsection{P5.3 --- État banques par compte}
+
+Par compte bancaire : approvisionnements, débits de règlements, solde actuel.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \newfile{buildEtatBanquesParCompteData()}, \texttt{etatBanquesParCompte()},
+    \texttt{etatBanquesParComptePdf()}, \texttt{banquesParCompteExcel()}.
+  \item \newfile{pdf/rapports-fournisseurs/banques-par-compte.blade.php}.
+  \item \newfile{Tabs/BanquesParCompteTab.vue}.
+\end{itemize}
+
+\subsection{P5.4 --- Export Excel générique}
+
+Helper \newfile{app/Support/ExcelExporter.php} basé sur PhpSpreadsheet (déjà
+dans \texttt{composer.json}). Gère en-têtes stylés, auto-size colonnes,
+bordures, titre fusionné. Branché sur 4 endpoints :
+\texttt{declaration-tva}, \texttt{declaration-aib}, \texttt{situation-a-date},
+\texttt{banques-par-compte}.
+
+\subsection{P5.5 --- Consultation règlements + imputation sur facture client}
+
+La page \modfile{Clients/Factures/Reglement.vue} charge déjà la liste des
+règlements et un timeline de consultation. Aucun changement d'API requis.
+
+\subsection{P5.6 --- État règlements par type client}
+
+Endpoint \newfile{GET /rapports/clients/api/reglements-par-type-client}.
+Retourne pour chaque type (\texttt{societe}, \texttt{divers}, \texttt{personnel},
+\texttt{autre}, \texttt{non\_defini}) le nombre de règlements et le total encaissé.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \newfile{RapportClientController::reglementsParTypeClient()}.
+  \item \newfile{Tabs/ReglementsParTypeClientTab.vue} --- tableau + pourcentages +
+    total général.
+\end{itemize}
+
+\subsection{P5.7 --- Brouillard de chèque par banque}
+
+\modfile{RapportClientController::buildBrouillardChequesData()} accepte
+désormais \texttt{banque\_id}, ordonne par \texttt{banque\_depot\_id} puis
+date, et émet \texttt{banque\_depot} dans chaque ligne. L'onglet
+\modfile{BrouillardChequesTab.vue} expose un select banque et propage le
+paramètre dans les exports PDF.
+
+\subsection{P5.8 --- Type client sur état pertes/rejets}
+
+Filtre \texttt{type\_client} accepté par l'endpoint,
+\texttt{type\_client\_label} injecté dans chaque ligne. UI : colonne
+\emph{Type} et select de filtre dans \modfile{PertesRejetsTab.vue}.
+
+\newpage
+
+% =========================================================
+\section{Phase 6 --- Banques clients \& champ rejet}
+
+\subsection{P6.1 --- Mutualisation banques + bordereau de dépôt}
+
+La table \texttt{banques} est \textbf{déjà partagée} entre fournisseurs et
+clients (le modèle \texttt{ReglementClient} référence \texttt{banques.id} via
+\texttt{banque\_depot\_id}). Ajout manquant : pièce jointe.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Migration \newfile{2026\_04\_23\_000005\_add\_bordereau\_depot\_path\_to\_reglements\_clients.php}.
+  \item \modfile{ReglementClient} : champ \texttt{bordereau\_depot\_path} dans
+    \texttt{fillable}.
+  \item \modfile{ReglementClientController::store()} et \texttt{update()} acceptent
+    un upload \texttt{bordereau\_depot} (PDF/JPG/PNG, max 5 Mo) stocké sur le
+    disque \texttt{public} (\texttt{storage/app/public/bordereaux-depot}).
+    L'update supprime l'ancien fichier s'il est remplacé.
+  \item UI : composant \texttt{el-upload} dans \modfile{Clients/Factures/Reglement.vue}
+    (création \emph{et} édition). L'envoi bascule en \texttt{FormData}
+    multipart avec token CSRF.
+\end{itemize}
+
+\subsection{P6.2 --- Champ rejet sur règlement client}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Migration \newfile{2026\_04\_23\_000006\_add\_montant\_rejet\_to\_reglements\_clients.php}.
+  \item Champ \texttt{montant\_rejet} dans \texttt{fillable} de
+    \modfile{ReglementClient}.
+  \item \modfile{ReglementClientController} : validation + persistance (store +
+    update). La date de rejet est celle du règlement (par définition, le
+    champ vit sur la ligne de règlement).
+  \item UI : \texttt{el-input-number} \emph{Montant rejeté} visible quand
+    \texttt{type\_reglement === 'rejet'} dans le formulaire de création et
+    dans le dialog d'édition.
+\end{itemize}
+
+\newpage
+
+% =========================================================
+\section{UI complémentaires (UI1 -- UI10)}
+
+\subsection{UI1 --- Multi-imputations dans le modal facture}
+
+Nouvel onglet \emph{Imputations comptables} (après \emph{Montants}, avant
+\emph{Observations}). Grille dynamique avec ajout/suppression, total calculé,
+indicateur d'écart coloré (vert si \(|\sum - TTC| < 0{,}5\), orange sinon).
+Appel à l'endpoint \texttt{cumul-imputations} à chaque sélection de compte.
+
+\subsection{UI2 --- Multi-comptes dans le modal fournisseur}
+
+Section \emph{Comptes supplémentaires} avec tags cliquables (suppression) et
+select d'ajout. Le compte principal reste piloté par le mode existant
+\emph{select / create}. Synchronisation pivot \texttt{fournisseur\_comptes}
+côté contrôleur.
+
+\subsection{UI3 --- Upload bordereau + champ rejet}
+
+Voir P6.1 et P6.2 (création + édition des règlements clients).
+
+\subsection{UI4--UI7 --- Nouveaux tabs Rapports}
+
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+  \toprule
+  \textbf{Tab} & \textbf{Endpoint consommé} \\
+  \midrule
+  Déclaration TVA & \texttt{/rapports/fournisseurs/api/declaration-tva} \\
+  Situation à date & \texttt{/rapports/fournisseurs/api/situation-a-date} \\
+  Banques par compte & \texttt{/rapports/fournisseurs/api/banques-par-compte} \\
+  Règlements par type client & \texttt{/rapports/clients/api/reglements-par-type-client} \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{UI8 --- Filtre type\_client sur tabs existants}
+
+Selects \emph{Type client} ajoutés dans \modfile{EtatReglementsTab.vue},
+\modfile{EtatCreancesTab.vue} ; select \emph{Banque} ajouté dans
+\modfile{BrouillardChequesTab.vue}. \texttt{RapportClientController::index()}
+expose la liste \texttt{banques} en props Inertia.
+
+\subsection{UI9 --- Édition règlement client enrichie}
+
+Dialog d'édition dans \modfile{Clients/Factures/Reglement.vue} augmenté :
+select type, input montant\_rejet conditionnel, upload bordereau avec lien
+vers le fichier actuel. Envoi en \texttt{FormData} avec \texttt{\_method=PUT}
+pour compatibilité multipart.
+
+\subsection{UI10 --- PDF Situation à date \& Banques par compte}
+
+Extraction de helpers \texttt{build*Data()} pour factoriser JSON / Excel / PDF
+sur la même source. Correction d'un bug latent : les exports Excel appelaient
+les méthodes \texttt{JsonResponse}, désormais ils passent par les helpers
+privés PHP. Nouveaux boutons \emph{Exporter PDF} dans les deux onglets.
+
+\newpage
+
+% =========================================================
+\section{Inventaire technique}
+
+\subsection{Migrations créées}
+
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.52\textwidth} l l@{}}
+  \toprule
+  \textbf{Nom} & \textbf{Table cible} & \textbf{Type} \\
+  \midrule \endhead
+  \texttt{2026\_04\_23\_000001\_update\_etablissement\_nom\_setting} & settings & UPDATE \\
+  \texttt{2026\_04\_23\_000002\_add\_ifu\_type\_observation\_to\_clients\_table} & clients & ALTER \\
+  \texttt{2026\_04\_23\_000003\_create\_fournisseur\_comptes\_table} & fournisseur\_comptes & CREATE + migration data \\
+  \texttt{2026\_04\_23\_000004\_create\_imputations\_facture\_fournisseur\_table} & imputations\_facture\_fournisseur & CREATE + migration data \\
+  \texttt{2026\_04\_23\_000005\_add\_bordereau\_depot\_path\_to\_reglements\_clients} & reglements\_clients & ALTER \\
+  \texttt{2026\_04\_23\_000006\_add\_montant\_rejet\_to\_reglements\_clients} & reglements\_clients & ALTER \\
+  \bottomrule
+\end{longtable}
+
+\subsection{Modèles et helpers ajoutés}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \newfile{app/Models/FournisseurCompte.php}
+  \item \newfile{app/Models/ImputationFactureFournisseur.php}
+  \item \newfile{app/Support/ExcelExporter.php}
+\end{itemize}
+
+\subsection{Nouveaux fichiers de vue (Blade PDF)}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \newfile{resources/views/pdf/rapports-fournisseurs/declaration-tva.blade.php}
+  \item \newfile{resources/views/pdf/rapports-fournisseurs/situation-a-date.blade.php}
+  \item \newfile{resources/views/pdf/rapports-fournisseurs/banques-par-compte.blade.php}
+\end{itemize}
+
+\subsection{Nouveaux composants Vue}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \newfile{resources/js/Pages/Rapports/Fournisseurs/Tabs/DeclarationTvaTab.vue}
+  \item \newfile{resources/js/Pages/Rapports/Fournisseurs/Tabs/SituationADateTab.vue}
+  \item \newfile{resources/js/Pages/Rapports/Fournisseurs/Tabs/BanquesParCompteTab.vue}
+  \item \newfile{resources/js/Pages/Rapports/Clients/Tabs/ReglementsParTypeClientTab.vue}
+\end{itemize}
+
+\subsection{Nouvelles routes}
+
+\begin{longtable}{@{}l >{\raggedright\arraybackslash}p{0.65\textwidth}@{}}
+  \toprule
+  \textbf{Verbe} & \textbf{URI} \\
+  \midrule \endhead
+  GET & \texttt{/api/factures-fournisseurs/cumul-imputations} \\
+  GET & \texttt{/api/reglements-fournisseurs/\{id\}/imputation-data} \\
+  GET & \texttt{/reglements-fournisseurs/\{id\}/imputation-pdf} \\
+  GET & \texttt{/rapports/fournisseurs/api/declaration-tva} \\
+  GET & \texttt{/rapports/fournisseurs/pdf/declaration-tva} \\
+  GET & \texttt{/rapports/fournisseurs/excel/declaration-tva} \\
+  GET & \texttt{/rapports/fournisseurs/api/situation-a-date} \\
+  GET & \texttt{/rapports/fournisseurs/pdf/situation-a-date} \\
+  GET & \texttt{/rapports/fournisseurs/excel/situation-a-date} \\
+  GET & \texttt{/rapports/fournisseurs/api/banques-par-compte} \\
+  GET & \texttt{/rapports/fournisseurs/pdf/banques-par-compte} \\
+  GET & \texttt{/rapports/fournisseurs/excel/banques-par-compte} \\
+  GET & \texttt{/rapports/fournisseurs/excel/declaration-aib} \\
+  GET & \texttt{/rapports/clients/api/reglements-par-type-client} \\
+  \bottomrule
+\end{longtable}
+
+\newpage
+
+% =========================================================
+\section{Tests et vérifications}
+
+\subsection{Vérifications effectuées}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Relecture manuelle des structures PHP : \texttt{\{\}} en fin de
+    fichier vérifiés pour \texttt{FactureFournisseurController} et
+    \texttt{RapportFournisseurController}.
+  \item Conformité des signatures : \texttt{syncImputationsMultiples()} et
+    \texttt{syncFournisseurComptes()} sont bien \texttt{private} (helpers
+    internes), les méthodes publiques exposées correspondent aux routes.
+  \item Les exports Excel appellent désormais les helpers privés PHP et
+    non plus des \texttt{JsonResponse} (bug corrigé avant livraison).
+\end{itemize}
+
+\subsection{Plan de test recommandé}
+
+\begin{enumerate}[leftmargin=1.4em]
+  \item \textbf{Migration} : \texttt{php artisan migrate --pretend} pour vérifier
+    l'ordre, puis \texttt{php artisan migrate}. Les tables
+    \texttt{fournisseur\_comptes} et \texttt{imputations\_facture\_fournisseur}
+    doivent être remplies automatiquement.
+  \item \textbf{Nom d'établissement} : vérifier dans
+    \texttt{/parametres/etablissement} que la valeur est \emph{Hôpital de
+    zone de Ménontin}. Générer un bordereau de règlement et s'assurer que
+    le titre est bien \emph{Bordereau de Règlement}.
+  \item \textbf{Fournisseur} : créer un fournisseur sans IFU \(\rightarrow\) 422 attendu.
+    Avec IFU + 2 comptes supplémentaires \(\rightarrow\) vérifier la table pivot.
+  \item \textbf{Facture} : créer sans imputation \(\rightarrow\) 422. Créer avec 3 lignes
+    d'imputation \(\rightarrow\) vérifier la table \texttt{imputations\_facture\_fournisseur}.
+    Vérifier le cumul affiché à la 2\up{e} facture.
+  \item \textbf{Règlement fournisseur} : saisir un règlement, vérifier le
+    dialog tripartite (Bordereau / Imputation / Fermer), puis l'accès
+    PDF via le dropdown.
+  \item \textbf{Règlement client} : saisir avec type=rejet + montant\_rejet
+    + bordereau de dépôt. Éditer la ligne et vérifier la présence du
+    fichier joint. Remplacer le fichier \(\rightarrow\) vérifier la suppression.
+  \item \textbf{Déclaration TVA} : choisir une période avec factures TVA
+    assujetties, vérifier PDF + Excel.
+  \item \textbf{Situation à date} : changer la date, vérifier que les
+    règlements postérieurs sont exclus.
+  \item \textbf{Brouillard par banque} : filtrer sur une banque, vérifier
+    que le PDF ne contient que les lignes correspondantes.
+\end{enumerate}
+
+\subsection{Dépendances externes}
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \texttt{phpoffice/phpspreadsheet \^{}2.0} (déjà dans \texttt{composer.json}).
+  \item \texttt{barryvdh/laravel-dompdf} (déjà utilisé pour les autres PDF).
+  \item Pas de nouveau package Vue : utilisation de composants Element Plus
+    déjà présents (\texttt{el-autocomplete}, \texttt{el-upload},
+    \texttt{el-tabs}, etc.).
+\end{itemize}
+
+\newpage
+
+% =========================================================
+\section{Suites possibles}
+
+Points identifiés mais hors périmètre immédiat, à aborder en second
+temps si pertinent :
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Propagation des multi-imputations dans les états existants}
+    (récap charges, situation fournisseurs\dots{}). Pour l'instant ces états
+    continuent à lire \texttt{compte\_id} (une seule entrée) --- ce qui est
+    correct pour les factures monolithiques mais devra évoluer quand les
+    factures multi-imputations deviendront majoritaires.
+  \item \textbf{Suppression du champ \texttt{compte\_comptable\_id}} sur
+    \texttt{fournisseurs} au profit exclusif de la pivot --- à faire une fois
+    que tout le code lit via la relation \texttt{comptes()}.
+  \item \textbf{Génération d'écritures comptables pour la TVA} (actuellement
+    uniquement déclarative).
+  \item \textbf{Pagination serveur} sur les nouveaux états en cas de très
+    gros volumes (actuellement : tout est chargé en mémoire, acceptable
+    pour un hôpital de zone).
+  \item \textbf{Tests automatisés} PHPUnit / Feature sur les nouveaux
+    endpoints.
+\end{itemize}
+
+\vspace{1cm}
+
+\begin{center}
+  \textcolor{primary}{\rule{0.4\textwidth}{0.5pt}}\\[0.5em]
+  \emph{Fin du rapport}
+\end{center}
+
+\end{document}

@@ -6,7 +6,7 @@
         <el-icon v-if="!isCollapse" :size="32" color="#409EFF">
           <OfficeBuilding />
         </el-icon>
-        <h2 v-if="!isCollapse">Hôpital Ménontin</h2>
+        <h2 v-if="!isCollapse">Hôpital de zone de Ménontin</h2>
       </div>
 
       <el-menu

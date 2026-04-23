@@ -363,6 +363,8 @@ class FournisseurController extends Controller
                 'observations' => $request->observations,
             ]);
 
+            $this->syncFournisseurComptes($fournisseur, $compteComptableId, $request->input('comptes_supplementaires', []));
+
             DB::commit();
 
             ActivityLog::log('create', 'fournisseur', "Création du fournisseur {$fournisseur->nom}", $fournisseur, ['nom' => $fournisseur->nom]);
@@ -458,6 +460,10 @@ class FournisseurController extends Controller
                 'observations' => $request->observations,
             ]);
 
+            if ($request->has('comptes_supplementaires') || $request->has('compte_comptable_id')) {
+                $this->syncFournisseurComptes($fournisseur, $compteComptableId, $request->input('comptes_supplementaires', []));
+            }
+
             DB::commit();
 
             ActivityLog::log('update', 'fournisseur', "Modification du fournisseur {$fournisseur->nom}", $fournisseur, ['nom' => $fournisseur->nom]);
@@ -550,7 +556,9 @@ class FournisseurController extends Controller
             'ville' => ['nullable', 'string', 'max:100'],
             'pays' => ['nullable', 'string', 'size:2'],
             'compte_comptable_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
-            'ifu' => ['nullable', 'string', 'size:13', 'regex:/^\d{13}$/'],
+            'comptes_supplementaires' => ['nullable', 'array'],
+            'comptes_supplementaires.*' => ['integer', 'exists:plan_comptable_ohada,id'],
+            'ifu' => ['required', 'string', 'size:13', 'regex:/^\d{13}$/'],
             'rccm' => ['nullable', 'string', 'max:50'],
             'observations' => ['nullable', 'string'],
             'create_compte' => ['nullable', 'boolean'],
@@ -558,5 +566,23 @@ class FournisseurController extends Controller
             'nouveau_compte_numero' => ['nullable', 'string', 'regex:/^(401|4812)[a-zA-Z0-9.]+$/'],
             'nouveau_compte_libelle' => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * Synchronise la table pivot fournisseur_comptes avec le compte principal + les supplémentaires.
+     */
+    private function syncFournisseurComptes(\App\Models\Fournisseur $fournisseur, ?int $principalId, array $supplementaires): void
+    {
+        $sync = [];
+        if ($principalId) {
+            $sync[(int) $principalId] = ['principal' => true];
+        }
+        foreach ($supplementaires as $id) {
+            $id = (int) $id;
+            if ($id && !isset($sync[$id])) {
+                $sync[$id] = ['principal' => false];
+            }
+        }
+        $fournisseur->comptes()->sync($sync);
     }
 }

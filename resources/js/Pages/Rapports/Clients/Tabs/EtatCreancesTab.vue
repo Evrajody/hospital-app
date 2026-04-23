@@ -28,6 +28,15 @@
           </el-select>
         </el-form-item>
 
+        <el-form-item label="Type client">
+          <el-select v-model="selectedTypeClient" placeholder="Tous" clearable style="width: 160px">
+            <el-option label="Société" value="societe" />
+            <el-option label="Divers" value="divers" />
+            <el-option label="Personnel" value="personnel" />
+            <el-option label="Autre" value="autre" />
+          </el-select>
+        </el-form-item>
+
         <el-form-item v-if="selectedMode === 'tous_clients'" label="Date début">
           <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date début" />
         </el-form-item>
@@ -123,6 +132,7 @@ const props = defineProps({
 
 const selectedMode = ref('par_client');
 const selectedClientId = ref(null);
+const selectedTypeClient = ref('');
 const dateDebut = ref('');
 const dateFin = ref('');
 const loading = ref(false);
@@ -144,6 +154,7 @@ const fetchData = async () => {
   try {
     const params = new URLSearchParams({ mode: selectedMode.value });
     if (selectedMode.value === 'un_client') params.append('client_id', selectedClientId.value);
+    if (selectedTypeClient.value) params.append('type_client', selectedTypeClient.value);
     if (dateDebut.value) params.append('date_debut', dateDebut.value);
     if (dateFin.value) params.append('date_fin', dateFin.value);
 
@@ -172,6 +183,7 @@ const getSummary = ({ columns, data: tableData }) => {
 const buildPdfParams = () => {
   const params = new URLSearchParams({ mode: selectedMode.value });
   if (selectedMode.value === 'un_client') params.append('client_id', selectedClientId.value);
+  if (selectedTypeClient.value) params.append('type_client', selectedTypeClient.value);
   if (dateDebut.value) params.append('date_debut', dateDebut.value);
   if (dateFin.value) params.append('date_fin', dateFin.value);
   return params;

@@ -100,6 +100,36 @@
           </template>
           <RecapInvestissementsTab />
         </el-tab-pane>
+
+        <el-tab-pane name="declaration-tva" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><List /></el-icon>
+              Déclaration TVA
+            </span>
+          </template>
+          <DeclarationTvaTab />
+        </el-tab-pane>
+
+        <el-tab-pane name="situation-a-date" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Wallet /></el-icon>
+              Situation à date
+            </span>
+          </template>
+          <SituationADateTab />
+        </el-tab-pane>
+
+        <el-tab-pane name="banques-par-compte" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Coin /></el-icon>
+              Banques par compte
+            </span>
+          </template>
+          <BanquesParCompteTab />
+        </el-tab-pane>
       </el-tabs>
     </div>
   </AppLayout>
@@ -124,11 +154,14 @@ import MouvementFacturesTab from './Tabs/MouvementFacturesTab.vue';
 import SituationFournisseursTab from './Tabs/SituationFournisseursTab.vue';
 import FacturesRegleesTab from './Tabs/FacturesRegleesTab.vue';
 import DeclarationAibTab from './Tabs/DeclarationAibTab.vue';
+import DeclarationTvaTab from './Tabs/DeclarationTvaTab.vue';
 import PointPeriodiqueTab from './Tabs/PointPeriodiqueTab.vue';
 import BordereauTransmissionTab from './Tabs/BordereauTransmissionTab.vue';
 import RecapChargesTab from './Tabs/RecapChargesTab.vue';
 import RecapInvestissementsTab from './Tabs/RecapInvestissementsTab.vue';
 import FacturesSoldesTab from './Tabs/FacturesSoldesTab.vue';
+import SituationADateTab from './Tabs/SituationADateTab.vue';
+import BanquesParCompteTab from './Tabs/BanquesParCompteTab.vue';
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },

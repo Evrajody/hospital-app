@@ -133,6 +133,14 @@ class FactureFournisseur extends Model
     }
 
     /**
+     * Imputations multiples (facture → N lignes compte/montant).
+     */
+    public function imputations()
+    {
+        return $this->hasMany(ImputationFactureFournisseur::class, 'facture_id');
+    }
+
+    /**
      * Relation avec l'utilisateur créateur
      */
     public function createur(): BelongsTo

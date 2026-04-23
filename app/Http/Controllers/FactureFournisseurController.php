@@ -402,10 +402,18 @@ class FactureFournisseurController extends Controller
                 ]),
             ]);
 
+        $beneficiaires = \App\Models\ReglementFournisseur::whereNotNull('beneficiaire')
+            ->where('beneficiaire', '!=', '')
+            ->distinct()
+            ->orderBy('beneficiaire')
+            ->pluck('beneficiaire')
+            ->values();
+
         return Inertia::render('Fournisseurs/Factures/Reglement', [
             'facture' => $factureData,
             'reglements' => $reglements,
             'banques' => $banques,
+            'beneficiaires' => $beneficiaires,
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
@@ -592,6 +600,8 @@ class FactureFournisseurController extends Controller
 
             $facture->load(['fournisseur', 'imputation', 'compte']);
 
+            $this->syncImputationsMultiples($facture, $request->input('imputations', []));
+
             // Vérifier si la facture a une imputation
             $hasImputation = $facture->imputation_id && $facture->compte_id;
 
@@ -672,6 +682,10 @@ class FactureFournisseurController extends Controller
                 'observations' => $request->observations,
                 'metadata' => $request->metadata ?? $facture->metadata,
             ]);
+
+            if ($request->has('imputations')) {
+                $this->syncImputationsMultiples($facture, $request->input('imputations', []));
+            }
 
             DB::commit();
 
@@ -1211,8 +1225,8 @@ class FactureFournisseurController extends Controller
             'date' => ['required', 'date'],
             'reference_facture' => ['nullable', 'string', 'max:100'],
             'fournisseur_id' => ['required', 'integer', 'exists:fournisseurs,id'],
-            'imputation_id' => ['nullable', 'integer', 'exists:classes,id'],
-            'compte_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
+            'imputation_id' => ['required', 'integer', 'exists:classes,id'],
+            'compte_id' => ['required', 'integer', 'exists:plan_comptable_ohada,id'],
             'libelle' => ['required', 'string', 'max:500'],
             'montant_facture' => ['required', 'numeric', 'min:0'],
             'montant_mo' => ['nullable', 'numeric', 'min:0'],
@@ -1224,6 +1238,80 @@ class FactureFournisseurController extends Controller
             'date_facture_bc' => ['nullable', 'date'],
             'observations' => ['nullable', 'string'],
             'metadata' => ['nullable', 'array'],
+            'imputations' => ['nullable', 'array'],
+            'imputations.*.compte_id' => ['required_with:imputations', 'integer', 'exists:plan_comptable_ohada,id'],
+            'imputations.*.montant' => ['required_with:imputations', 'numeric', 'min:0'],
+            'imputations.*.libelle' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    /**
+     * Cumul des imputations par compte depuis le début de l'exercice.
+     */
+    public function cumulImputations(Request $request): JsonResponse
+    {
+        $compteId = $request->input('compte_id');
+        $annee = (int) ($request->input('annee') ?: now()->year);
+        $debut = "{$annee}-01-01";
+        $fin = "{$annee}-12-31";
+
+        $query = \App\Models\ImputationFactureFournisseur::query()
+            ->selectRaw('compte_id, SUM(montant) as total')
+            ->whereHas('facture', function ($q) use ($debut, $fin) {
+                $q->whereBetween('date', [$debut, $fin])
+                    ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE]);
+            })
+            ->groupBy('compte_id');
+
+        if ($compteId) {
+            $query->where('compte_id', $compteId);
+        }
+
+        $rows = $query->get();
+
+        $data = $rows->map(function ($row) {
+            $compte = \App\Models\CompteComptable::find($row->compte_id);
+            return [
+                'compte_id' => $row->compte_id,
+                'numero_compte' => $compte?->numero_compte,
+                'libelle' => $compte?->libelle,
+                'cumul' => (float) $row->total,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'annee' => $annee,
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * Synchronise les imputations multiples d'une facture.
+     * Si aucune ligne n'est envoyée, crée une ligne unique à partir de compte_id.
+     */
+    private function syncImputationsMultiples(FactureFournisseur $facture, array $lignes): void
+    {
+        $facture->imputations()->delete();
+
+        if (empty($lignes)) {
+            if ($facture->compte_id) {
+                $facture->imputations()->create([
+                    'compte_id' => $facture->compte_id,
+                    'montant' => (float) ($facture->montant_ttc ?: $facture->montant_facture),
+                    'libelle' => $facture->libelle,
+                ]);
+            }
+            return;
+        }
+
+        foreach ($lignes as $ligne) {
+            if (empty($ligne['compte_id'])) continue;
+            $facture->imputations()->create([
+                'compte_id' => (int) $ligne['compte_id'],
+                'montant' => (float) ($ligne['montant'] ?? 0),
+                'libelle' => $ligne['libelle'] ?? $facture->libelle,
+            ]);
+        }
     }
 }

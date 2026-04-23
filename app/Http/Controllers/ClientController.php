@@ -25,6 +25,7 @@ class ClientController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ILIKE', "%{$search}%")
                   ->orWhere('telephone', 'ILIKE', "%{$search}%")
+                  ->orWhere('ifu', 'ILIKE', "%{$search}%")
                   ->orWhereHas('compteComptable', function ($cq) use ($search) {
                       $cq->where('numero_compte', 'ILIKE', "%{$search}%");
                   });
@@ -113,6 +114,9 @@ class ClientController extends Controller
         $request->validate([
             'nom' => ['required', 'string', 'min:2', 'max:255'],
             'telephone' => ['nullable', 'string', 'max:30'],
+            'ifu' => ['nullable', 'string', 'size:13', 'regex:/^\d{13}$/'],
+            'type_client' => ['nullable', 'string', 'in:' . implode(',', Client::TYPES)],
+            'observation' => ['nullable', 'string'],
             'adresse' => ['nullable', 'string'],
             'compte_comptable_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'create_compte' => ['nullable', 'boolean'],
@@ -157,6 +161,9 @@ class ClientController extends Controller
             $client = Client::create([
                 'nom' => $request->nom,
                 'telephone' => $request->telephone,
+                'ifu' => $request->ifu,
+                'type_client' => $request->type_client ?: 'divers',
+                'observation' => $request->observation,
                 'adresse' => $request->adresse,
                 'compte_comptable_id' => $compteComptableId,
             ]);
@@ -194,6 +201,9 @@ class ClientController extends Controller
         $request->validate([
             'nom' => ['required', 'string', 'min:2', 'max:255'],
             'telephone' => ['nullable', 'string', 'max:30'],
+            'ifu' => ['nullable', 'string', 'size:13', 'regex:/^\d{13}$/'],
+            'type_client' => ['nullable', 'string', 'in:' . implode(',', Client::TYPES)],
+            'observation' => ['nullable', 'string'],
             'adresse' => ['nullable', 'string'],
             'compte_comptable_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'create_compte' => ['nullable', 'boolean'],
@@ -236,6 +246,9 @@ class ClientController extends Controller
             $client->update([
                 'nom' => $request->nom,
                 'telephone' => $request->telephone,
+                'ifu' => $request->ifu,
+                'type_client' => $request->type_client ?: $client->type_client ?: 'divers',
+                'observation' => $request->observation,
                 'adresse' => $request->adresse,
                 'compte_comptable_id' => $compteComptableId,
             ]);

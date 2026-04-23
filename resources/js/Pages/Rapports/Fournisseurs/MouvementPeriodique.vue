@@ -103,7 +103,7 @@
               <th style="width: 80px">N°Pièce</th>
               <th style="width: 75px">Date PC</th>
               <th style="width: 90px">Réf. Fact.</th>
-              <th class="montant-col">Mt Fact.</th>
+              <th class="montant-col">Mt TTC</th>
               <th class="montant-col">Avoir</th>
               <th class="montant-col">Mt M.O.</th>
               <th class="montant-col" style="width: 55px">AIB (%)</th>

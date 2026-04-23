@@ -147,7 +147,7 @@
               </el-table>
               <div class="fournisseur-totals">
                 <span><strong>Total Fournisseur :</strong></span>
-                <span>Mt Fact. <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong></span>
+                <span>Mt TTC <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong></span>
                 <span>Avoir <strong>{{ formatMontant(fData.totaux.avoir) }}</strong></span>
                 <span>Mt M.O. <strong>{{ formatMontant(fData.totaux.montant_mo) }}</strong></span>
                 <span>AIB <strong>{{ formatMontant(fData.totaux.montant_aib) }}</strong></span>
@@ -159,7 +159,7 @@
             <!-- Grand Total -->
             <div class="grand-total">
               <span>TOTAL GÉNÉRAL</span>
-              <span>Mt Fact. : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
+              <span>Mt TTC : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
               <span>Avoir : <strong>{{ formatMontant(grandTotaux.avoir) }}</strong></span>
               <span>Mt M.O. : <strong>{{ formatMontant(grandTotaux.montant_mo) }}</strong></span>
               <span>AIB : <strong>{{ formatMontant(grandTotaux.montant_aib) }}</strong></span>

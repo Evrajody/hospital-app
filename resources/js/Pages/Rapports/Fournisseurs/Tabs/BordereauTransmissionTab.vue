@@ -39,11 +39,11 @@
           <div class="selection-actions">
             <el-button type="primary" @click="exportMandats">
               <el-icon><Document /></el-icon>
-              Mandats
+              Bordereaux de règlement
             </el-button>
             <el-button type="success" @click="exportBordereau">
               <el-icon><List /></el-icon>
-              Bordereau
+              Bordereau de transmission
             </el-button>
           </div>
         </div>

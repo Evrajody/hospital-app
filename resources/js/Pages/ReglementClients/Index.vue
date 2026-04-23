@@ -109,7 +109,6 @@
               <el-option label="Règlement" value="reglement" />
               <el-option label="Perte" value="perte" />
               <el-option label="Rejet" value="rejet" />
-              <el-option label="Régularisation" value="regularisation" />
             </el-select>
           </el-form-item>
 

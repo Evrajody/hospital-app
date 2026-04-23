@@ -258,7 +258,7 @@ class ReglementFournisseurController extends Controller
                 $dateAib = $request->date_aib ?? now()->toDateString();
             }
 
-            // Snapshot établissement pour le mandat
+            // Snapshot établissement pour le bordereau de règlement
             $etablissement = \App\Models\Setting::getEtablissement();
 
             // Créer le règlement (utiliser le montant converti en float)
@@ -523,7 +523,7 @@ class ReglementFournisseurController extends Controller
     }
 
     /**
-     * Générer le PDF du Mandat de Paiement
+     * Générer le PDF du Bordereau de Règlement
      */
     public function mandat(int $id)
     {
@@ -538,11 +538,11 @@ class ReglementFournisseurController extends Controller
         $pdf = Pdf::loadView('pdf.mandat-paiement', $data);
         $pdf->setPaper('a4', 'portrait');
 
-        return $pdf->stream("mandat-paiement-{$reglement->id}.pdf");
+        return $pdf->stream("bordereau-reglement-{$reglement->id}.pdf");
     }
 
     /**
-     * Données du mandat de paiement (JSON pour drawer)
+     * Données du bordereau de règlement (JSON pour drawer)
      */
     public function mandatData(int $id): JsonResponse
     {
@@ -607,6 +607,93 @@ class ReglementFournisseurController extends Controller
             'fournisseur' => [
                 'nom' => $reglement->fournisseur_nom ?: $reglement->fournisseur?->nom,
             ],
+        ]);
+    }
+
+    /**
+     * PDF de l'imputation comptable d'un règlement
+     */
+    public function imputationPdf(int $id)
+    {
+        $reglement = ReglementFournisseur::with(['facture.fournisseur.compteComptable'])->findOrFail($id);
+        $facture = $reglement->facture;
+
+        $ecritures = EcritureComptable::where('reglement_id', $id)
+            ->orderBy('date_ecriture')
+            ->orderBy('id')
+            ->get();
+
+        if ($ecritures->isEmpty()) {
+            abort(404, 'Aucune écriture comptable pour ce règlement');
+        }
+
+        $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
+
+        $pdf = Pdf::loadView('pdf.imputation-comptable', [
+            'facture' => $facture,
+            'reglement' => $reglement,
+            'ecrituresParDate' => $ecrituresParDate,
+            'totalDebit' => $ecritures->sum('debit'),
+            'totalCredit' => $ecritures->sum('credit'),
+            'user' => auth()->user(),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]);
+        $pdf->setPaper('a4', 'landscape');
+
+        return $pdf->stream("imputation-reglement-{$reglement->id}.pdf");
+    }
+
+    /**
+     * Données d'imputation comptable d'un règlement (JSON pour drawer)
+     */
+    public function imputationData(int $id): JsonResponse
+    {
+        $reglement = ReglementFournisseur::with(['facture'])->findOrFail($id);
+
+        $ecritures = EcritureComptable::where('reglement_id', $id)
+            ->orderBy('date_ecriture')
+            ->orderBy('id')
+            ->get();
+
+        if ($ecritures->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucune écriture comptable pour ce règlement',
+            ], 404);
+        }
+
+        $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
+
+        $data = [];
+        foreach ($ecrituresParDate as $date => $lignes) {
+            $data[] = [
+                'date' => $date,
+                'lignes' => $lignes->map(fn($e) => [
+                    'numero_compte' => $e->numero_compte,
+                    'debit' => (float) $e->debit,
+                    'credit' => (float) $e->credit,
+                    'libelle' => $e->libelle,
+                ])->values()->toArray(),
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'reglement' => [
+                'id' => $reglement->id,
+                'numero_reglement' => $reglement->numero_reglement,
+                'date_reglement' => $reglement->date_reglement?->format('d/m/Y'),
+                'montant' => (float) $reglement->montant,
+            ],
+            'facture' => [
+                'id' => $reglement->facture?->id,
+                'numero_piece' => $reglement->facture_numero ?: $reglement->facture?->numero_piece,
+                'libelle' => $reglement->facture?->libelle,
+            ],
+            'ecritures' => $data,
+            'total_debit' => (float) $ecritures->sum('debit'),
+            'total_credit' => (float) $ecritures->sum('credit'),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
         ]);
     }
 

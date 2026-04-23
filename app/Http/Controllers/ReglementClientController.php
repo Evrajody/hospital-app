@@ -88,15 +88,22 @@ class ReglementClientController extends Controller
             'date_reglement' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
-            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet,regularisation'],
+            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet'],
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
             'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
             'observations' => ['nullable', 'string'],
+            'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'montant_rejet' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $facture = FactureClient::findOrFail($request->facture_id);
+
+        $bordereauPath = null;
+        if ($request->hasFile('bordereau_depot')) {
+            $bordereauPath = $request->file('bordereau_depot')->store('bordereaux-depot', 'public');
+        }
 
         // Vérifier que le montant ne dépasse pas le reste à payer
         if ($request->montant > (float) $facture->reste_a_payer) {
@@ -123,6 +130,8 @@ class ReglementClientController extends Controller
                 'banque_depot_id' => $request->banque_depot_id,
                 'compte_bancaire_id' => $request->compte_bancaire_id,
                 'observations' => $request->observations,
+                'bordereau_depot_path' => $bordereauPath,
+                'montant_rejet' => (float) ($request->montant_rejet ?? 0),
                 'created_by' => auth()->id(),
                 'created_by_name' => auth()->user()->name,
             ]);
@@ -162,13 +171,23 @@ class ReglementClientController extends Controller
             'date_reglement' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
-            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet,regularisation'],
+            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet'],
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
             'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
             'observations' => ['nullable', 'string'],
+            'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'montant_rejet' => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        $bordereauPath = $reglement->bordereau_depot_path;
+        if ($request->hasFile('bordereau_depot')) {
+            if ($bordereauPath) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($bordereauPath);
+            }
+            $bordereauPath = $request->file('bordereau_depot')->store('bordereaux-depot', 'public');
+        }
 
         $ancienMontant = (float) $reglement->montant;
         $nouveauMontant = (float) $request->montant;
@@ -196,6 +215,8 @@ class ReglementClientController extends Controller
                 'banque_depot_id' => $request->banque_depot_id,
                 'compte_bancaire_id' => $request->compte_bancaire_id,
                 'observations' => $request->observations,
+                'bordereau_depot_path' => $bordereauPath,
+                'montant_rejet' => (float) ($request->montant_rejet ?? $reglement->montant_rejet ?? 0),
             ]);
 
             // Mettre à jour la facture

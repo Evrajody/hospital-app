@@ -24,7 +24,7 @@
                     <tr>
                         <th style="width: 120px">N&deg; PC</th>
                         <th>Objet PC</th>
-                        <th class="montant" style="width: 130px">Montant</th>
+                        <th class="montant" style="width: 130px">Montant TTC</th>
                     </tr>
                 </thead>
                 <tbody>

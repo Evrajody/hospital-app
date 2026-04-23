@@ -176,7 +176,10 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="mandat" :icon="DocumentCopy">
-                        Mandat de paiement
+                        Bordereau de règlement
+                      </el-dropdown-item>
+                      <el-dropdown-item command="imputation" :icon="DocumentCopy">
+                        Imputation comptable
                       </el-dropdown-item>
                       <el-dropdown-item command="edit" :icon="Edit">
                         Modifier
@@ -354,7 +357,7 @@
           <div class="dialog-footer">
             <el-button @click="detailDialogVisible = false">Fermer</el-button>
             <el-button type="primary" :icon="DocumentCopy" @click="handlePrintMandat">
-              Mandat de paiement
+              Bordereau de règlement
             </el-button>
             <el-button type="info" :icon="Document" @click="handleViewFactureFromModal">
               Voir la facture
@@ -371,21 +374,28 @@
         :close-on-click-modal="false"
       >
         <el-form label-position="top">
-          <el-form-item label="Facture à régler">
+          <el-form-item label="Facture à régler (recherche par N° PC, libellé ou fournisseur)">
             <el-select
               v-model="selectedFactureId"
-              placeholder="Sélectionner une facture"
+              placeholder="Tapez le N° PC (ex: 0023) ou le libellé…"
               filterable
+              :filter-method="filterFactureByPc"
               style="width: 100%"
               size="large"
             >
               <el-option
-                v-for="facture in facturesImpayees"
+                v-for="facture in filteredFacturesImpayees"
                 :key="facture.id"
                 :label="`${facture.numero} - ${facture.libelle}`"
                 :value="facture.id"
               >
-                <span>{{ facture.numero }} - {{ facture.libelle }}</span>
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                  <div>
+                    <el-tag size="small" type="primary">{{ facture.numero }}</el-tag>
+                    <span style="margin-left: 8px">{{ facture.libelle }}</span>
+                  </div>
+                  <small style="color: #909399">{{ facture.fournisseur_nom || '' }}</small>
+                </div>
               </el-option>
             </el-select>
           </el-form-item>
@@ -404,7 +414,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -482,6 +492,21 @@ const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
 const selectFactureDialogVisible = ref(false);
 const selectedFactureId = ref(null);
+const factureSearchQuery = ref('');
+
+const filterFactureByPc = (query) => {
+  factureSearchQuery.value = (query || '').trim();
+};
+
+const filteredFacturesImpayees = computed(() => {
+  const q = factureSearchQuery.value.toLowerCase();
+  if (!q) return props.facturesImpayees;
+  return props.facturesImpayees.filter(f =>
+    (f.numero || '').toLowerCase().includes(q) ||
+    (f.libelle || '').toLowerCase().includes(q) ||
+    (f.fournisseur_nom || '').toLowerCase().includes(q)
+  );
+});
 const filters = reactive({
   search: '',
   fournisseur_id: null,
@@ -646,7 +671,7 @@ const handleMoreActions = async (command, reglement) => {
       window.open(`/reglements-fournisseurs/${reglement.id}/mandat`, '_blank');
       break;
     case 'imputation':
-      window.open(`/reglements-fournisseurs/${reglement.id}/imputation`, '_blank');
+      window.open(`/reglements-fournisseurs/${reglement.id}/imputation-pdf`, '_blank');
       break;
     case 'edit':
       router.visit(`/factures-fournisseurs/${reglement.facture.id}/regler?edit=${reglement.id}`);

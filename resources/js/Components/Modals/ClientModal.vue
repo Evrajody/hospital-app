@@ -72,6 +72,32 @@
                 </el-form-item>
               </el-col>
 
+              <el-col :span="12">
+                <el-form-item label="IFU (optionnel)" prop="ifu">
+                  <el-input
+                    v-model="form.ifu"
+                    placeholder="0000000000000"
+                    maxlength="13"
+                    show-word-limit
+                  />
+                  <div class="form-hint">13 chiffres</div>
+                </el-form-item>
+              </el-col>
+
+              <el-col :span="12">
+                <el-form-item prop="type_client">
+                  <template #label>
+                    <span>Type de client <span class="required-star">*</span></span>
+                  </template>
+                  <el-select v-model="form.type_client" style="width: 100%">
+                    <el-option label="Société" value="societe" />
+                    <el-option label="Divers" value="divers" />
+                    <el-option label="Personnel" value="personnel" />
+                    <el-option label="Autre" value="autre" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+
               <el-col :span="12" />
 
               <el-col :span="24">
@@ -81,6 +107,17 @@
                     type="textarea"
                     :rows="2"
                     placeholder="Adresse du client"
+                  />
+                </el-form-item>
+              </el-col>
+
+              <el-col :span="24">
+                <el-form-item label="Observation" prop="observation">
+                  <el-input
+                    v-model="form.observation"
+                    type="textarea"
+                    :rows="2"
+                    placeholder="Notes ou informations complémentaires"
                   />
                 </el-form-item>
               </el-col>
@@ -303,6 +340,9 @@ const validationErrors = ref([]);
 const fieldLabels = {
   nom: 'Raison Sociale',
   telephone: 'Téléphone',
+  ifu: 'IFU',
+  type_client: 'Type de client',
+  observation: 'Observation',
   adresse: 'Adresse',
   compte_comptable_id: 'Compte Client',
   nouveau_compte_numero: 'Numéro de Compte',
@@ -326,6 +366,9 @@ watch(() => props.serverErrors, (errors) => {
 const getInitialFormData = () => ({
   nom: '',
   telephone: '',
+  ifu: '',
+  type_client: 'divers',
+  observation: '',
   adresse: '',
   compte_comptable_id: null,
   compte_parent_id: null,
@@ -383,6 +426,21 @@ const rules = computed(() => ({
   nom: [
     { required: true, message: 'La raison sociale est obligatoire', trigger: 'blur' },
     { min: 2, max: 255, message: 'Le nom doit contenir entre 2 et 255 caractères', trigger: 'blur' }
+  ],
+  ifu: [
+    {
+      validator: (rule, value, callback) => {
+        if (value && !/^\d{13}$/.test(value)) {
+          callback(new Error("L'IFU doit contenir exactement 13 chiffres"));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  type_client: [
+    { required: true, message: 'Le type de client est obligatoire', trigger: 'change' }
   ],
   nouveau_compte_numero: [
     {

@@ -64,7 +64,7 @@
               <th>Mode paiement</th>
               <th>Référence</th>
               <th>Banque</th>
-              <th class="montant-col">Montant</th>
+              <th class="montant-col">Montant TTC</th>
               <th class="montant-col">Solde après</th>
             </tr>
           </thead>

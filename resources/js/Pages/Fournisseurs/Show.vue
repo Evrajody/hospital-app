@@ -410,7 +410,7 @@
                       <template #dropdown>
                         <el-dropdown-menu>
                           <el-dropdown-item command="mandat" :icon="Printer">
-                            Mandat de paiement
+                            Bordereau de règlement
                           </el-dropdown-item>
                           <el-dropdown-item command="imputation" :icon="Notebook">
                             Fiche d'imputation

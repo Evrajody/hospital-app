@@ -322,7 +322,7 @@
                   <el-divider style="margin: 12px 0" />
                   <div class="reglement-actions">
                     <el-button size="small" type="primary" :icon="DocumentCopy" @click="openMandatDrawer(reglement.id)">
-                      Mandat
+                      Bordereau
                     </el-button>
                   </div>
                 </el-card>
@@ -472,8 +472,8 @@
       <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune donnée trouvée.</div>
     </el-drawer>
 
-    <!-- Drawer Mandat de Paiement -->
-    <el-drawer v-model="showMandatDrawer" title="Mandat de Paiement" direction="rtl" size="55%" :destroy-on-close="true">
+    <!-- Drawer Bordereau de Règlement -->
+    <el-drawer v-model="showMandatDrawer" title="Bordereau de Règlement" direction="rtl" size="55%" :destroy-on-close="true">
       <div v-if="mandatLoading" style="text-align: center; padding: 40px;">
         <el-icon class="is-loading" :size="30"><Clock /></el-icon>
         <p style="margin-top: 10px; color: #909399;">Chargement...</p>
@@ -487,15 +487,15 @@
             {{ mandatData.etablissement.telephone ? 'Tél.: ' + mandatData.etablissement.telephone : '' }}
             {{ mandatData.etablissement.email ? ' - E-mail: ' + mandatData.etablissement.email : '' }}
           </div>
-          <div class="imputation-title-box"><span>MANDAT DE PAIEMENT</span></div>
+          <div class="imputation-title-box"><span>BORDEREAU DE RÈGLEMENT</span></div>
           <p class="imputation-numero-piece"><em>N° {{ mandatData.facture.numero_piece }}/DAF/H.M.</em></p>
         </div>
 
         <div class="mandat-exercice"><strong>EXERCICE {{ new Date().getFullYear() }}</strong></div>
 
         <p class="mandat-intro">
-          <em>En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital de
-          Ménontin mandate sur la caisse du Centre, la créance détaillée ci-après :</em>
+          <em>En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital
+          ordonne le règlement par la caisse du Centre, de la créance détaillée ci-après :</em>
         </p>
 
         <!-- Détails -->
@@ -656,7 +656,7 @@ const showImputationDrawer = ref(false);
 const imputationLoading = ref(false);
 const imputationData = ref(null);
 
-// Drawer Mandat de Paiement
+// Drawer Bordereau de Règlement
 const showMandatDrawer = ref(false);
 const mandatLoading = ref(false);
 const mandatData = ref(null);
@@ -895,7 +895,7 @@ const openMandatDrawer = async (reglementId) => {
       ElMessage.warning(result.message || 'Données non trouvées');
     }
   } catch (err) {
-    ElMessage.error('Erreur lors du chargement du mandat');
+    ElMessage.error('Erreur lors du chargement du bordereau');
   } finally {
     mandatLoading.value = false;
   }
@@ -1190,7 +1190,7 @@ const downloadEtatReglementPdf = () => {
 .imputation-table tbody tr:last-child td { border-bottom: 1px solid #000; }
 .imputation-table tfoot td { border: 1px solid #000; background-color: #fff; font-weight: bold; }
 
-/* Mandat de Paiement Drawer */
+/* Bordereau de Règlement Drawer */
 .mandat-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }
 .mandat-header { margin-bottom: 15px; text-align: center; }
 .mandat-exercice { margin: 10px 0 15px; font-size: 14px; }

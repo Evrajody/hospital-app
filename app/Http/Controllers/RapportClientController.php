@@ -42,6 +42,7 @@ class RapportClientController extends Controller
     {
         return Inertia::render('Rapports/Clients/Index', [
             'clients' => $this->getClientsList(),
+            'banques' => \App\Models\Banque::orderBy('nom')->get(['id', 'nom']),
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
@@ -59,6 +60,7 @@ class RapportClientController extends Controller
         $clientId = $request->input('client_id');
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
+        $typeClient = $request->input('type_client');
 
         $data = [];
 
@@ -67,6 +69,10 @@ class RapportClientController extends Controller
 
             if ($mode === 'un_client' && $clientId) {
                 $query->where('client_id', $clientId);
+            }
+
+            if ($typeClient) {
+                $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
             }
 
             if ($dateDebut && $dateFin) {
@@ -119,6 +125,7 @@ class RapportClientController extends Controller
             $deb = $dateDebut ?: now()->startOfYear()->format('Y-m-d');
             $fin = $dateFin ?: now()->format('Y-m-d');
             $clientsAvecFactures = Client::with('compteComptable')
+                ->when($typeClient, fn($q) => $q->where('type_client', $typeClient))
                 ->whereHas('facturesClient', function ($q) use ($deb, $fin) {
                     $q->whereBetween('date_facture', [$deb, $fin]);
                 })
@@ -164,6 +171,7 @@ class RapportClientController extends Controller
         $clientId = $request->input('client_id');
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
+        $typeClient = $request->input('type_client');
 
         $data = [];
 
@@ -173,6 +181,10 @@ class RapportClientController extends Controller
 
             if ($mode === 'un_client' && $clientId) {
                 $query->where('client_id', $clientId);
+            }
+
+            if ($typeClient) {
+                $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
             }
 
             $factures = $query->orderBy('client_id')->orderBy('date_facture')->get();
@@ -216,6 +228,7 @@ class RapportClientController extends Controller
             }
         } elseif ($mode === 'tous_clients') {
             $clientsAvecCreances = Client::with('compteComptable')
+                ->when($typeClient, fn($q) => $q->where('type_client', $typeClient))
                 ->whereHas('facturesClient', function ($q) use ($dateDebut, $dateFin) {
                     $q->where('reste_a_payer', '>', 0);
                     if ($dateDebut) $q->where('date_facture', '>=', $dateDebut);
@@ -260,6 +273,7 @@ class RapportClientController extends Controller
     {
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
+        $banqueId = $request->input('banque_id');
 
         $data = [];
 
@@ -270,8 +284,10 @@ class RapportClientController extends Controller
                     'banqueDepot',
                     'compteBancaire.compteOhada',
                 ])
+                ->when($banqueId, fn($q) => $q->where('banque_depot_id', $banqueId))
                 ->where('date_reglement', '>=', $dateDebut)
                 ->where('date_reglement', '<=', $dateFin)
+                ->orderBy('banque_depot_id')
                 ->orderBy('date_reglement')
                 ->orderBy('id')
                 ->get();
@@ -301,6 +317,8 @@ class RapportClientController extends Controller
                 $data[] = [
                     'date' => $r->date_reglement->format('d/m/Y'),
                     'date_raw' => $r->date_reglement->format('Y-m-d'),
+                    'banque_depot_id' => $r->banque_depot_id,
+                    'banque_depot' => $r->banqueDepot?->nom,
                     'libelle' => $libelle,
                     'debit' => $debit,
                     'credit' => $credit,
@@ -403,12 +421,50 @@ class RapportClientController extends Controller
         ];
     }
 
+    public function reglementsParTypeClient(Request $request): JsonResponse
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+
+        $query = ReglementClient::with(['client'])
+            ->when($dateDebut, fn($q) => $q->where('date_reglement', '>=', $dateDebut))
+            ->when($dateFin, fn($q) => $q->where('date_reglement', '<=', $dateFin));
+
+        $reglements = $query->get();
+
+        $groupes = [];
+        foreach ($reglements as $r) {
+            $type = $r->client?->type_client ?: 'non_defini';
+            $label = $type !== 'non_defini'
+                ? (\App\Models\Client::TYPES_LABELS[$type] ?? ucfirst($type))
+                : 'Non défini';
+            if (!isset($groupes[$type])) {
+                $groupes[$type] = [
+                    'type' => $type,
+                    'label' => $label,
+                    'nombre' => 0,
+                    'total' => 0,
+                ];
+            }
+            $groupes[$type]['nombre']++;
+            $groupes[$type]['total'] += (float) $r->montant;
+        }
+
+        return response()->json([
+            'groupes' => array_values($groupes),
+            'total_general' => array_sum(array_column($groupes, 'total')),
+            'date_debut' => $dateDebut,
+            'date_fin' => $dateFin,
+        ]);
+    }
+
     private function buildPertesRejetsData(Request $request): array
     {
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
         $typeFilter = $request->input('type_reglement'); // perte, rejet, regularisation or null for all
         $clientId = $request->input('client_id');
+        $typeClient = $request->input('type_client');
 
         $query = ReglementClient::with(['client.compteComptable', 'facture', 'banqueDepot'])
             ->whereIn('type_reglement', ['perte', 'rejet', 'regularisation']);
@@ -419,6 +475,10 @@ class RapportClientController extends Controller
 
         if ($clientId) {
             $query->where('client_id', $clientId);
+        }
+
+        if ($typeClient) {
+            $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
         }
 
         if ($dateDebut) {
@@ -450,6 +510,8 @@ class RapportClientController extends Controller
                 'type_reglement_couleur' => $r->type_reglement_couleur,
                 'client_nom' => $r->client_nom ?: $r->client?->nom,
                 'client_code' => $r->client?->compteComptable?->numero_compte ?? '-',
+                'type_client' => $r->client?->type_client,
+                'type_client_label' => $r->client ? (\App\Models\Client::TYPES_LABELS[$r->client->type_client] ?? $r->client->type_client) : null,
                 'facture_reference' => $r->facture_reference ?: $r->facture?->reference,
                 'montant' => $montant,
                 'reference_cheque' => $r->reference_cheque,

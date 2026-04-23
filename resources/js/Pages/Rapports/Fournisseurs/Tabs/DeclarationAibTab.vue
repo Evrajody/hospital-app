@@ -53,9 +53,10 @@
             <el-table style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryDeclaration">
               <el-table-column prop="numero_piece" label="N°Pièce" min-width="100" />
               <el-table-column prop="date" label="Date AIB" min-width="90" />
+              <el-table-column prop="ifu" label="IFU" min-width="120" />
               <el-table-column prop="fournisseur" label="Fournisseur" min-width="220" />
               <el-table-column prop="libelle" label="Libellé facture" min-width="200" />
-              <el-table-column label="Mt Fac" min-width="100" align="right">
+              <el-table-column label="Mt TTC" min-width="100" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
               </el-table-column>
               <el-table-column label="Mt M.O." min-width="100" align="right">

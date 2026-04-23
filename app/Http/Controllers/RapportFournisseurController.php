@@ -106,7 +106,7 @@ class RapportFournisseurController extends Controller
                 $totalSolde = 0;
 
                 foreach ($factures as $f) {
-                    $montantFacture = (float) $f->montant_facture;
+                    $montantFacture = (float) ($f->montant_ttc ?: $f->montant_facture);
                     $avoir = (float) $f->avoir;
                     $montantMo = (float) $f->montant_mo;
                     $tauxAib = (float) $f->taux;
@@ -302,7 +302,7 @@ class RapportFournisseurController extends Controller
                     'numero_piece' => $fact->numero_piece,
                     'date' => $fact->date?->format('d/m/Y'),
                     'reference_facture' => $fact->reference_facture,
-                    'montant_facture' => (float) $fact->montant_facture,
+                    'montant_facture' => (float) ($fact->montant_ttc ?: $fact->montant_facture),
                     'avoir' => (float) $fact->avoir,
                     'montant_mo' => (float) $fact->montant_mo,
                     'taux_aib' => (float) $fact->taux,
@@ -425,7 +425,7 @@ class RapportFournisseurController extends Controller
                     'numero_piece' => $fact->numero_piece,
                     'date' => $fact->date?->format('d/m/Y'),
                     'date_reglement' => $dateReg?->format('d/m/Y'),
-                    'montant_facture' => (float) $fact->montant_facture,
+                    'montant_facture' => (float) ($fact->montant_ttc ?: $fact->montant_facture),
                     'avoir' => (float) $fact->avoir,
                     'montant_mo' => (float) $fact->montant_mo,
                     'taux_aib' => (float) $fact->taux,
@@ -555,9 +555,10 @@ class RapportFournisseurController extends Controller
             $lignes[] = [
                 'numero_piece' => $f->numero_piece,
                 'date' => $dateAib?->format('d/m/Y'),
+                'ifu' => $fournisseur?->ifu ?? '',
                 'fournisseur' => $fournisseurLabel,
                 'libelle' => $f->libelle,
-                'montant_facture' => (float) $f->montant_facture,
+                'montant_facture' => (float) ($f->montant_ttc ?: $f->montant_facture),
                 'montant_mo' => $montantMo,
                 'taux_aib' => $tauxAib,
                 'montant_aib' => $montantAib,
@@ -631,7 +632,7 @@ class RapportFournisseurController extends Controller
             $totalJour = 0;
 
             foreach ($facturesJour as $f) {
-                $montant = (float) $f->montant_facture;
+                $montant = (float) ($f->montant_ttc ?: $f->montant_facture);
                 $lignes[] = [
                     'numero_piece' => $f->numero_piece,
                     'libelle' => $f->libelle,
@@ -1267,7 +1268,7 @@ class RapportFournisseurController extends Controller
                     'montant' => 0,
                 ];
             }
-            $parCompte[$key]['montant'] += (float) $f->montant_facture;
+            $parCompte[$key]['montant'] += (float) ($f->montant_ttc ?: $f->montant_facture);
         }
 
         ksort($parCompte);
@@ -1430,7 +1431,311 @@ class RapportFournisseurController extends Controller
         $pdf->setPaper('a4', 'portrait');
 
         return $request->query('action') === 'stream'
-            ? $pdf->stream('mandats-paiement.pdf')
-            : $pdf->download('mandats-paiement.pdf');
+            ? $pdf->stream('bordereaux-reglement.pdf')
+            : $pdf->download('bordereaux-reglement.pdf');
+    }
+
+    // ==========================================
+    // EXPORTS EXCEL
+    // ==========================================
+
+    public function declarationTvaExcel(Request $request)
+    {
+        $data = $this->buildDeclarationTvaData($request);
+        $rows = array_map(fn($l) => [
+            $l['date'],
+            $l['numero_piece'],
+            $l['libelle'],
+            $l['montant_ttc'],
+            $l['taux_tva'],
+            $l['montant_tva'],
+        ], $data['lignes']);
+        $rows[] = ['', '', 'TOTAL', $data['totaux']['ttc'], '', $data['totaux']['tva']];
+
+        return \App\Support\ExcelExporter::download(
+            ['Date', 'N° PC', 'Libellé', 'Montant TTC', 'Taux TVA (%)', 'Montant TVA'],
+            $rows,
+            'declaration-tva',
+            'Déclaration TVA du ' . ($data['dateDebut'] ? Carbon::parse($data['dateDebut'])->format('d/m/Y') : '-') . ' au ' . ($data['dateFin'] ? Carbon::parse($data['dateFin'])->format('d/m/Y') : '-'),
+        );
+    }
+
+    public function declarationAibExcel(Request $request)
+    {
+        $data = $this->buildDeclarationAibData($request);
+        $rows = array_map(fn($l) => [
+            $l['numero_piece'],
+            $l['date'],
+            $l['ifu'] ?? '',
+            $l['fournisseur'],
+            $l['libelle'],
+            $l['montant_facture'],
+            $l['montant_mo'],
+            $l['taux_aib'],
+            $l['montant_aib'],
+        ], $data['lignes']);
+
+        return \App\Support\ExcelExporter::download(
+            ['N° PC', 'Date AIB', 'IFU', 'Fournisseur', 'Libellé', 'Mt TTC', 'Mt M.O.', 'Taux AIB (%)', 'Montant AIB'],
+            $rows,
+            'declaration-aib',
+            $data['titreDeclaration'] ?? 'Déclaration AIB',
+        );
+    }
+
+    public function situationFournisseursExcel(Request $request)
+    {
+        $data = $this->buildSituationADateData($request);
+        $rows = array_map(fn($l) => [
+            $l['numero_compte'],
+            $l['ifu'] ?? '',
+            $l['nom'],
+            $l['total_factures'],
+            $l['total_paye'],
+            $l['solde'],
+        ], $data['data']);
+        $rows[] = ['', '', 'TOTAL', $data['totaux']['total_factures'], $data['totaux']['total_paye'], $data['totaux']['solde']];
+
+        return \App\Support\ExcelExporter::download(
+            ['N° Compte', 'IFU', 'Fournisseur', 'Total factures', 'Total payé', 'Solde'],
+            $rows,
+            'situation-fournisseurs',
+            'Situation fournisseurs au ' . ($data['date'] ? Carbon::parse($data['date'])->format('d/m/Y') : '-'),
+        );
+    }
+
+    public function banquesParCompteExcel(Request $request)
+    {
+        $data = $this->buildEtatBanquesParCompteData($request);
+        $rows = array_map(fn($l) => [
+            $l['banque'] ?? '',
+            $l['numero_compte'],
+            $l['approvisionnements'],
+            $l['debits'],
+            $l['solde'],
+        ], $data['data']);
+
+        return \App\Support\ExcelExporter::download(
+            ['Banque', 'N° Compte', 'Approvisionnements', 'Débits', 'Solde actuel'],
+            $rows,
+            'etat-banques-par-compte',
+            'État banques par compte',
+        );
+    }
+
+    // ==========================================
+    // DÉCLARATION TVA
+    // ==========================================
+
+    private function buildDeclarationTvaData(Request $request): array
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+
+        if (!$dateDebut || !$dateFin) {
+            return [
+                'lignes' => [],
+                'totaux' => ['ttc' => 0, 'tva' => 0, 'ht' => 0],
+                'dateDebut' => null,
+                'dateFin' => null,
+            ];
+        }
+
+        $factures = FactureFournisseur::whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
+            ->where('assujetti_tva', true)
+            ->whereBetween('date', [$dateDebut, $dateFin])
+            ->orderBy('date')
+            ->orderBy('numero_piece')
+            ->get();
+
+        $lignes = [];
+        $totaux = ['ttc' => 0, 'tva' => 0, 'ht' => 0];
+
+        foreach ($factures as $f) {
+            $ttc = (float) ($f->montant_ttc ?: $f->montant_facture);
+            $tauxTva = (float) $f->taux_tva;
+            $tva = (float) $f->montant_tva;
+            $ht = (float) ($f->montant_ht ?: $f->montant_facture);
+
+            $lignes[] = [
+                'date' => $f->date?->format('d/m/Y'),
+                'numero_piece' => $f->numero_piece,
+                'libelle' => $f->libelle,
+                'montant_ttc' => $ttc,
+                'taux_tva' => $tauxTva,
+                'montant_tva' => $tva,
+                'montant_ht' => $ht,
+            ];
+
+            $totaux['ttc'] += $ttc;
+            $totaux['tva'] += $tva;
+            $totaux['ht'] += $ht;
+        }
+
+        return [
+            'lignes' => $lignes,
+            'totaux' => $totaux,
+            'dateDebut' => $dateDebut,
+            'dateFin' => $dateFin,
+        ];
+    }
+
+    public function declarationTva(Request $request): JsonResponse
+    {
+        return response()->json($this->buildDeclarationTvaData($request));
+    }
+
+    public function declarationTvaPdf(Request $request)
+    {
+        $data = $this->buildDeclarationTvaData($request);
+        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.declaration-tva', array_merge($data, [
+            'titre' => 'DÉCLARATION TVA du ' . ($data['dateDebut'] ? Carbon::parse($data['dateDebut'])->format('d/m/Y') : '-') . ' au ' . ($data['dateFin'] ? Carbon::parse($data['dateFin'])->format('d/m/Y') : '-'),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]));
+        $pdf->setPaper('a4', 'landscape');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('declaration-tva.pdf')
+            : $pdf->download('declaration-tva.pdf');
+    }
+
+    // ==========================================
+    // SITUATION FOURNISSEURS À UNE DATE DONNÉE
+    // ==========================================
+
+    private function buildSituationADateData(Request $request): array
+    {
+        $date = $request->input('date') ?: now()->toDateString();
+        $typeSolde = $request->input('type', 'impayes'); // impayes|tous
+
+        $fournisseurs = Fournisseur::with('compteComptable')->orderBy('nom')->get();
+        $data = [];
+
+        foreach ($fournisseurs as $f) {
+            $factures = $f->factures()
+                ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
+                ->where('date', '<=', $date)
+                ->get();
+
+            $totalFactures = 0;
+            $totalPaye = 0;
+
+            foreach ($factures as $fact) {
+                $paye = (float) $fact->reglements()
+                    ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+                    ->where('date_reglement', '<=', $date)
+                    ->sum('montant');
+                $totalFactures += (float) $fact->montant_net;
+                $totalPaye += $paye;
+            }
+
+            $solde = $totalFactures - $totalPaye;
+            if ($typeSolde === 'impayes' && $solde <= 0.01) continue;
+
+            $data[] = [
+                'fournisseur_id' => $f->id,
+                'numero_compte' => $f->compteComptable?->numero_compte ?? '-',
+                'nom' => $f->nom,
+                'ifu' => $f->ifu,
+                'total_factures' => $totalFactures,
+                'total_paye' => $totalPaye,
+                'solde' => $solde,
+            ];
+        }
+
+        return [
+            'date' => $date,
+            'type' => $typeSolde,
+            'data' => $data,
+            'totaux' => [
+                'total_factures' => collect($data)->sum('total_factures'),
+                'total_paye' => collect($data)->sum('total_paye'),
+                'solde' => collect($data)->sum('solde'),
+            ],
+        ];
+    }
+
+    public function situationADate(Request $request): JsonResponse
+    {
+        return response()->json($this->buildSituationADateData($request));
+    }
+
+    public function situationADatePdf(Request $request)
+    {
+        $data = $this->buildSituationADateData($request);
+        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.situation-a-date', array_merge($data, [
+            'titre' => 'SITUATION DES FOURNISSEURS AU ' . Carbon::parse($data['date'])->format('d/m/Y'),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]));
+        $pdf->setPaper('a4', 'landscape');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('situation-fournisseurs-a-date.pdf')
+            : $pdf->download('situation-fournisseurs-a-date.pdf');
+    }
+
+    // ==========================================
+    // ÉTAT BANQUES PAR COMPTE
+    // ==========================================
+
+    private function buildEtatBanquesParCompteData(Request $request): array
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin') ?: now()->toDateString();
+
+        $comptes = CompteBancaire::with('banque')->orderBy('numero_compte')->get();
+        $data = [];
+
+        foreach ($comptes as $c) {
+            $approvisionnements = (float) ApprovisionnementBanque::where('compte_bancaire_id', $c->id)
+                ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
+                ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
+                ->sum('montant');
+
+            $debits = (float) ReglementFournisseur::where('compte_bancaire_id', $c->id)
+                ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+                ->when($dateDebut, fn($q) => $q->where('date_reglement', '>=', $dateDebut))
+                ->when($dateFin, fn($q) => $q->where('date_reglement', '<=', $dateFin))
+                ->sum('montant');
+
+            $data[] = [
+                'compte_id' => $c->id,
+                'numero_compte' => $c->numero_compte,
+                'banque' => $c->banque?->nom,
+                'approvisionnements' => $approvisionnements,
+                'debits' => $debits,
+                'solde' => (float) $c->solde,
+            ];
+        }
+
+        return [
+            'date_debut' => $dateDebut,
+            'date_fin' => $dateFin,
+            'data' => $data,
+        ];
+    }
+
+    public function etatBanquesParCompte(Request $request): JsonResponse
+    {
+        return response()->json($this->buildEtatBanquesParCompteData($request));
+    }
+
+    public function etatBanquesParComptePdf(Request $request)
+    {
+        $data = $this->buildEtatBanquesParCompteData($request);
+        $periode = '';
+        if ($data['date_debut'] || $data['date_fin']) {
+            $periode = ' du ' . ($data['date_debut'] ? Carbon::parse($data['date_debut'])->format('d/m/Y') : '-')
+                . ' au ' . ($data['date_fin'] ? Carbon::parse($data['date_fin'])->format('d/m/Y') : '-');
+        }
+        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.banques-par-compte', array_merge($data, [
+            'titre' => 'ÉTAT DES BANQUES PAR COMPTE' . $periode,
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]));
+        $pdf->setPaper('a4', 'landscape');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('banques-par-compte.pdf')
+            : $pdf->download('banques-par-compte.pdf');
     }
 }

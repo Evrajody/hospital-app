@@ -5,7 +5,7 @@
       <div class="nav-content">
         <div class="logo">
           <el-icon :size="32" color="#409EFF"><OfficeBuilding /></el-icon>
-          <span>Hôpital de Ménontin</span>
+          <span>Hôpital de zone de Ménontin</span>
         </div>
         <el-button type="primary" @click="navigateToLogin">
           <el-icon><User /></el-icon>
@@ -19,7 +19,7 @@
       <div class="hero-content">
         <h1>Système de Gestion Comptable</h1>
         <p class="hero-subtitle">
-          Une solution complète et moderne pour la gestion des opérations financières de l'hôpital de Ménontin.
+          Une solution complète et moderne pour la gestion des opérations financières de l'hôpital de zone de Ménontin.
         </p>
         <div class="hero-actions">
           <el-button type="primary" size="large" @click="navigateToLogin">
@@ -96,7 +96,7 @@
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-content">
-        <p>&copy; 2025 Hôpital de Ménontin. Tous droits réservés.</p>
+        <p>&copy; 2025 Hôpital de zone de Ménontin. Tous droits réservés.</p>
       </div>
     </footer>
   </div>

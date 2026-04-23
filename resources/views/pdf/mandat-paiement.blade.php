@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Mandat de Paiement - {{ $reglement->facture->numero_piece }}</title>
+    <title>Bordereau de Règlement - {{ $reglement->facture->numero_piece }}</title>
     <style>
         @page {
             size: A4;
@@ -177,7 +177,7 @@
 
     <!-- Titre encadré -->
     <div class="document-title">
-        <h1>Mandat de Paiement</h1>
+        <h1>Bordereau de Règlement</h1>
     </div>
 
     <div class="numero-piece">
@@ -187,8 +187,8 @@
     <div class="exercice">EXERCICE {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('Y') }}</div>
 
     <div class="intro-text">
-        En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital de
-        Ménontin mandate sur la caisse du Centre, la créance détaillée ci-après :
+        En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital
+        ordonne le règlement par la caisse du Centre, de la créance détaillée ci-après :
     </div>
 
     <!-- Infos facture -->

@@ -38,7 +38,7 @@
               Brouillard de chèques
             </span>
           </template>
-          <BrouillardChequesTab />
+          <BrouillardChequesTab :banques="banques" />
         </el-tab-pane>
 
         <el-tab-pane name="chiffre-affaires" lazy>
@@ -59,6 +59,16 @@
             </span>
           </template>
           <PertesRejetsTab :clients="clients" />
+        </el-tab-pane>
+
+        <el-tab-pane name="reglements-par-type" lazy>
+          <template #label>
+            <span class="tab-label">
+              <el-icon><TrendCharts /></el-icon>
+              Règlements par type client
+            </span>
+          </template>
+          <ReglementsParTypeClientTab />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -81,10 +91,12 @@ import EtatCreancesTab from './Tabs/EtatCreancesTab.vue';
 import BrouillardChequesTab from './Tabs/BrouillardChequesTab.vue';
 import ChiffreAffairesTab from './Tabs/ChiffreAffairesTab.vue';
 import PertesRejetsTab from './Tabs/PertesRejetsTab.vue';
+import ReglementsParTypeClientTab from './Tabs/ReglementsParTypeClientTab.vue';
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },
   clients: { type: Array, default: () => [] },
+  banques: { type: Array, default: () => [] },
 });
 
 const breadcrumbs = [

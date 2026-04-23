@@ -16,7 +16,7 @@
           <el-row :gutter="20">
             <el-col :xs="24" :sm="12">
               <el-form-item label="Nom de l'établissement" prop="nom">
-                <el-input v-model="form.nom" placeholder="Ex: Hôpital de Ménontin" />
+                <el-input v-model="form.nom" placeholder="Ex: Hôpital de zone de Ménontin" />
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
@@ -48,7 +48,7 @@
             <el-col :xs="24" :sm="12">
               <el-form-item label="Nom du Directeur" prop="directeur">
                 <el-input v-model="form.directeur" placeholder="Ex: Dr. Jean DUPONT" />
-                <div class="form-hint">Apparaît en bas des mandats de paiement</div>
+                <div class="form-hint">Apparaît en bas des bordereaux de règlement</div>
               </el-form-item>
             </el-col>
           </el-row>

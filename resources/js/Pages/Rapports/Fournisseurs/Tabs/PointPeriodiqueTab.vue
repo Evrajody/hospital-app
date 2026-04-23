@@ -42,7 +42,7 @@
           <el-table style="width: 100%" :data="groupe.lignes" border size="small" stripe>
             <el-table-column prop="numero_piece" label="N° Pièce" min-width="130" />
             <el-table-column prop="libelle" label="Objet PC" min-width="300" />
-            <el-table-column label="Montant" min-width="140" align="right">
+            <el-table-column label="Montant TTC" min-width="140" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
             </el-table-column>
           </el-table>
