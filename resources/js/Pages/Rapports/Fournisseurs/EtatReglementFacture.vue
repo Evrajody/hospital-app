@@ -65,7 +65,7 @@
             <td class="value-cell">{{ formatMontant(facture.montant_tva) }}</td>
           </tr>
           <tr>
-            <td class="label-cell">AIB</td>
+            <td class="label-cell">AIB <span v-if="facture.taux_aib">({{ facture.taux_aib }}%)</span></td>
             <td class="value-cell">{{ formatMontant(facture.montant_aib) }}</td>
           </tr>
           <tr class="total-row">

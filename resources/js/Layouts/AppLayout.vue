@@ -23,6 +23,8 @@
           <template #title>Tableau de bord</template>
         </el-menu-item>
 
+        <div class="menu-separator"></div>
+
         <!-- Factures Fournisseurs -->
         <el-menu-item-group v-if="can('fournisseurs.voir') || can('factures-fournisseurs.voir') || can('reglements-fournisseurs.voir')">
           <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><Document /></el-icon> Factures Fournisseurs</span></template>
@@ -39,6 +41,8 @@
             <template #title>Règlements</template>
           </el-menu-item>
         </el-menu-item-group>
+
+        <div class="menu-separator"></div>
 
         <!-- Factures Clients -->
         <el-menu-item-group v-if="can('clients.voir') || can('factures-clients.voir') || can('reglements-clients.voir')">
@@ -57,6 +61,8 @@
           </el-menu-item>
         </el-menu-item-group>
 
+        <div class="menu-separator"></div>
+
         <!-- Autres -->
         <el-menu-item-group v-if="can('plan-comptable.voir') || can('banques.voir')">
           <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><More /></el-icon> Autres</span></template>
@@ -69,6 +75,8 @@
             <template #title>Banques</template>
           </el-menu-item>
         </el-menu-item-group>
+
+        <div class="menu-separator"></div>
 
         <!-- Rapports -->
         <el-menu-item-group v-if="can('rapports.voir')">
@@ -83,6 +91,8 @@
             <template #title>Banques</template>
           </el-menu-item>
         </el-menu-item-group>
+
+        <div class="menu-separator"></div>
 
         <!-- Paramètres -->
         <el-menu-item-group v-if="can('utilisateurs.voir') || can('roles.voir') || can('parametres.voir')">
@@ -104,6 +114,8 @@
             <template #title>Établissement</template>
           </el-menu-item>
         </el-menu-item-group>
+
+        <div class="menu-separator"></div>
 
         <!-- Journal d'Activité -->
         <el-menu-item v-if="can('journal.voir')" index="/journal-activite" @click="navigate('/journal-activite')">
@@ -291,6 +303,18 @@ const handleCommand = (command) => {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 6px 12px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.18) 15%,
+    rgba(255, 255, 255, 0.18) 85%,
+    transparent
+  );
 }
 
 :deep(.el-menu-item-group) {

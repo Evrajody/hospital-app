@@ -252,11 +252,21 @@ const passwordForm = reactive({
   password_confirmation: '',
 });
 
+const validatePasswordStrength = (rule, value, callback) => {
+  if (!value) return callback();
+  if (value.length < 8) return callback(new Error('8 caractères minimum'));
+  if (!/[a-z]/.test(value)) return callback(new Error('Doit contenir une minuscule'));
+  if (!/[A-Z]/.test(value)) return callback(new Error('Doit contenir une majuscule'));
+  if (!/[0-9]/.test(value)) return callback(new Error('Doit contenir un chiffre'));
+  if (!/[^A-Za-z0-9]/.test(value)) return callback(new Error('Doit contenir un caractère spécial'));
+  callback();
+};
+
 const passwordRules = {
   current_password: [{ required: true, message: 'Requis', trigger: 'blur' }],
   password: [
     { required: true, message: 'Requis', trigger: 'blur' },
-    { min: 8, message: '8 caractères minimum', trigger: 'blur' },
+    { validator: validatePasswordStrength, trigger: 'blur' },
   ],
   password_confirmation: [
     { required: true, message: 'Requis', trigger: 'blur' },

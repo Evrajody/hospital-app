@@ -57,9 +57,6 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">Taux TVA</span>
-            <el-button type="primary" size="small" :icon="Plus" @click="handleCreate('tva')">
-              Ajouter TVA
-            </el-button>
           </div>
         </template>
 

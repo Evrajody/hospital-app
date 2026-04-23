@@ -1149,6 +1149,7 @@ class FactureFournisseurController extends Controller
                 'taux_tva' => $facture->taux_tva ? (float) $facture->taux_tva : 0,
                 'montant_tva' => number_format((float) ($facture->montant_tva ?? 0), 0, ',', ' '),
                 'montant_ttc' => number_format((float) ($facture->montant_ttc ?? 0), 0, ',', ' '),
+                'taux_aib' => (float) $facture->taux,
                 'montant_aib' => number_format((float) ($facture->montant_reduction ?? 0), 0, ',', ' '),
             ],
             'fournisseur' => [

@@ -45,7 +45,15 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => [
+                'required',
+                'string',
+                \Illuminate\Validation\Rules\Password::min(8)
+                    ->mixedCase()
+                    ->letters()
+                    ->numbers()
+                    ->symbols(),
+            ],
             'telephone' => ['nullable', 'string', 'max:30'],
             'poste' => ['nullable', 'string', 'max:100'],
             'is_active' => ['boolean'],
@@ -81,7 +89,15 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'password' => ['nullable', 'string', 'min:6'],
+            'password' => [
+                'nullable',
+                'string',
+                \Illuminate\Validation\Rules\Password::min(8)
+                    ->mixedCase()
+                    ->letters()
+                    ->numbers()
+                    ->symbols(),
+            ],
             'telephone' => ['nullable', 'string', 'max:30'],
             'poste' => ['nullable', 'string', 'max:100'],
             'is_active' => ['boolean'],

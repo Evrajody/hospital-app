@@ -403,7 +403,7 @@
         </div>
         <div class="etat-reglement-montants">
           <span><strong>Montant M.O. :</strong> {{ etatReglementData.facture.montant_mo }}</span>
-          <span><strong>AIB :</strong> {{ etatReglementData.facture.montant_aib || '0' }}</span>
+          <span><strong>AIB{{ etatReglementData.facture.taux_aib > 0 ? ` (${etatReglementData.facture.taux_aib}%)` : '' }} :</strong> {{ etatReglementData.facture.montant_aib || '0' }}</span>
           <span><strong>Avoir :</strong> {{ etatReglementData.facture.avoir }}</span>
         </div>
 

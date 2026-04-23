@@ -264,15 +264,17 @@
                       style="--el-switch-on-color: #13ce66; --el-switch-off-color: #909399"
                     />
                     <el-input-number
-                      v-if="form.assujetti_tva"
                       v-model="form.taux_tva"
                       :min="0"
                       :max="100"
                       :step="0.5"
                       size="small"
                       style="width: 100px; margin-left: 12px"
+                      :disabled="!form.assujetti_tva"
+                      @change="onTauxTvaChange"
                     />
-                    <span v-if="form.assujetti_tva" class="tva-label">%</span>
+                    <span class="tva-label" :style="{ opacity: form.assujetti_tva ? 1 : 0.4 }">%</span>
+                    <span v-if="!form.assujetti_tva" class="tva-disabled-hint">TVA désactivée — taux non modifiable</span>
                   </div>
                 </el-form-item>
               </el-col>
@@ -697,6 +699,19 @@ const form = reactive(getInitialFormData());
 const calculMontantHT = computed(() => {
   return form.montant_facture || 0;
 });
+
+// Remet le taux TVA à 0 quand on désactive l'assujettissement
+watch(() => form.assujetti_tva, (val) => {
+  if (!val) {
+    form.taux_tva = 0;
+  } else if (!form.taux_tva || form.taux_tva === 0) {
+    form.taux_tva = props.tauxTvaDefaut || 18;
+  }
+});
+
+const onTauxTvaChange = () => {
+  // no-op: listener pour garder la compatibilité avec @change
+};
 
 // TVA calculée sur le HT (informative, versée par l'entreprise)
 const calculMontantTVA = computed(() => {
@@ -1299,6 +1314,13 @@ watch(() => props.serverErrors, (errors) => {
 .tva-label {
   margin-left: 4px;
   color: #6b7280;
+}
+
+.tva-disabled-hint {
+  margin-left: 12px;
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .calculated-field :deep(.el-input__inner) {

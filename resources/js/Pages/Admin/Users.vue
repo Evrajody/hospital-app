@@ -71,6 +71,7 @@
             <el-col :span="12">
               <el-form-item :label="editingUser ? 'Nouveau mot de passe' : 'Mot de passe'" prop="password">
                 <el-input v-model="form.password" type="password" show-password :placeholder="editingUser ? 'Laisser vide pour ne pas changer' : 'Mot de passe'" />
+                <div class="form-hint">8 caractères minimum, minuscule, majuscule, chiffre et caractère spécial.</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -145,7 +146,24 @@ const rules = {
     { required: true, message: 'L\'email est requis', trigger: 'blur' },
     { type: 'email', message: 'Email invalide', trigger: 'blur' },
   ],
-  password: [{ required: false, min: 6, message: 'Minimum 6 caractères', trigger: 'blur' }],
+  password: [
+    {
+      validator: (rule, value, callback) => {
+        // En édition, un mot de passe vide est autorisé
+        if (!value) {
+          if (!editingUser.value) return callback(new Error('Le mot de passe est requis'));
+          return callback();
+        }
+        if (value.length < 8) return callback(new Error('8 caractères minimum'));
+        if (!/[a-z]/.test(value)) return callback(new Error('Doit contenir une minuscule'));
+        if (!/[A-Z]/.test(value)) return callback(new Error('Doit contenir une majuscule'));
+        if (!/[0-9]/.test(value)) return callback(new Error('Doit contenir un chiffre'));
+        if (!/[^A-Za-z0-9]/.test(value)) return callback(new Error('Doit contenir un caractère spécial'));
+        callback();
+      },
+      trigger: 'blur',
+    },
+  ],
 };
 
 const openModal = (user = null) => {
