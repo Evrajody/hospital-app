@@ -100,10 +100,12 @@
             border-bottom: 1px solid #000000;
         }
 
-        .date-row td {
-            font-weight: bold;
-            padding-top: 10px;
-            border-top: 3px solid #000000;
+        .imputation-table tbody tr.block-separator td {
+            border-top: 2px solid #000000;
+        }
+
+        .imputation-table tbody tr:not(.block-separator) td {
+            border-top: none;
         }
 
         .col-date {
@@ -184,18 +186,21 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($ecrituresParDate as $date => $ecritures)
-                {{-- Ligne de date --}}
-                <tr class="date-row">
-                    <td class="col-date">{{ $date }}</td>
-                    <td class="col-compte"></td>
-                    <td class="col-debit"></td>
-                    <td class="col-credit"></td>
-                    <td class="col-libelle"></td>
-                </tr>
-                @foreach($ecritures as $ecriture)
-                    <tr>
-                        <td class="col-date"></td>
+            @foreach($blocs as $bIndex => $bloc)
+                @foreach($bloc['lignes'] as $lIndex => $ecriture)
+                    <tr @if($lIndex === 0 && $bIndex > 0) class="block-separator" @endif>
+                        <td class="col-date">
+                            @if($lIndex === 0)
+                                @if($bloc['label'])
+                                    <strong>{{ $bloc['label'] }}</strong><br>
+                                    <span style="font-size: 10px; font-weight: normal;">{{ \Carbon\Carbon::parse($ecriture->date_ecriture)->format('d/m/Y') }}</span>
+                                @else
+                                    <strong>{{ \Carbon\Carbon::parse($ecriture->date_ecriture)->format('d/m/Y') }}</strong>
+                                @endif
+                            @elseif(\Carbon\Carbon::parse($ecriture->date_ecriture)->format('d/m/Y') !== \Carbon\Carbon::parse($bloc['lignes'][$lIndex - 1]->date_ecriture)->format('d/m/Y'))
+                                {{ \Carbon\Carbon::parse($ecriture->date_ecriture)->format('d/m/Y') }}
+                            @endif
+                        </td>
                         <td class="col-compte">{{ $ecriture->numero_compte }}</td>
                         <td class="col-debit">{{ $ecriture->debit > 0 ? number_format($ecriture->debit, 0, ',', ' ') : '0' }}</td>
                         <td class="col-credit">{{ $ecriture->credit > 0 ? number_format($ecriture->credit, 0, ',', ' ') : '0' }}</td>

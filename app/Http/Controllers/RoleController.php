@@ -21,6 +21,7 @@ class RoleController extends Controller
             ->map(fn($role) => [
                 'id' => $role->id,
                 'name' => $role->name,
+                'slug' => $role->name,
                 'permissions' => $role->permissions->pluck('name')->toArray(),
                 'users_count' => User::role($role->name)->count(),
                 'created_at' => $role->created_at?->format('d/m/Y'),
@@ -31,20 +32,138 @@ class RoleController extends Controller
             ->map(fn($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
+                'label' => self::permissionLabel($p->name),
+                'module' => self::extractModule($p->name),
             ]);
 
-        // Grouper les permissions par module
+        // Grouper les permissions par module avec libellés humains
         $permissionGroups = [];
         foreach ($permissions as $p) {
-            $parts = explode('.', $p['name']);
-            $module = $parts[0] ?? 'general';
-            $permissionGroups[$module][] = $p;
+            $module = $p['module'];
+            if (!isset($permissionGroups[$module])) {
+                $permissionGroups[$module] = [
+                    'key' => $module,
+                    'label' => self::moduleLabel($module),
+                    'permissions' => [],
+                ];
+            }
+            $permissionGroups[$module]['permissions'][] = $p;
         }
+
+        // Re-indexer en tableau pour le frontend
+        $permissionGroups = array_values($permissionGroups);
 
         return Inertia::render('Admin/Roles', [
             'roles' => $roles,
             'permissions' => $permissions,
             'permissionGroups' => $permissionGroups,
+        ]);
+    }
+
+    /**
+     * Convertir un module technique en libellé humain.
+     */
+    private static function moduleLabel(string $module): string
+    {
+        $labels = [
+            'fournisseurs' => 'Fournisseurs',
+            'factures-fournisseurs' => 'Factures Fournisseurs',
+            'reglements-fournisseurs' => 'Règlements Fournisseurs',
+            'clients' => 'Clients',
+            'factures-clients' => 'Factures Clients',
+            'reglements-clients' => 'Règlements Clients',
+            'plan-comptable' => 'Plan Comptable',
+            'banques' => 'Banques',
+            'rapports' => 'Rapports',
+            'utilisateurs' => 'Utilisateurs',
+            'roles' => 'Rôles & Permissions',
+            'parametres' => 'Paramètres',
+            'journal' => 'Journal d\'Activité',
+        ];
+        return $labels[$module] ?? ucfirst(str_replace('-', ' ', $module));
+    }
+
+    /**
+     * Convertir un nom de permission en libellé humain.
+     */
+    private static function permissionLabel(string $name): string
+    {
+        $action = explode('.', $name)[1] ?? $name;
+        $labels = [
+            'voir' => 'Consulter',
+            'creer' => 'Créer',
+            'modifier' => 'Modifier',
+            'supprimer' => 'Supprimer',
+            'valider' => 'Valider',
+            'imprimer' => 'Imprimer',
+            'exporter' => 'Exporter',
+        ];
+        return $labels[$action] ?? ucfirst(str_replace(['-', '_'], ' ', $action));
+    }
+
+    private static function extractModule(string $permissionName): string
+    {
+        return explode('.', $permissionName)[0] ?? 'general';
+    }
+
+    /**
+     * Toggle (activer/désactiver) une permission pour un rôle (API).
+     */
+    public function togglePermission(Request $request, int $id): JsonResponse
+    {
+        $role = Role::findOrFail($id);
+
+        $validated = $request->validate([
+            'permission' => ['required', 'string', 'exists:permissions,name'],
+            'value' => ['required', 'boolean'],
+        ]);
+
+        if ($validated['value']) {
+            $role->givePermissionTo($validated['permission']);
+        } else {
+            $role->revokePermissionTo($validated['permission']);
+        }
+
+        ActivityLog::log('update', 'role', "Permission '{$validated['permission']}' " . ($validated['value'] ? 'accordée' : 'retirée') . " au rôle {$role->name}", $role);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permission mise à jour',
+            'permissions' => $role->fresh()->permissions->pluck('name')->toArray(),
+        ]);
+    }
+
+    /**
+     * Bulk : appliquer/retirer toutes les permissions d'un module pour un rôle (API).
+     */
+    public function bulkPermissions(Request $request, int $id): JsonResponse
+    {
+        $role = Role::findOrFail($id);
+
+        $validated = $request->validate([
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+            'value' => ['required', 'boolean'],
+        ]);
+
+        if ($validated['value']) {
+            foreach ($validated['permissions'] as $perm) {
+                $role->givePermissionTo($perm);
+            }
+        } else {
+            foreach ($validated['permissions'] as $perm) {
+                $role->revokePermissionTo($perm);
+            }
+        }
+
+        $action = $validated['value'] ? 'accordées' : 'retirées';
+        $count = count($validated['permissions']);
+        ActivityLog::log('update', 'role', "{$count} permission(s) {$action} au rôle {$role->name}", $role);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} permission(s) mise(s) à jour",
+            'permissions' => $role->fresh()->permissions->pluck('name')->toArray(),
         ]);
     }
 

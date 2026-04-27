@@ -94,6 +94,7 @@
         <!-- Actions Export -->
         <div v-if="lignes.length > 0" class="actions-bar">
           <el-button type="primary" @click="exportPdf">Exporter PDF</el-button>
+          <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
           <el-button @click="printReport">Imprimer</el-button>
         </div>
       </template>
@@ -176,6 +177,10 @@ const buildPdfParams = () => {
 
 const exportPdf = () => {
   window.open(`/rapports/fournisseurs/pdf/mouvement-factures?${buildPdfParams()}`, '_blank');
+};
+
+const exportExcel = () => {
+  window.open(`/rapports/fournisseurs/excel/mouvement-factures?${buildPdfParams()}`, '_blank');
 };
 
 const printReport = () => {

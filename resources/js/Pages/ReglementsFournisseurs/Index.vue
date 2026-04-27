@@ -178,7 +178,11 @@
                       <el-dropdown-item command="mandat" :icon="DocumentCopy">
                         Bordereau de règlement
                       </el-dropdown-item>
-                      <el-dropdown-item command="imputation" :icon="DocumentCopy">
+                      <el-dropdown-item
+                        v-if="row.mode_paiement !== 'especes'"
+                        command="imputation"
+                        :icon="DocumentCopy"
+                      >
                         Imputation comptable
                       </el-dropdown-item>
                       <el-dropdown-item command="edit" :icon="Edit">
@@ -366,6 +370,52 @@
         </template>
       </el-dialog>
 
+      <!-- Drawer Imputation Comptable -->
+      <el-drawer v-model="showImputationDrawer" title="Imputation Comptable" direction="rtl" size="55%" :destroy-on-close="true">
+        <div v-if="imputationLoading" style="text-align: center; padding: 40px;">
+          <el-icon class="is-loading" :size="30"><Clock /></el-icon>
+          <p style="margin-top: 10px; color: #909399;">Chargement...</p>
+        </div>
+        <div v-else-if="imputationData" class="imputation-content">
+          <div class="imputation-header">
+            <div class="imputation-hospital-name">{{ imputationData.etablissement.nom }}</div>
+            <div class="imputation-hospital-info">
+              {{ imputationData.etablissement.pays }}<br>
+              {{ imputationData.etablissement.adresse }}{{ imputationData.etablissement.telephone ? ' - Tel: ' + imputationData.etablissement.telephone : '' }}
+            </div>
+            <div class="imputation-title-box"><span>IMPUTATION COMPTABLE</span></div>
+            <p class="imputation-numero-piece"><strong><u>N° Règlement :</u></strong> {{ imputationData.reglement.numero_reglement }} - {{ imputationData.reglement.date_reglement }}</p>
+            <p class="imputation-numero-piece"><strong><u>Facture :</u></strong> {{ imputationData.facture.numero_piece }}</p>
+          </div>
+          <table class="imputation-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Date</th>
+                <th style="width: 110px;">Compte</th>
+                <th style="width: 140px; text-align: right;">Débit</th>
+                <th style="width: 140px; text-align: right;">Crédit</th>
+                <th>Libellé</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="(group, gIndex) in imputationData.ecritures" :key="gIndex">
+                <tr v-for="(ligne, lIndex) in group.lignes" :key="`${gIndex}-${lIndex}`" :style="lIndex === 0 && gIndex > 0 ? 'border-top: 2px solid #000;' : ''">
+                  <td style="font-weight: 600;">{{ lIndex === 0 ? group.date : '' }}</td>
+                  <td class="cell-compte-num">{{ ligne.numero_compte }}</td>
+                  <td class="cell-montant">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
+                  <td class="cell-montant">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
+                  <td>{{ ligne.libelle || '' }}</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <div style="text-align: right; margin-top: 20px;">
+            <el-button type="primary" :icon="Printer" @click="downloadImputationPdf">Télécharger PDF</el-button>
+          </div>
+        </div>
+        <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune écriture comptable trouvée.</div>
+      </el-drawer>
+
       <!-- Modal Sélection Facture -->
       <el-dialog
         v-model="selectFactureDialogVisible"
@@ -435,7 +485,8 @@ import {
   User,
   Document,
   DocumentCopy,
-  Edit
+  Edit,
+  Clock
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
@@ -493,6 +544,12 @@ const selectedReglement = ref(null);
 const selectFactureDialogVisible = ref(false);
 const selectedFactureId = ref(null);
 const factureSearchQuery = ref('');
+
+// Drawer Imputation Comptable
+const showImputationDrawer = ref(false);
+const imputationLoading = ref(false);
+const imputationData = ref(null);
+const imputationReglementId = ref(null);
 
 const filterFactureByPc = (query) => {
   factureSearchQuery.value = (query || '').trim();
@@ -665,13 +722,39 @@ const handleViewFacture = (facture) => {
   router.visit(`/factures-fournisseurs/${facture.id}`);
 };
 
+const openImputationDrawer = async (reglement) => {
+  imputationReglementId.value = reglement.id;
+  imputationData.value = null;
+  imputationLoading.value = true;
+  showImputationDrawer.value = true;
+  try {
+    const response = await fetchApi(`/api/reglements-fournisseurs/${reglement.id}/imputation-data`);
+    const result = await response.json();
+    if (result.success) {
+      imputationData.value = result;
+    } else {
+      ElMessage.warning(result.message || 'Aucune écriture trouvée');
+    }
+  } catch (err) {
+    ElMessage.error('Erreur lors du chargement des écritures');
+  } finally {
+    imputationLoading.value = false;
+  }
+};
+
+const downloadImputationPdf = () => {
+  if (imputationReglementId.value) {
+    window.open(`/reglements-fournisseurs/${imputationReglementId.value}/imputation-pdf`, '_blank');
+  }
+};
+
 const handleMoreActions = async (command, reglement) => {
   switch (command) {
     case 'mandat':
       window.open(`/reglements-fournisseurs/${reglement.id}/mandat`, '_blank');
       break;
     case 'imputation':
-      window.open(`/reglements-fournisseurs/${reglement.id}/imputation-pdf`, '_blank');
+      await openImputationDrawer(reglement);
       break;
     case 'edit':
       router.visit(`/factures-fournisseurs/${reglement.facture.id}/regler?edit=${reglement.id}`);
@@ -1006,4 +1089,19 @@ export default {
 }
 
 .nowrap-cell { white-space: nowrap; }
+
+/* Imputation Comptable Drawer */
+.imputation-content { padding: 0 15px; font-family: 'Times New Roman', serif; }
+.imputation-header { margin-bottom: 20px; text-align: center; }
+.imputation-hospital-name { font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+.imputation-hospital-info { font-size: 12px; color: #444; line-height: 1.6; margin-top: 4px; }
+.imputation-title-box { margin: 20px auto 15px; display: inline-block; border: 2px solid #000; padding: 8px 30px; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+.imputation-numero-piece { text-align: left; margin: 8px 0 0; font-size: 14px; }
+.imputation-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.imputation-table th { border: 1px solid #000; padding: 8px 10px; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 12px; background-color: #fff; }
+.imputation-table td { border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #ccc; padding: 6px 10px; vertical-align: top; }
+.imputation-table tbody tr:last-child td { border-bottom: 1px solid #000; }
+.imputation-table .cell-compte-num { font-family: 'Courier New', monospace; font-weight: 600; text-align: left; white-space: nowrap; }
+.imputation-table .cell-compte-lib { font-size: 12px; color: #333; }
+.imputation-table .cell-montant { font-family: 'Courier New', monospace; text-align: right; white-space: nowrap; }
 </style>

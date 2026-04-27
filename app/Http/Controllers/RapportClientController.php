@@ -703,4 +703,256 @@ class RapportClientController extends Controller
         $result['clients'] = $this->getClientsList();
         return Inertia::render('Rapports/Clients/PertesRejets', $result);
     }
+
+    // ==========================================
+    // EXCEL EXPORT ENDPOINTS
+    // ==========================================
+
+    public function etatReglementsExcel(Request $request)
+    {
+        $result = $this->buildEtatReglementsData($request);
+        $mode = $result['mode'];
+        $titre = 'État des Règlements Clients';
+        if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
+            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+        }
+
+        if ($mode === 'tous_clients') {
+            $rows = array_map(fn($c) => [
+                $c['numero'] ?? '',
+                $c['numero_compte'],
+                $c['raison_sociale'],
+                $c['total_facture'],
+                $c['total_paye'],
+                $c['total_rejet'],
+            ], $result['data']);
+            $totFact = array_sum(array_column($result['data'], 'total_facture'));
+            $totPaye = array_sum(array_column($result['data'], 'total_paye'));
+            $totRejet = array_sum(array_column($result['data'], 'total_rejet'));
+            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totRejet];
+
+            return \App\Support\ExcelExporter::download(
+                ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Rejet/Reste'],
+                $rows,
+                'etat-reglements-clients',
+                $titre,
+            );
+        }
+
+        // Mode par_client / un_client : aplatir avec en-têtes
+        $rows = [];
+        foreach ($result['data'] as $bloc) {
+            $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'], '', '', '', '', '', ''];
+            foreach ($bloc['lignes'] as $l) {
+                $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['date_reglement'], $l['montant_facture'], $l['montant_paye'], $l['rejet']];
+            }
+            $rows[] = ['', '', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet']];
+        }
+
+        return \App\Support\ExcelExporter::download(
+            ['Client', 'N°', 'Référence', 'Date Facture', 'Date Règlement', 'Mt Facture', 'Mt Payé', 'Rejet'],
+            $rows,
+            'etat-reglements-clients',
+            $titre,
+        );
+    }
+
+    public function etatCreancesExcel(Request $request)
+    {
+        $result = $this->buildEtatCreancesData($request);
+        $mode = $result['mode'];
+        $titre = 'États Périodiques des Créances Clients';
+        if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
+            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+        }
+
+        if ($mode === 'tous_clients') {
+            $rows = array_map(fn($c) => [
+                $c['numero'] ?? '',
+                $c['numero_compte'],
+                $c['raison_sociale'],
+                $c['total_facture'],
+                $c['total_paye'],
+                $c['total_reste'],
+            ], $result['data']);
+            $totFact = array_sum(array_column($result['data'], 'total_facture'));
+            $totPaye = array_sum(array_column($result['data'], 'total_paye'));
+            $totReste = array_sum(array_column($result['data'], 'total_reste'));
+            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totReste];
+
+            return \App\Support\ExcelExporter::download(
+                ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Reste à payer'],
+                $rows,
+                'etat-creances-clients',
+                $titre,
+            );
+        }
+
+        $rows = [];
+        foreach ($result['data'] as $bloc) {
+            $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'], '', '', '', '', ''];
+            foreach ($bloc['lignes'] as $l) {
+                $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['montant_facture'], $l['montant_paye'], $l['reste_a_payer']];
+            }
+            $rows[] = ['', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_reste']];
+        }
+
+        return \App\Support\ExcelExporter::download(
+            ['Client', 'N°', 'Référence', 'Date Facture', 'Mt Facture', 'Mt Payé', 'Reste à payer'],
+            $rows,
+            'etat-creances-clients',
+            $titre,
+        );
+    }
+
+    public function brouillardChequesExcel(Request $request)
+    {
+        $result = $this->buildBrouillardChequesData($request);
+        $titre = 'Brouillard de Chèques';
+        if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
+            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+        }
+
+        $rows = array_map(fn($l) => [
+            $l['date'],
+            $l['banque_depot'] ?? '',
+            $l['libelle'],
+            $l['compte_debit'] . ' — ' . $l['compte_debit_libelle'],
+            $l['compte_credit'] . ' — ' . $l['compte_credit_libelle'],
+            $l['debit'] ?: '',
+            $l['credit'] ?: '',
+            $l['solde'],
+        ], $result['data']);
+
+        $totDebit = array_sum(array_column($result['data'], 'debit'));
+        $totCredit = array_sum(array_column($result['data'], 'credit'));
+        $rows[] = ['', '', 'TOTAL', '', '', $totDebit, $totCredit, ''];
+
+        return \App\Support\ExcelExporter::download(
+            ['Date', 'Banque dépôt', 'Libellé', 'Compte Débit', 'Compte Crédit', 'Débit', 'Crédit', 'Solde'],
+            $rows,
+            'brouillard-cheques',
+            $titre,
+        );
+    }
+
+    public function chiffreAffairesExcel(Request $request)
+    {
+        $result = $this->buildChiffreAffairesData($request);
+        $mode = $result['mode'];
+        $titre = "Chiffre d'Affaire";
+
+        if (in_array($mode, ['global_du', 'global_au', 'global_periode'])) {
+            $d = $result['data'];
+            $rows = [
+                ['CA Théorique (factures)', $d['theorique'] ?? 0],
+                ['CA Physique (règlements)', $d['physique'] ?? 0],
+                ['Écart', $d['ecart'] ?? 0],
+            ];
+            return \App\Support\ExcelExporter::download(
+                ['Indicateur', 'Montant'],
+                $rows,
+                'chiffre-affaires',
+                $titre,
+            );
+        }
+
+        // Mode par_client
+        $d = $result['data'];
+        if (empty($d)) {
+            $rows = [['Aucune donnée']];
+            return \App\Support\ExcelExporter::download(['Info'], $rows, 'chiffre-affaires', $titre);
+        }
+        $rows = [['Client', '[' . $d['numero_compte'] . '] ' . $d['raison_sociale'], '', '']];
+        foreach ($d['lignes'] as $l) {
+            $rows[] = [$l['numero'], $l['reference'], $l['date_facture'], $l['montant']];
+        }
+        $rows[] = ['', '', 'TOTAL CA', $d['total_ca']];
+
+        return \App\Support\ExcelExporter::download(
+            ['N°', 'Référence', 'Date Facture', 'Montant'],
+            $rows,
+            'chiffre-affaires-client',
+            $titre . ' — ' . ($d['raison_sociale'] ?? ''),
+        );
+    }
+
+    public function pertesRejetsExcel(Request $request)
+    {
+        $result = $this->buildPertesRejetsData($request);
+        $titre = 'Pertes, Rejets et Régularisations';
+        if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
+            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+        }
+
+        $rows = array_map(fn($l) => [
+            $l['date_reglement'],
+            $l['type_reglement_libelle'],
+            $l['client_code'] . ' — ' . ($l['client_nom'] ?? '-'),
+            $l['type_client_label'] ?? '',
+            $l['facture_reference'] ?? '',
+            $l['reference_cheque'] ?? '',
+            $l['montant'],
+            $l['observations'] ?? '',
+        ], $result['data']);
+
+        $t = $result['totaux'];
+        $rows[] = ['', '', '', '', '', 'Pertes', $t['pertes'], ''];
+        $rows[] = ['', '', '', '', '', 'Rejets', $t['rejets'], ''];
+        $rows[] = ['', '', '', '', '', 'Régularisations', $t['regularisations'], ''];
+        $rows[] = ['', '', '', '', '', 'SOLDE', $t['solde'], ''];
+
+        return \App\Support\ExcelExporter::download(
+            ['Date', 'Type', 'Client', 'Type client', 'Réf. Facture', 'N° Chèque', 'Montant', 'Observations'],
+            $rows,
+            'pertes-rejets',
+            $titre,
+        );
+    }
+
+    public function reglementsParTypeClientExcel(Request $request)
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+
+        $query = ReglementClient::with(['client'])
+            ->when($dateDebut, fn($q) => $q->where('date_reglement', '>=', $dateDebut))
+            ->when($dateFin, fn($q) => $q->where('date_reglement', '<=', $dateFin));
+
+        $reglements = $query->get();
+
+        $groupes = [];
+        foreach ($reglements as $r) {
+            $type = $r->client?->type_client ?: 'non_defini';
+            $label = $type !== 'non_defini'
+                ? (\App\Models\Client::TYPES_LABELS[$type] ?? ucfirst($type))
+                : 'Non défini';
+            if (!isset($groupes[$type])) {
+                $groupes[$type] = ['label' => $label, 'nombre' => 0, 'total' => 0];
+            }
+            $groupes[$type]['nombre']++;
+            $groupes[$type]['total'] += (float) $r->montant;
+        }
+
+        $rows = array_map(fn($g) => [$g['label'], $g['nombre'], $g['total']], array_values($groupes));
+        $totalGeneral = array_sum(array_column($groupes, 'total'));
+        $rows[] = ['TOTAL', array_sum(array_column($groupes, 'nombre')), $totalGeneral];
+
+        $titre = 'Règlements par type de client';
+        if ($dateDebut && $dateFin) {
+            $titre .= ' du ' . \Carbon\Carbon::parse($dateDebut)->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($dateFin)->format('d/m/Y');
+        }
+
+        return \App\Support\ExcelExporter::download(
+            ['Type de client', 'Nombre', 'Total'],
+            $rows,
+            'reglements-par-type-client',
+            $titre,
+        );
+    }
 }

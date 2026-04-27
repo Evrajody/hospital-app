@@ -47,29 +47,40 @@ class Classe extends Model
     }
 
     /**
-     * Retourne les imputations pour les factures fournisseurs :
-     * Classe 2 (Immobilisations), Classe 6 (Charges) et Compte 42 (Personnel).
-     * Le compte 42 est cree automatiquement s'il n'existe pas.
+     * Retourne les imputations sélectionnables par l'utilisateur sur une facture :
+     * - Classe 2 (Immobilisations)
+     * - Compte 42 (Personnel)
+     * - Classe 6 (Charges)
+     * - Compte 401 (Fournisseurs - base OHADA)
+     *
+     * NB : la TVA (4452) et l'AIB ne sont PAS dans cette liste — elles sont
+     * auto-générées dans les écritures comptables (TVA si assujettie, AIB si déduit).
+     * Crées automatiquement si manquants.
      */
     public static function imputationsFactureFournisseur()
     {
-        // S'assurer que les classes d'imputation existent
-        static::firstOrCreate(
-            ['code' => '2'],
-            ['libelle' => 'Immobilisations', 'prefixe_compte' => '2', 'is_active' => true]
-        );
-        static::firstOrCreate(
-            ['code' => '6'],
-            ['libelle' => 'Charges', 'prefixe_compte' => '6', 'is_active' => true]
-        );
-        static::firstOrCreate(
-            ['code' => '42'],
-            ['libelle' => 'Personnel', 'prefixe_compte' => '42', 'is_active' => true]
-        );
+        $required = [
+            ['code' => '2',    'libelle' => 'Immobilisations',  'prefixe_compte' => '2'],
+            ['code' => '42',   'libelle' => 'Personnel',        'prefixe_compte' => '42'],
+            ['code' => '6',    'libelle' => 'Charges',          'prefixe_compte' => '6'],
+            ['code' => '401',  'libelle' => 'Fournisseurs',     'prefixe_compte' => '401'],
+        ];
+
+        foreach ($required as $entry) {
+            static::firstOrCreate(
+                ['code' => $entry['code']],
+                array_merge($entry, ['is_active' => true])
+            );
+        }
 
         return static::active()
-            ->whereIn('code', ['2', '6', '42'])
-            ->orderBy('code')
+            ->whereIn('code', array_column($required, 'code'))
+            ->orderByRaw("CASE code
+                WHEN '2' THEN 1
+                WHEN '42' THEN 2
+                WHEN '6' THEN 3
+                WHEN '401' THEN 4
+                ELSE 99 END")
             ->get();
     }
 }

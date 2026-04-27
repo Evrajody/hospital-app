@@ -412,7 +412,11 @@
                           <el-dropdown-item command="mandat" :icon="Printer">
                             Bordereau de règlement
                           </el-dropdown-item>
-                          <el-dropdown-item command="imputation" :icon="Notebook">
+                          <el-dropdown-item
+                            v-if="row.mode_paiement !== 'especes'"
+                            command="imputation"
+                            :icon="Notebook"
+                          >
                             Fiche d'imputation
                           </el-dropdown-item>
                           <el-dropdown-item command="facture" divided :icon="Document">

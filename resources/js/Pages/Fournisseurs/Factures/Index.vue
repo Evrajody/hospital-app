@@ -186,7 +186,7 @@
                       État de Règlement
                     </el-dropdown-item>
                     <el-dropdown-item
-                      v-if="row.imputation_id && row.compte_id"
+                      v-if="row.imputation_id || row.compte_id || row.imputations_count > 0"
                       command="imputation"
                       :icon="CopyDocument"
                     >
@@ -333,7 +333,7 @@
           <thead>
             <tr>
               <th style="width: 100px;">Date</th>
-              <th style="width: 130px;">Compte</th>
+              <th style="width: 110px;">Compte</th>
               <th style="width: 140px; text-align: right;">Débit</th>
               <th style="width: 140px; text-align: right;">Crédit</th>
               <th>Libellé</th>
@@ -341,11 +341,23 @@
           </thead>
           <tbody>
             <template v-for="(group, gIndex) in imputationData.ecritures" :key="gIndex">
-              <tr v-for="(ligne, lIndex) in group.lignes" :key="`${gIndex}-${lIndex}`" :style="lIndex === 0 && gIndex > 0 ? 'border-top: 2px solid #000;' : ''">
-                <td style="font-weight: 600;">{{ lIndex === 0 ? group.date : '' }}</td>
-                <td>{{ ligne.numero_compte }}</td>
-                <td style="text-align: right;">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
-                <td style="text-align: right;">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
+              <tr
+                v-for="(ligne, lIndex) in group.lignes"
+                :key="`${gIndex}-${lIndex}`"
+                :class="lIndex === 0 && gIndex > 0 ? 'block-separator' : ''"
+              >
+                <td style="font-weight: 600;">
+                  <template v-if="lIndex === 0">
+                    {{ group.label || ligne.date }}
+                    <div v-if="group.label" style="font-size: 11px; font-weight: normal;">{{ ligne.date }}</div>
+                  </template>
+                  <template v-else-if="ligne.date !== group.lignes[lIndex - 1].date">
+                    <span style="font-weight: 500;">{{ ligne.date }}</span>
+                  </template>
+                </td>
+                <td class="cell-compte-num">{{ ligne.numero_compte }}</td>
+                <td class="cell-montant">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
+                <td class="cell-montant">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
                 <td>{{ ligne.libelle || '' }}</td>
               </tr>
             </template>
@@ -725,43 +737,6 @@ const handleFactureSuccess = async (factureData) => {
       ElMessage.success(result.message || (isEdit ? 'Facture modifiée avec succès' : 'Facture créée avec succès'));
       showFactureModal.value = false;
       selectedFacture.value = null;
-
-      // Si la facture a une imputation, demander confirmation
-      if (result.has_imputation && result.data?.id) {
-        const factureId = result.data.id;
-        // Attendre que le dialog se ferme complètement avant d'afficher le MessageBox
-        await new Promise(resolve => setTimeout(resolve, 600));
-        try {
-          await ElMessageBox.confirm(
-            'Autorisez-vous une imputation comptable à l\'enregistrement de cette pièce comptable ?',
-            'Imputation Comptable',
-            {
-              confirmButtonText: 'Oui, autoriser',
-              cancelButtonText: 'Non',
-              type: 'info',
-            }
-          );
-          // L'utilisateur a confirmé
-          try {
-            const impResponse = await fetchApi(`/api/factures-fournisseurs/${factureId}/imputation`, {
-              method: 'POST'
-            });
-            const impResult = await impResponse.json();
-            if (impResult.success) {
-              ElMessage.success('Imputation comptable enregistrée');
-              // Ouvrir le drawer d'imputation comptable
-              openImputationDrawer(factureId);
-            } else {
-              ElMessage.warning(impResult.message || 'Imputation non créée');
-            }
-          } catch (err) {
-            console.error('Erreur imputation:', err);
-          }
-        } catch {
-          // L'utilisateur a refusé l'imputation
-        }
-      }
-
       handleRefresh();
     } else {
       ElMessage.error(result.message || 'Une erreur est survenue');
@@ -1131,6 +1106,7 @@ export default {
   border-right: 1px solid #000;
   border-bottom: 1px solid #ccc;
   padding: 6px 10px;
+  vertical-align: top;
 }
 
 .imputation-table tbody tr:last-child td {
@@ -1141,6 +1117,32 @@ export default {
   border: 1px solid #000;
   background-color: #fff;
   font-weight: bold;
+}
+
+.imputation-table .cell-compte-num {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.imputation-table .cell-compte-lib {
+  font-size: 12px;
+  color: #333;
+}
+
+.imputation-table .cell-montant {
+  font-family: 'Courier New', monospace;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.imputation-table tr.block-separator td {
+  border-top: 2px solid #000;
+}
+
+.imputation-table tr:not(.block-separator) td {
+  border-top: none;
 }
 
 /* État de Règlement Drawer */

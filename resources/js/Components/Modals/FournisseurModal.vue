@@ -297,35 +297,6 @@
                 </el-descriptions>
               </el-card>
 
-              <!-- Comptes supplémentaires -->
-              <el-divider>Comptes supplémentaires</el-divider>
-              <div class="form-hint" style="margin-bottom: 8px;">
-                Un fournisseur peut être rattaché à plusieurs comptes (401.xxx, 4812.xxx…). Le compte principal ci-dessus reste celui utilisé par défaut.
-              </div>
-              <el-tag
-                v-for="(compteId, idx) in form.comptes_supplementaires"
-                :key="compteId"
-                closable
-                type="info"
-                style="margin: 4px 6px 4px 0;"
-                @close="removeCompteSupplementaire(idx)"
-              >
-                {{ getCompteLibelle(compteId) }}
-              </el-tag>
-              <el-select
-                v-model="nouveauCompteSupplementaire"
-                placeholder="Ajouter un compte"
-                filterable
-                style="width: 100%; margin-top: 8px;"
-                @change="addCompteSupplementaire"
-              >
-                <el-option
-                  v-for="compte in comptesSupplementairesDisponibles"
-                  :key="compte.id"
-                  :label="`${compte.numero} - ${compte.libelle}`"
-                  :value="compte.id"
-                />
-              </el-select>
             </div>
 
             <!-- Mode: Create new account -->
@@ -692,7 +663,6 @@ const getInitialFormData = () => ({
   pays: 'BJ',
   // Compte comptable
   compte_comptable_id: null,
-  comptes_supplementaires: [],
   compte_parent_id: null,
   nouveau_compte_numero: '',
   nouveau_compte_libelle: '',
@@ -702,8 +672,6 @@ const getInitialFormData = () => ({
   // Extra
   observations: ''
 });
-
-const nouveauCompteSupplementaire = ref(null);
 
 const form = reactive(getInitialFormData());
 
@@ -732,9 +700,6 @@ watch(() => props.fournisseur, (newFournisseur) => {
       compteMode.value = 'select';
       form.compte_comptable_id = newFournisseur.compte_comptable.id;
     }
-    form.comptes_supplementaires = Array.isArray(newFournisseur.comptes_supplementaires)
-      ? [...newFournisseur.comptes_supplementaires]
-      : [];
   }
 }, { immediate: true, deep: true });
 
@@ -756,10 +721,6 @@ watch(() => props.modelValue, (isOpen) => {
       compteMode.value = 'select';
       form.compte_comptable_id = props.fournisseur.compte_comptable.id;
     }
-
-    form.comptes_supplementaires = Array.isArray(props.fournisseur.comptes_supplementaires)
-      ? [...props.fournisseur.comptes_supplementaires]
-      : [];
 
     // Réinitialiser les erreurs
     validationErrors.value = [];
@@ -796,29 +757,6 @@ const selectedCompte = computed(() => {
   }
   return null;
 });
-
-// Comptes supplémentaires — helpers
-const comptesSupplementairesDisponibles = computed(() => {
-  const exclus = new Set([form.compte_comptable_id, ...form.comptes_supplementaires].filter(Boolean));
-  return props.comptesFournisseurs.filter(c => !exclus.has(c.id));
-});
-
-const getCompteLibelle = (compteId) => {
-  const compte = props.comptesFournisseurs.find(c => c.id === compteId);
-  return compte ? `${compte.numero} - ${compte.libelle}` : `#${compteId}`;
-};
-
-const addCompteSupplementaire = (compteId) => {
-  if (!compteId) return;
-  if (!form.comptes_supplementaires.includes(compteId) && compteId !== form.compte_comptable_id) {
-    form.comptes_supplementaires.push(compteId);
-  }
-  nouveauCompteSupplementaire.value = null;
-};
-
-const removeCompteSupplementaire = (index) => {
-  form.comptes_supplementaires.splice(index, 1);
-};
 
 // ==========================================
 // VALIDATION RULES

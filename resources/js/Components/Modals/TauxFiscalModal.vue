@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? 'Modifier le Taux Fiscal' : 'Nouveau Taux Fiscal'"
+    :title="dialogTitle"
     width="500px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
@@ -34,16 +34,6 @@
       size="large"
       @submit.prevent="handleSubmit"
     >
-      <el-form-item prop="type">
-        <template #label>
-          <span>Type <span class="required-star">*</span></span>
-        </template>
-        <el-select v-model="form.type" placeholder="Type de taxe" style="width: 100%" :disabled="isEdit">
-          <el-option label="TVA" value="tva" />
-          <el-option label="AIB" value="aib" />
-        </el-select>
-      </el-form-item>
-
       <el-form-item prop="libelle">
         <template #label>
           <span>Libellé <span class="required-star">*</span></span>
@@ -114,6 +104,11 @@ const dialogVisible = computed({
 
 const isEdit = computed(() => !!props.tauxFiscal);
 
+const dialogTitle = computed(() => {
+  const typeLabel = (form.type || props.typeInitial || 'tva').toUpperCase();
+  return isEdit.value ? `Modifier le Taux ${typeLabel}` : `Nouveau Taux ${typeLabel}`;
+});
+
 const form = reactive({
   type: 'tva',
   libelle: '',
@@ -123,7 +118,6 @@ const form = reactive({
 });
 
 const rules = computed(() => ({
-  type: [{ required: true, message: 'Le type est requis', trigger: 'change' }],
   libelle: [
     { required: true, message: 'Le libellé est requis', trigger: 'blur' },
     { min: 2, message: 'Minimum 2 caractères', trigger: 'blur' },

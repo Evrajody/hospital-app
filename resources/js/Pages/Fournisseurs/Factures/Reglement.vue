@@ -4,8 +4,8 @@
       <!-- Page Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Règlement de Facture</h1>
-          <p class="page-subtitle">Enregistrer un nouveau paiement</p>
+          <h1 class="page-title">{{ isEdit ? 'Modifier le Règlement' : 'Règlement de Facture' }}</h1>
+          <p class="page-subtitle">{{ isEdit ? 'Mise à jour des informations de règlement' : 'Enregistrer un nouveau paiement' }}</p>
         </div>
         <el-button @click="handleCancel">
           <el-icon><ArrowLeft /></el-icon>
@@ -112,12 +112,21 @@
                 :key="reglement.id"
                 :timestamp="formatDate(reglement.date_reglement)"
                 placement="top"
+                :type="reglement.id === editingReglementId ? 'warning' : 'primary'"
               >
-                <el-card class="reglement-item">
+                <el-card
+                  class="reglement-item"
+                  :class="{ 'reglement-item-editing': reglement.id === editingReglementId }"
+                >
                   <div class="reglement-header">
-                    <el-tag :type="getModeTagType(reglement.mode_paiement)" size="small">
-                      {{ getModeLabel(reglement.mode_paiement) }}
-                    </el-tag>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <el-tag :type="getModeTagType(reglement.mode_paiement)" size="small">
+                        {{ getModeLabel(reglement.mode_paiement) }}
+                      </el-tag>
+                      <el-tag v-if="reglement.id === editingReglementId" type="warning" size="small" effect="dark">
+                        En cours de modification
+                      </el-tag>
+                    </div>
                     <strong class="reglement-montant">{{ formatMontant(reglement.montant) }}</strong>
                   </div>
                   <div class="reglement-details">
@@ -163,18 +172,15 @@
               <el-row :gutter="20">
                 <el-col :span="6">
                   <el-form-item label="Année d'exercice" prop="annee_exercice">
-                    <el-select
+                    <el-date-picker
                       v-model="form.annee_exercice"
+                      type="year"
                       placeholder="Exercice"
+                      format="YYYY"
+                      value-format="YYYY"
+                      :disabled-date="disableFutureYears"
                       style="width: 100%"
-                    >
-                      <el-option
-                        v-for="y in anneesExercice"
-                        :key="y"
-                        :label="y"
-                        :value="String(y)"
-                      />
-                    </el-select>
+                    />
                   </el-form-item>
                 </el-col>
 
@@ -320,16 +326,16 @@
                   </el-form-item>
                 </el-col>
 
-                <el-col :span="12" v-if="facture.type_reduction && facture.taux > 0 && !aibDejaDeclaree">
+                <el-col :span="12" v-if="hasAib && !aibDejaDeclaree">
                   <el-form-item label=" ">
                     <el-checkbox
                       v-model="form.deduire_aib"
-                      :label="`Déclarer l'AIB (${facture.taux}%)`"
+                      :label="`Déclarer l'AIB (${facture.taux || 0}%)`"
                       size="large"
                     />
                   </el-form-item>
                 </el-col>
-                <el-col :span="12" v-else-if="facture.type_reduction && facture.taux > 0 && aibDejaDeclaree">
+                <el-col :span="12" v-else-if="hasAib && aibDejaDeclaree">
                   <el-form-item label=" ">
                     <el-tag type="success" size="large">AIB déjà déclaré</el-tag>
                   </el-form-item>
@@ -400,7 +406,7 @@
                   native-type="submit"
                 >
                   <el-icon v-if="!submitting"><Check /></el-icon>
-                  Enregistrer le Règlement
+                  {{ isEdit ? 'Mettre à jour le Règlement' : 'Enregistrer le Règlement' }}
                 </el-button>
               </div>
             </el-form>
@@ -451,9 +457,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import {
   ArrowLeft,
   Document,
@@ -522,6 +528,13 @@ const aibDejaDeclaree = computed(() => {
   return props.reglements.some(r => r.deduire_aib);
 });
 
+// La facture a un AIB si elle a un compte AIB OU un taux > 0 OU un montant AIB calculé
+const hasAib = computed(() => {
+  const taux = parseFloat(props.facture.taux) || 0;
+  const mtAib = parseFloat(props.facture.montant_aib || props.facture.montant_reduction) || 0;
+  return !!(props.facture.type_reduction || taux > 0 || mtAib > 0);
+});
+
 const newReste = computed(() => {
   return Math.max(0, resteAPayer.value - (form.montant || 0));
 });
@@ -549,12 +562,30 @@ const selectedCompte = computed(() => {
 const formRef = ref(null);
 const submitting = ref(false);
 const showInsufficientModal = ref(false);
-const insufficientData = reactive({ solde: 0, montant: 0 });
 
-const anneesExercice = computed(() => {
-  const annee = new Date().getFullYear();
-  return [annee - 2, annee - 1, annee, annee + 1];
+// Mode édition : détecte ?edit=ID dans l'URL
+const editingReglementId = ref(null);
+const ancienMontantReglement = ref(0); // montant du règlement avant modification
+const isEdit = computed(() => !!editingReglementId.value);
+
+if (typeof window !== 'undefined') {
+  const params = new URLSearchParams(window.location.search);
+  const editId = params.get('edit');
+  if (editId && /^\d+$/.test(editId)) {
+    editingReglementId.value = parseInt(editId, 10);
+  }
+}
+
+// Plafond autorisé pour le montant : reste_a_payer + ancien montant (si édition)
+const montantMaxAutorise = computed(() => {
+  return resteAPayer.value + (isEdit.value ? ancienMontantReglement.value : 0);
 });
+
+// Empêche la sélection d'une année future
+const disableFutureYears = (date) => {
+  return date.getFullYear() > new Date().getFullYear();
+};
+const insufficientData = reactive({ solde: 0, montant: 0 });
 
 const form = reactive({
   annee_exercice: new Date().getFullYear().toString(),
@@ -587,8 +618,8 @@ const rules = {
       validator: (rule, value, callback) => {
         if (value <= 0) {
           callback(new Error('Le montant doit être supérieur à 0'));
-        } else if (value > resteAPayer.value) {
-          callback(new Error('Le montant ne peut pas dépasser le reste à payer'));
+        } else if (value > montantMaxAutorise.value + 0.01) {
+          callback(new Error(`Le montant ne peut pas dépasser ${formatMontant(montantMaxAutorise.value)}`));
         } else {
           callback();
         }
@@ -700,44 +731,22 @@ const buildPayload = (forceInsufficient = false) => {
 const submitPayment = async (forceInsufficient = false) => {
   submitting.value = true;
 
+  const url = isEdit.value
+    ? `/api/reglements-fournisseurs/${editingReglementId.value}`
+    : '/api/reglements-fournisseurs';
+  const method = isEdit.value ? 'PUT' : 'POST';
+
   try {
-    const response = await fetchApi('/api/reglements-fournisseurs', {
-      method: 'POST',
+    const response = await fetchApi(url, {
+      method,
       body: buildPayload(forceInsufficient)
     });
 
     const data = await response.json();
 
     if (data.success) {
-      ElMessage.success(data.message || 'Règlement enregistré avec succès');
-
-      const reglementId = data.data?.id || data.reglement?.id;
-
-      // Proposer au choix : bordereau de règlement ou imputation comptable
-      try {
-        const action = await ElMessageBox({
-          title: 'Règlement enregistré',
-          message: 'Souhaitez-vous consulter le bordereau de règlement ou l\'imputation comptable ?',
-          showCancelButton: true,
-          confirmButtonText: 'Bordereau de règlement',
-          cancelButtonText: 'Imputation comptable',
-          distinguishCancelAndClose: true,
-          type: 'info',
-        });
-        if (action === 'confirm' && reglementId) {
-          window.open(`/reglements-fournisseurs/${reglementId}/mandat`, '_blank');
-          router.visit(`/factures-fournisseurs/${props.facture.id}`);
-          return;
-        }
-      } catch (action) {
-        if (action === 'cancel') {
-          router.visit(`/factures-fournisseurs/${props.facture.id}`);
-          return;
-        }
-        // Fermeture → retour à la page de règlement
-      }
-
-      router.visit(`/factures-fournisseurs/${props.facture.id}/regler`);
+      ElMessage.success(data.message || (isEdit.value ? 'Règlement modifié avec succès' : 'Règlement enregistré avec succès'));
+      router.visit(`/factures-fournisseurs/${props.facture.id}`);
     } else if (data.insufficient_balance) {
       insufficientData.solde = data.solde_actuel;
       insufficientData.montant = data.montant_demande;
@@ -757,6 +766,47 @@ const submitPayment = async (forceInsufficient = false) => {
     submitting.value = false;
   }
 };
+
+// Pré-remplir le formulaire en mode édition
+const loadReglementForEdit = async () => {
+  if (!editingReglementId.value) return;
+  try {
+    const response = await fetchApi(`/api/reglements-fournisseurs/${editingReglementId.value}`);
+    const data = await response.json();
+    if (!data.success || !data.data) return;
+    const r = data.data;
+
+    // Mémoriser l'ancien montant pour calculer le plafond autorisé
+    ancienMontantReglement.value = parseFloat(r.montant) || 0;
+
+    form.date_reglement = r.date_reglement || form.date_reglement;
+    form.montant = parseFloat(r.montant) || 0;
+    form.mode_paiement = r.mode_paiement || '';
+    form.reference = r.reference || '';
+    form.beneficiaire = r.beneficiaire || '';
+    form.compte_bancaire_id = r.compte_bancaire_id || r.compte_tresorerie_id || null;
+    form.remarques = r.observations || '';
+    form.deduire_aib = !!r.deduire_aib;
+
+    // Trouver la banque parente du compte sélectionné
+    if (form.compte_bancaire_id) {
+      for (const banque of props.banques) {
+        if (banque.comptes.some(c => c.id === form.compte_bancaire_id)) {
+          form.banque_id = banque.id;
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Erreur chargement règlement à éditer', e);
+    ElMessage.error('Impossible de charger le règlement à modifier');
+  }
+};
+
+// Charger les données au montage si mode édition
+if (editingReglementId.value) {
+  loadReglementForEdit();
+}
 
 const handleSubmit = async () => {
   if (!formRef.value) return;
@@ -877,6 +927,13 @@ const forceSubmit = async () => {
 .reglement-item {
   box-shadow: none;
   border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.reglement-item-editing {
+  border: 2px solid #e6a23c;
+  background-color: #fdf6ec;
+  box-shadow: 0 2px 8px rgba(230, 162, 60, 0.15);
 }
 
 .reglement-header {

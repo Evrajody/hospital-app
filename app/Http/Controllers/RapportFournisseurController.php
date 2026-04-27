@@ -1483,27 +1483,6 @@ class RapportFournisseurController extends Controller
         );
     }
 
-    public function situationFournisseursExcel(Request $request)
-    {
-        $data = $this->buildSituationADateData($request);
-        $rows = array_map(fn($l) => [
-            $l['numero_compte'],
-            $l['ifu'] ?? '',
-            $l['nom'],
-            $l['total_factures'],
-            $l['total_paye'],
-            $l['solde'],
-        ], $data['data']);
-        $rows[] = ['', '', 'TOTAL', $data['totaux']['total_factures'], $data['totaux']['total_paye'], $data['totaux']['solde']];
-
-        return \App\Support\ExcelExporter::download(
-            ['N° Compte', 'IFU', 'Fournisseur', 'Total factures', 'Total payé', 'Solde'],
-            $rows,
-            'situation-fournisseurs',
-            'Situation fournisseurs au ' . ($data['date'] ? Carbon::parse($data['date'])->format('d/m/Y') : '-'),
-        );
-    }
-
     public function banquesParCompteExcel(Request $request)
     {
         $data = $this->buildEtatBanquesParCompteData($request);
@@ -1520,6 +1499,312 @@ class RapportFournisseurController extends Controller
             $rows,
             'etat-banques-par-compte',
             'État banques par compte',
+        );
+    }
+
+    public function mouvementFacturesExcel(Request $request)
+    {
+        $data = $this->buildMouvementFacturesData($request);
+        $rows = array_map(fn($l) => [
+            $l['numero_piece'],
+            $l['date'],
+            $l['reference_facture'] ?? '',
+            $l['montant_facture'],
+            $l['avoir'],
+            $l['montant_mo'],
+            $l['taux_aib'],
+            $l['montant_aib'],
+            $l['montant_du'],
+            $l['total_reglement'],
+            $l['solde'],
+        ], $data['lignes']);
+
+        $t = $data['totaux'];
+        $rows[] = ['', 'TOTAL', '', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['montant_du'], $t['total_reglement'], $t['solde']];
+
+        $titre = 'Mouvement des factures';
+        if ($data['fournisseur']) {
+            $titre .= ' — [' . $data['fournisseur']['code'] . '] ' . $data['fournisseur']['nom'];
+        }
+        if ($data['periode']['debut'] && $data['periode']['fin']) {
+            $titre .= ' du ' . Carbon::parse($data['periode']['debut'])->format('d/m/Y')
+                . ' au ' . Carbon::parse($data['periode']['fin'])->format('d/m/Y');
+        }
+
+        return \App\Support\ExcelExporter::download(
+            ['N° PC', 'Date', 'Référence', 'Mt Facture', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Dû', 'Mt Réglé', 'Solde'],
+            $rows,
+            'mouvement-factures',
+            $titre,
+        );
+    }
+
+    public function situationFournisseursExcel(Request $request)
+    {
+        $data = $this->buildSituationFournisseursData($request);
+        $mode = $data['mode'] ?? 'tous';
+        $titre = 'Situation fournisseurs';
+        if (($data['date_debut'] ?? null) && ($data['date_fin'] ?? null)) {
+            $titre .= ' du ' . Carbon::parse($data['date_debut'])->format('d/m/Y')
+                . ' au ' . Carbon::parse($data['date_fin'])->format('d/m/Y');
+        }
+
+        if (in_array($mode, ['tous', 'par_compte'])) {
+            $rows = array_map(fn($l) => [
+                $l['numero'] ?? '',
+                $l['numero_compte'],
+                $l['libelle_compte'] ?? '',
+                $l['raison_sociale'],
+                $l['montant_du'],
+                $l['montant_reglements'],
+                $l['restant_du'],
+            ], $data['data']);
+            $g = $data['grandTotal'];
+            $rows[] = ['', '', '', 'TOTAL', $g['montant_du'], $g['montant_reglements'], $g['restant_du']];
+
+            return \App\Support\ExcelExporter::download(
+                ['N°', 'Compte', 'Libellé compte', 'Raison sociale', 'Montant dû', 'Règlements', 'Restant dû'],
+                $rows,
+                'situation-fournisseurs',
+                $titre,
+            );
+        }
+
+        // Mode par_fournisseur : aplatir avec en-têtes par fournisseur
+        $rows = [];
+        foreach ($data['data'] as $bloc) {
+            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', '', ''];
+            foreach ($bloc['lignes'] as $l) {
+                $rows[] = [
+                    '',
+                    $l['numero_piece'],
+                    $l['date'],
+                    $l['reference_facture'] ?? '',
+                    $l['montant_facture'],
+                    $l['avoir'],
+                    $l['montant_mo'],
+                    $l['taux_aib'],
+                    $l['montant_aib'],
+                    $l['total_reglement'],
+                    $l['solde'],
+                ];
+            }
+            $t = $bloc['totaux'];
+            $rows[] = ['', '', '', 'Sous-total', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['total_reglement'], $t['solde']];
+        }
+        $g = $data['grandTotaux'] ?? [];
+        if (!empty($g)) {
+            $rows[] = ['', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'] ?? 0, $g['avoir'] ?? 0, $g['montant_mo'] ?? 0, '', $g['montant_aib'] ?? 0, $g['total_reglement'] ?? 0, $g['solde'] ?? 0];
+        }
+
+        return \App\Support\ExcelExporter::download(
+            ['Fournisseur', 'N° PC', 'Date', 'Référence', 'Mt Facture', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Réglé', 'Solde'],
+            $rows,
+            'situation-fournisseurs-detail',
+            $titre,
+        );
+    }
+
+    public function facturesRegleesExcel(Request $request)
+    {
+        $data = $this->buildFacturesRegleesData($request);
+        $rows = [];
+
+        foreach ($data['detail'] as $bloc) {
+            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', ''];
+            foreach ($bloc['lignes'] as $l) {
+                $rows[] = [
+                    '',
+                    $l['numero_piece'],
+                    $l['date'],
+                    $l['date_reglement'],
+                    $l['montant_facture'],
+                    $l['avoir'],
+                    $l['montant_mo'],
+                    $l['taux_aib'],
+                    $l['montant_aib'],
+                    $l['reg_periode'],
+                    $l['mt_total_reg'],
+                ];
+            }
+            $t = $bloc['totaux'];
+            $rows[] = ['', '', '', 'Sous-total', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['reg_periode'], $t['mt_total_reg']];
+        }
+        $g = $data['grandTotaux'];
+        $rows[] = ['', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'], $g['avoir'], $g['montant_mo'], '', $g['montant_aib'], $g['reg_periode'], $g['mt_total_reg']];
+
+        return \App\Support\ExcelExporter::download(
+            ['Fournisseur', 'N° PC', 'Date Fact.', 'Date Règl.', 'Mt Facture', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Règl. période', 'Mt Total Règ.'],
+            $rows,
+            'factures-reglees',
+            $data['titre'] ?: 'Etat des factures réglées',
+        );
+    }
+
+    public function pointPeriodiqueExcel(Request $request)
+    {
+        $data = $this->buildPointPeriodiqueData($request);
+        $rows = [];
+        $totalGeneral = 0;
+
+        foreach ($data['groupes'] as $g) {
+            $rows[] = [$g['date_longue'], '', ''];
+            foreach ($g['lignes'] as $l) {
+                $rows[] = ['', $l['numero_piece'], $l['libelle'], $l['montant']];
+                $totalGeneral += $l['montant'];
+            }
+            $rows[] = ['', '', 'Total ' . $g['date'], $g['total']];
+        }
+        $rows[] = ['', '', 'TOTAL GÉNÉRAL', $totalGeneral];
+
+        return \App\Support\ExcelExporter::download(
+            ['Date', 'N° PC', 'Libellé', 'Montant'],
+            $rows,
+            'point-periodique-pc',
+            $data['titre'] ?: 'Point périodique des PC',
+        );
+    }
+
+    public function situationBanquesExcel(Request $request)
+    {
+        $data = $this->buildSituationBanquesData($request);
+        $rows = [];
+
+        if (!empty($data['sections'])) {
+            // Mode par_banque : un bloc par compte avec transactions détaillées
+            foreach ($data['sections'] as $section) {
+                $rows[] = [$section['numero_compte'] . ' — ' . $section['intitule'], '', '', '', ''];
+                $rows[] = ['Solde initial', '', '', '', $section['solde_initial']];
+                foreach ($section['transactions'] as $tx) {
+                    $rows[] = [$tx['date_fmt'], $tx['libelle'], $tx['debit'] ?: '', $tx['credit'] ?: '', $tx['solde']];
+                }
+                $rows[] = ['', 'Total période', $section['total_debit'], $section['total_credit'], $section['solde_periode']];
+                $rows[] = ['', '', '', '', ''];
+            }
+            $rows[] = ['TOTAL GÉNÉRAL', '', $data['totalDebit'], $data['totalCredit'], $data['totalSolde']];
+
+            return \App\Support\ExcelExporter::download(
+                ['Date', 'Libellé', 'Débit', 'Crédit', 'Solde'],
+                $rows,
+                'situation-banques-detail',
+                $data['titre'] ?: 'Situation des banques',
+            );
+        }
+
+        // Mode résumé : 1 ligne par compte
+        $rows = array_map(fn($l) => [
+            $l['numero_compte'],
+            $l['intitule'],
+            $l['total_debit'],
+            $l['total_credit'],
+            $l['solde'],
+        ], $data['lignes']);
+        $rows[] = ['', 'TOTAL', $data['totalDebit'], $data['totalCredit'], $data['totalSolde']];
+
+        return \App\Support\ExcelExporter::download(
+            ['N° Compte', 'Intitulé', 'Total Débit', 'Total Crédit', 'Solde'],
+            $rows,
+            'situation-banques',
+            $data['titre'] ?: 'Situation des banques',
+        );
+    }
+
+    public function bordereauTransmissionExcel(Request $request)
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+        $ids = array_filter(explode(',', (string) $request->input('ids', '')));
+
+        $query = ReglementFournisseur::where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
+        if (!empty($ids)) {
+            $query->whereIn('id', $ids);
+        } elseif ($dateDebut && $dateFin) {
+            $query->whereBetween('date_reglement', [$dateDebut, $dateFin]);
+        }
+
+        $reglements = $query->with(['facture.fournisseur.compteComptable'])->orderBy('date_reglement')->get();
+        $rows = [];
+        $total = 0;
+
+        foreach ($reglements as $r) {
+            $fournisseur = $r->facture?->fournisseur;
+            $code = $fournisseur?->compteComptable?->numero_compte ?? '';
+            $fournisseurLabel = $code ? "[{$code}] {$fournisseur->nom}" : ($fournisseur->nom ?? 'Inconnu');
+            $modeLabel = match($r->mode_paiement) {
+                'cheque' => 'Chèque',
+                'virement' => 'Virement',
+                'especes' => 'Espèces',
+                'mobile_money' => 'Mobile Money',
+                default => $r->mode_paiement,
+            };
+            $rows[] = [
+                $r->date_reglement?->format('d/m/Y'),
+                $fournisseurLabel,
+                $r->facture?->numero_piece ?? '',
+                $modeLabel . ($r->reference ? ' N°' . $r->reference : ''),
+                $r->banque ?? '',
+                $r->beneficiaire ?? '',
+                (float) $r->montant,
+            ];
+            $total += (float) $r->montant;
+        }
+        $rows[] = ['', '', '', '', '', 'TOTAL', $total];
+
+        return \App\Support\ExcelExporter::download(
+            ['Date', 'Fournisseur', 'N° PC', 'Mode', 'Banque', 'Bénéficiaire', 'Montant'],
+            $rows,
+            'bordereau-transmission',
+            'Bordereau de transmission',
+        );
+    }
+
+    public function recapChargesExcel(Request $request)
+    {
+        return $this->buildRecapExcel($request, 'charges');
+    }
+
+    public function recapInvestissementsExcel(Request $request)
+    {
+        return $this->buildRecapExcel($request, 'immo');
+    }
+
+    private function buildRecapExcel(Request $request, string $type)
+    {
+        $data = $this->buildRecapData($request, $type);
+        $rows = array_map(fn($l) => [
+            $l['numero_compte'],
+            $l['libelle'],
+            $l['montant'],
+        ], $data['lignes']);
+        $rows[] = ['', $data['labelTotal'] ?? 'TOTAL', $data['totalDepenses']];
+
+        return \App\Support\ExcelExporter::download(
+            ['N° Compte', 'Libellé', 'Montant'],
+            $rows,
+            $type === 'charges' ? 'recap-charges' : 'recap-investissements',
+            $data['titre'] ?: ($type === 'charges' ? 'Récapitulatif des charges' : 'Récapitulatif des investissements'),
+        );
+    }
+
+    public function facturesSoldesExcel(Request $request)
+    {
+        $data = $this->buildFacturesSoldesData($request);
+        $rows = array_map(fn($f) => [
+            $f['numero'],
+            $f['date_facture'],
+            $f['fournisseur_label'],
+            $f['montant_ttc'],
+            $f['montant_paye'],
+            $f['reste_a_payer'],
+        ], $data['factures']);
+        $t = $data['totaux'];
+        $rows[] = ['', '', 'TOTAL', $t['montant_ttc'], $t['montant_paye'], $t['reste_a_payer']];
+
+        return \App\Support\ExcelExporter::download(
+            ['N° PC', 'Date', 'Fournisseur', 'Mt TTC', 'Mt Payé', 'Reste à payer'],
+            $rows,
+            'factures-soldes',
+            'Factures et soldes',
         );
     }
 
@@ -1597,81 +1882,6 @@ class RapportFournisseurController extends Controller
         return $request->query('action') === 'stream'
             ? $pdf->stream('declaration-tva.pdf')
             : $pdf->download('declaration-tva.pdf');
-    }
-
-    // ==========================================
-    // SITUATION FOURNISSEURS À UNE DATE DONNÉE
-    // ==========================================
-
-    private function buildSituationADateData(Request $request): array
-    {
-        $date = $request->input('date') ?: now()->toDateString();
-        $typeSolde = $request->input('type', 'impayes'); // impayes|tous
-
-        $fournisseurs = Fournisseur::with('compteComptable')->orderBy('nom')->get();
-        $data = [];
-
-        foreach ($fournisseurs as $f) {
-            $factures = $f->factures()
-                ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-                ->where('date', '<=', $date)
-                ->get();
-
-            $totalFactures = 0;
-            $totalPaye = 0;
-
-            foreach ($factures as $fact) {
-                $paye = (float) $fact->reglements()
-                    ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
-                    ->where('date_reglement', '<=', $date)
-                    ->sum('montant');
-                $totalFactures += (float) $fact->montant_net;
-                $totalPaye += $paye;
-            }
-
-            $solde = $totalFactures - $totalPaye;
-            if ($typeSolde === 'impayes' && $solde <= 0.01) continue;
-
-            $data[] = [
-                'fournisseur_id' => $f->id,
-                'numero_compte' => $f->compteComptable?->numero_compte ?? '-',
-                'nom' => $f->nom,
-                'ifu' => $f->ifu,
-                'total_factures' => $totalFactures,
-                'total_paye' => $totalPaye,
-                'solde' => $solde,
-            ];
-        }
-
-        return [
-            'date' => $date,
-            'type' => $typeSolde,
-            'data' => $data,
-            'totaux' => [
-                'total_factures' => collect($data)->sum('total_factures'),
-                'total_paye' => collect($data)->sum('total_paye'),
-                'solde' => collect($data)->sum('solde'),
-            ],
-        ];
-    }
-
-    public function situationADate(Request $request): JsonResponse
-    {
-        return response()->json($this->buildSituationADateData($request));
-    }
-
-    public function situationADatePdf(Request $request)
-    {
-        $data = $this->buildSituationADateData($request);
-        $pdf = Pdf::loadView('pdf.rapports-fournisseurs.situation-a-date', array_merge($data, [
-            'titre' => 'SITUATION DES FOURNISSEURS AU ' . Carbon::parse($data['date'])->format('d/m/Y'),
-            'etablissement' => \App\Models\Setting::getEtablissement(),
-        ]));
-        $pdf->setPaper('a4', 'landscape');
-
-        return $request->query('action') === 'stream'
-            ? $pdf->stream('situation-fournisseurs-a-date.pdf')
-            : $pdf->download('situation-fournisseurs-a-date.pdf');
     }
 
     // ==========================================

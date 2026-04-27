@@ -171,72 +171,6 @@
               </el-col>
             </el-row>
 
-            <el-row :gutter="20">
-              <!-- Imputation -->
-              <el-col :span="12">
-                <el-form-item prop="imputation_id">
-                  <template #label>
-                    <span>Imputation <span class="required-star">*</span></span>
-                  </template>
-                  <el-select
-                    v-model="form.imputation_id"
-                    placeholder="Sélectionner une classe"
-                    clearable
-                    style="width: 100%"
-                    @change="handleImputationChange"
-                  >
-                    <el-option
-                      v-for="imputation in imputations"
-                      :key="imputation.id"
-                      :label="`${imputation.code || imputation.numero} - ${imputation.libelle}`"
-                      :value="imputation.id"
-                    >
-                      <div class="select-option">
-                        <el-tag size="small" :type="getClasseTagType(imputation.classe)">{{ imputation.code || imputation.numero }}</el-tag>
-                        <span>{{ imputation.libelle }}</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                  <div class="form-hint">Sélectionner la classe comptable</div>
-                </el-form-item>
-              </el-col>
-
-              <!-- Compte -->
-              <el-col :span="12">
-                <el-form-item prop="compte_id">
-                  <template #label>
-                    <span>Compte Comptable <span class="required-star">*</span></span>
-                  </template>
-                  <el-select
-                    v-model="form.compte_id"
-                    placeholder="Sélectionner un compte"
-                    filterable
-                    clearable
-                    style="width: 100%"
-                    :disabled="!form.imputation_id"
-                  >
-                    <el-option
-                      v-for="compte in comptesFiltres"
-                      :key="compte.id"
-                      :label="`${compte.numero || compte.code} - ${compte.libelle}`"
-                      :value="compte.id"
-                    >
-                      <div class="select-option">
-                        <el-tag size="small" :type="getClasseTagType(compte.classe)">{{ compte.numero || compte.code }}</el-tag>
-                        <span>{{ compte.libelle }}</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                  <div class="form-hint" v-if="selectedImputation">
-                    Comptes de la classe {{ selectedImputation.prefixe_compte || selectedImputation.code }} ({{ comptesFiltres.length }} disponibles)
-                  </div>
-                  <div class="form-hint" v-else>
-                    Sélectionnez d'abord une imputation
-                  </div>
-                </el-form-item>
-              </el-col>
-            </el-row>
-
           </div>
         </el-tab-pane>
 
@@ -261,6 +195,7 @@
                       active-text="Oui"
                       inactive-text="Non"
                       inline-prompt
+                      :disabled="!tvaCustomisable"
                       style="--el-switch-on-color: #13ce66; --el-switch-off-color: #909399"
                     />
                     <el-input-number
@@ -270,11 +205,12 @@
                       :step="0.5"
                       size="small"
                       style="width: 100px; margin-left: 12px"
-                      :disabled="!form.assujetti_tva"
+                      :disabled="!tvaCustomisable || !form.assujetti_tva"
                       @change="onTauxTvaChange"
                     />
                     <span class="tva-label" :style="{ opacity: form.assujetti_tva ? 1 : 0.4 }">%</span>
-                    <span v-if="!form.assujetti_tva" class="tva-disabled-hint">TVA désactivée — taux non modifiable</span>
+                    <span v-if="!tvaCustomisable" class="tva-disabled-hint">TVA verrouillée par les paramètres — taux fixe à {{ tvaConfig.taux }}%</span>
+                    <span v-else-if="!form.assujetti_tva" class="tva-disabled-hint">TVA désactivée — taux non modifiable</span>
                   </div>
                 </el-form-item>
               </el-col>
@@ -431,12 +367,12 @@
           </div>
         </el-tab-pane>
 
-        <!-- Onglet 3: Imputations multiples -->
+        <!-- Onglet 3: Imputations comptables -->
         <el-tab-pane name="imputations" lazy>
           <template #label>
             <span class="tab-label">
               <el-icon><Notebook /></el-icon>
-              Imputations comptables
+              Imputations comptables <span class="required-star">*</span>
               <el-tag v-if="form.imputations.length > 0" size="small" type="info" style="margin-left: 6px">{{ form.imputations.length }}</el-tag>
             </span>
           </template>
@@ -444,40 +380,63 @@
           <div class="tab-content">
             <el-alert type="info" :closable="false" class="mb-4">
               <template #title>
-                <span style="font-weight: 600">Imputations multiples</span>
+                <span style="font-weight: 600">Imputations comptables (obligatoire)</span>
               </template>
               <div style="font-size: 13px; line-height: 1.5;">
-                Si la facture concerne plusieurs comptes de charge ou d'investissement, saisissez ici la répartition par compte.
-                Le total des imputations doit égaler le Montant TTC (<strong>{{ formatMontant(calculMontantTTC) }}</strong>).
-                Laissez vide pour utiliser le compte principal saisi sur l'onglet Général.
+                Saisissez la répartition HT par compte (charges, immobilisations, personnel ou fournisseurs).
+                Le total des imputations doit égaler le <strong>Montant HT ({{ formatMontant(calculMontantHT) }})</strong>.
+                <span v-if="form.assujetti_tva && form.taux_tva > 0">
+                  La TVA ({{ form.taux_tva }}% = {{ formatMontant(calculMontantTVA) }}) et le crédit fournisseur sont auto-générés dans l'écriture comptable.
+                </span>
               </div>
             </el-alert>
 
             <el-table :data="form.imputations" border size="small" style="width: 100%; margin-bottom: 12px">
-              <el-table-column label="Compte comptable" min-width="320">
-                <template #default="{ row, $index }">
+              <el-table-column label="Imputation" width="200">
+                <template #default="{ row }">
+                  <el-select
+                    v-model="row.imputation_code"
+                    placeholder="Catégorie"
+                    style="width: 100%"
+                    size="small"
+                    @change="(v) => onImputationCategoryChange(row, v)"
+                  >
+                    <el-option
+                      v-for="imp in imputationsAvailable"
+                      :key="imp.code"
+                      :label="`${imp.code} - ${imp.libelle}`"
+                      :value="imp.code"
+                    >
+                      <div class="select-option">
+                        <el-tag size="small" :type="getClasseTagType(imp.classe)">{{ imp.code }}</el-tag>
+                        <span>{{ imp.libelle }}</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </template>
+              </el-table-column>
+              <el-table-column label="Compte comptable" min-width="280">
+                <template #default="{ row }">
                   <el-select
                     v-model="row.compte_id"
                     filterable
-                    placeholder="Compte (6xxx charge / 2xxx investissement)"
+                    placeholder="Sélectionner un compte"
                     style="width: 100%"
-                    @change="(v) => onImputationCompteChange($index, v)"
+                    size="small"
+                    :disabled="!row.imputation_code"
                   >
                     <el-option
-                      v-for="compte in comptesFiltres"
+                      v-for="compte in comptesPourImputation(row.imputation_code)"
                       :key="compte.id"
                       :label="`${compte.numero || compte.code} - ${compte.libelle}`"
                       :value="compte.id"
                     />
                   </el-select>
-                  <div v-if="row.cumul_precedent !== undefined && row.cumul_precedent !== null" class="cumul-hint">
-                    Cumul imputé depuis le début de l'exercice : <strong>{{ formatMontant(row.cumul_precedent) }}</strong>
-                  </div>
                 </template>
               </el-table-column>
-              <el-table-column label="Libellé" min-width="200">
+              <el-table-column label="Libellé" min-width="180">
                 <template #default="{ row }">
-                  <el-input v-model="row.libelle" size="small" placeholder="Description (optionnel)" />
+                  <el-input v-model="row.libelle" size="small" placeholder="Description" />
                 </template>
               </el-table-column>
               <el-table-column label="Montant" width="160" align="right">
@@ -490,7 +449,7 @@
                   />
                 </template>
               </el-table-column>
-              <el-table-column label="" width="60" align="center">
+              <el-table-column label="" width="50" align="center">
                 <template #default="{ $index }">
                   <el-button size="small" type="danger" link :icon="Delete" @click="removeImputationLine($index)" />
                 </template>
@@ -498,7 +457,7 @@
             </el-table>
 
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-              <el-button :icon="Plus" @click="addImputationLine" size="small">Ajouter une ligne</el-button>
+              <el-button :icon="Plus" @click="addImputationLine" size="small" type="primary">Ajouter une ligne</el-button>
               <div style="font-size: 13px;">
                 Total saisi : <strong :style="{ color: imputationsTotalMatch ? '#67c23a' : '#e6a23c' }">{{ formatMontant(imputationsTotal) }}</strong>
                 <span v-if="!imputationsTotalMatch && form.imputations.length > 0" style="margin-left: 8px; color: #e6a23c;">
@@ -506,6 +465,15 @@
                 </span>
               </div>
             </div>
+
+            <el-alert
+              v-if="form.imputations.length === 0"
+              type="warning"
+              :closable="false"
+              show-icon
+              class="mt-4"
+              title="Au moins une ligne d'imputation est obligatoire."
+            />
           </div>
         </el-tab-pane>
 
@@ -558,6 +526,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Document,
@@ -634,6 +603,17 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['update:modelValue', 'success']);
 
+// Configuration TVA partagée via Inertia
+const page = usePage();
+const tvaConfig = computed(() => {
+  const shared = page.props?.tva;
+  return {
+    actif: shared?.actif ?? true,
+    taux: parseFloat(shared?.taux ?? props.tauxTvaDefaut ?? 18) || 18,
+  };
+});
+const tvaCustomisable = computed(() => tvaConfig.value.actif === true);
+
 // State
 const dialogVisible = computed({
   get: () => props.modelValue,
@@ -657,8 +637,6 @@ const fieldLabels = {
   date: 'Date',
   reference_facture: 'Référence',
   fournisseur_id: 'Fournisseur',
-  imputation_id: 'Imputation',
-  compte_id: 'Compte',
   libelle: 'Libellé',
   montant_facture: 'Montant Facture HT',
   montant_mo: 'Montant M.O.',
@@ -668,7 +646,8 @@ const fieldLabels = {
   assujetti_tva: 'TVA',
   taux_tva: 'Taux TVA',
   date_facture_bc: 'Date Fact / B.C.',
-  observations: 'Observations'
+  observations: 'Observations',
+  imputations: 'Imputations comptables'
 };
 
 // Form data
@@ -686,7 +665,7 @@ const getInitialFormData = () => ({
   type_reduction: '',
   taux: 0,
   assujetti_tva: true,
-  taux_tva: props.tauxTvaDefaut,
+  taux_tva: tvaConfig.value.taux,
   date_facture_bc: null,
   observations: '',
   imputations: [],
@@ -700,14 +679,23 @@ const calculMontantHT = computed(() => {
   return form.montant_facture || 0;
 });
 
-// Remet le taux TVA à 0 quand on désactive l'assujettissement
+// Remet le taux TVA à 0 quand on désactive l'assujettissement (mode customisable seulement)
 watch(() => form.assujetti_tva, (val) => {
+  if (!tvaCustomisable.value) return;
   if (!val) {
     form.taux_tva = 0;
   } else if (!form.taux_tva || form.taux_tva === 0) {
-    form.taux_tva = props.tauxTvaDefaut || 18;
+    form.taux_tva = tvaConfig.value.taux || 18;
   }
 });
+
+// TVA verrouillée : forcer assujetti=true et taux=valeur paramétrée
+watch([tvaCustomisable, () => tvaConfig.value.taux], ([customisable, taux]) => {
+  if (!customisable) {
+    form.assujetti_tva = true;
+    form.taux_tva = taux;
+  }
+}, { immediate: true });
 
 const onTauxTvaChange = () => {
   // no-op: listener pour garder la compatibilité avec @change
@@ -737,30 +725,37 @@ const calculMontantNet = computed(() => {
   return (form.montant_facture || 0) - (form.avoir || 0) - calculMontantReduction.value;
 });
 
-// Computed - Imputation sélectionnée
-const selectedImputation = computed(() => {
-  if (!form.imputation_id) return null;
-  return props.imputations.find(i => i.id === form.imputation_id);
-});
+// Imputations disponibles (TVA et AIB sont auto-générées dans l'écriture comptable, pas dans la liste)
+const imputationsAvailable = computed(() => props.imputations || []);
 
-// Computed - Comptes filtrés selon l'imputation sélectionnée
-const comptesFiltres = computed(() => {
-  if (!selectedImputation.value) return props.comptes;
-
-  const prefixe = selectedImputation.value.prefixe_compte || selectedImputation.value.code || '';
-
-  return props.comptes.filter(c => {
-    const compteNumero = c.code || c.numero || '';
-    return compteNumero.startsWith(prefixe);
+// Filtrer les comptes selon l'imputation sélectionnée
+const comptesPourImputation = (imputationCode) => {
+  if (!imputationCode) return [];
+  const imp = (props.imputations || []).find(i => i.code === imputationCode);
+  if (!imp) return [];
+  const prefixe = imp.prefixe_compte || imp.code;
+  return (props.comptes || []).filter(c => {
+    const num = String(c.numero || c.code || '');
+    return num.startsWith(prefixe);
   });
-});
+};
+
+const onImputationCategoryChange = (row, code) => {
+  row.compte_id = null;
+  // Suggérer le libellé selon catégorie
+  if (!row.libelle) {
+    const imp = props.imputations.find(i => i.code === code);
+    row.libelle = imp ? imp.libelle : '';
+  }
+};
 
 // Imputations multiples — helpers
 const imputationsTotal = computed(() =>
   (form.imputations || []).reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0)
 );
 
-const imputationsEcart = computed(() => Math.abs(calculMontantTTC.value - imputationsTotal.value));
+// Le total des imputations doit égaler le HT (la TVA et le crédit fournisseur sont auto-générés)
+const imputationsEcart = computed(() => Math.abs(calculMontantHT.value - imputationsTotal.value));
 
 const imputationsTotalMatch = computed(() =>
   form.imputations.length === 0 || imputationsEcart.value < 0.5
@@ -768,32 +763,15 @@ const imputationsTotalMatch = computed(() =>
 
 const addImputationLine = () => {
   form.imputations.push({
-    compte_id: form.compte_id || null,
-    libelle: form.libelle || '',
+    imputation_code: null,
+    compte_id: null,
+    libelle: '',
     montant: 0,
-    cumul_precedent: null,
   });
 };
 
 const removeImputationLine = (index) => {
   form.imputations.splice(index, 1);
-};
-
-const onImputationCompteChange = async (index, compteId) => {
-  const ligne = form.imputations[index];
-  if (!compteId) {
-    ligne.cumul_precedent = null;
-    return;
-  }
-  try {
-    const annee = form.date ? new Date(form.date).getFullYear() : new Date().getFullYear();
-    const res = await fetchApi(`/api/factures-fournisseurs/cumul-imputations?compte_id=${compteId}&annee=${annee}`);
-    const json = await res.json();
-    const row = (json.data || []).find(d => d.compte_id === compteId);
-    ligne.cumul_precedent = row ? row.cumul : 0;
-  } catch {
-    ligne.cumul_precedent = null;
-  }
 };
 
 // Helper - Type de tag selon la classe
@@ -804,12 +782,6 @@ const getClasseTagType = (classe) => {
     case '4': return 'success';
     default: return 'info';
   }
-};
-
-// Handler - Changement d'imputation
-const handleImputationChange = () => {
-  // Réinitialiser le compte si l'imputation change
-  form.compte_id = null;
 };
 
 // Validation rules
@@ -841,21 +813,19 @@ const rules = computed(() => ({
     { required: true, message: 'Le montant est obligatoire', trigger: 'blur' },
     { type: 'number', min: 0, message: 'Le montant doit être positif', trigger: 'blur' }
   ],
-  imputation_id: [
-    { required: true, message: "L'imputation comptable est obligatoire", trigger: 'change' }
-  ],
-  compte_id: [
-    { required: true, message: 'Le compte comptable est obligatoire', trigger: 'change' }
-  ]
 }));
 
 // Methods
 const tabHasRequiredEmpty = (tab) => {
   if (tab === 'general') {
-    return !form.numero_piece || !form.fournisseur_id || !form.date || !form.libelle || !form.imputation_id || !form.compte_id;
+    return !form.numero_piece || !form.fournisseur_id || !form.date || !form.libelle;
   }
   if (tab === 'montants') {
     return !form.montant_facture || form.montant_facture <= 0;
+  }
+  if (tab === 'imputations') {
+    return form.imputations.length === 0
+      || form.imputations.some(l => !l.compte_id || !l.montant);
   }
   return false;
 };
@@ -990,13 +960,21 @@ const applyFactureData = (data) => {
   // Convertir les champs numériques (arrivent en string depuis les casts decimal)
   castNumericFields(form, ['taux', 'montant_facture', 'montant_mo', 'avoir', 'taux_tva']);
   // Charger les imputations multiples existantes si présentes
-  if (Array.isArray(data.imputations)) {
+  if (Array.isArray(data.imputations) && data.imputations.length > 0) {
     form.imputations = data.imputations.map(i => ({
+      imputation_code: i.imputation_code || deriveImputationCode(i.compte_id),
       compte_id: i.compte_id,
       libelle: i.libelle || '',
       montant: parseFloat(i.montant) || 0,
-      cumul_precedent: null,
     }));
+  } else if (data.compte_id) {
+    // Legacy : facture créée avant la refonte → reconstruire 1 ligne d'imputation
+    form.imputations = [{
+      imputation_code: deriveImputationCode(data.compte_id),
+      compte_id: data.compte_id,
+      libelle: data.libelle || '',
+      montant: parseFloat(data.montant_ttc) || parseFloat(data.montant_facture) || 0,
+    }];
   } else {
     form.imputations = [];
   }
@@ -1050,6 +1028,20 @@ const handleTauxAibChange = (val) => {
   }
 };
 
+// Déduit le code d'imputation (2/42/6/401/4452) depuis le numero d'un compte
+const deriveImputationCode = (compteId) => {
+  if (!compteId) return null;
+  const compte = (props.comptes || []).find(c => c.id === compteId);
+  if (!compte) return null;
+  const num = String(compte.numero || compte.code || '');
+  if (num.startsWith('4452')) return '4452';
+  if (num.startsWith('401')) return '401';
+  if (num.startsWith('42')) return '42';
+  if (num.startsWith('2')) return '2';
+  if (num.startsWith('6')) return '6';
+  return null;
+};
+
 const handleSubmit = async () => {
   if (!formRef.value) return;
 
@@ -1088,6 +1080,28 @@ const handleSubmit = async () => {
 
   try {
     await formRef.value.validate();
+
+    // Validation imputations : au moins 1 ligne, total = TTC
+    if (form.imputations.length === 0) {
+      activeTab.value = 'imputations';
+      validationErrors.value = [{ field: 'Imputations', message: 'Au moins une imputation comptable est obligatoire.' }];
+      ElMessage.error('Au moins une imputation comptable est obligatoire.');
+      return;
+    }
+    const lignesIncompletes = form.imputations.filter(l => !l.compte_id || !l.montant);
+    if (lignesIncompletes.length > 0) {
+      activeTab.value = 'imputations';
+      validationErrors.value = [{ field: 'Imputations', message: 'Chaque ligne doit avoir un compte et un montant.' }];
+      ElMessage.error('Chaque ligne d\'imputation doit avoir un compte et un montant.');
+      return;
+    }
+    if (!imputationsTotalMatch.value) {
+      activeTab.value = 'imputations';
+      const ecart = formatMontant(imputationsEcart.value);
+      validationErrors.value = [{ field: 'Imputations', message: `Le total des imputations doit égaler le Montant HT (écart : ${ecart}).` }];
+      ElMessage.error(`Le total des imputations doit égaler le Montant HT (écart : ${ecart}).`);
+      return;
+    }
 
     // Préparer les données
     const data = {

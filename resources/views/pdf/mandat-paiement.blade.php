@@ -286,7 +286,7 @@
         <tr>
             <td>
                 <div class="signature-title">Le Bénéficiaire,</div>
-                <div class="signature-name">{{ strtoupper($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '') }}</div>
+                <div class="signature-name">{{ strtoupper($reglement->beneficiaire ?: ($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '')) }}</div>
             </td>
             <td style="text-align: right;">
                 <div class="signature-title">Le Directeur,</div>

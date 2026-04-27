@@ -103,6 +103,7 @@
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('resume')">Exporter PDF</el-button>
+              <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
               <el-button @click="printReport('resume')">Imprimer</el-button>
             </div>
           </el-tab-pane>
@@ -169,6 +170,7 @@
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('detail')">Exporter PDF</el-button>
+              <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
               <el-button @click="printReport('detail')">Imprimer</el-button>
             </div>
           </el-tab-pane>
@@ -269,6 +271,10 @@ const buildPdfParams = (type) => {
 
 const exportPdf = (type) => {
   window.open(`/rapports/fournisseurs/pdf/factures-reglees?${buildPdfParams(type)}`, '_blank');
+};
+
+const exportExcel = () => {
+  window.open(`/rapports/fournisseurs/excel/factures-reglees?${buildPdfParams('detail')}`, '_blank');
 };
 
 const printReport = (type) => {

@@ -111,16 +111,6 @@
           <DeclarationTvaTab />
         </el-tab-pane>
 
-        <el-tab-pane name="situation-a-date" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Wallet /></el-icon>
-              Situation à date
-            </span>
-          </template>
-          <SituationADateTab />
-        </el-tab-pane>
-
         <el-tab-pane name="banques-par-compte" lazy>
           <template #label>
             <span class="tab-label">
@@ -160,7 +150,6 @@ import BordereauTransmissionTab from './Tabs/BordereauTransmissionTab.vue';
 import RecapChargesTab from './Tabs/RecapChargesTab.vue';
 import RecapInvestissementsTab from './Tabs/RecapInvestissementsTab.vue';
 import FacturesSoldesTab from './Tabs/FacturesSoldesTab.vue';
-import SituationADateTab from './Tabs/SituationADateTab.vue';
 import BanquesParCompteTab from './Tabs/BanquesParCompteTab.vue';
 
 const props = defineProps({

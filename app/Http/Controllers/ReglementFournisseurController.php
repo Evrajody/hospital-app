@@ -298,8 +298,9 @@ class ReglementFournisseurController extends Controller
             // Mettre à jour la facture
             $facture->enregistrerPaiement($montantReglement);
 
-            // Créer les écritures comptables si la facture a une imputation
-            if ($facture->compte_id) {
+            // Créer les écritures comptables du règlement
+            // (sauf pour les règlements en espèces — pas d'imputation comptable)
+            if ($reglement->mode_paiement !== 'especes') {
                 $facture->load(['fournisseur.compteComptable']);
                 $reglement->load(['compteTresorerie']);
                 EcritureComptable::creerEcrituresReglement($reglement, $facture);
@@ -333,7 +334,7 @@ class ReglementFournisseurController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $reglement = ReglementFournisseur::findOrFail($id);
+        $reglement = ReglementFournisseur::with(['facture', 'compteTresorerie'])->findOrFail($id);
 
         if (!$reglement->est_modifiable) {
             return response()->json([
@@ -352,53 +353,160 @@ class ReglementFournisseurController extends Controller
             ], 422);
         }
 
+        $facture = $reglement->facture;
+        if (!$facture) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Facture liée introuvable',
+            ], 422);
+        }
+
+        // ==========================================
+        // SNAPSHOT DE L'ANCIEN ÉTAT (pour pouvoir l'annuler)
+        // ==========================================
+        $ancienMontant = (float) $reglement->montant;
+        $ancienMode = $reglement->mode_paiement;
+        $ancienCompteId = $reglement->compte_tresorerie_id;
+
+        // ==========================================
+        // VALIDATION DU NOUVEAU SOLDE BANCAIRE
+        // ==========================================
+        $nouveauMontant = (float) ($request->montant ?? $ancienMontant);
+        $nouveauMode = $request->mode_paiement ?? $ancienMode;
+        $nouveauCompteId = $request->compte_bancaire_id ?? $request->compte_tresorerie_id ?? $ancienCompteId;
+
+        $nouveauCompte = null;
+        if (in_array($nouveauMode, ['cheque', 'virement']) && $nouveauCompteId) {
+            $nouveauCompte = CompteBancaire::with('banque')->find($nouveauCompteId);
+
+            if ($nouveauCompte) {
+                // Calculer le solde "virtuel" en remettant l'ancien débit (si même compte)
+                $soldeVirtuel = (float) $nouveauCompte->solde;
+                if ($nouveauCompte->id === $ancienCompteId && in_array($ancienMode, ['cheque', 'virement'])) {
+                    $soldeVirtuel += $ancienMontant;
+                }
+
+                if ($soldeVirtuel < $nouveauMontant && !$request->force_insufficient_balance) {
+                    return response()->json([
+                        'success' => false,
+                        'insufficient_balance' => true,
+                        'message' => 'Solde insuffisant sur le compte bancaire',
+                        'solde_actuel' => $soldeVirtuel,
+                        'montant_demande' => $nouveauMontant,
+                    ], 422);
+                }
+            }
+        }
+
+        // ==========================================
+        // VÉRIFIER QUE LE NOUVEAU MONTANT NE DÉPASSE PAS LE RESTE
+        // ==========================================
+        $resteSansCeReglement = (float) $facture->montant_net - ((float) $facture->montant_paye - $ancienMontant);
+        if ($nouveauMontant > $resteSansCeReglement + 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le nouveau montant dépasse le reste à payer',
+                'errors' => ['montant' => ['Le montant ne peut pas dépasser ' . number_format($resteSansCeReglement, 0, ',', ' ') . ' XOF']],
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
 
-            // Si le montant change, ajuster la facture
-            $nouveauMontant = (float) $request->montant;
-            $ancienMontant = (float) $reglement->montant;
+            // ==========================================
+            // 1. ANNULER L'ANCIEN ÉTAT
+            // ==========================================
 
-            if ($request->filled('montant') && abs($nouveauMontant - $ancienMontant) > 0.01) {
-                $facture = $reglement->facture;
-                $difference = $nouveauMontant - $ancienMontant;
-                $resteAPayer = (float) $facture->reste_a_payer;
-
-                // Vérifier que le nouveau montant ne dépasse pas
-                if ($difference > 0 && $difference > ($resteAPayer + 0.01)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Le nouveau montant dépasse le reste à payer',
-                        'errors' => ['montant' => ['Montant trop élevé de ' . number_format($difference - $resteAPayer, 0, ',', ' ') . ' XOF']],
-                    ], 422);
-                }
-
-                // Ajuster le montant payé sur la facture
-                $facture->montant_paye = (float) $facture->montant_paye + $difference;
-                $facture->reste_a_payer = (float) $facture->montant_net - $facture->montant_paye;
-
-                // Mettre à jour le statut
-                if ($facture->reste_a_payer <= 0) {
-                    $facture->statut = FactureFournisseur::STATUT_PAYEE;
-                    $facture->reste_a_payer = 0;
-                } elseif ($facture->montant_paye > 0) {
-                    $facture->statut = FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE;
-                }
-
-                $facture->save();
+            // a) Reverser l'ancien débit du compte bancaire (si applicable)
+            if (in_array($ancienMode, ['cheque', 'virement']) && $ancienCompteId) {
+                CompteBancaire::where('id', $ancienCompteId)->increment('solde', $ancienMontant);
             }
 
+            // b) Reverser le paiement sur la facture (et remettre le statut cohérent
+            //    sinon enregistrerPaiement refusera d'agir sur une facture déjà PAYEE)
+            $facture->montant_paye = max(0, (float) $facture->montant_paye - $ancienMontant);
+            $facture->reste_a_payer = (float) $facture->montant_net - $facture->montant_paye;
+            if ($facture->montant_paye <= 0.01) {
+                $facture->montant_paye = 0;
+                $facture->reste_a_payer = (float) $facture->montant_net;
+                $facture->statut = FactureFournisseur::STATUT_VALIDEE;
+            } else {
+                $facture->statut = FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE;
+            }
+            $facture->save();
+
+            // c) Supprimer les anciennes écritures comptables du règlement
+            EcritureComptable::supprimerEcrituresReglement($reglement->id);
+
+            // ==========================================
+            // 2. CALCULER LES VALEURS AIB
+            // ==========================================
+            $deduireAib = (bool) $request->input('deduire_aib', $reglement->deduire_aib);
+            $compteAib = null;
+            $dateAib = null;
+            $montantAibDeduit = 0.0;
+
+            if ($deduireAib && $facture->type_reduction && (float) $facture->taux > 0) {
+                $compteAib = $facture->type_reduction;
+                $dateAib = $request->date_aib ?? $reglement->date_aib ?? now()->toDateString();
+                $montantAibDeduit = (float) $facture->montant_reduction;
+            }
+
+            // ==========================================
+            // 3. DÉTERMINER NOM BANQUE / NUMÉRO COMPTE
+            // ==========================================
+            $banqueNom = $request->banque ?? $reglement->banque;
+            $numeroCompteBancaire = $request->numero_compte_bancaire ?? $reglement->numero_compte_bancaire;
+
+            if ($nouveauCompte) {
+                $banqueNom = $nouveauCompte->banque->nom;
+                $numeroCompteBancaire = $nouveauCompte->numero_compte;
+            } elseif ($nouveauMode === 'especes') {
+                $banqueNom = null;
+                $numeroCompteBancaire = null;
+                $nouveauCompteId = null;
+            }
+
+            // ==========================================
+            // 4. APPLIQUER LES NOUVELLES VALEURS
+            // ==========================================
             $reglement->update([
                 'date_reglement' => $request->date_reglement ?? $reglement->date_reglement,
-                'montant' => $request->montant ?? $reglement->montant,
-                'mode_paiement' => $request->mode_paiement ?? $reglement->mode_paiement,
+                'montant' => $nouveauMontant,
+                'mode_paiement' => $nouveauMode,
                 'reference' => $request->reference,
                 'beneficiaire' => $request->beneficiaire,
-                'banque' => $request->banque,
-                'numero_compte_bancaire' => $request->numero_compte_bancaire,
-                'compte_tresorerie_id' => $request->compte_tresorerie_id,
+                'banque' => $banqueNom,
+                'numero_compte_bancaire' => $numeroCompteBancaire,
+                'compte_tresorerie_id' => $nouveauCompteId,
                 'observations' => $request->observations,
+                'deduire_aib' => $deduireAib,
+                'montant_aib_deduit' => $montantAibDeduit,
+                'compte_aib' => $compteAib,
+                'date_aib' => $dateAib,
             ]);
+
+            // ==========================================
+            // 5. APPLIQUER LE NOUVEAU SUR LA FACTURE
+            // ==========================================
+            $facture->refresh();
+            $facture->enregistrerPaiement($nouveauMontant);
+
+            // ==========================================
+            // 6. DÉBITER LE NOUVEAU COMPTE BANCAIRE
+            // ==========================================
+            if ($nouveauCompte) {
+                $nouveauCompte->debiter($nouveauMontant);
+            }
+
+            // ==========================================
+            // 7. RÉGÉNÉRER LES ÉCRITURES COMPTABLES (sauf espèces)
+            // ==========================================
+            if ($nouveauMode !== 'especes') {
+                $reglement->load(['compteTresorerie']);
+                $facture->load(['fournisseur.compteComptable']);
+                EcritureComptable::creerEcrituresReglement($reglement, $facture);
+            }
 
             DB::commit();
 
@@ -627,12 +735,21 @@ class ReglementFournisseurController extends Controller
             abort(404, 'Aucune écriture comptable pour ce règlement');
         }
 
-        $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
+        $comptesParNumero = \App\Models\CompteComptable::whereIn('numero_compte', $ecritures->pluck('numero_compte')->unique())
+            ->pluck('libelle', 'numero_compte')
+            ->toArray();
+
+        // PDF d'imputation pour un règlement spécifique : 1 seul bloc (le règlement)
+        $blocs = [[
+            'label' => 'Règlement',
+            'lignes' => $ecritures->values(),
+        ]];
 
         $pdf = Pdf::loadView('pdf.imputation-comptable', [
             'facture' => $facture,
             'reglement' => $reglement,
-            'ecrituresParDate' => $ecrituresParDate,
+            'blocs' => $blocs,
+            'comptesParNumero' => $comptesParNumero,
             'totalDebit' => $ecritures->sum('debit'),
             'totalCredit' => $ecritures->sum('credit'),
             'user' => auth()->user(),
@@ -650,6 +767,14 @@ class ReglementFournisseurController extends Controller
     {
         $reglement = ReglementFournisseur::with(['facture'])->findOrFail($id);
 
+        // Pas d'imputation comptable pour les règlements en espèces
+        if ($reglement->mode_paiement === 'especes') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucune imputation comptable pour un règlement en espèces',
+            ], 404);
+        }
+
         $ecritures = EcritureComptable::where('reglement_id', $id)
             ->orderBy('date_ecriture')
             ->orderBy('id')
@@ -662,6 +787,12 @@ class ReglementFournisseurController extends Controller
             ], 404);
         }
 
+        // Pré-charger les libellés des comptes utilisés dans les écritures
+        $numerosUtilises = $ecritures->pluck('numero_compte')->unique()->values();
+        $comptesParNumero = \App\Models\CompteComptable::whereIn('numero_compte', $numerosUtilises)
+            ->pluck('libelle', 'numero_compte')
+            ->toArray();
+
         $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
 
         $data = [];
@@ -670,6 +801,7 @@ class ReglementFournisseurController extends Controller
                 'date' => $date,
                 'lignes' => $lignes->map(fn($e) => [
                     'numero_compte' => $e->numero_compte,
+                    'compte_libelle' => $comptesParNumero[$e->numero_compte] ?? null,
                     'debit' => (float) $e->debit,
                     'credit' => (float) $e->credit,
                     'libelle' => $e->libelle,

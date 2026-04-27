@@ -53,7 +53,7 @@
                   Imprimer
                 </el-dropdown-item> -->
                 <el-dropdown-item
-                  v-if="facture.compte"
+                  v-if="facture.compte || (facture.imputations && facture.imputations.length > 0)"
                   command="imputation"
                   :icon="Notebook"
                 >
@@ -101,15 +101,15 @@
               <el-descriptions-item label="Référence Facture / N° B.C" :span="2">
                 {{ facture.reference_facture || facture.reference || '-' }}
               </el-descriptions-item>
-              <el-descriptions-item label="Imputation">
-                <div v-if="facture.imputation" class="compte-info">
-                  <el-tag size="small" type="info">{{ facture.imputation.code }}</el-tag>
-                  <span>{{ facture.imputation.libelle }}</span>
+              <el-descriptions-item label="Imputations comptables" :span="2">
+                <div v-if="facture.imputations && facture.imputations.length > 0" class="imputations-list">
+                  <div v-for="imp in facture.imputations" :key="imp.id" class="imputation-row">
+                    <el-tag size="small" type="info">{{ imp.compte ? imp.compte.numero : '-' }}</el-tag>
+                    <span class="imputation-libelle">{{ imp.compte ? imp.compte.libelle : (imp.libelle || '-') }}</span>
+                    <span class="imputation-montant">{{ formatMontant(imp.montant) }}</span>
+                  </div>
                 </div>
-                <span v-else>-</span>
-              </el-descriptions-item>
-              <el-descriptions-item label="Compte">
-                <div v-if="facture.compte" class="compte-info">
+                <div v-else-if="facture.compte" class="compte-info">
                   <el-tag size="small" type="info">{{ facture.compte.numero }}</el-tag>
                   <span>{{ facture.compte.libelle }}</span>
                 </div>
@@ -359,7 +359,7 @@
           <thead>
             <tr>
               <th style="width: 100px;">Date</th>
-              <th style="width: 130px;">Compte</th>
+              <th style="width: 110px;">Compte</th>
               <th style="width: 140px; text-align: right;">Débit</th>
               <th style="width: 140px; text-align: right;">Crédit</th>
               <th>Libellé</th>
@@ -367,11 +367,23 @@
           </thead>
           <tbody>
             <template v-for="(group, gIndex) in imputationData.ecritures" :key="gIndex">
-              <tr v-for="(ligne, lIndex) in group.lignes" :key="`${gIndex}-${lIndex}`" :style="lIndex === 0 && gIndex > 0 ? 'border-top: 2px solid #000;' : ''">
-                <td style="font-weight: 600;">{{ lIndex === 0 ? group.date : '' }}</td>
-                <td>{{ ligne.numero_compte }}</td>
-                <td style="text-align: right;">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
-                <td style="text-align: right;">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
+              <tr
+                v-for="(ligne, lIndex) in group.lignes"
+                :key="`${gIndex}-${lIndex}`"
+                :class="lIndex === 0 && gIndex > 0 ? 'block-separator' : ''"
+              >
+                <td style="font-weight: 600;">
+                  <template v-if="lIndex === 0">
+                    {{ group.label || ligne.date }}
+                    <div v-if="group.label" style="font-size: 11px; font-weight: normal;">{{ ligne.date }}</div>
+                  </template>
+                  <template v-else-if="ligne.date !== group.lignes[lIndex - 1].date">
+                    <span style="font-weight: 500;">{{ ligne.date }}</span>
+                  </template>
+                </td>
+                <td class="cell-compte-num">{{ ligne.numero_compte }}</td>
+                <td class="cell-montant">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
+                <td class="cell-montant">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
                 <td>{{ ligne.libelle || '' }}</td>
               </tr>
             </template>
@@ -570,7 +582,7 @@
           <tr>
             <td>
               <strong>Le Bénéficiaire,</strong>
-              <div class="mandat-signature-name">{{ mandatData.fournisseur.nom }}</div>
+              <div class="mandat-signature-name">{{ (mandatData.reglement.beneficiaire || mandatData.fournisseur.nom || '').toUpperCase() }}</div>
             </td>
             <td style="text-align: right;">
               <strong>Le Directeur,</strong>
@@ -1017,6 +1029,37 @@ const downloadEtatReglementPdf = () => {
   gap: 8px;
 }
 
+.imputations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.imputation-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #e5e7eb;
+}
+
+.imputation-row:last-child {
+  border-bottom: none;
+}
+
+.imputation-libelle {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.imputation-montant {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #1f2937;
+}
+
 .fournisseur-details {
   display: flex;
   gap: 16px;
@@ -1186,9 +1229,14 @@ const downloadEtatReglementPdf = () => {
 .imputation-numero-piece { text-align: left; margin: 15px 0 0; font-size: 14px; }
 .imputation-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .imputation-table th { border: 1px solid #000; padding: 8px 10px; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 12px; background-color: #fff; }
-.imputation-table td { border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #ccc; padding: 6px 10px; }
+.imputation-table td { border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #ccc; padding: 6px 10px; vertical-align: top; }
 .imputation-table tbody tr:last-child td { border-bottom: 1px solid #000; }
 .imputation-table tfoot td { border: 1px solid #000; background-color: #fff; font-weight: bold; }
+.imputation-table .cell-compte-num { font-family: 'Courier New', monospace; font-weight: 600; text-align: left; white-space: nowrap; }
+.imputation-table .cell-compte-lib { font-size: 12px; color: #333; }
+.imputation-table .cell-montant { font-family: 'Courier New', monospace; text-align: right; white-space: nowrap; }
+.imputation-table tr.block-separator td { border-top: 2px solid #000; }
+.imputation-table tr:not(.block-separator) td { border-top: none; }
 
 /* Bordereau de Règlement Drawer */
 .mandat-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }

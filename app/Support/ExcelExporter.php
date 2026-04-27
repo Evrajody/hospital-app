@@ -2,11 +2,12 @@
 
 namespace App\Support;
 
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExcelExporter
@@ -25,42 +26,48 @@ class ExcelExporter
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Rapport');
 
+        $colCount = max(1, count($headers));
+        $lastColLetter = Coordinate::stringFromColumnIndex($colCount);
+
         $startRow = 1;
         if ($title) {
             $sheet->setCellValue('A1', $title);
-            $sheet->mergeCellsByColumnAndRow(1, 1, count($headers), 1);
+            $sheet->mergeCells('A1:' . $lastColLetter . '1');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $startRow = 3;
         }
 
+        // En-têtes
         foreach ($headers as $i => $label) {
-            $col = $i + 1;
-            $sheet->setCellValueByColumnAndRow($col, $startRow, $label);
+            $colLetter = Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->setCellValue($colLetter . $startRow, $label);
         }
 
-        $range = $sheet->getCellByColumnAndRow(1, $startRow)->getCoordinate()
-            . ':' . $sheet->getCellByColumnAndRow(count($headers), $startRow)->getCoordinate();
-        $sheet->getStyle($range)->getFont()->setBold(true);
-        $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
-        $sheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $headerRange = 'A' . $startRow . ':' . $lastColLetter . $startRow;
+        $sheet->getStyle($headerRange)->getFont()->setBold(true);
+        $sheet->getStyle($headerRange)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
+        $sheet->getStyle($headerRange)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
+        // Lignes de données
         $row = $startRow + 1;
         foreach ($rows as $data) {
             foreach (array_values($data) as $i => $value) {
-                $sheet->setCellValueByColumnAndRow($i + 1, $row, $value);
+                $colLetter = Coordinate::stringFromColumnIndex($i + 1);
+                $sheet->setCellValue($colLetter . $row, $value);
             }
             $row++;
         }
 
         $lastRow = $row - 1;
         if ($lastRow > $startRow) {
-            $dataRange = 'A' . ($startRow + 1) . ':' . $sheet->getCellByColumnAndRow(count($headers), $lastRow)->getCoordinate();
+            $dataRange = 'A' . ($startRow + 1) . ':' . $lastColLetter . $lastRow;
             $sheet->getStyle($dataRange)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         }
 
-        foreach (range(1, count($headers)) as $col) {
-            $sheet->getColumnDimensionByColumn($col)->setAutoSize(true);
+        // Auto-size des colonnes
+        for ($col = 1; $col <= $colCount; $col++) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($col))->setAutoSize(true);
         }
 
         $writer = new Xlsx($spreadsheet);

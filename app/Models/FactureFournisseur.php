@@ -566,6 +566,14 @@ class FactureFournisseur extends Model
             'peut_etre_payee' => $this->peut_etre_payee,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+            'imputations' => $this->relationLoaded('imputations')
+                ? $this->imputations->map(fn($imp) => [
+                    'id' => $imp->id,
+                    'compte_id' => $imp->compte_id,
+                    'libelle' => $imp->libelle,
+                    'montant' => (float) $imp->montant,
+                ])->values()->toArray()
+                : [],
         ];
     }
 }

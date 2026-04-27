@@ -63,6 +63,20 @@ class TauxFiscal extends Model
         return $taux ? (float) $taux->taux : 18;
     }
 
+    /**
+     * Configuration TVA pour le formulaire facture.
+     * - actif : true si l'utilisateur peut customiser la TVA par facture
+     * - taux  : valeur par défaut (18 si non configurée)
+     */
+    public static function getTvaConfig(): array
+    {
+        $taux = static::tva()->parDefaut()->first();
+        return [
+            'actif' => $taux ? (bool) $taux->actif : false,
+            'taux' => $taux ? (float) $taux->taux : 18.0,
+        ];
+    }
+
     public static function getAibActifs(): array
     {
         return static::aib()->actif()->orderBy('taux')->get()

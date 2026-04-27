@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\TauxFiscal;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -29,6 +30,7 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $request->user()->getAllPermissions()->pluck('name')->toArray(),
                 ],
             ] : null,
+            'tva' => fn () => $request->user() ? TauxFiscal::getTvaConfig() : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

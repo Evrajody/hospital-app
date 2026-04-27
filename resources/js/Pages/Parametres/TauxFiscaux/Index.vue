@@ -61,19 +61,9 @@
         </template>
 
         <el-table :data="tauxTva" stripe style="width: 100%">
-          <el-table-column label="Actions" width="200" fixed="left">
+          <el-table-column label="Actions" width="120" fixed="left">
             <template #default="{ row }">
               <el-button size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
-              <el-popconfirm
-                title="Supprimer ce taux ?"
-                confirm-button-text="Oui"
-                cancel-button-text="Non"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete" />
-                </template>
-              </el-popconfirm>
             </template>
           </el-table-column>
           <el-table-column prop="libelle" label="Libellé" sortable>

@@ -263,21 +263,24 @@ const handleCommand = (command) => {
 }
 
 .sidebar-header {
-  height: 64px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   color: white;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 20px;
+  padding: 12px 20px;
 }
 
 .sidebar-header h2 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   margin: 0;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+  flex: 1;
 }
 
 .sidebar-menu {

@@ -70,6 +70,11 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <!-- Actions Export -->
+        <div class="actions-bar">
+          <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
+        </div>
       </template>
     </div>
   </div>
@@ -133,6 +138,14 @@ const getSummary = ({ columns }) => {
   });
   return sums;
 };
+
+const exportExcel = () => {
+  const params = new URLSearchParams();
+  if (selectedFournisseurId.value) params.append('fournisseur_id', selectedFournisseurId.value);
+  if (dateDebut.value) params.append('date_debut', dateDebut.value);
+  if (dateFin.value) params.append('date_fin', dateFin.value);
+  window.open(`/rapports/fournisseurs/excel/factures-soldes?${params}`, '_blank');
+};
 </script>
 
 <style scoped>
@@ -141,4 +154,5 @@ const getSummary = ({ columns }) => {
 .filters-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
 .results-section { padding: 0 4px; }
 .empty-state { padding: 40px 0; }
+.actions-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
 </style>

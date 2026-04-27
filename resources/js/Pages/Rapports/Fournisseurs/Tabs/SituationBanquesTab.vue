@@ -118,6 +118,7 @@
       <!-- Actions Export -->
       <div v-if="(resultMode === 'toutes' && lignes.length > 0) || (resultMode === 'par_banque' && sections.length > 0)" class="actions-bar">
         <el-button type="primary" @click="exportPdf">Exporter PDF</el-button>
+        <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
         <el-button @click="printReport">Imprimer</el-button>
       </div>
     </div>
@@ -265,6 +266,11 @@ const getBasePath = () => window.location.pathname.includes('/rapports/banques')
 
 const exportPdf = () => {
   window.open(`${getBasePath()}/pdf/situation-banques?${buildPdfParams()}`, '_blank');
+};
+
+const exportExcel = () => {
+  // Excel export uniquement disponible sur le contrôleur fournisseurs
+  window.open(`/rapports/fournisseurs/excel/situation-banques?${buildPdfParams()}`, '_blank');
 };
 
 const printReport = () => {

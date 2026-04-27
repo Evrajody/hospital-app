@@ -26,7 +26,8 @@ class FactureFournisseurController extends Controller
      */
     public function indexView(Request $request): InertiaResponse
     {
-        $query = FactureFournisseur::with(['fournisseur', 'imputation', 'compte']);
+        $query = FactureFournisseur::with(['fournisseur', 'imputation', 'compte'])
+            ->withCount('imputations');
 
         // Filtre par fournisseur
         if ($request->filled('fournisseur_id')) {
@@ -104,6 +105,7 @@ class FactureFournisseurController extends Controller
                 'date_facture_bc' => $facture->date_facture_bc?->format('Y-m-d'),
                 'imputation_id' => $facture->imputation_id,
                 'compte_id' => $facture->compte_id,
+                'imputations_count' => (int) ($facture->imputations_count ?? 0),
             ];
         });
 
@@ -113,33 +115,7 @@ class FactureFournisseurController extends Controller
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
 
-        // Imputations : Classe 2, Classe 6, Compte 42
-        $imputations = Classe::imputationsFactureFournisseur()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'code' => $c->code,
-                'numero' => $c->code,
-                'libelle' => $c->libelle,
-                'prefixe_compte' => $c->prefixe_compte,
-                'classe' => $c->code,
-            ]);
-
-        // Comptes comptables (classes 2, 6 et 42 - tous niveaux)
-        $comptes = CompteComptable::where(function ($q) {
-                $q->where('numero_compte', 'LIKE', '2%')
-                  ->orWhere('numero_compte', 'LIKE', '6%')
-                  ->orWhere('numero_compte', 'LIKE', '42%');
-            })
-            ->whereRaw('LENGTH(numero_compte) >= 2')
-            ->orderBy('numero_compte')
-            ->get()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'code' => $c->numero_compte,
-                'numero' => $c->numero_compte,
-                'libelle' => $c->libelle,
-                'classe' => substr($c->numero_compte, 0, 1),
-            ]);
+        ['imputations' => $imputations, 'comptes' => $comptes] = $this->getImputationsAndComptes();
 
         // Comptes AIB (4473 et ses sous-comptes)
         $comptesAib = CompteComptable::where('numero_compte', 'LIKE', '4473%')
@@ -186,7 +162,7 @@ class FactureFournisseurController extends Controller
      */
     public function showView(int $id): InertiaResponse
     {
-        $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte', 'createur', 'validateur'])
+        $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte', 'createur', 'validateur', 'imputations.compte'])
             ->findOrFail($id);
 
         $factureData = [
@@ -241,6 +217,18 @@ class FactureFournisseurController extends Controller
                 'numero' => $facture->compte->numero_compte,
                 'libelle' => $facture->compte->libelle,
             ] : null,
+            // Imputations multiples (nouvelle structure)
+            'imputations' => $facture->imputations->map(fn($imp) => [
+                'id' => $imp->id,
+                'compte_id' => $imp->compte_id,
+                'libelle' => $imp->libelle,
+                'montant' => (float) $imp->montant,
+                'compte' => $imp->compte ? [
+                    'id' => $imp->compte->id,
+                    'numero' => $imp->compte->numero_compte,
+                    'libelle' => $imp->compte->libelle,
+                ] : null,
+            ])->values()->toArray(),
         ];
 
         // Récupérer les règlements depuis la base de données
@@ -273,33 +261,7 @@ class FactureFournisseurController extends Controller
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
 
-        // Imputations : Classe 2, Classe 6, Compte 42
-        $imputations = Classe::imputationsFactureFournisseur()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'code' => $c->code,
-                'numero' => $c->code,
-                'libelle' => $c->libelle,
-                'prefixe_compte' => $c->prefixe_compte,
-                'classe' => $c->code,
-            ]);
-
-        // Comptes comptables (classes 2, 6 et 42 - tous niveaux)
-        $comptes = CompteComptable::where(function ($q) {
-                $q->where('numero_compte', 'LIKE', '2%')
-                  ->orWhere('numero_compte', 'LIKE', '6%')
-                  ->orWhere('numero_compte', 'LIKE', '42%');
-            })
-            ->whereRaw('LENGTH(numero_compte) >= 2')
-            ->orderBy('numero_compte')
-            ->get()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'code' => $c->numero_compte,
-                'numero' => $c->numero_compte,
-                'libelle' => $c->libelle,
-                'classe' => substr($c->numero_compte, 0, 1),
-            ]);
+        ['imputations' => $imputations, 'comptes' => $comptes] = $this->getImputationsAndComptes();
 
         // Comptes AIB (4473 et ses sous-comptes)
         $comptesAib = CompteComptable::where('numero_compte', 'LIKE', '4473%')
@@ -532,7 +494,7 @@ class FactureFournisseurController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte', 'createur', 'validateur'])
+        $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte', 'createur', 'validateur', 'imputations'])
             ->findOrFail($id);
 
         return response()->json([
@@ -602,8 +564,15 @@ class FactureFournisseurController extends Controller
 
             $this->syncImputationsMultiples($facture, $request->input('imputations', []));
 
+            // Générer automatiquement les écritures comptables de la facture
+            $facture->load(['imputations.compte', 'fournisseur.compteComptable']);
+            EcritureComptable::where('facture_id', $facture->id)
+                ->where('type', EcritureComptable::TYPE_FACTURE)
+                ->delete();
+            EcritureComptable::creerEcrituresFacture($facture);
+
             // Vérifier si la facture a une imputation
-            $hasImputation = $facture->imputation_id && $facture->compte_id;
+            $hasImputation = $facture->imputation_id || $facture->compte_id || $facture->imputations->isNotEmpty();
 
             DB::commit();
 
@@ -687,13 +656,20 @@ class FactureFournisseurController extends Controller
                 $this->syncImputationsMultiples($facture, $request->input('imputations', []));
             }
 
+            // Régénérer automatiquement les écritures comptables de la facture
+            $facture->load(['imputations.compte', 'fournisseur.compteComptable']);
+            EcritureComptable::where('facture_id', $facture->id)
+                ->where('type', EcritureComptable::TYPE_FACTURE)
+                ->delete();
+            EcritureComptable::creerEcrituresFacture($facture);
+
             DB::commit();
 
             ActivityLog::log('update', 'facture_fournisseur', "Modification de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
 
             $facture->load(['fournisseur', 'imputation', 'compte']);
 
-            $hasImputation = $facture->imputation_id && $facture->compte_id;
+            $hasImputation = $facture->imputation_id || $facture->compte_id || $facture->imputations->isNotEmpty();
 
             return response()->json([
                 'success' => true,
@@ -994,13 +970,13 @@ class FactureFournisseurController extends Controller
      */
     public function creerImputation(int $id): JsonResponse
     {
-        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte'])
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputations.compte'])
             ->findOrFail($id);
 
-        if (!$facture->compte_id) {
+        if ($facture->imputations->isEmpty() && !$facture->compte_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cette facture n\'a pas de compte d\'imputation',
+                'message' => 'Cette facture n\'a aucune imputation comptable saisie',
             ], 422);
         }
 
@@ -1031,10 +1007,11 @@ class FactureFournisseurController extends Controller
      */
     public function imputationPdf(int $id)
     {
-        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputation'])
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputation', 'imputations.compte'])
             ->findOrFail($id);
 
         $ecritures = \App\Models\EcritureComptable::where('facture_id', $id)
+            ->orderByRaw("CASE type WHEN 'facture' THEN 0 ELSE 1 END")
             ->orderBy('date_ecriture')
             ->orderBy('id')
             ->get();
@@ -1043,15 +1020,36 @@ class FactureFournisseurController extends Controller
             abort(404, 'Aucune écriture comptable pour cette facture');
         }
 
-        // Grouper par date
-        $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
+        // Pré-charger les libellés des comptes
+        $comptesParNumero = \App\Models\CompteComptable::whereIn('numero_compte', $ecritures->pluck('numero_compte')->unique())
+            ->pluck('libelle', 'numero_compte')
+            ->toArray();
+
+        // 2 blocs : facture (1 bloc) puis tous les règlements (1 bloc)
+        $factureLignes = $ecritures->where('type', \App\Models\EcritureComptable::TYPE_FACTURE);
+        $reglementLignes = $ecritures->where('type', \App\Models\EcritureComptable::TYPE_REGLEMENT);
+
+        $blocs = [];
+        if ($factureLignes->isNotEmpty()) {
+            $blocs[] = [
+                'label' => null,
+                'lignes' => $factureLignes->values(),
+            ];
+        }
+        if ($reglementLignes->isNotEmpty()) {
+            $blocs[] = [
+                'label' => 'Règlement',
+                'lignes' => $reglementLignes->values(),
+            ];
+        }
 
         $totalDebit = $ecritures->sum('debit');
         $totalCredit = $ecritures->sum('credit');
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.imputation-comptable', [
             'facture' => $facture,
-            'ecrituresParDate' => $ecrituresParDate,
+            'blocs' => $blocs,
+            'comptesParNumero' => $comptesParNumero,
             'totalDebit' => $totalDebit,
             'totalCredit' => $totalCredit,
             'user' => auth()->user(),
@@ -1067,13 +1065,26 @@ class FactureFournisseurController extends Controller
      */
     public function imputationData(int $id): JsonResponse
     {
-        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputation'])
+        $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputation', 'imputations.compte'])
             ->findOrFail($id);
 
+        // Toutes les écritures liées à cette facture : enregistrement (type=facture) + règlements (type=reglement)
         $ecritures = \App\Models\EcritureComptable::where('facture_id', $id)
+            ->orderByRaw("CASE type WHEN 'facture' THEN 0 ELSE 1 END")
             ->orderBy('date_ecriture')
             ->orderBy('id')
             ->get();
+
+        // Lazy generation : créer les écritures de facture si manquantes (pour les anciennes données)
+        $hasFactureEcritures = $ecritures->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)->isNotEmpty();
+        if (!$hasFactureEcritures && ($facture->imputations->isNotEmpty() || $facture->compte_id)) {
+            \App\Models\EcritureComptable::creerEcrituresFacture($facture);
+            $ecritures = \App\Models\EcritureComptable::where('facture_id', $id)
+                ->orderByRaw("CASE type WHEN 'facture' THEN 0 ELSE 1 END")
+                ->orderBy('date_ecriture')
+                ->orderBy('id')
+                ->get();
+        }
 
         if ($ecritures->isEmpty()) {
             return response()->json([
@@ -1082,21 +1093,39 @@ class FactureFournisseurController extends Controller
             ], 404);
         }
 
-        // Grouper par date
-        $ecrituresParDate = $ecritures->groupBy(fn($e) => $e->date_ecriture->format('d/m/Y'));
+        // Pré-charger les libellés des comptes utilisés dans les écritures
+        $numerosUtilises = $ecritures->pluck('numero_compte')->unique()->values();
+        $comptesParNumero = \App\Models\CompteComptable::whereIn('numero_compte', $numerosUtilises)
+            ->pluck('libelle', 'numero_compte')
+            ->toArray();
+
+        // 2 blocs : la facture (1 bloc), puis tous les règlements (1 seul bloc)
+        $factureLignes = $ecritures->where('type', \App\Models\EcritureComptable::TYPE_FACTURE);
+        $reglementLignes = $ecritures->where('type', \App\Models\EcritureComptable::TYPE_REGLEMENT);
+
+        $mapLigne = fn($e) => [
+            'date' => $e->date_ecriture->format('d/m/Y'),
+            'numero_compte' => $e->numero_compte,
+            'compte_libelle' => $comptesParNumero[$e->numero_compte] ?? null,
+            'debit' => (float) $e->debit,
+            'credit' => (float) $e->credit,
+            'libelle' => $e->libelle,
+        ];
 
         $data = [];
-        foreach ($ecrituresParDate as $date => $lignes) {
-            $group = [
-                'date' => $date,
-                'lignes' => $lignes->map(fn($e) => [
-                    'numero_compte' => $e->numero_compte,
-                    'debit' => (float) $e->debit,
-                    'credit' => (float) $e->credit,
-                    'libelle' => $e->libelle,
-                ])->values()->toArray(),
+        if ($factureLignes->isNotEmpty()) {
+            $data[] = [
+                'date' => $factureLignes->first()->date_ecriture->format('d/m/Y'),
+                'label' => null,
+                'lignes' => $factureLignes->map($mapLigne)->values()->toArray(),
             ];
-            $data[] = $group;
+        }
+        if ($reglementLignes->isNotEmpty()) {
+            $data[] = [
+                'date' => $reglementLignes->first()->date_ecriture->format('d/m/Y'),
+                'label' => 'Règlement',
+                'lignes' => $reglementLignes->map($mapLigne)->values()->toArray(),
+            ];
         }
 
         return response()->json([
@@ -1226,8 +1255,8 @@ class FactureFournisseurController extends Controller
             'date' => ['required', 'date'],
             'reference_facture' => ['nullable', 'string', 'max:100'],
             'fournisseur_id' => ['required', 'integer', 'exists:fournisseurs,id'],
-            'imputation_id' => ['required', 'integer', 'exists:classes,id'],
-            'compte_id' => ['required', 'integer', 'exists:plan_comptable_ohada,id'],
+            'imputation_id' => ['nullable', 'integer', 'exists:classes,id'],
+            'compte_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'libelle' => ['required', 'string', 'max:500'],
             'montant_facture' => ['required', 'numeric', 'min:0'],
             'montant_mo' => ['nullable', 'numeric', 'min:0'],
@@ -1239,52 +1268,60 @@ class FactureFournisseurController extends Controller
             'date_facture_bc' => ['nullable', 'date'],
             'observations' => ['nullable', 'string'],
             'metadata' => ['nullable', 'array'],
-            'imputations' => ['nullable', 'array'],
-            'imputations.*.compte_id' => ['required_with:imputations', 'integer', 'exists:plan_comptable_ohada,id'],
-            'imputations.*.montant' => ['required_with:imputations', 'numeric', 'min:0'],
+            'imputations' => ['required', 'array', 'min:1'],
+            'imputations.*.compte_id' => ['required', 'integer', 'exists:plan_comptable_ohada,id'],
+            'imputations.*.montant' => ['required', 'numeric', 'min:0'],
             'imputations.*.libelle' => ['nullable', 'string', 'max:500'],
+            'imputations.*.imputation_code' => ['nullable', 'string', 'max:10'],
         ];
     }
 
     /**
-     * Cumul des imputations par compte depuis le début de l'exercice.
+     * Liste centralisée des imputations possibles + comptes filtrés
+     * pour le formulaire de facture fournisseur.
+     *
+     * Imputations : Classe 2 (Immo), 42 (Personnel), 6 (Charges), 401 (Fournisseurs), 4452 (TVA).
+     * Comptes : tous les comptes de ces préfixes, en excluant les comptes auxiliaires
+     * auto-créés pour la classe 401 (is_custom=true).
      */
-    public function cumulImputations(Request $request): JsonResponse
+    private function getImputationsAndComptes(): array
     {
-        $compteId = $request->input('compte_id');
-        $annee = (int) ($request->input('annee') ?: now()->year);
-        $debut = "{$annee}-01-01";
-        $fin = "{$annee}-12-31";
+        $imputations = Classe::imputationsFactureFournisseur()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'code' => $c->code,
+                'numero' => $c->code,
+                'libelle' => $c->libelle,
+                'prefixe_compte' => $c->prefixe_compte,
+                'classe' => $c->code,
+            ]);
 
-        $query = \App\Models\ImputationFactureFournisseur::query()
-            ->selectRaw('compte_id, SUM(montant) as total')
-            ->whereHas('facture', function ($q) use ($debut, $fin) {
-                $q->whereBetween('date', [$debut, $fin])
-                    ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE]);
+        // Comptes : 2*, 42*, 6*, 401* (sans les comptes auxiliaires custom).
+        // 4452* est inclus pour la génération automatique des écritures TVA.
+        $prefixes = ['2', '42', '6', '401', '4452'];
+
+        $comptes = CompteComptable::where(function ($q) use ($prefixes) {
+                foreach ($prefixes as $p) {
+                    $q->orWhere('numero_compte', 'LIKE', $p . '%');
+                }
             })
-            ->groupBy('compte_id');
+            ->whereRaw('LENGTH(numero_compte) >= 2')
+            // Pour les comptes 401 : exclure les comptes auxiliaires auto-créés
+            ->where(function ($q) {
+                $q->where('numero_compte', 'NOT LIKE', '401%')
+                  ->orWhere('is_custom', false);
+            })
+            ->orderBy('numero_compte')
+            ->get()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'code' => $c->numero_compte,
+                'numero' => $c->numero_compte,
+                'libelle' => $c->libelle,
+                'classe' => substr($c->numero_compte, 0, 1),
+            ]);
 
-        if ($compteId) {
-            $query->where('compte_id', $compteId);
-        }
-
-        $rows = $query->get();
-
-        $data = $rows->map(function ($row) {
-            $compte = \App\Models\CompteComptable::find($row->compte_id);
-            return [
-                'compte_id' => $row->compte_id,
-                'numero_compte' => $compte?->numero_compte,
-                'libelle' => $compte?->libelle,
-                'cumul' => (float) $row->total,
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'annee' => $annee,
-            'data' => $data,
-        ]);
+        return ['imputations' => $imputations, 'comptes' => $comptes];
     }
 
     /**

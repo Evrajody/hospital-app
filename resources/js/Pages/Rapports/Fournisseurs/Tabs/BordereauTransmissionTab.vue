@@ -45,6 +45,9 @@
               <el-icon><List /></el-icon>
               Bordereau de transmission
             </el-button>
+            <el-button type="warning" @click="exportExcel">
+              Exporter Excel
+            </el-button>
           </div>
         </div>
 
@@ -124,6 +127,11 @@ const exportMandats = () => {
 const exportBordereau = () => {
   const ids = selectedIds.value.join(',');
   window.open(`/rapports/fournisseurs/pdf/bordereau-transmission?ids=${ids}`, '_blank');
+};
+
+const exportExcel = () => {
+  const ids = selectedIds.value.join(',');
+  window.open(`/rapports/fournisseurs/excel/bordereau-transmission?ids=${ids}`, '_blank');
 };
 </script>
 
