@@ -51,19 +51,21 @@ class Classe extends Model
      * - Classe 2 (Immobilisations)
      * - Compte 42 (Personnel)
      * - Classe 6 (Charges)
-     * - Compte 401 (Fournisseurs - base OHADA)
+     * - Compte 401 (Fournisseurs - exploitation/achats)
+     * - Compte 481 (Fournisseurs d'investissements)
      *
-     * NB : la TVA (4452) et l'AIB ne sont PAS dans cette liste — elles sont
+     * NB : la TVA (445) et l'AIB ne sont PAS dans cette liste — elles sont
      * auto-générées dans les écritures comptables (TVA si assujettie, AIB si déduit).
      * Crées automatiquement si manquants.
      */
     public static function imputationsFactureFournisseur()
     {
         $required = [
-            ['code' => '2',    'libelle' => 'Immobilisations',  'prefixe_compte' => '2'],
-            ['code' => '42',   'libelle' => 'Personnel',        'prefixe_compte' => '42'],
-            ['code' => '6',    'libelle' => 'Charges',          'prefixe_compte' => '6'],
-            ['code' => '401',  'libelle' => 'Fournisseurs',     'prefixe_compte' => '401'],
+            ['code' => '2',    'libelle' => 'Immobilisations',                'prefixe_compte' => '2'],
+            ['code' => '42',   'libelle' => 'Personnel',                      'prefixe_compte' => '42'],
+            ['code' => '6',    'libelle' => 'Charges',                        'prefixe_compte' => '6'],
+            ['code' => '401',  'libelle' => 'Fournisseurs (exploitation)',    'prefixe_compte' => '401'],
+            ['code' => '481',  'libelle' => 'Fournisseurs d\'investissements','prefixe_compte' => '481'],
         ];
 
         foreach ($required as $entry) {
@@ -80,6 +82,7 @@ class Classe extends Model
                 WHEN '42' THEN 2
                 WHEN '6' THEN 3
                 WHEN '401' THEN 4
+                WHEN '481' THEN 5
                 ELSE 99 END")
             ->get();
     }

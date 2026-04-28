@@ -169,7 +169,7 @@ class ReglementFournisseurController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $reglement = ReglementFournisseur::with(['facture', 'fournisseur', 'compteTresorerie', 'createur'])
+        $reglement = ReglementFournisseur::with(['facture', 'fournisseur', 'compteTresorerie', 'compteCredit', 'lignes.compte', 'createur'])
             ->findOrFail($id);
 
         return response()->json([
@@ -276,6 +276,7 @@ class ReglementFournisseurController extends Controller
                 'banque' => $banqueNom,
                 'numero_compte_bancaire' => $numeroCompteBancaire,
                 'compte_tresorerie_id' => $request->compte_tresorerie_id,
+                'compte_credit_id' => $request->compte_credit_id,
                 'observations' => $request->observations,
                 'deduire_aib' => $deduireAib,
                 'montant_aib_deduit' => ($deduireAib && $facture->taux > 0)
@@ -290,6 +291,9 @@ class ReglementFournisseurController extends Controller
                 'etablissement_directeur' => $etablissement['directeur'],
             ]);
 
+            // Synchroniser les lignes (multi-fournisseur)
+            $this->syncReglementLignes($reglement, $request->input('lignes', []));
+
             // Débiter le compte bancaire si applicable
             if ($compteBancaire) {
                 $compteBancaire->debiter($montantReglement);
@@ -302,7 +306,7 @@ class ReglementFournisseurController extends Controller
             // (sauf pour les règlements en espèces — pas d'imputation comptable)
             if ($reglement->mode_paiement !== 'especes') {
                 $facture->load(['fournisseur.compteComptable']);
-                $reglement->load(['compteTresorerie']);
+                $reglement->load(['compteTresorerie', 'lignes.compte']);
                 EcritureComptable::creerEcrituresReglement($reglement, $facture);
             }
 
@@ -479,6 +483,7 @@ class ReglementFournisseurController extends Controller
                 'banque' => $banqueNom,
                 'numero_compte_bancaire' => $numeroCompteBancaire,
                 'compte_tresorerie_id' => $nouveauCompteId,
+                'compte_credit_id' => $request->compte_credit_id ?? $reglement->compte_credit_id,
                 'observations' => $request->observations,
                 'deduire_aib' => $deduireAib,
                 'montant_aib_deduit' => $montantAibDeduit,
@@ -500,10 +505,17 @@ class ReglementFournisseurController extends Controller
             }
 
             // ==========================================
-            // 7. RÉGÉNÉRER LES ÉCRITURES COMPTABLES (sauf espèces)
+            // 7. SYNCHRONISER LES LIGNES (multi-fournisseur)
+            // ==========================================
+            if ($request->has('lignes')) {
+                $this->syncReglementLignes($reglement, $request->input('lignes', []));
+            }
+
+            // ==========================================
+            // 8. RÉGÉNÉRER LES ÉCRITURES COMPTABLES (sauf espèces)
             // ==========================================
             if ($nouveauMode !== 'especes') {
-                $reglement->load(['compteTresorerie']);
+                $reglement->load(['compteTresorerie', 'lignes.compte']);
                 $facture->load(['fournisseur.compteComptable']);
                 EcritureComptable::creerEcrituresReglement($reglement, $facture);
             }
@@ -975,9 +987,31 @@ class ReglementFournisseurController extends Controller
             'numero_compte_bancaire' => ['nullable', 'string', 'max:50'],
             'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
             'compte_tresorerie_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
+            'compte_credit_id' => ['nullable', 'integer', 'exists:plan_comptable_ohada,id'],
             'force_insufficient_balance' => ['nullable', 'boolean'],
             'deduire_aib' => ['nullable', 'boolean'],
             'observations' => ['nullable', 'string'],
+            'lignes' => ['nullable', 'array'],
+            'lignes.*.compte_id' => ['required_with:lignes', 'integer', 'exists:plan_comptable_ohada,id'],
+            'lignes.*.montant' => ['required_with:lignes', 'numeric', 'min:0'],
+            'lignes.*.libelle' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    /**
+     * Synchronise les lignes du règlement (multi-fournisseur).
+     * Supprime les anciennes et recrée. Si pas de lignes, ne fait rien.
+     */
+    private function syncReglementLignes(ReglementFournisseur $reglement, array $lignes): void
+    {
+        $reglement->lignes()->delete();
+        foreach ($lignes as $ligne) {
+            if (empty($ligne['compte_id'])) continue;
+            $reglement->lignes()->create([
+                'compte_id' => (int) $ligne['compte_id'],
+                'montant' => (float) ($ligne['montant'] ?? 0),
+                'libelle' => $ligne['libelle'] ?? null,
+            ]);
+        }
     }
 }

@@ -38,6 +38,7 @@ class ReglementFournisseur extends Model
         'banque',
         'numero_compte_bancaire',
         'compte_tresorerie_id',
+        'compte_credit_id',
         'observations',
         'deduire_aib',
         'montant_aib_deduit',
@@ -110,6 +111,22 @@ class ReglementFournisseur extends Model
     public function compteTresorerie(): BelongsTo
     {
         return $this->belongsTo(CompteComptable::class, 'compte_tresorerie_id');
+    }
+
+    /**
+     * Relation avec le compte fournisseur (401/481) débité sur ce règlement (legacy mono-compte)
+     */
+    public function compteCredit(): BelongsTo
+    {
+        return $this->belongsTo(CompteComptable::class, 'compte_credit_id');
+    }
+
+    /**
+     * Lignes du règlement (multi-fournisseur)
+     */
+    public function lignes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ReglementFournisseurLigne::class, 'reglement_id');
     }
 
     /**
@@ -436,6 +453,22 @@ class ReglementFournisseur extends Model
                 'numero' => $this->compteTresorerie->numero_compte,
                 'libelle' => $this->compteTresorerie->libelle,
             ] : null,
+            'compte_credit_id' => $this->compte_credit_id,
+            'compte_credit' => $this->compteCredit ? [
+                'id' => $this->compteCredit->id,
+                'numero' => $this->compteCredit->numero_compte,
+                'libelle' => $this->compteCredit->libelle,
+            ] : null,
+            'lignes' => $this->relationLoaded('lignes')
+                ? $this->lignes->map(fn($l) => [
+                    'id' => $l->id,
+                    'compte_id' => $l->compte_id,
+                    'numero_compte' => $l->compte?->numero_compte,
+                    'libelle_compte' => $l->compte?->libelle,
+                    'libelle' => $l->libelle,
+                    'montant' => (float) $l->montant,
+                ])->values()->toArray()
+                : [],
             'observations' => $this->observations,
             'deduire_aib' => (bool) $this->deduire_aib,
             'montant_aib_deduit' => (float) $this->montant_aib_deduit,

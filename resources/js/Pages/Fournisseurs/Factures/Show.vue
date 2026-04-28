@@ -102,11 +102,24 @@
                 {{ facture.reference_facture || facture.reference || '-' }}
               </el-descriptions-item>
               <el-descriptions-item label="Imputations comptables" :span="2">
-                <div v-if="facture.imputations && facture.imputations.length > 0" class="imputations-list">
-                  <div v-for="imp in facture.imputations" :key="imp.id" class="imputation-row">
-                    <el-tag size="small" type="info">{{ imp.compte ? imp.compte.numero : '-' }}</el-tag>
-                    <span class="imputation-libelle">{{ imp.compte ? imp.compte.libelle : (imp.libelle || '-') }}</span>
-                    <span class="imputation-montant">{{ formatMontant(imp.montant) }}</span>
+                <div v-if="facture.imputations && facture.imputations.length > 0">
+                  <!-- Bloc Débits -->
+                  <div v-if="imputationsDebits.length > 0" class="imputations-list">
+                    <div class="imputations-block-title block-debit-title">Débits</div>
+                    <div v-for="imp in imputationsDebits" :key="imp.id" class="imputation-row">
+                      <el-tag size="small" type="primary">{{ imp.compte ? imp.compte.numero : '-' }}</el-tag>
+                      <span class="imputation-libelle">{{ imp.compte ? imp.compte.libelle : (imp.libelle || '-') }}</span>
+                      <span class="imputation-montant">{{ formatMontant(imp.montant) }}</span>
+                    </div>
+                  </div>
+                  <!-- Bloc Crédits -->
+                  <div v-if="imputationsCredits.length > 0" class="imputations-list" style="margin-top: 8px;">
+                    <div class="imputations-block-title block-credit-title">Crédits (Fournisseurs)</div>
+                    <div v-for="imp in imputationsCredits" :key="imp.id" class="imputation-row">
+                      <el-tag size="small" type="success">{{ imp.compte ? imp.compte.numero : '-' }}</el-tag>
+                      <span class="imputation-libelle">{{ imp.compte ? imp.compte.libelle : (imp.libelle || '-') }}</span>
+                      <span class="imputation-montant">{{ formatMontant(imp.montant) }}</span>
+                    </div>
                   </div>
                 </div>
                 <div v-else-if="facture.compte" class="compte-info">
@@ -789,6 +802,14 @@ const getTypeReductionLabel = (type) => {
 };
 
 // Montant du taux appliqué
+// Imputations séparées par nature
+const imputationsDebits = computed(() =>
+  (props.facture.imputations || []).filter(i => (i.nature || 'debit') === 'debit')
+);
+const imputationsCredits = computed(() =>
+  (props.facture.imputations || []).filter(i => i.nature === 'credit')
+);
+
 const montantTaux = computed(() => {
   const taux = parseFloat(props.facture.taux) || 0;
   const montantMO = parseFloat(props.facture.montant_mo) || 0;
@@ -1047,6 +1068,26 @@ const downloadEtatReglementPdf = () => {
 
 .imputation-row:last-child {
   border-bottom: none;
+}
+
+.imputations-block-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid;
+}
+
+.block-debit-title {
+  color: #2563eb;
+  border-color: #2563eb;
+}
+
+.block-credit-title {
+  color: #16a34a;
+  border-color: #16a34a;
 }
 
 .imputation-libelle {

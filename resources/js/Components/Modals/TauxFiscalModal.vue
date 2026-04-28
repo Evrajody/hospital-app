@@ -38,7 +38,7 @@
         <template #label>
           <span>Libellé <span class="required-star">*</span></span>
         </template>
-        <el-input v-model="form.libelle" placeholder="Ex: TVA Standard, AIB 1%..." />
+        <el-input v-model="form.libelle" />
       </el-form-item>
 
       <el-form-item prop="taux">

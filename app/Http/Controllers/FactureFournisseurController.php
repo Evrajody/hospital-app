@@ -221,6 +221,7 @@ class FactureFournisseurController extends Controller
             'imputations' => $facture->imputations->map(fn($imp) => [
                 'id' => $imp->id,
                 'compte_id' => $imp->compte_id,
+                'nature' => $imp->nature ?? 'debit',
                 'libelle' => $imp->libelle,
                 'montant' => (float) $imp->montant,
                 'compte' => $imp->compte ? [
@@ -293,8 +294,43 @@ class FactureFournisseurController extends Controller
      */
     public function reglementView(int $id): InertiaResponse
     {
-        $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte'])
+        $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte', 'imputations.compte'])
             ->findOrFail($id);
+
+        // Imputations crédit (fournisseurs 401/481) saisies sur la facture
+        $imputationsCredits = $facture->imputations
+            ->filter(fn($i) => ($i->nature ?? 'debit') === 'credit')
+            ->values();
+
+        // Solde par compte crédit : montant facture - somme des règlements ciblant ce compte
+        $reglementsParCompte = ReglementFournisseur::where('facture_id', $id)
+            ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+            ->whereNotNull('compte_credit_id')
+            ->selectRaw('compte_credit_id, SUM(montant) as total_paye, SUM(COALESCE(montant_aib_deduit,0)) as total_aib')
+            ->groupBy('compte_credit_id')
+            ->get()
+            ->keyBy('compte_credit_id');
+
+        $imputationsCreditsData = $imputationsCredits->map(function ($imp) use ($reglementsParCompte) {
+            $reg = $reglementsParCompte->get($imp->compte_id);
+            $totalPaye = $reg ? (float) $reg->total_paye : 0;
+            $totalAib = $reg ? (float) $reg->total_aib : 0;
+            $montant = (float) $imp->montant;
+            // Le solde sur le compte fournisseur = montant - (paye + aib retenu) car chaque
+            // règlement avec AIB solde montant_paye + aib_retenu sur le compte fournisseur.
+            $reste = max(0, $montant - $totalPaye - $totalAib);
+            return [
+                'id' => $imp->id,
+                'compte_id' => $imp->compte_id,
+                'numero_compte' => $imp->compte?->numero_compte ?? '-',
+                'libelle_compte' => $imp->compte?->libelle ?? '-',
+                'libelle_imputation' => $imp->libelle ?? '',
+                'montant' => $montant,
+                'total_paye' => $totalPaye,
+                'total_aib' => $totalAib,
+                'reste_a_payer' => $reste,
+            ];
+        })->values()->toArray();
 
         $factureData = [
             'id' => $facture->id,
@@ -307,6 +343,8 @@ class FactureFournisseurController extends Controller
                 'nom' => $facture->fournisseur_nom ?: $facture->fournisseur->nom,
             ] : null,
             'montant_ht' => (float) $facture->montant_ht,
+            'montant_facture' => (float) $facture->montant_facture,
+            'montant_mo' => (float) $facture->montant_mo,
             'montant_tva' => (float) $facture->montant_tva,
             'montant_ttc' => (float) $facture->montant_ttc,
             // Réductions (AIB, etc.)
@@ -324,12 +362,14 @@ class FactureFournisseurController extends Controller
             // Imputation (pour le modal après règlement)
             'imputation' => $facture->imputation ? true : false,
             'compte' => $facture->compte ? true : false,
+            // Comptes crédit disponibles + soldes par compte
+            'imputations_credits' => $imputationsCreditsData,
         ];
 
         // Récupérer les règlements existants depuis la base
         $reglements = ReglementFournisseur::where('facture_id', $id)
             ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
-            ->with(['compteTresorerie'])
+            ->with(['compteTresorerie', 'compteCredit'])
             ->orderBy('date_reglement', 'desc')
             ->get()
             ->map(fn($r) => [
@@ -338,7 +378,15 @@ class FactureFournisseurController extends Controller
                 'montant' => (float) $r->montant,
                 'mode_paiement' => $r->mode_paiement,
                 'reference' => $r->reference,
+                'beneficiaire' => $r->beneficiaire,
                 'deduire_aib' => (bool) $r->deduire_aib,
+                'montant_aib_deduit' => (float) $r->montant_aib_deduit,
+                'compte_credit_id' => $r->compte_credit_id,
+                'compte_credit' => $r->compteCredit ? [
+                    'id' => $r->compteCredit->id,
+                    'numero' => $r->compteCredit->numero_compte,
+                    'libelle' => $r->compteCredit->libelle,
+                ] : null,
                 'compte_bancaire' => $r->compteTresorerie ? [
                     'id' => $r->compteTresorerie->id,
                     'libelle' => $r->compteTresorerie->libelle,
@@ -1075,9 +1123,26 @@ class FactureFournisseurController extends Controller
             ->orderBy('id')
             ->get();
 
-        // Lazy generation : créer les écritures de facture si manquantes (pour les anciennes données)
-        $hasFactureEcritures = $ecritures->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)->isNotEmpty();
-        if (!$hasFactureEcritures && ($facture->imputations->isNotEmpty() || $facture->compte_id)) {
+        // Lazy generation : créer les écritures facture si manquantes (anciennes données)
+        $factureEcritures = $ecritures->where('type', \App\Models\EcritureComptable::TYPE_FACTURE);
+        $hasFactureEcritures = $factureEcritures->isNotEmpty();
+        $hasImputationsSource = $facture->imputations->isNotEmpty() || $facture->compte_id;
+
+        // Détecter une ligne AIB indésirable au niveau facture (vestige du modèle 🅱️)
+        // → l'AIB doit être au règlement uniquement, pas à la facture
+        $aibCompteAttendu = $facture->type_reduction ?: '44731';
+        $aibPossibles = ['44731', '4473', $aibCompteAttendu];
+        $hasUnwantedAibAtFacture = $factureEcritures
+            ->whereIn('numero_compte', array_unique($aibPossibles))
+            ->isNotEmpty();
+
+        $shouldRegenerate = (!$hasFactureEcritures && $hasImputationsSource)
+            || ($hasImputationsSource && $hasUnwantedAibAtFacture);
+
+        if ($shouldRegenerate) {
+            \App\Models\EcritureComptable::where('facture_id', $id)
+                ->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)
+                ->delete();
             \App\Models\EcritureComptable::creerEcrituresFacture($facture);
             $ecritures = \App\Models\EcritureComptable::where('facture_id', $id)
                 ->orderByRaw("CASE type WHEN 'facture' THEN 0 ELSE 1 END")
@@ -1270,6 +1335,7 @@ class FactureFournisseurController extends Controller
             'metadata' => ['nullable', 'array'],
             'imputations' => ['required', 'array', 'min:1'],
             'imputations.*.compte_id' => ['required', 'integer', 'exists:plan_comptable_ohada,id'],
+            'imputations.*.nature' => ['required', 'string', 'in:debit,credit'],
             'imputations.*.montant' => ['required', 'numeric', 'min:0'],
             'imputations.*.libelle' => ['nullable', 'string', 'max:500'],
             'imputations.*.imputation_code' => ['nullable', 'string', 'max:10'],
@@ -1280,7 +1346,7 @@ class FactureFournisseurController extends Controller
      * Liste centralisée des imputations possibles + comptes filtrés
      * pour le formulaire de facture fournisseur.
      *
-     * Imputations : Classe 2 (Immo), 42 (Personnel), 6 (Charges), 401 (Fournisseurs), 4452 (TVA).
+     * Imputations : Classe 2 (Immo), 42 (Personnel), 6 (Charges), 401 (Fournisseurs), 445 (TVA).
      * Comptes : tous les comptes de ces préfixes, en excluant les comptes auxiliaires
      * auto-créés pour la classe 401 (is_custom=true).
      */
@@ -1294,11 +1360,13 @@ class FactureFournisseurController extends Controller
                 'libelle' => $c->libelle,
                 'prefixe_compte' => $c->prefixe_compte,
                 'classe' => $c->code,
+                // Nature comptable : debit (charges/immo/personnel) ou credit (fournisseurs)
+                'nature' => in_array($c->code, ['401', '481']) ? 'credit' : 'debit',
             ]);
 
-        // Comptes : 2*, 42*, 6*, 401* (sans les comptes auxiliaires custom).
-        // 4452* est inclus pour la génération automatique des écritures TVA.
-        $prefixes = ['2', '42', '6', '401', '4452'];
+        // Comptes : 2*, 42*, 6*, 401*, 481* (sans les comptes auxiliaires custom).
+        // 445* est inclus pour la génération automatique des écritures TVA.
+        $prefixes = ['2', '42', '6', '401', '481', '445'];
 
         $comptes = CompteComptable::where(function ($q) use ($prefixes) {
                 foreach ($prefixes as $p) {
@@ -1306,9 +1374,10 @@ class FactureFournisseurController extends Controller
                 }
             })
             ->whereRaw('LENGTH(numero_compte) >= 2')
-            // Pour les comptes 401 : exclure les comptes auxiliaires auto-créés
+            // Pour les comptes 401/481 : exclure les comptes auxiliaires auto-créés
             ->where(function ($q) {
                 $q->where('numero_compte', 'NOT LIKE', '401%')
+                  ->where('numero_compte', 'NOT LIKE', '481%')
                   ->orWhere('is_custom', false);
             })
             ->orderBy('numero_compte')
@@ -1334,8 +1403,10 @@ class FactureFournisseurController extends Controller
 
         if (empty($lignes)) {
             if ($facture->compte_id) {
+                // Legacy : créer une ligne débit à partir du compte unique
                 $facture->imputations()->create([
                     'compte_id' => $facture->compte_id,
+                    'nature' => 'debit',
                     'montant' => (float) ($facture->montant_ttc ?: $facture->montant_facture),
                     'libelle' => $facture->libelle,
                 ]);
@@ -1347,9 +1418,22 @@ class FactureFournisseurController extends Controller
             if (empty($ligne['compte_id'])) continue;
             $facture->imputations()->create([
                 'compte_id' => (int) $ligne['compte_id'],
+                'nature' => $ligne['nature'] ?? $this->deduireNatureFromCompte((int) $ligne['compte_id']),
                 'montant' => (float) ($ligne['montant'] ?? 0),
                 'libelle' => $ligne['libelle'] ?? $facture->libelle,
             ]);
         }
+    }
+
+    /**
+     * Déduit la nature (debit/credit) à partir du numéro du compte
+     * Fallback si la nature n'est pas envoyée explicitement.
+     */
+    private function deduireNatureFromCompte(int $compteId): string
+    {
+        $compte = CompteComptable::find($compteId);
+        if (!$compte) return 'debit';
+        $num = $compte->numero_compte;
+        return (str_starts_with($num, '401') || str_starts_with($num, '481')) ? 'credit' : 'debit';
     }
 }

@@ -207,15 +207,110 @@
                 </el-col>
 
                 <el-col :span="6">
-                  <el-form-item label="Montant" prop="montant">
+                  <el-form-item label="Montant payé en banque/caisse" prop="montant">
                     <el-input
                       :model-value="formatInputMontant(form.montant)"
-                      @input="val => form.montant = parseInputMontant(val)"
                       placeholder="0"
                       :prefix-icon="Money"
+                      readonly
                     >
                       <template #append>XOF</template>
                     </el-input>
+                    <div class="form-hint">
+                      Calculé : Σ lignes − AIB
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <!-- Multi-fournisseur : tableau des comptes à régler -->
+              <el-row :gutter="20" v-if="hasCompteCredits">
+                <el-col :span="24">
+                  <el-form-item>
+                    <template #label>
+                      <span>Comptes fournisseurs à régler <span class="required-star">*</span></span>
+                    </template>
+                    <el-table :data="form.lignes" border size="small" style="width: 100%" class="lignes-reglement-table">
+                      <el-table-column label="Compte fournisseur" min-width="320">
+                        <template #default="{ row }">
+                          <el-select
+                            v-model="row.compte_id"
+                            placeholder="Sélectionner"
+                            filterable
+                            style="width: 100%"
+                            @change="(v) => onLigneCompteChange(row, v)"
+                          >
+                            <el-option
+                              v-for="ic in facture.imputations_credits"
+                              :key="ic.compte_id"
+                              :value="ic.compte_id"
+                              :label="`${ic.numero_compte} - ${ic.libelle_compte}`"
+                              :disabled="isCompteAlreadySelected(ic.compte_id, row)"
+                            >
+                              <div style="display: flex; justify-content: space-between; gap: 12px;">
+                                <span>
+                                  <el-tag size="small" type="success">{{ ic.numero_compte }}</el-tag>
+                                  <span style="margin-left: 8px;">{{ ic.libelle_compte }}</span>
+                                </span>
+                                <span style="font-size: 11px; color: #6b7280; font-family: monospace;">
+                                  Reste {{ formatMontant(ic.reste_a_payer) }}
+                                </span>
+                              </div>
+                            </el-option>
+                          </el-select>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Reste sur le compte" width="160" align="right">
+                        <template #default="{ row }">
+                          <span v-if="getCompteInfo(row.compte_id)" class="reste-cell">
+                            {{ formatMontant(getCompteInfo(row.compte_id).reste_a_payer) }}
+                          </span>
+                          <span v-else style="color: #d1d5db;">—</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Montant à solder" width="220">
+                        <template #default="{ row }">
+                          <el-input
+                            :model-value="formatInputMontant(row.montant)"
+                            @input="val => row.montant = parseInputMontant(val)"
+                            placeholder="0"
+                            style="width: 100%"
+                          >
+                            <template #append>XOF</template>
+                          </el-input>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="" width="60" align="center">
+                        <template #default="{ $index }">
+                          <el-button
+                            type="danger"
+                            link
+                            :icon="Delete"
+                            :disabled="form.lignes.length <= 1"
+                            @click="removeLigne($index)"
+                          />
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                      <el-button
+                        v-if="canAddLigne"
+                        :icon="Plus"
+                        size="small"
+                        @click="addLigne"
+                        type="primary"
+                        plain
+                      >
+                        Ajouter un compte
+                      </el-button>
+                      <span v-else style="font-size: 12px; color: #9ca3af; font-style: italic;">
+                        Tous les comptes fournisseurs de la facture sont déjà ajoutés.
+                      </span>
+                      <div style="font-size: 13px;">
+                        <span style="color: #6b7280;">Total à solder : </span>
+                        <strong style="font-family: monospace;">{{ formatMontant(totalLignes) }}</strong>
+                      </div>
+                    </div>
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -375,20 +470,18 @@
                 <template #title>
                   <div class="payment-summary">
                     <div class="summary-row">
-                      <span>Montant du règlement :</span>
-                      <strong>{{ formatMontant(form.montant) }}</strong>
+                      <span><strong>Total à solder sur fournisseurs :</strong></span>
+                      <strong>{{ formatMontant(totalLignes) }}</strong>
                     </div>
-                    <div class="summary-row">
-                      <span>Nouveau reste à payer :</span>
-                      <strong :style="{ color: newReste === 0 ? '#67c23a' : '#f56c6c' }">
-                        {{ formatMontant(newReste) }}
-                      </strong>
-                    </div>
-                    <div v-if="newReste === 0" class="summary-row">
-                      <el-icon color="#67c23a" :size="16"><SuccessFilled /></el-icon>
-                      <span style="color: #67c23a; font-weight: 600;">
-                        Facture totalement réglée
-                      </span>
+                    <template v-if="form.deduire_aib && hasAib">
+                      <div class="summary-row" style="color: #e6a23c;">
+                        <span>− AIB retenu ({{ facture.taux }}% sur M.O. {{ formatMontant(facture.montant_mo) }}) :</span>
+                        <strong>{{ formatMontant(montantAibAttendu) }}</strong>
+                      </div>
+                    </template>
+                    <div class="summary-row aib-total-row">
+                      <span><strong>Cash payé en banque/caisse :</strong></span>
+                      <strong style="color: #2563eb;">{{ formatMontant(form.montant) }}</strong>
                     </div>
                   </div>
                 </template>
@@ -457,7 +550,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
@@ -535,6 +628,46 @@ const hasAib = computed(() => {
   return !!(props.facture.type_reduction || taux > 0 || mtAib > 0);
 });
 
+// Comptes crédit (fournisseurs 401/481) saisis dans l'imputation comptable de la facture
+const hasCompteCredits = computed(() =>
+  Array.isArray(props.facture.imputations_credits) && props.facture.imputations_credits.length > 0
+);
+
+// Helpers multi-lignes
+const getCompteInfo = (compteId) => {
+  if (!compteId) return null;
+  return (props.facture.imputations_credits || []).find(ic => ic.compte_id === compteId) || null;
+};
+
+const isCompteAlreadySelected = (compteId, currentRow) => {
+  if (!compteId) return false;
+  return form.lignes.some(l => l !== currentRow && l.compte_id === compteId);
+};
+
+const totalLignes = computed(() =>
+  (form.lignes || []).reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0)
+);
+
+// Peut-on ajouter une ligne ? (Reste-t-il un compte non sélectionné parmi les imputations crédit ?)
+const canAddLigne = computed(() => {
+  const totalComptes = (props.facture.imputations_credits || []).length;
+  const comptesSelectionnes = new Set(
+    (form.lignes || []).filter(l => l.compte_id).map(l => l.compte_id)
+  );
+  return comptesSelectionnes.size < totalComptes;
+});
+
+// AIB amount (calculé sur facture si déclaré)
+const montantAibAttendu = computed(() => {
+  if (!form.deduire_aib || !hasAib.value) return 0;
+  return parseFloat(props.facture.montant_aib) || 0;
+});
+
+// Bank cash effectivement payé = total des lignes - AIB
+const montantBankCash = computed(() => {
+  return Math.max(0, totalLignes.value - montantAibAttendu.value);
+});
+
 const newReste = computed(() => {
   return Math.max(0, resteAPayer.value - (form.montant || 0));
 });
@@ -591,7 +724,7 @@ const form = reactive({
   annee_exercice: new Date().getFullYear().toString(),
   numero_ligne: String(props.reglements.length + 1).padStart(3, '0'),
   date_reglement: new Date(),
-  montant: resteAPayer.value,
+  montant: 0, // calculé : totalLignes - AIB
   mode_paiement: '',
   banque_id: null,
   compte_bancaire_id: null,
@@ -599,8 +732,52 @@ const form = reactive({
   date_reference: null,
   beneficiaire: '',
   deduire_aib: false,
-  remarques: ''
+  remarques: '',
+  lignes: [], // Multi-fournisseur
 });
+
+// Synchroniser form.montant = bank cash (calculé)
+watch(montantBankCash, (val) => {
+  form.montant = val;
+});
+
+// Initialiser au moins une ligne avec le 1er compte crédit dispo
+watch(() => props.facture.imputations_credits, (val) => {
+  if (Array.isArray(val) && val.length > 0 && form.lignes.length === 0) {
+    const dispo = val.find(ic => parseFloat(ic.reste_a_payer) > 0.01) || val[0];
+    const aibAttendu = (form.deduire_aib && hasAib.value) ? (parseFloat(props.facture.montant_aib) || 0) : 0;
+    const montantInit = Math.max(0, parseFloat(dispo.reste_a_payer) || 0);
+    form.lignes.push({
+      compte_id: dispo.compte_id,
+      montant: montantInit,
+      libelle: '',
+    });
+  }
+}, { immediate: true });
+
+const addLigne = () => {
+  // Trouver un compte non encore sélectionné
+  const dispo = (props.facture.imputations_credits || []).find(ic =>
+    !form.lignes.some(l => l.compte_id === ic.compte_id) && parseFloat(ic.reste_a_payer) > 0.01
+  );
+  form.lignes.push({
+    compte_id: dispo ? dispo.compte_id : null,
+    montant: dispo ? Math.max(0, parseFloat(dispo.reste_a_payer) || 0) : 0,
+    libelle: '',
+  });
+};
+
+const removeLigne = (index) => {
+  form.lignes.splice(index, 1);
+};
+
+const onLigneCompteChange = (row, compteId) => {
+  // Pré-remplir le montant avec le reste à payer du compte choisi
+  const info = getCompteInfo(compteId);
+  if (info && (!row.montant || row.montant === 0)) {
+    row.montant = Math.max(0, parseFloat(info.reste_a_payer) || 0);
+  }
+};
 
 // L'AIB est déjà déduit du montant net de la facture, pas de calcul ici
 
@@ -650,7 +827,7 @@ const rules = {
       },
       trigger: 'change'
     }
-  ]
+  ],
 };
 
 // Methods
@@ -711,7 +888,7 @@ const buildPayload = (forceInsufficient = false) => {
     annee_exercice: form.annee_exercice,
     numero_ligne: form.numero_ligne || null,
     date_reglement: dateReglement,
-    montant: form.montant,
+    montant: form.montant, // bank cash = totalLignes - AIB
     mode_paiement: form.mode_paiement,
     reference: form.reference || null,
     date_reference: form.date_reference instanceof Date
@@ -724,7 +901,14 @@ const buildPayload = (forceInsufficient = false) => {
     observations: form.remarques || null,
     deduire_aib: form.deduire_aib || false,
     date_aib: form.deduire_aib ? new Date().toISOString().split('T')[0] : null,
-    force_insufficient_balance: forceInsufficient
+    force_insufficient_balance: forceInsufficient,
+    lignes: form.lignes
+      .filter(l => l.compte_id && parseFloat(l.montant) > 0)
+      .map(l => ({
+        compte_id: l.compte_id,
+        montant: parseFloat(l.montant) || 0,
+        libelle: l.libelle || null,
+      })),
   };
 };
 
@@ -788,6 +972,22 @@ const loadReglementForEdit = async () => {
     form.remarques = r.observations || '';
     form.deduire_aib = !!r.deduire_aib;
 
+    // Charger les lignes (multi-fournisseur)
+    if (Array.isArray(r.lignes) && r.lignes.length > 0) {
+      form.lignes = r.lignes.map(l => ({
+        compte_id: l.compte_id,
+        montant: parseFloat(l.montant) || 0,
+        libelle: l.libelle || '',
+      }));
+    } else if (r.compte_credit_id) {
+      // Legacy : 1 seule ligne basée sur compte_credit_id
+      form.lignes = [{
+        compte_id: r.compte_credit_id,
+        montant: (parseFloat(r.montant) || 0) + (parseFloat(r.montant_aib_deduit) || 0),
+        libelle: '',
+      }];
+    }
+
     // Trouver la banque parente du compte sélectionné
     if (form.compte_bancaire_id) {
       for (const banque of props.banques) {
@@ -814,7 +1014,29 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid) => {
     if (!valid) return;
 
-    // Vérifier le solde du compte si un compte bancaire est sélectionné
+    // Validation lignes (multi-fournisseur)
+    if (hasCompteCredits.value) {
+      const lignesValides = form.lignes.filter(l => l.compte_id && parseFloat(l.montant) > 0);
+      if (lignesValides.length === 0) {
+        ElMessage.error('Au moins une ligne avec compte et montant est obligatoire.');
+        return;
+      }
+      // Chaque ligne ne dépasse pas le reste du compte choisi
+      for (const ligne of lignesValides) {
+        const info = getCompteInfo(ligne.compte_id);
+        if (info && parseFloat(ligne.montant) > parseFloat(info.reste_a_payer) + 0.01) {
+          ElMessage.error(`Le compte ${info.numero_compte} a un reste de ${formatMontant(info.reste_a_payer)} (montant saisi : ${formatMontant(ligne.montant)})`);
+          return;
+        }
+      }
+      // Si AIB déclaré : AIB ≤ total lignes
+      if (form.deduire_aib && hasAib.value && montantAibAttendu.value > totalLignes.value + 0.01) {
+        ElMessage.error('L\'AIB ne peut pas dépasser le total à solder.');
+        return;
+      }
+    }
+
+    // Vérifier le solde du compte bancaire si applicable
     if (selectedCompte.value && form.montant > 0) {
       const solde = parseFloat(selectedCompte.value.solde) || 0;
       if (solde < form.montant) {
@@ -992,6 +1214,30 @@ const forceSubmit = async () => {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 20px;
+}
+
+.aib-total-row {
+  border-top: 1px dashed #d1d5db;
+  margin-top: 4px;
+  padding-top: 4px;
+  font-size: 14px;
+}
+
+/* Lignes du règlement multi-fournisseur — alignement vertical propre */
+.lignes-reglement-table :deep(.el-table__cell) {
+  vertical-align: middle;
+}
+
+.lignes-reglement-table :deep(.cell) {
+  display: flex;
+  align-items: center;
+}
+
+.lignes-reglement-table .reste-cell {
+  font-family: 'Courier New', monospace;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 :deep(.el-card__header) {

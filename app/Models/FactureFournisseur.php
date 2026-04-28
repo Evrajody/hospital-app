@@ -342,8 +342,12 @@ class FactureFournisseur extends Model
             $this->montant_reduction = 0;
         }
 
-        // Net à payer = Montant Facture - Avoir - AIB (pas de TVA)
-        $this->montant_net = $this->montant_facture - $this->avoir - $this->montant_reduction;
+        // Net à payer = TTC − Avoir − AIB (cash effectif remis au fournisseur)
+        // L'AIB est retenue à la facture et reversée à l'État (modèle 🅱️ AIB à la facture)
+        // Si non assujetti à TVA, TTC = HT donc montant_net = HT - avoir - AIB
+        $this->montant_net = ($this->montant_ttc ?: $this->montant_facture)
+            - $this->avoir
+            - $this->montant_reduction;
 
         // Reste à payer
         $this->reste_a_payer = $this->montant_net - $this->montant_paye;
@@ -570,6 +574,7 @@ class FactureFournisseur extends Model
                 ? $this->imputations->map(fn($imp) => [
                     'id' => $imp->id,
                     'compte_id' => $imp->compte_id,
+                    'nature' => $imp->nature ?? 'debit',
                     'libelle' => $imp->libelle,
                     'montant' => (float) $imp->montant,
                 ])->values()->toArray()

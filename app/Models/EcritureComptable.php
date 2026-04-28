@@ -40,13 +40,15 @@ class EcritureComptable extends Model
     }
 
     /**
-     * Créer les écritures d'imputation pour une facture
+     * Créer les écritures d'imputation pour une facture (modèle 🅰️ — AIB au règlement)
      *
      * Logique OHADA :
-     *  - Débit : pour chaque ligne d'imputation saisie (charges/immo/personnel/fournisseurs) — total = HT
-     *  - Débit TVA déductible (4452) : auto-généré si facture assujettie à TVA
-     *  - Crédit fournisseur (401xxx) : auto-généré = HT + TVA (= TTC)
-     *  - Pas d'AIB au niveau facture (uniquement au règlement si déduit)
+     *  - Bloc Débits : charges/immo/personnel (codes 2/42/6) — total = HT
+     *  - TVA déductible (445) : auto-générée au débit si facture assujettie
+     *  - Bloc Crédits : fournisseurs (codes 401/481) — total = TTC (dette envers fournisseur)
+     *  - L'AIB sera comptabilisée au règlement (si l'utilisateur coche "Déclarer l'AIB")
+     *
+     *  Equilibre : Débits (HT + TVA) = Crédits Fournisseurs = TTC
      */
     public static function creerEcrituresFacture(FactureFournisseur $facture): void
     {
@@ -58,6 +60,7 @@ class EcritureComptable extends Model
         if ($imputations->isEmpty() && $facture->compte) {
             $imputations = collect([(object) [
                 'compte' => $facture->compte,
+                'nature' => 'debit',
                 'montant' => (float) ($facture->montant_facture ?: $facture->montant_ttc),
                 'libelle' => $facture->libelle,
             ]]);
@@ -67,14 +70,14 @@ class EcritureComptable extends Model
             return;
         }
 
-        $compteCredit = $facture->fournisseur?->compteComptable
-            ? $facture->fournisseur->compteComptable->numero_compte
-            : '401' . str_pad($facture->fournisseur_id, 3, '0', STR_PAD_LEFT);
+        // Séparer les imputations selon leur nature
+        $debits = $imputations->filter(fn($i) => ($i->nature ?? 'debit') === 'debit');
+        $credits = $imputations->filter(fn($i) => ($i->nature ?? 'debit') === 'credit');
 
         $totalHt = 0.0;
 
-        // Une ligne de débit par imputation (HT) — libellé tel que saisi par l'utilisateur
-        foreach ($imputations as $imp) {
+        // === Lignes DÉBIT saisies (charges/immo/personnel) — total = HT ===
+        foreach ($debits as $imp) {
             $compte = $imp->compte;
             if (!$compte) continue;
             $montant = (float) $imp->montant;
@@ -92,8 +95,7 @@ class EcritureComptable extends Model
             ]);
         }
 
-        // Débit auto : TVA déductible si la facture est assujettie
-        $montantTva = 0.0;
+        // === Débit auto : TVA déductible si assujettie ===
         if ($facture->assujetti_tva && (float) $facture->taux_tva > 0) {
             $montantTva = round($totalHt * ((float) $facture->taux_tva) / 100, 2);
             if ($montantTva > 0) {
@@ -101,7 +103,7 @@ class EcritureComptable extends Model
                     'facture_id' => $facture->id,
                     'reglement_id' => null,
                     'date_ecriture' => $facture->date,
-                    'numero_compte' => '4452',
+                    'numero_compte' => '445',
                     'debit' => $montantTva,
                     'credit' => 0,
                     'libelle' => 'TVA déductible (' . $facture->taux_tva . '%)',
@@ -110,53 +112,51 @@ class EcritureComptable extends Model
             }
         }
 
-        // Crédit unique : compte fournisseur = HT + TVA (TTC) — libellé = libellé facture
-        $totalCredit = $totalHt + $montantTva;
-        if ($totalCredit > 0) {
+        // === Lignes CRÉDIT saisies par l'utilisateur (fournisseurs 401/481) — total = TTC ===
+        // L'AIB n'est PAS au niveau de la facture ; elle est gérée au règlement.
+        // Plus de fallback : seules les lignes saisies dans l'imputation comptable apparaissent.
+        foreach ($credits as $imp) {
+            $compte = $imp->compte;
+            if (!$compte) continue;
             self::create([
                 'facture_id' => $facture->id,
                 'reglement_id' => null,
                 'date_ecriture' => $facture->date,
-                'numero_compte' => $compteCredit,
+                'numero_compte' => $compte->numero_compte,
                 'debit' => 0,
-                'credit' => $totalCredit,
-                'libelle' => $facture->libelle,
+                'credit' => (float) $imp->montant,
+                'libelle' => $imp->libelle ?: $facture->libelle,
                 'type' => self::TYPE_FACTURE,
             ]);
         }
     }
 
     /**
-     * Créer les écritures d'imputation pour un règlement
+     * Créer les écritures d'imputation pour un règlement (multi-fournisseur)
      *
-     * Logique OHADA :
-     *  - Débit fournisseur (401) = montant du règlement + AIB retenu (si déclaré sur ce règlement)
-     *    → on solde la portion de dette correspondant à ce règlement
-     *  - Crédit banque/caisse = montant effectivement payé
-     *  - Crédit AIB (4473) = montant AIB retenu (si déclaré sur ce règlement)
-     *  - L'écriture est équilibrée : débit total = crédit total
+     * Logique OHADA — Approche A :
+     *  - Lignes du règlement (multi-comptes 401/481) : chacune devient un débit fournisseur
+     *  - Total des lignes = montant total soldé sur les comptes fournisseurs
+     *  - Crédit banque/caisse = montant règlement (= total soldé - AIB retenu)
+     *  - Crédit AIB (44xx) = AIB retenu (si déclaré sur ce règlement)
+     *  - Equilibre : Σ débits fournisseurs = montant + AIB ; Σ crédits = montant + AIB ✅
+     *
+     *  Si pas de lignes (legacy), fallback sur compte_credit_id ou compte fournisseur générique.
      */
     public static function creerEcrituresReglement(
         ReglementFournisseur $reglement,
         FactureFournisseur $facture
     ): void {
-        $compteFournisseur = $facture->fournisseur?->compteComptable
-            ? $facture->fournisseur->compteComptable->numero_compte
-            : '401' . str_pad($facture->fournisseur_id, 3, '0', STR_PAD_LEFT);
-
+        $reglement->loadMissing('compteCredit', 'lignes.compte');
         $montantReglement = (float) $reglement->montant;
 
-        // Montant AIB retenu sur ce règlement (0 si pas déclaré)
+        // Montant AIB retenu sur ce règlement
         $aibDeclareSurCeReglement = $reglement->deduire_aib && (float) $facture->taux > 0;
         $montantAib = $aibDeclareSurCeReglement
             ? (float) ($reglement->montant_aib_deduit ?: $facture->montant_reduction)
             : 0.0;
 
-        // Débit fournisseur = montant payé + AIB retenu (= total soldé sur ce règlement)
-        $debitFournisseur = $montantReglement + $montantAib;
-
-        // Libellé du mode de paiement (S/ utilisé uniquement pour chèque et virement,
-        // suivant la convention comptable "Selon")
+        // Libellé du mode de paiement
         $modeLibelle = match($reglement->mode_paiement) {
             'cheque' => 'S/Chèque N°' . ($reglement->reference ?: ''),
             'virement' => 'S/Virement Bancaire N°' . ($reglement->reference ?: ''),
@@ -166,31 +166,53 @@ class EcritureComptable extends Model
             default => $reglement->mode_paiement,
         };
 
-        // Débit: compte fournisseur = montant règlement + AIB retenu
-        self::create([
-            'facture_id' => $facture->id,
-            'reglement_id' => $reglement->id,
-            'date_ecriture' => $reglement->date_reglement,
-            'numero_compte' => $compteFournisseur,
-            'debit' => $debitFournisseur,
-            'credit' => 0,
-            'libelle' => $modeLibelle,
-            'type' => self::TYPE_REGLEMENT,
-        ]);
+        // === DÉBITS FOURNISSEURS — multi-comptes via lignes ===
+        $lignes = $reglement->lignes;
+        if ($lignes->isNotEmpty()) {
+            // Multi-fournisseur : une ligne de débit par compte saisi
+            foreach ($lignes as $ligne) {
+                $compte = $ligne->compte;
+                if (!$compte) continue;
+                self::create([
+                    'facture_id' => $facture->id,
+                    'reglement_id' => $reglement->id,
+                    'date_ecriture' => $reglement->date_reglement,
+                    'numero_compte' => $compte->numero_compte,
+                    'debit' => (float) $ligne->montant,
+                    'credit' => 0,
+                    'libelle' => $ligne->libelle ?: $modeLibelle,
+                    'type' => self::TYPE_REGLEMENT,
+                ]);
+            }
+        } else {
+            // Fallback legacy : compte_credit_id ou compte du fournisseur
+            $compteFournisseur = $reglement->compteCredit
+                ? $reglement->compteCredit->numero_compte
+                : ($facture->fournisseur?->compteComptable?->numero_compte
+                    ?? '401' . str_pad($facture->fournisseur_id, 3, '0', STR_PAD_LEFT));
+            $debitFournisseur = $montantReglement + $montantAib;
 
-        // Déterminer le compte de trésorerie (utilise les codes OHADA standards
-        // si aucun compte de trésorerie spécifique n'a été sélectionné)
+            self::create([
+                'facture_id' => $facture->id,
+                'reglement_id' => $reglement->id,
+                'date_ecriture' => $reglement->date_reglement,
+                'numero_compte' => $compteFournisseur,
+                'debit' => $debitFournisseur,
+                'credit' => 0,
+                'libelle' => $modeLibelle,
+                'type' => self::TYPE_REGLEMENT,
+            ]);
+        }
+
+        // === CRÉDIT BANQUE/CAISSE = montant règlement (cash réellement payé) ===
         $compteTresorerie = $reglement->compteTresorerie
             ? $reglement->compteTresorerie->numero_compte
             : match($reglement->mode_paiement) {
                 'especes' => '571',     // Caisse siège social
                 default   => '521',     // Banques locales
             };
-
-        // Libellé pour le crédit banque
         $libelleBanque = $reglement->beneficiaire ?: ($reglement->banque ?: 'Trésorerie');
 
-        // Crédit: compte de trésorerie (banque) = montant effectivement payé
         self::create([
             'facture_id' => $facture->id,
             'reglement_id' => $reglement->id,
@@ -202,7 +224,7 @@ class EcritureComptable extends Model
             'type' => self::TYPE_REGLEMENT,
         ]);
 
-        // Crédit: compte AIB si déclaré sur ce règlement
+        // === CRÉDIT AIB si déclaré ===
         if ($aibDeclareSurCeReglement && $montantAib > 0) {
             $compteAib = $reglement->compte_aib ?: ($facture->type_reduction ?: '44731');
             $compteAibModel = \App\Models\CompteComptable::where('numero_compte', $compteAib)->first();

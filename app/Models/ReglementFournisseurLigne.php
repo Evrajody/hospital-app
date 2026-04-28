@@ -5,28 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ImputationFactureFournisseur extends Model
+class ReglementFournisseurLigne extends Model
 {
-    protected $table = 'imputations_facture_fournisseur';
+    protected $table = 'reglement_fournisseur_lignes';
 
     protected $fillable = [
-        'facture_id',
+        'reglement_id',
         'compte_id',
-        'nature',
         'montant',
         'libelle',
     ];
-
-    const NATURE_DEBIT = 'debit';
-    const NATURE_CREDIT = 'credit';
 
     protected $casts = [
         'montant' => 'decimal:2',
     ];
 
-    public function facture(): BelongsTo
+    public function reglement(): BelongsTo
     {
-        return $this->belongsTo(FactureFournisseur::class, 'facture_id');
+        return $this->belongsTo(ReglementFournisseur::class, 'reglement_id');
     }
 
     public function compte(): BelongsTo

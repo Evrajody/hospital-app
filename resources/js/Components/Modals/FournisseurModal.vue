@@ -387,6 +387,7 @@
             <span class="tab-label">
               <el-icon><Document /></el-icon>
               Informations Fiscales
+              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('fiscal')">*</span>
             </span>
           </template>
 
@@ -746,6 +747,9 @@ const tabHasRequiredEmpty = (tabName) => {
     } else {
       return !form.nouveau_compte_numero || form.nouveau_compte_numero.trim() === '';
     }
+  }
+  if (tabName === 'fiscal') {
+    return !form.ifu || form.ifu.trim() === '';
   }
   return false;
 };
