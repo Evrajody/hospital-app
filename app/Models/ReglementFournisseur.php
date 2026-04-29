@@ -428,7 +428,13 @@ class ReglementFournisseur extends Model
                 'id' => $this->facture_id,
                 'numero' => $this->facture_numero ?: $this->facture?->numero_piece,
                 'numero_piece' => $this->facture_numero ?: $this->facture?->numero_piece,
+                'date' => $this->facture?->date?->format('Y-m-d'),
                 'date_facture' => $this->facture?->date?->format('Y-m-d'),
+                'libelle' => $this->facture?->libelle,
+                'montant_ttc' => (float) ($this->facture?->montant_ttc ?? 0),
+                'montant_net' => (float) ($this->facture?->montant_net ?? 0),
+                'montant_paye' => (float) ($this->facture?->montant_paye ?? 0),
+                'reste_a_payer' => (float) ($this->facture?->reste_a_payer ?? 0),
             ],
             'fournisseur_id' => $this->fournisseur_id,
             'fournisseur' => [

@@ -231,7 +231,11 @@ const handleExportPdf = () => {
 };
 
 const handleBack = () => {
-  router.visit('/rapports/fournisseurs');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/rapports/fournisseurs');
+  }
 };
 
 const formatMontant = (montant) => {

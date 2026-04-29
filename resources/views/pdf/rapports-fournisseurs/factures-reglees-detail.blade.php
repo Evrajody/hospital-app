@@ -2,6 +2,7 @@
 
 @section('title', ($titre ?? 'Etat des factures réglées') . ' - Détail')
 @section('page-size', 'A4 landscape')
+@section('page-margin', '15mm 20mm')
 @section('report-title', $titre ?? 'Etat des factures réglées')
 @section('report-subtitle', '(Détail par fournisseur)')
 
@@ -19,7 +20,7 @@
                         <th style="width: 70px">N°PC</th>
                         <th style="width: 65px">Date PC</th>
                         <th style="width: 65px">Date Règ.</th>
-                        <th class="montant">Mt Fact.</th>
+                        <th class="montant">Mt TTC</th>
                         <th class="montant">Avoir</th>
                         <th class="montant">Mt M.O.</th>
                         <th class="montant" style="width: 45px">AIB (%)</th>

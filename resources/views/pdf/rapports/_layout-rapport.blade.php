@@ -6,7 +6,7 @@
     <style>
         @page {
             size: @yield('page-size', 'A4 landscape');
-            margin: @yield('page-margin', '15mm 20mm');
+            margin: @yield('page-margin', '20mm 25mm');
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {

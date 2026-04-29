@@ -207,7 +207,7 @@
                 </el-col>
 
                 <el-col :span="6">
-                  <el-form-item label="Montant payé en banque/caisse" prop="montant">
+                  <el-form-item label="Montant payé" prop="montant">
                     <el-input
                       :model-value="formatInputMontant(form.montant)"
                       placeholder="0"
@@ -238,7 +238,6 @@
                             placeholder="Sélectionner"
                             filterable
                             style="width: 100%"
-                            @change="(v) => onLigneCompteChange(row, v)"
                           >
                             <el-option
                               v-for="ic in facture.imputations_credits"
@@ -247,37 +246,31 @@
                               :label="`${ic.numero_compte} - ${ic.libelle_compte}`"
                               :disabled="isCompteAlreadySelected(ic.compte_id, row)"
                             >
-                              <div style="display: flex; justify-content: space-between; gap: 12px;">
-                                <span>
-                                  <el-tag size="small" type="success">{{ ic.numero_compte }}</el-tag>
-                                  <span style="margin-left: 8px;">{{ ic.libelle_compte }}</span>
-                                </span>
-                                <span style="font-size: 11px; color: #6b7280; font-family: monospace;">
-                                  Reste {{ formatMontant(ic.reste_a_payer) }}
-                                </span>
-                              </div>
+                              <span>
+                                <el-tag size="small" type="success">{{ ic.numero_compte }}</el-tag>
+                                <span style="margin-left: 8px;">{{ ic.libelle_compte }}</span>
+                              </span>
                             </el-option>
                           </el-select>
                         </template>
                       </el-table-column>
-                      <el-table-column label="Reste sur le compte" width="160" align="right">
+                      <el-table-column label="Montant à solder (HT)" width="240">
                         <template #default="{ row }">
-                          <span v-if="getCompteInfo(row.compte_id)" class="reste-cell">
-                            {{ formatMontant(getCompteInfo(row.compte_id).reste_a_payer) }}
-                          </span>
-                          <span v-else style="color: #d1d5db;">—</span>
-                        </template>
-                      </el-table-column>
-                      <el-table-column label="Montant à solder" width="220">
-                        <template #default="{ row }">
-                          <el-input
-                            :model-value="formatInputMontant(row.montant)"
-                            @input="val => row.montant = parseInputMontant(val)"
-                            placeholder="0"
-                            style="width: 100%"
-                          >
-                            <template #append>XOF</template>
-                          </el-input>
+                          <div class="montant-cell">
+                            <el-input
+                              :model-value="formatInputMontant(row.montant)"
+                              @input="val => onLigneMontantInput(row, val)"
+                              placeholder="0"
+                              style="width: 100%"
+                              :class="{ 'montant-depasse': ligneDepasse(row) }"
+                            >
+                              <template #append>XOF</template>
+                            </el-input>
+                            <div v-if="ligneDepasse(row)" class="montant-warning">
+                              <el-icon><WarningFilled /></el-icon>
+                              Dépasse le reste HT ({{ formatMontant(getCompteInfo(row.compte_id).reste_a_payer) }})
+                            </div>
+                          </div>
                         </template>
                       </el-table-column>
                       <el-table-column label="" width="60" align="center">
@@ -470,7 +463,7 @@
                 <template #title>
                   <div class="payment-summary">
                     <div class="summary-row">
-                      <span><strong>Total à solder sur fournisseurs :</strong></span>
+                      <span><strong>Total HT à solder sur fournisseurs :</strong></span>
                       <strong>{{ formatMontant(totalLignes) }}</strong>
                     </div>
                     <template v-if="form.deduire_aib && hasAib">
@@ -482,6 +475,9 @@
                     <div class="summary-row aib-total-row">
                       <span><strong>Cash payé en banque/caisse :</strong></span>
                       <strong style="color: #2563eb;">{{ formatMontant(form.montant) }}</strong>
+                    </div>
+                    <div class="summary-row" style="font-size: 12px; color: #6b7280; font-style: italic; margin-top: 4px;">
+                      <span>(La TVA n'est pas remise au fournisseur — modèle "TVA pour compte de l'État")</span>
                     </div>
                   </div>
                 </template>
@@ -644,6 +640,13 @@ const isCompteAlreadySelected = (compteId, currentRow) => {
   return form.lignes.some(l => l !== currentRow && l.compte_id === compteId);
 };
 
+// Une ligne dépasse-t-elle le reste HT du compte choisi ?
+const ligneDepasse = (row) => {
+  const info = getCompteInfo(row.compte_id);
+  if (!info) return false;
+  return parseFloat(row.montant) > parseFloat(info.reste_a_payer) + 0.01;
+};
+
 const totalLignes = computed(() =>
   (form.lignes || []).reduce((sum, l) => sum + (parseFloat(l.montant) || 0), 0)
 );
@@ -741,28 +744,21 @@ watch(montantBankCash, (val) => {
   form.montant = val;
 });
 
-// Initialiser au moins une ligne avec le 1er compte crédit dispo
+// Initialiser au moins une ligne vide
 watch(() => props.facture.imputations_credits, (val) => {
   if (Array.isArray(val) && val.length > 0 && form.lignes.length === 0) {
-    const dispo = val.find(ic => parseFloat(ic.reste_a_payer) > 0.01) || val[0];
-    const aibAttendu = (form.deduire_aib && hasAib.value) ? (parseFloat(props.facture.montant_aib) || 0) : 0;
-    const montantInit = Math.max(0, parseFloat(dispo.reste_a_payer) || 0);
     form.lignes.push({
-      compte_id: dispo.compte_id,
-      montant: montantInit,
+      compte_id: null,
+      montant: 0,
       libelle: '',
     });
   }
 }, { immediate: true });
 
 const addLigne = () => {
-  // Trouver un compte non encore sélectionné
-  const dispo = (props.facture.imputations_credits || []).find(ic =>
-    !form.lignes.some(l => l.compte_id === ic.compte_id) && parseFloat(ic.reste_a_payer) > 0.01
-  );
   form.lignes.push({
-    compte_id: dispo ? dispo.compte_id : null,
-    montant: dispo ? Math.max(0, parseFloat(dispo.reste_a_payer) || 0) : 0,
+    compte_id: null,
+    montant: 0,
     libelle: '',
   });
 };
@@ -771,11 +767,16 @@ const removeLigne = (index) => {
   form.lignes.splice(index, 1);
 };
 
-const onLigneCompteChange = (row, compteId) => {
-  // Pré-remplir le montant avec le reste à payer du compte choisi
-  const info = getCompteInfo(compteId);
-  if (info && (!row.montant || row.montant === 0)) {
-    row.montant = Math.max(0, parseFloat(info.reste_a_payer) || 0);
+// Quand l'utilisateur saisit un montant manuellement → avertir s'il dépasse le reste HT
+const onLigneMontantInput = (row, val) => {
+  row.montant = parseInputMontant(val);
+  const info = getCompteInfo(row.compte_id);
+  if (info && parseFloat(row.montant) > parseFloat(info.reste_a_payer) + 0.01) {
+    ElMessage.warning({
+      message: `Montant supérieur au reste HT (${formatMontant(info.reste_a_payer)}) pour le compte ${info.numero_compte}.`,
+      duration: 2500,
+      grouping: true,
+    });
   }
 };
 
@@ -871,7 +872,11 @@ const handleBanqueChange = () => {
 };
 
 const handleCancel = () => {
-  router.visit('/factures-fournisseurs');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/factures-fournisseurs');
+  }
 };
 
 const buildPayload = (forceInsufficient = false) => {
@@ -930,7 +935,7 @@ const submitPayment = async (forceInsufficient = false) => {
 
     if (data.success) {
       ElMessage.success(data.message || (isEdit.value ? 'Règlement modifié avec succès' : 'Règlement enregistré avec succès'));
-      router.visit(`/factures-fournisseurs/${props.facture.id}`);
+      router.visit(`/factures-fournisseurs/${props.facture.id}?show_imputation=1`);
     } else if (data.insufficient_balance) {
       insufficientData.solde = data.solde_actuel;
       insufficientData.montant = data.montant_demande;
@@ -1020,14 +1025,6 @@ const handleSubmit = async () => {
       if (lignesValides.length === 0) {
         ElMessage.error('Au moins une ligne avec compte et montant est obligatoire.');
         return;
-      }
-      // Chaque ligne ne dépasse pas le reste du compte choisi
-      for (const ligne of lignesValides) {
-        const info = getCompteInfo(ligne.compte_id);
-        if (info && parseFloat(ligne.montant) > parseFloat(info.reste_a_payer) + 0.01) {
-          ElMessage.error(`Le compte ${info.numero_compte} a un reste de ${formatMontant(info.reste_a_payer)} (montant saisi : ${formatMontant(ligne.montant)})`);
-          return;
-        }
       }
       // Si AIB déclaré : AIB ≤ total lignes
       if (form.deduire_aib && hasAib.value && montantAibAttendu.value > totalLignes.value + 0.01) {
@@ -1233,11 +1230,26 @@ const forceSubmit = async () => {
   align-items: center;
 }
 
-.lignes-reglement-table .reste-cell {
-  font-family: 'Courier New', monospace;
-  color: #6b7280;
-  font-size: 13px;
+.montant-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.montant-cell :deep(.montant-depasse .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #f56c6c inset !important;
+  background-color: #fef2f2;
+}
+
+.montant-warning {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #f56c6c;
   font-weight: 500;
+  line-height: 1.3;
 }
 
 :deep(.el-card__header) {

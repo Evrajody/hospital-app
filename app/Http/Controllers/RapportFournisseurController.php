@@ -160,8 +160,11 @@ class RapportFournisseurController extends Controller
     private function buildSituationFournisseursData(Request $request): array
     {
         $mode = $request->input('mode', 'tous');
-        $dateDebut = $request->input('date_debut');
-        $dateFin = $request->input('date_fin');
+        // "Date du point" : on fige la situation à cette date (factures émises et règlements effectués jusqu'à elle).
+        // Si fournie, elle prime sur date_debut/date_fin (compatibilité ascendante).
+        $datePoint = $request->input('date_point');
+        $dateDebut = $datePoint ? null : $request->input('date_debut');
+        $dateFin = $datePoint ?: $request->input('date_fin');
         $compteId = $request->input('compte_id');
 
         // Calculer le montant payé pour une facture à une date donnée
@@ -257,6 +260,7 @@ class RapportFournisseurController extends Controller
                 'data' => $data,
                 'date_debut' => $dateDebut,
                 'date_fin' => $dateFin,
+                'date_point' => $datePoint,
                 'grandTotal' => $grandTotal,
                 'compte' => $compteInfo,
             ];
@@ -340,6 +344,7 @@ class RapportFournisseurController extends Controller
             'data' => $data,
             'date_debut' => $dateDebut,
             'date_fin' => $dateFin,
+            'date_point' => $datePoint,
             'grandTotaux' => $grandTotaux,
         ];
     }
@@ -1532,7 +1537,7 @@ class RapportFournisseurController extends Controller
         }
 
         return \App\Support\ExcelExporter::download(
-            ['N° PC', 'Date', 'Référence', 'Mt Facture', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Dû', 'Mt Réglé', 'Solde'],
+            ['N° PC', 'Date', 'Référence', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Dû', 'Mt Réglé', 'Solde'],
             $rows,
             'mouvement-factures',
             $titre,
@@ -1544,7 +1549,9 @@ class RapportFournisseurController extends Controller
         $data = $this->buildSituationFournisseursData($request);
         $mode = $data['mode'] ?? 'tous';
         $titre = 'Situation fournisseurs';
-        if (($data['date_debut'] ?? null) && ($data['date_fin'] ?? null)) {
+        if ($data['date_point'] ?? null) {
+            $titre .= ' — Point au ' . Carbon::parse($data['date_point'])->format('d/m/Y');
+        } elseif (($data['date_debut'] ?? null) && ($data['date_fin'] ?? null)) {
             $titre .= ' du ' . Carbon::parse($data['date_debut'])->format('d/m/Y')
                 . ' au ' . Carbon::parse($data['date_fin'])->format('d/m/Y');
         }
@@ -1598,7 +1605,7 @@ class RapportFournisseurController extends Controller
         }
 
         return \App\Support\ExcelExporter::download(
-            ['Fournisseur', 'N° PC', 'Date', 'Référence', 'Mt Facture', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Réglé', 'Solde'],
+            ['Fournisseur', 'N° PC', 'Date', 'Référence', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Réglé', 'Solde'],
             $rows,
             'situation-fournisseurs-detail',
             $titre,
@@ -1634,7 +1641,7 @@ class RapportFournisseurController extends Controller
         $rows[] = ['', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'], $g['avoir'], $g['montant_mo'], '', $g['montant_aib'], $g['reg_periode'], $g['mt_total_reg']];
 
         return \App\Support\ExcelExporter::download(
-            ['Fournisseur', 'N° PC', 'Date Fact.', 'Date Règl.', 'Mt Facture', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Règl. période', 'Mt Total Règ.'],
+            ['Fournisseur', 'N° PC', 'Date Fact.', 'Date Règl.', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Règl. période', 'Mt Total Règ.'],
             $rows,
             'factures-reglees',
             $data['titre'] ?: 'Etat des factures réglées',

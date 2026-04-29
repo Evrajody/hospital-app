@@ -293,7 +293,11 @@ const handleSubmit = async () => {
 };
 
 const handleCancel = () => {
-  router.visit('/plan-comptable');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/plan-comptable');
+  }
 };
 </script>
 

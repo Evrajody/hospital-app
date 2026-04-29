@@ -311,21 +311,28 @@ class FactureFournisseurController extends Controller
             ->get()
             ->keyBy('compte_credit_id');
 
-        $imputationsCreditsData = $imputationsCredits->map(function ($imp) use ($reglementsParCompte) {
+        // Modèle "TVA pour compte" : on ne règle au fournisseur que la portion HT
+        // (la TVA reste à l'État). Le HT par compte = TTC_compte / (1 + taux_tva/100).
+        $tauxTva = (float) ($facture->assujetti_tva ? $facture->taux_tva : 0);
+        $coefTva = 1 + ($tauxTva / 100);
+
+        $imputationsCreditsData = $imputationsCredits->map(function ($imp) use ($reglementsParCompte, $coefTva) {
             $reg = $reglementsParCompte->get($imp->compte_id);
             $totalPaye = $reg ? (float) $reg->total_paye : 0;
             $totalAib = $reg ? (float) $reg->total_aib : 0;
-            $montant = (float) $imp->montant;
-            // Le solde sur le compte fournisseur = montant - (paye + aib retenu) car chaque
-            // règlement avec AIB solde montant_paye + aib_retenu sur le compte fournisseur.
-            $reste = max(0, $montant - $totalPaye - $totalAib);
+            $montantTtc = (float) $imp->montant;
+            // HT du compte = TTC / (1 + taux_tva)
+            $montantHt = $coefTva > 0 ? round($montantTtc / $coefTva, 2) : $montantTtc;
+            // Reste à payer en HT = HT − somme déjà payée − AIB déjà retenue sur ce compte
+            $reste = max(0, $montantHt - $totalPaye - $totalAib);
             return [
                 'id' => $imp->id,
                 'compte_id' => $imp->compte_id,
                 'numero_compte' => $imp->compte?->numero_compte ?? '-',
                 'libelle_compte' => $imp->compte?->libelle ?? '-',
                 'libelle_imputation' => $imp->libelle ?? '',
-                'montant' => $montant,
+                'montant' => $montantTtc,
+                'montant_ht' => $montantHt,
                 'total_paye' => $totalPaye,
                 'total_aib' => $totalAib,
                 'reste_a_payer' => $reste,
@@ -1086,7 +1093,7 @@ class FactureFournisseurController extends Controller
         }
         if ($reglementLignes->isNotEmpty()) {
             $blocs[] = [
-                'label' => 'Règlement',
+                'label' => null,
                 'lignes' => $reglementLignes->values(),
             ];
         }
@@ -1188,7 +1195,7 @@ class FactureFournisseurController extends Controller
         if ($reglementLignes->isNotEmpty()) {
             $data[] = [
                 'date' => $reglementLignes->first()->date_ecriture->format('d/m/Y'),
-                'label' => 'Règlement',
+                'label' => null,
                 'lignes' => $reglementLignes->map($mapLigne)->values()->toArray(),
             ];
         }

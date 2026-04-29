@@ -490,7 +490,11 @@ const handlePageChange = (page) => {
 };
 
 const handleBack = () => {
-  router.visit('/banques');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/banques');
+  }
 };
 
 const getSoldeAvant = (mouvement) => {

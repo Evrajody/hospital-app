@@ -138,62 +138,92 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">
-              {{ filteredReglements.length }} r&egrave;glement(s)
+              {{ groupedReglements.length }} facture(s) &mdash; {{ filteredReglements.length }} r&egrave;glement(s)
             </span>
           </div>
         </template>
 
         <el-table
-          :data="filteredReglements"
+          :data="groupedReglements"
           stripe
           border
           style="width: 100%"
-          :default-sort="{ prop: 'date_reglement', order: 'descending' }"
+          row-key="key"
         >
-          <el-table-column label="Actions" width="180" fixed="left" align="center" resizable>
+          <el-table-column type="expand" width="50">
             <template #default="{ row }">
-              <el-button-group>
-                <el-button :icon="View" size="small" type="primary" @click="handleView(row)">
-                  Détails
-                </el-button>
-                <el-dropdown @command="(cmd) => handleMoreActions(cmd, row)">
-                  <el-button :icon="More" size="small" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="edit" :icon="Edit">
-                        Modifier
-                      </el-dropdown-item>
-                      <el-dropdown-item command="facture" :icon="Document">
-                        Voir la facture
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="delete" :icon="Delete">
-                        <span style="color: #f56c6c">Supprimer</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </el-button-group>
+              <div class="expand-reglements">
+                <el-table :data="row.reglements" border size="small" class="inner-reglements-table">
+                  <el-table-column label="Date" width="110">
+                    <template #default="{ row: reg }">{{ formatDate(reg.date_reglement) }}</template>
+                  </el-table-column>
+                  <el-table-column label="Type" width="120">
+                    <template #default="{ row: reg }">
+                      <el-tag
+                        :type="reg.type_reglement_couleur === 'danger' ? 'danger' : reg.type_reglement_couleur === 'warning' ? 'warning' : reg.type_reglement_couleur === 'success' ? 'success' : 'primary'"
+                        size="small"
+                      >
+                        {{ reg.type_reglement_libelle || 'Règlement' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="N° Ligne" width="110">
+                    <template #default="{ row: reg }">
+                      <span v-if="reg.numero_ligne">{{ reg.numero_ligne }}</span>
+                      <span v-else class="text-muted">-</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="Institution" min-width="160">
+                    <template #default="{ row: reg }">
+                      <span v-if="reg.institution">{{ reg.institution }}</span>
+                      <span v-else class="text-muted">-</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="R&eacute;f. Ch&egrave;que" width="140">
+                    <template #default="{ row: reg }">
+                      <span v-if="reg.reference_cheque">{{ reg.reference_cheque }}</span>
+                      <span v-else class="text-muted">-</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="Banque D&eacute;p&ocirc;t" width="160">
+                    <template #default="{ row: reg }">
+                      <span v-if="reg.banque_depot">{{ reg.banque_depot.nom }}</span>
+                      <span v-else class="text-muted">-</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="Montant" width="140" align="right">
+                    <template #default="{ row: reg }">
+                      <strong class="montant-reglement">{{ formatMontant(reg.montant) }}</strong>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="Actions" width="170" align="center" fixed="right">
+                    <template #default="{ row: reg }">
+                      <el-button-group>
+                        <el-button :icon="View" size="small" type="primary" @click="handleView(reg)">
+                          D&eacute;tails
+                        </el-button>
+                        <el-dropdown @command="(cmd) => handleMoreActions(cmd, reg)">
+                          <el-button :icon="More" size="small" />
+                          <template #dropdown>
+                            <el-dropdown-menu>
+                              <el-dropdown-item command="edit" :icon="Edit">
+                                Modifier
+                              </el-dropdown-item>
+                              <el-dropdown-item divided command="delete" :icon="Delete">
+                                <span style="color: #f56c6c">Supprimer</span>
+                              </el-dropdown-item>
+                            </el-dropdown-menu>
+                          </template>
+                        </el-dropdown>
+                      </el-button-group>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_reglement" label="Date" width="120" sortable resizable>
-            <template #default="{ row }">
-              {{ formatDate(row.date_reglement) }}
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="type_reglement" label="Type" width="130" sortable resizable>
-            <template #default="{ row }">
-              <el-tag
-                :type="row.type_reglement_couleur === 'danger' ? 'danger' : row.type_reglement_couleur === 'warning' ? 'warning' : row.type_reglement_couleur === 'success' ? 'success' : 'primary'"
-                size="small"
-              >
-                {{ row.type_reglement_libelle || 'Règlement' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="facture.reference" label="N&deg; Facture Client" width="160" sortable sort-by="facture.reference" resizable>
+          <el-table-column label="N&deg; Facture Client" width="170">
             <template #default="{ row }">
               <span class="nowrap-cell">
                 <el-link type="primary" @click="handleViewFacture(row.facture)">
@@ -203,39 +233,49 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="client.nom" label="Client" min-width="180" sortable sort-by="client.nom" resizable>
+          <el-table-column label="Client" min-width="200">
             <template #default="{ row }">
               <strong>{{ row.client?.nom || '-' }}</strong>
             </template>
           </el-table-column>
 
-          <el-table-column prop="institution" label="Institution" width="180" sortable resizable>
+          <el-table-column label="Date facture" width="120">
+            <template #default="{ row }">{{ formatDate(row.facture?.date_facture) }}</template>
+          </el-table-column>
+
+          <el-table-column label="Montant facture" width="160" align="right">
             <template #default="{ row }">
-              <span v-if="row.institution">{{ row.institution }}</span>
-              <span v-else class="text-muted">-</span>
+              <span class="nowrap-cell">{{ formatMontant(row.facture?.montant) }}</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="reference_cheque" label="R&eacute;f. Ch&egrave;que" width="140" sortable resizable>
+          <el-table-column label="Total r&eacute;gl&eacute;" width="150" align="right">
             <template #default="{ row }">
-              <span v-if="row.reference_cheque">{{ row.reference_cheque }}</span>
-              <span v-else class="text-muted">-</span>
+              <span class="nowrap-cell"><strong class="montant-reglement">{{ formatMontant(row.total_montant_regle) }}</strong></span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="banque_depot.nom" label="Banque D&eacute;p&ocirc;t" width="160" sortable sort-by="banque_depot.nom" resizable>
+          <el-table-column label="Reste &agrave; payer" width="150" align="right">
             <template #default="{ row }">
-              <span v-if="row.banque_depot">{{ row.banque_depot.nom }}</span>
-              <span v-else class="text-muted">-</span>
+              <span class="nowrap-cell" :class="(row.facture?.reste_a_payer || 0) > 0 ? 'reste-due' : 'reste-paid'">
+                <strong>{{ formatMontant(row.facture?.reste_a_payer || 0) }}</strong>
+              </span>
             </template>
           </el-table-column>
 
-          <el-table-column label="Montant" width="140" align="right" sortable sort-by="montant" resizable>
+          <el-table-column label="N&deg; r&egrave;glements" width="130" align="center">
             <template #default="{ row }">
-              <span class="nowrap-cell"><strong class="montant-reglement">{{ formatMontant(row.montant) }}</strong></span>
+              <el-tag size="small" type="info">{{ row.count }}</el-tag>
             </template>
           </el-table-column>
 
+          <el-table-column label="Actions" width="120" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button :icon="Document" size="small" plain @click="handleViewFacture(row.facture)">
+                Facture
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </el-card>
 
@@ -482,6 +522,29 @@ const filteredReglements = computed(() => {
   return result;
 });
 
+// Regrouper les règlements par facture (pour expandable rows)
+const groupedReglements = computed(() => {
+  const map = new Map();
+  for (const r of filteredReglements.value || []) {
+    const factureId = r.facture?.id ?? `${r.facture?.reference || 'unknown'}-${r.client?.id || 0}`;
+    if (!map.has(factureId)) {
+      map.set(factureId, {
+        key: `f-${factureId}`,
+        facture: r.facture || { reference: '-' },
+        client: r.client || { nom: '-' },
+        reglements: [],
+        total_montant_regle: 0,
+        count: 0,
+      });
+    }
+    const grp = map.get(factureId);
+    grp.reglements.push(r);
+    grp.total_montant_regle += parseFloat(r.montant) || 0;
+    grp.count += 1;
+  }
+  return Array.from(map.values());
+});
+
 const handleReset = () => {
   filters.value = { search: '', client_id: null, type_reglement: '', date_range: null };
 };
@@ -615,6 +678,11 @@ const formatDate = (date) => {
 .card-title { font-size: 16px; font-weight: 600; color: #374151; }
 .montant-reglement { color: #059669; font-size: 14px; }
 .text-muted { color: #d1d5db; }
+.reste-due { color: #dc2626; }
+.reste-paid { color: #6b7280; }
+.expand-reglements { padding: 12px 24px; background-color: #f9fafb; }
+.inner-reglements-table { background: #ffffff; }
+.inner-reglements-table :deep(.el-table th) { background-color: #eef2ff; font-size: 12px; font-weight: 600; }
 .detail-modal-content { padding: 8px 0; }
 :deep(.el-table th) { background-color: #f9fafb; font-weight: 600; color: #374151; }
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }

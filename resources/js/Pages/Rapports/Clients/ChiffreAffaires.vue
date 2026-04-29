@@ -356,7 +356,11 @@ const afficher = () => {
 };
 
 const handleBack = () => {
-  router.visit('/rapports/clients');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/rapports/clients');
+  }
 };
 
 const formatMontant = (montant) => {

@@ -618,7 +618,11 @@ const handleBanqueChange = () => {
 };
 
 const handleCancel = () => {
-  router.visit(`/factures-clients/${props.facture.id}`);
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit(`/factures-clients/${props.facture.id}`);
+  }
 };
 
 const handleSubmit = async () => {

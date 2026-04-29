@@ -87,9 +87,9 @@ class ReglementFournisseurController extends Controller
         // Statistiques
         $stats = ReglementFournisseur::getStatistiques();
 
-        // Factures impayées ou partiellement payées (utilise le scope nonPayee)
+        // Factures non soldées (validées ou partiellement payées) seulement
         $facturesImpayees = FactureFournisseur::with('fournisseur')
-            // ->nonPayee()
+            ->nonPayee()
             ->orderBy('date', 'desc')
             ->get()
             ->map(fn($f) => [
@@ -98,6 +98,7 @@ class ReglementFournisseurController extends Controller
                 'libelle' => $f->libelle,
                 'date' => $f->date,
                 'fournisseur' => $f->fournisseur ? ['id' => $f->fournisseur->id, 'nom' => $f->fournisseur->nom] : null,
+                'fournisseur_nom' => $f->fournisseur?->nom,
                 'montant_ttc' => $f->montant_ttc,
                 'montant_paye' => $f->montant_paye,
                 'reste_a_payer' => $f->reste_a_payer ?? ($f->montant_ttc - $f->montant_paye),

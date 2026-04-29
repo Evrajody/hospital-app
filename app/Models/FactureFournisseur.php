@@ -342,12 +342,10 @@ class FactureFournisseur extends Model
             $this->montant_reduction = 0;
         }
 
-        // Net à payer = TTC − Avoir − AIB (cash effectif remis au fournisseur)
-        // L'AIB est retenue à la facture et reversée à l'État (modèle 🅱️ AIB à la facture)
-        // Si non assujetti à TVA, TTC = HT donc montant_net = HT - avoir - AIB
-        $this->montant_net = ($this->montant_ttc ?: $this->montant_facture)
-            - $this->avoir
-            - $this->montant_reduction;
+        // NAP (Net à Payer) = TTC − TVA − Avoir − AIB = HT − Avoir − AIB
+        // Modèle "TVA pour compte" : le fournisseur n'encaisse que le HT,
+        // la TVA reste pour le compte de l'État.
+        $this->montant_net = $this->montant_facture - $this->avoir - $this->montant_reduction;
 
         // Reste à payer
         $this->reste_a_payer = $this->montant_net - $this->montant_paye;

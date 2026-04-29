@@ -621,7 +621,11 @@ const getStatutLabel = (statut) => {
 };
 
 const handleBack = () => {
-  router.visit('/fournisseurs');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/fournisseurs');
+  }
 };
 
 const handleEdit = () => {

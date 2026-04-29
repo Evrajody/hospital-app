@@ -79,7 +79,7 @@
 
             <el-table style="width: 100%" :data="resume" border size="small" stripe show-summary :summary-method="getSummaryResume">
               <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" />
-              <el-table-column label="Total Mt Fact." min-width="130" align="right">
+              <el-table-column label="Total Mt TTC" min-width="130" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_facture) }}</template>
               </el-table-column>
               <el-table-column label="Total Avoir" min-width="110" align="right">
@@ -122,7 +122,7 @@
                 <el-table-column prop="numero_piece" label="N°PC" min-width="90" />
                 <el-table-column prop="date" label="Date PC" min-width="85" />
                 <el-table-column prop="date_reglement" label="Date Règ." min-width="85" />
-                <el-table-column label="Mt Fact." min-width="95" align="right">
+                <el-table-column label="Mt TTC" min-width="95" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
                 </el-table-column>
                 <el-table-column label="Avoir" min-width="80" align="right">

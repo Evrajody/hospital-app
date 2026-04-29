@@ -135,6 +135,11 @@ class ReglementClient extends Model
             'facture' => [
                 'id' => $this->facture_id,
                 'reference' => $this->facture_reference ?: $this->facture?->reference,
+                'date_facture' => $this->facture?->date_facture?->format('Y-m-d'),
+                'libelle' => $this->facture?->libelle,
+                'montant' => (float) ($this->facture?->montant ?? 0),
+                'montant_paye' => (float) ($this->facture?->montant_paye ?? 0),
+                'reste_a_payer' => (float) ($this->facture?->reste_a_payer ?? 0),
             ],
             'client_id' => $this->client_id,
             'client' => [

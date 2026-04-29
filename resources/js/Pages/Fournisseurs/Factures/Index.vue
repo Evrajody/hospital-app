@@ -736,8 +736,12 @@ const handleFactureSuccess = async (factureData) => {
     if (result.success) {
       ElMessage.success(result.message || (isEdit ? 'Facture modifiée avec succès' : 'Facture créée avec succès'));
       showFactureModal.value = false;
+      const factureId = result.data?.id || selectedFacture.value?.id;
       selectedFacture.value = null;
       handleRefresh();
+      if (factureId) {
+        openImputationDrawer(factureId);
+      }
     } else {
       ElMessage.error(result.message || 'Une erreur est survenue');
     }

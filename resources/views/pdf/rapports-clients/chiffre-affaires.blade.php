@@ -2,7 +2,7 @@
 
 @section('title', "Chiffre d'Affaires")
 @section('page-size', 'A4 portrait')
-@section('page-margin', '15mm 25mm')
+@section('page-margin', '20mm 25mm')
 @section('report-title', $titre ?? "CHIFFRE D'AFFAIRES")
 
 @if(in_array($mode, ['global_du', 'global_au', 'global_periode']))

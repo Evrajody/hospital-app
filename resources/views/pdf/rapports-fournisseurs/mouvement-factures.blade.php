@@ -2,7 +2,7 @@
 
 @section('title', 'Mouvement Factures Fournisseur')
 @section('page-size', 'A4 landscape')
-@section('page-margin', '15mm 25mm')
+@section('page-margin', '15mm 20mm')
 @section('report-title', $titre ?? 'ÉTAT DES MOUVEMENTS FACTURES')
 
 @if(!empty($periode['debut']) && !empty($periode['fin']))
@@ -31,7 +31,7 @@
                     <th style="width: 70px">N&deg;PC</th>
                     <th style="width: 65px">Date PC</th>
                     <th style="width: 80px">R&eacute;f. Fact.</th>
-                    <th class="montant">Mt Fact.</th>
+                    <th class="montant">Mt TTC</th>
                     <th class="montant">Avoir</th>
                     <th class="montant">Mt M.O.</th>
                     <th class="montant" style="width: 45px">AIB (%)</th>

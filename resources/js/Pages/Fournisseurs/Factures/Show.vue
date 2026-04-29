@@ -104,12 +104,21 @@
               <el-descriptions-item label="Imputations comptables" :span="2">
                 <div v-if="facture.imputations && facture.imputations.length > 0">
                   <!-- Bloc Débits -->
-                  <div v-if="imputationsDebits.length > 0" class="imputations-list">
+                  <div v-if="imputationsDebits.length > 0 || tvaAutoLigne" class="imputations-list">
                     <div class="imputations-block-title block-debit-title">Débits</div>
                     <div v-for="imp in imputationsDebits" :key="imp.id" class="imputation-row">
                       <el-tag size="small" type="primary">{{ imp.compte ? imp.compte.numero : '-' }}</el-tag>
                       <span class="imputation-libelle">{{ imp.compte ? imp.compte.libelle : (imp.libelle || '-') }}</span>
                       <span class="imputation-montant">{{ formatMontant(imp.montant) }}</span>
+                    </div>
+                    <!-- Ligne TVA auto-générée -->
+                    <div v-if="tvaAutoLigne" class="imputation-row imputation-row-auto">
+                      <el-tag size="small" type="warning">{{ tvaAutoLigne.numero }}</el-tag>
+                      <span class="imputation-libelle">
+                        {{ tvaAutoLigne.libelle }}
+                        <el-tag size="small" effect="plain" style="margin-left: 6px; font-size: 10px;">auto</el-tag>
+                      </span>
+                      <span class="imputation-montant">{{ formatMontant(tvaAutoLigne.montant) }}</span>
                     </div>
                   </div>
                   <!-- Bloc Crédits -->
@@ -397,7 +406,7 @@
                 <td class="cell-compte-num">{{ ligne.numero_compte }}</td>
                 <td class="cell-montant">{{ ligne.debit > 0 ? formatMontant(ligne.debit) : '' }}</td>
                 <td class="cell-montant">{{ ligne.credit > 0 ? formatMontant(ligne.credit) : '' }}</td>
-                <td>{{ ligne.libelle || '' }}</td>
+                <td class="cell-libelle">{{ (lIndex === 0 || ligne.libelle !== group.lignes[lIndex - 1].libelle) ? (ligne.libelle || '') : '' }}</td>
               </tr>
             </template>
           </tbody>
@@ -615,7 +624,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -810,6 +819,24 @@ const imputationsCredits = computed(() =>
   (props.facture.imputations || []).filter(i => i.nature === 'credit')
 );
 
+// Ligne TVA déductible auto-générée (compte 445) — affichée dans le bloc Débits
+const tvaAutoLigne = computed(() => {
+  const assujetti = !!props.facture.assujetti_tva;
+  const tauxTva = parseFloat(props.facture.taux_tva) || 0;
+  const montantTva = parseFloat(props.facture.montant_tva) || 0;
+  if (!assujetti || tauxTva <= 0 || montantTva <= 0) return null;
+  // Chercher un compte 445 dans les comptes fournis ; sinon valeur par défaut
+  const compte445 = (props.comptes || []).find(c => {
+    const num = String(c.numero || c.code || '');
+    return num.startsWith('445');
+  });
+  return {
+    numero: compte445 ? (compte445.numero || compte445.code) : '445',
+    libelle: compte445 ? compte445.libelle : `TVA déductible (${tauxTva}%)`,
+    montant: montantTva,
+  };
+});
+
 const montantTaux = computed(() => {
   const taux = parseFloat(props.facture.taux) || 0;
   const montantMO = parseFloat(props.facture.montant_mo) || 0;
@@ -817,7 +844,11 @@ const montantTaux = computed(() => {
 });
 
 const handleBack = () => {
-  router.visit('/factures-fournisseurs');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/factures-fournisseurs');
+  }
 };
 
 const handleAction = (command) => {
@@ -903,7 +934,10 @@ const handleFactureSuccess = async (factureData) => {
     if (result.success) {
       ElMessage.success(result.message || 'Facture modifiée avec succès');
       showFactureModal.value = false;
-      router.reload({ only: ['facture', 'reglements'] });
+      router.reload({
+        only: ['facture', 'reglements'],
+        onSuccess: () => openImputationDrawer(),
+      });
     } else {
       ElMessage.error(result.message || 'Une erreur est survenue');
     }
@@ -987,6 +1021,21 @@ const openEtatReglementDrawer = async () => {
 const downloadEtatReglementPdf = () => {
   window.open(`/factures-fournisseurs/${props.facture.id}/etat-reglement-pdf`, '_blank');
 };
+
+// Auto-ouverture du drawer Imputation Comptable après un règlement
+// (la page Reglement.vue redirige avec ?show_imputation=1)
+onMounted(() => {
+  if (typeof window === 'undefined') return;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('show_imputation') === '1') {
+    openImputationDrawer();
+    // Nettoyer l'URL pour éviter une réouverture lors d'un reload
+    params.delete('show_imputation');
+    const newSearch = params.toString();
+    const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '');
+    window.history.replaceState({}, '', newUrl);
+  }
+});
 </script>
 
 <style scoped>
@@ -1068,6 +1117,18 @@ const downloadEtatReglementPdf = () => {
 
 .imputation-row:last-child {
   border-bottom: none;
+}
+
+.imputation-row-auto {
+  background: #fef3c7;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border-bottom: 1px dashed #fbbf24 !important;
+}
+
+.imputation-row-auto .imputation-libelle {
+  color: #92400e;
+  font-style: italic;
 }
 
 .imputations-block-title {
@@ -1278,6 +1339,9 @@ const downloadEtatReglementPdf = () => {
 .imputation-table .cell-montant { font-family: 'Courier New', monospace; text-align: right; white-space: nowrap; }
 .imputation-table tr.block-separator td { border-top: 2px solid #000; }
 .imputation-table tr:not(.block-separator) td { border-top: none; }
+.imputation-table tbody td.cell-libelle { border-bottom: none; }
+.imputation-table tbody tr:last-child td.cell-libelle { border-bottom: 1px solid #000; }
+.imputation-table tbody tr.block-separator td.cell-libelle { border-top: 2px solid #000; }
 
 /* Bordereau de Règlement Drawer */
 .mandat-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }

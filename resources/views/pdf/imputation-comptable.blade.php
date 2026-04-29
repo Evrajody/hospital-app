@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 12mm 15mm;
+            margin: 15mm 20mm;
         }
 
         * {
@@ -108,6 +108,17 @@
             border-top: none;
         }
 
+        /* Pas de séparateur horizontal interne sur la colonne libellé : la valeur paraît groupée */
+        .imputation-table tbody td.col-libelle {
+            border-bottom: none;
+        }
+        .imputation-table tbody tr:last-child td.col-libelle {
+            border-bottom: 1px solid #000000;
+        }
+        .imputation-table tbody tr.block-separator td.col-libelle {
+            border-top: 2px solid #000000;
+        }
+
         .col-date {
             width: 90px;
         }
@@ -204,7 +215,7 @@
                         <td class="col-compte">{{ $ecriture->numero_compte }}</td>
                         <td class="col-debit">{{ $ecriture->debit > 0 ? number_format($ecriture->debit, 0, ',', ' ') : '0' }}</td>
                         <td class="col-credit">{{ $ecriture->credit > 0 ? number_format($ecriture->credit, 0, ',', ' ') : '0' }}</td>
-                        <td class="col-libelle">{{ $ecriture->libelle }}</td>
+                        <td class="col-libelle">{{ ($lIndex === 0 || $ecriture->libelle !== $bloc['lignes'][$lIndex - 1]->libelle) ? $ecriture->libelle : '' }}</td>
                     </tr>
                 @endforeach
             @endforeach

@@ -351,7 +351,11 @@ const handleSubmit = async () => {
 };
 
 const handleCancel = () => {
-  router.visit('/banques');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/banques');
+  }
 };
 </script>
 

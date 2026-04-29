@@ -6,23 +6,23 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
-        // Recalculer montant_net pour toutes les factures :
-        // Nouvelle formule : montant_net = TTC − avoir − AIB
-        // = cash effectif que recevra le fournisseur (l'AIB sera retenue au règlement)
+        // Recalculer montant_net (NAP) pour toutes les factures :
+        // Modèle "TVA pour compte" : NAP = HT − avoir − AIB
+        // (la TVA n'est pas remise au fournisseur, elle reste à l'État)
         DB::statement("
             UPDATE factures_fournisseurs
             SET
-                montant_net = COALESCE(montant_ttc, montant_facture)
+                montant_net = COALESCE(montant_facture, 0)
                               - COALESCE(avoir, 0)
                               - COALESCE(montant_reduction, 0),
-                reste_a_payer = (COALESCE(montant_ttc, montant_facture)
+                reste_a_payer = (COALESCE(montant_facture, 0)
                                  - COALESCE(avoir, 0)
                                  - COALESCE(montant_reduction, 0))
                                 - COALESCE(montant_paye, 0)
             WHERE deleted_at IS NULL
         ");
 
-        // Mettre à jour les statuts en conséquence
+        // Recalculer les statuts en conséquence
         DB::statement("
             UPDATE factures_fournisseurs
             SET statut = CASE

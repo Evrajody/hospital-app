@@ -44,8 +44,7 @@
           <template #label>
             <span class="tab-label">
               <el-icon><Document /></el-icon>
-              Informations
-              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('general')">*</span>
+              Informations <span class="required-star">*</span>
             </span>
           </template>
 
@@ -179,8 +178,7 @@
           <template #label>
             <span class="tab-label">
               <el-icon><Money /></el-icon>
-              Montants
-              <span class="tab-required-dot" v-if="tabHasRequiredEmpty('montants')">*</span>
+              Montants <span class="required-star">*</span>
             </span>
           </template>
 
@@ -817,17 +815,17 @@ const calculMontantTTC = computed(() => {
   return calculMontantHT.value + calculMontantTVA.value;
 });
 
-// AIB calculé sur le Montant M.O.
+// AIB = Montant M.O. × taux / 100 (aligné sur le backend FactureFournisseur::calculerMontants)
 const calculMontantReduction = computed(() => {
-  if (!form.taux || !form.type_reduction) return 0;
-  const base = form.montant_mo || 0;
-  if (!base) return 0;
-  return (base * form.taux) / 100;
+  const base = parseFloat(form.montant_mo) || 0;
+  const taux = parseFloat(form.taux) || 0;
+  if (base <= 0 || taux <= 0) return 0;
+  return (base * taux) / 100;
 });
 
-// Net à Payer = TTC − Avoir − AIB (cash effectif au fournisseur)
+// NAP = HT − Avoir − AIB (la TVA n'est pas remise au fournisseur — modèle "TVA pour compte")
 const calculMontantNet = computed(() => {
-  return calculMontantTTC.value - (form.avoir || 0) - calculMontantReduction.value;
+  return calculMontantHT.value - (form.avoir || 0) - calculMontantReduction.value;
 });
 
 // Imputations disponibles : séparées en débits (2/42/6) et crédits (401/481)
@@ -935,22 +933,6 @@ const rules = computed(() => ({
 }));
 
 // Methods
-const tabHasRequiredEmpty = (tab) => {
-  if (tab === 'general') {
-    return !form.numero_piece || !form.fournisseur_id || !form.date || !form.libelle;
-  }
-  if (tab === 'montants') {
-    return !form.montant_facture || form.montant_facture <= 0;
-  }
-  if (tab === 'imputations') {
-    if (form.imputationsDebits.length === 0 || form.imputationsCredits.length === 0) return true;
-    if (form.imputationsDebits.some(l => !l.compte_id || !l.montant)) return true;
-    if (form.imputationsCredits.some(l => !l.compte_id || !l.montant)) return true;
-    return false;
-  }
-  return false;
-};
-
 const clearErrors = () => {
   validationErrors.value = [];
 };

@@ -45,7 +45,14 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Période">
+        <el-form-item label="Filtre date">
+          <el-radio-group v-model="filtreDate" size="default" @change="onFiltreDateChange">
+            <el-radio-button label="periode">Période</el-radio-button>
+            <el-radio-button label="point">Point au</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item v-if="filtreDate === 'periode'" label="Période">
           <el-date-picker
             v-model="dateDebut"
             type="date"
@@ -63,6 +70,24 @@
             placeholder="Date fin"
             style="width: 160px"
           />
+        </el-form-item>
+
+        <el-form-item v-else label="Point au">
+          <el-date-picker
+            v-model="datePoint"
+            type="date"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            placeholder="Date du point"
+            style="width: 200px"
+            clearable
+          />
+          <el-tooltip
+            content="Inclut toutes les factures émises et tous les règlements effectués jusqu'à cette date"
+            placement="top"
+          >
+            <el-icon style="margin-left: 6px; color: #909399; cursor: help;"><InfoFilled /></el-icon>
+          </el-tooltip>
         </el-form-item>
 
         <el-form-item>
@@ -142,7 +167,7 @@
               <el-table-column prop="numero_piece" label="N°Pièce" min-width="90" />
               <el-table-column prop="date" label="Date PC" min-width="85" />
               <el-table-column prop="reference_facture" label="Réf. Fact." min-width="100" />
-              <el-table-column label="Mt Fact." min-width="95" align="right">
+              <el-table-column label="Mt TTC" min-width="95" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
               </el-table-column>
               <el-table-column label="Avoir" min-width="80" align="right">
@@ -170,7 +195,7 @@
               </el-table-column>
             </el-table>
             <div class="fournisseur-totals">
-              Total : Mt Fact. <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong>
+              Total : Mt TTC <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong>
               &nbsp;|&nbsp; Mt Dû <strong>{{ formatMontant(fData.totaux.montant_du) }}</strong>
               &nbsp;|&nbsp; Règ. <strong>{{ formatMontant(fData.totaux.total_reglement) }}</strong>
               &nbsp;|&nbsp; <span style="color: #cc0000">Solde <strong>{{ formatMontant(fData.totaux.solde) }}</strong></span>
@@ -178,7 +203,7 @@
           </div>
 
           <div class="grand-total">
-            <span>TOTAL GÉNÉRAL — Mt Fact. : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
+            <span>TOTAL GÉNÉRAL — Mt TTC : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
             <span>Mt Dû : <strong>{{ formatMontant(grandTotaux.montant_du) }}</strong></span>
             <span>Règ. : <strong>{{ formatMontant(grandTotaux.total_reglement) }}</strong></span>
             <span style="color: #cc0000">Solde : <strong>{{ formatMontant(grandTotaux.solde) }}</strong></span>
@@ -199,6 +224,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
+import { InfoFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },
@@ -208,9 +234,21 @@ const props = defineProps({
 const selectedMode = ref('tous');
 const selectedCompteId = ref(null);
 const selectedFournisseurId = ref(null);
+const filtreDate = ref('periode'); // 'periode' | 'point'
 const dateDebut = ref('');
 const dateFin = ref('');
+const datePoint = ref('');
 const loading = ref(false);
+
+// Quand l'utilisateur bascule entre Période et Point au, on vide les autres champs
+const onFiltreDateChange = () => {
+  if (filtreDate.value === 'periode') {
+    datePoint.value = '';
+  } else {
+    dateDebut.value = '';
+    dateFin.value = '';
+  }
+};
 const fetched = ref(false);
 const data = ref([]);
 const grandTotal = ref({});
@@ -234,8 +272,12 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const params = new URLSearchParams({ mode: selectedMode.value });
-    if (dateDebut.value) params.append('date_debut', dateDebut.value);
-    if (dateFin.value) params.append('date_fin', dateFin.value);
+    if (filtreDate.value === 'point' && datePoint.value) {
+      params.append('date_point', datePoint.value);
+    } else if (filtreDate.value === 'periode') {
+      if (dateDebut.value) params.append('date_debut', dateDebut.value);
+      if (dateFin.value) params.append('date_fin', dateFin.value);
+    }
     if (selectedMode.value === 'par_compte' && selectedCompteId.value) {
       params.append('compte_id', selectedCompteId.value);
     }
@@ -270,8 +312,12 @@ const getSummaryTous = ({ columns, data: tableData }) => {
 
 const buildPdfParams = () => {
   const params = new URLSearchParams({ mode: selectedMode.value });
-  if (dateDebut.value) params.append('date_debut', dateDebut.value);
-  if (dateFin.value) params.append('date_fin', dateFin.value);
+  if (filtreDate.value === 'point' && datePoint.value) {
+    params.append('date_point', datePoint.value);
+  } else if (filtreDate.value === 'periode') {
+    if (dateDebut.value) params.append('date_debut', dateDebut.value);
+    if (dateFin.value) params.append('date_fin', dateFin.value);
+  }
   if (selectedMode.value === 'par_compte' && selectedCompteId.value) {
     params.append('compte_id', selectedCompteId.value);
   }

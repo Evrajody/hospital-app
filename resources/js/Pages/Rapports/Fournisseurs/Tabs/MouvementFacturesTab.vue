@@ -61,7 +61,7 @@
           <el-table-column prop="numero_piece" label="N°Pièce" min-width="90" />
           <el-table-column prop="date" label="Date PC" min-width="85" />
           <el-table-column prop="reference_facture" label="Réf. Fact." min-width="100" />
-          <el-table-column label="Mt Fact." min-width="100" align="right">
+          <el-table-column label="Mt TTC" min-width="100" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
           </el-table-column>
           <el-table-column label="Avoir" min-width="85" align="right">

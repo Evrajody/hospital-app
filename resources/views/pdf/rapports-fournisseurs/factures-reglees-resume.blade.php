@@ -2,6 +2,7 @@
 
 @section('title', ($titre ?? 'Etat des factures réglées') . ' - Résumé')
 @section('page-size', 'A4 landscape')
+@section('page-margin', '15mm 20mm')
 @section('report-title', $titre ?? 'Etat des factures réglées')
 @section('report-subtitle', '(Résumé par fournisseur)')
 
@@ -13,7 +14,7 @@
             <thead>
                 <tr>
                     <th>Fournisseur</th>
-                    <th class="montant" style="width: 110px">Total Mt Fact.</th>
+                    <th class="montant" style="width: 110px">Total Mt TTC</th>
                     <th class="montant" style="width: 95px">Total Avoir</th>
                     <th class="montant" style="width: 100px">Total Mt M.O.</th>
                     <th class="montant" style="width: 95px">Total AIB</th>

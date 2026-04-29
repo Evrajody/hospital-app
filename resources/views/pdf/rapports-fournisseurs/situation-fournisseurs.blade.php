@@ -5,9 +5,12 @@
 @section('page-margin', '15mm 25mm')
 @php
     $suffixe = '';
+    $dp = $date_point ?? null;
     $dd = $date_debut ?? null;
     $df = $date_fin ?? null;
-    if ($dd && $df && $dd === $df) {
+    if ($dp) {
+        $suffixe = ' — Point au ' . \Carbon\Carbon::parse($dp)->format('d/m/Y');
+    } elseif ($dd && $df && $dd === $df) {
         $suffixe = ' au ' . \Carbon\Carbon::parse($df)->format('d/m/Y');
     } elseif ($dd && $df) {
         $suffixe = ' du ' . \Carbon\Carbon::parse($dd)->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($df)->format('d/m/Y');
@@ -118,7 +121,7 @@
                             <th style="width: 70px">N&deg;PC</th>
                             <th style="width: 65px">Date PC</th>
                             <th style="width: 80px">R&eacute;f. Fact.</th>
-                            <th class="montant">Mt Fact.</th>
+                            <th class="montant">Mt TTC</th>
                             <th class="montant">Avoir</th>
                             <th class="montant">Mt M.O.</th>
                             <th class="montant" style="width: 45px">AIB (%)</th>

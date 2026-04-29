@@ -2,7 +2,7 @@
 
 @section('title', 'Pertes, Rejets et Régularisations')
 @section('page-size', 'A4 portrait')
-@section('page-margin', '15mm 25mm')
+@section('page-margin', '20mm 25mm')
 @section('report-title', $titre ?? 'PERTES, REJETS ET RÉGULARISATIONS')
 
 @php

@@ -285,7 +285,11 @@ const getStatutLabel = (statut) => {
 };
 
 const handleBack = () => {
-  router.visit('/factures-clients');
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit('/factures-clients');
+  }
 };
 
 const handleAction = (command) => {
