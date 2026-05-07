@@ -135,16 +135,7 @@
             $user = $mandat['user'];
         @endphp
 
-        <div class="header">
-            <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-            <div class="hospital-info">
-                {{ $etablissement['adresse'] }}<br>
-                {{ $etablissement['telephone'] ? 'Tél.: ' . $etablissement['telephone'] : '' }}
-                @if(!empty($etablissement['email']))
-                    - E-mail: {{ $etablissement['email'] }}
-                @endif
-            </div>
-        </div>
+        @include('pdf._entete-officiel')
 
         <div class="document-title">
             <h1>Bordereau de Règlement</h1>

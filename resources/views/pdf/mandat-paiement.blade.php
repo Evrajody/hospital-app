@@ -163,17 +163,8 @@
     </style>
 </head>
 <body>
-    <!-- En-tête centré -->
-    <div class="header">
-        <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-        <div class="hospital-info">
-            {{ $etablissement['adresse'] }}<br>
-            {{ $etablissement['telephone'] ? 'Tél.: ' . $etablissement['telephone'] : '' }}
-            @if(!empty($etablissement['email']))
-                - E-mail: {{ $etablissement['email'] }}
-            @endif
-        </div>
-    </div>
+    <!-- Entête officielle (Ministère / Direction / Zone / Hôpital) -->
+    @include('pdf._entete-officiel')
 
     <!-- Titre encadré -->
     <div class="document-title">
