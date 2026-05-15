@@ -24,7 +24,8 @@
             </template>
             <el-input
               v-model="form.reference"
-              placeholder="0001/02/26"
+              placeholder="Saisir une référence"
+              maxlength="20"
             >
               <template #append>
                 <el-button :icon="MagicStick" @click="autoReference">
@@ -32,7 +33,6 @@
                 </el-button>
               </template>
             </el-input>
-            <div class="form-hint">Format : xxxx/mm/yy</div>
           </el-form-item>
         </el-col>
 
@@ -113,31 +113,6 @@
       </el-row>
     </el-form>
 
-    <!-- Modal saut de numéro -->
-    <el-dialog
-      v-model="showSautModal"
-      title="Saut de numéro détecté"
-      width="400px"
-      :close-on-click-modal="false"
-      append-to-body
-    >
-      <div style="text-align: center; padding: 10px 0;">
-        <el-icon :size="48" color="#E6A23C" style="margin-bottom: 16px;"><WarningFilled /></el-icon>
-        <p style="font-size: 15px;">
-          Vous sautez <strong>{{ sautData.numeros }}</strong> numéro(s) de référence.
-        </p>
-        <p style="font-size: 13px; color: #909399;">
-          Voulez-vous continuer avec la référence <strong>{{ form.reference }}</strong> ?
-        </p>
-      </div>
-      <template #footer>
-        <el-button @click="showSautModal = false">Annuler</el-button>
-        <el-button type="warning" :loading="props.loading" @click="forceSubmit">
-          Confirmer
-        </el-button>
-      </template>
-    </el-dialog>
-
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleCancel" :disabled="props.loading">Annuler</el-button>
@@ -157,7 +132,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { MagicStick, Check, WarningFilled } from '@element-plus/icons-vue';
+import { MagicStick, Check } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
 
 const props = defineProps({
@@ -177,8 +152,6 @@ const dialogVisible = computed({
 
 const isEdit = computed(() => !!props.facture);
 const formRef = ref(null);
-const showSautModal = ref(false);
-const sautData = reactive({ numeros: 0 });
 
 const getInitialFormData = () => ({
   reference: '',
@@ -225,7 +198,7 @@ watch(() => props.modelValue, (isOpen) => {
 const rules = {
   reference: [
     { required: true, message: 'La référence est obligatoire', trigger: 'blur' },
-    { pattern: /^\d{4}\/\d{2}\/\d{2}$/, message: 'Format attendu : xxxx/mm/yy', trigger: 'blur' }
+    { max: 20, message: 'La référence ne doit pas dépasser 20 caractères', trigger: 'blur' }
   ],
   date_facture: [
     { required: true, message: 'La date est obligatoire', trigger: 'change' }
@@ -264,10 +237,9 @@ const handleClosed = () => {
   if (formRef.value) formRef.value.resetFields();
   const initialData = getInitialFormData();
   Object.keys(initialData).forEach(key => { form[key] = initialData[key]; });
-  showSautModal.value = false;
 };
 
-const buildPayload = (forceSaut = false) => {
+const buildPayload = () => {
   const dateFacture = form.date_facture instanceof Date
     ? form.date_facture.toISOString().split('T')[0]
     : form.date_facture;
@@ -278,7 +250,6 @@ const buildPayload = (forceSaut = false) => {
     client_id: form.client_id,
     montant: form.montant,
     ristourne: form.ristourne || 0,
-    force_saut: forceSaut,
   };
 };
 
@@ -287,24 +258,11 @@ const handleSubmit = async () => {
 
   try {
     await formRef.value.validate();
-    emit('success', buildPayload(false));
+    emit('success', buildPayload());
   } catch (error) {
     ElMessage.error('Veuillez corriger les erreurs');
   }
 };
-
-const forceSubmit = () => {
-  showSautModal.value = false;
-  emit('success', buildPayload(true));
-};
-
-// Exposer pour que le parent puisse afficher le modal de saut
-const showSautWarning = (numeros) => {
-  sautData.numeros = numeros;
-  showSautModal.value = true;
-};
-
-defineExpose({ showSautWarning });
 </script>
 
 <style scoped>

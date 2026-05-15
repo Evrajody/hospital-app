@@ -25,7 +25,7 @@ class ReglementClient extends Model
         'institution',
         'reference_cheque',
         'banque_depot_id',
-        'compte_bancaire_id',
+        'approvisionnement_id',
         'observations',
         'bordereau_depot_path',
         'created_by',
@@ -34,16 +34,12 @@ class ReglementClient extends Model
 
     const TYPE_REGLEMENT = 'reglement';
     const TYPE_PERTE = 'perte';
-    const TYPE_REJET = 'rejet';
-    const TYPE_REGULARISATION = 'regularisation';
 
     public static function getTypesReglement(): array
     {
         return [
             ['value' => self::TYPE_REGLEMENT, 'label' => 'Règlement'],
             ['value' => self::TYPE_PERTE, 'label' => 'Perte'],
-            ['value' => self::TYPE_REJET, 'label' => 'Rejet'],
-            ['value' => self::TYPE_REGULARISATION, 'label' => 'Régularisation'],
         ];
     }
 
@@ -51,8 +47,6 @@ class ReglementClient extends Model
     {
         return match($this->type_reglement) {
             self::TYPE_PERTE => 'Perte',
-            self::TYPE_REJET => 'Rejet',
-            self::TYPE_REGULARISATION => 'Régularisation',
             default => 'Règlement',
         };
     }
@@ -61,8 +55,6 @@ class ReglementClient extends Model
     {
         return match($this->type_reglement) {
             self::TYPE_PERTE => 'danger',
-            self::TYPE_REJET => 'warning',
-            self::TYPE_REGULARISATION => 'success',
             default => 'primary',
         };
     }
@@ -91,9 +83,9 @@ class ReglementClient extends Model
         return $this->belongsTo(Banque::class, 'banque_depot_id');
     }
 
-    public function compteBancaire(): BelongsTo
+    public function approvisionnement(): BelongsTo
     {
-        return $this->belongsTo(CompteBancaire::class, 'compte_bancaire_id');
+        return $this->belongsTo(ApprovisionnementBanque::class, 'approvisionnement_id');
     }
 
     public function createur(): BelongsTo
@@ -147,6 +139,7 @@ class ReglementClient extends Model
                 'nom' => $this->client_nom ?: $this->client?->nom,
             ],
             'montant' => (float) $this->montant,
+            'montant_rejet' => (float) ($this->montant_rejet ?? 0),
             'institution' => $this->institution,
             'reference_cheque' => $this->reference_cheque,
             'banque_depot_id' => $this->banque_depot_id,
@@ -154,10 +147,12 @@ class ReglementClient extends Model
                 'id' => $this->banqueDepot->id,
                 'nom' => $this->banqueDepot->nom,
             ] : null,
-            'compte_bancaire_id' => $this->compte_bancaire_id,
-            'compte_bancaire' => $this->compteBancaire ? [
-                'id' => $this->compteBancaire->id,
-                'numero_compte' => $this->compteBancaire->numero_compte,
+            'approvisionnement_id' => $this->approvisionnement_id,
+            'approvisionnement' => $this->approvisionnement ? [
+                'id' => $this->approvisionnement->id,
+                'reference_bordereau' => $this->approvisionnement->reference_bordereau,
+                'date_depot' => $this->approvisionnement->date_depot?->format('Y-m-d'),
+                'compte_bancaire_id' => $this->approvisionnement->compte_bancaire_id,
             ] : null,
             'observations' => $this->observations,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),

@@ -30,6 +30,14 @@
         </el-select>
       </el-form-item>
 
+      <el-form-item label="Référence bordereau" prop="reference_bordereau">
+        <el-input
+          v-model="form.reference_bordereau"
+          placeholder="Ex: BORD-2026-001"
+          maxlength="100"
+        />
+      </el-form-item>
+
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="Date Dépôt" prop="date_depot">
@@ -137,6 +145,7 @@ const dialogVisible = computed({
 
 const form = reactive({
   compte_bancaire_id: null,
+  reference_bordereau: '',
   date_depot: new Date().toISOString().split('T')[0],
   montant: 0,
   observations: ''
@@ -146,6 +155,9 @@ const form = reactive({
 const rules = {
   compte_bancaire_id: [
     { required: true, message: 'Le compte bancaire est obligatoire', trigger: 'change' }
+  ],
+  reference_bordereau: [
+    { required: true, message: 'La référence bordereau est obligatoire', trigger: 'blur' }
   ],
   date_depot: [
     { required: true, message: 'La date est obligatoire', trigger: 'change' }
@@ -174,6 +186,7 @@ const handleClosed = () => {
     formRef.value.resetFields();
   }
   form.compte_bancaire_id = null;
+  form.reference_bordereau = '';
   form.date_depot = new Date().toISOString().split('T')[0];
   form.montant = 0;
   form.observations = '';
@@ -189,6 +202,7 @@ const handleSubmit = async () => {
 
     const formData = new FormData();
     formData.append('compte_bancaire_id', form.compte_bancaire_id);
+    formData.append('reference_bordereau', form.reference_bordereau);
     formData.append('date_depot', form.date_depot);
     formData.append('montant', form.montant);
     formData.append('observations', form.observations || '');

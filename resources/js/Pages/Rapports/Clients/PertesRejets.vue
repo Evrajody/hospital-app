@@ -12,8 +12,8 @@
       </div>
 
       <div class="document-title">
-        <h1>PERTES, REJETS ET RÉGULARISATIONS</h1>
-        <div class="subtitle">État des impayés et opérations de régularisation</div>
+        <h1>PERTES ET REJETS</h1>
+        <div class="subtitle">État des impayés</div>
         <div class="periode">Période du {{ formatDate(periode.debut) }} au {{ formatDate(periode.fin) }}</div>
       </div>
 
@@ -28,10 +28,6 @@
           <div class="summary-box warning">
             <div class="summary-label">Total Rejets</div>
             <div class="summary-value">{{ formatMontant(totaux.rejets) }}</div>
-          </div>
-          <div class="summary-box success">
-            <div class="summary-label">Total Régularisations</div>
-            <div class="summary-value">{{ formatMontant(totaux.regularisations) }}</div>
           </div>
           <div class="summary-box">
             <div class="summary-label">Solde Net</div>
@@ -127,46 +123,6 @@
         </table>
       </div>
 
-      <!-- Régularisations -->
-      <div class="section">
-        <h2>RÉGULARISATIONS</h2>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Client</th>
-              <th>Type</th>
-              <th>Description</th>
-              <th class="montant-col">Montant</th>
-              <th>Référence</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="reg in regularisations" :key="reg.id">
-              <td>{{ formatDate(reg.date_operation) }}</td>
-              <td>
-                <strong>{{ reg.client.nom }}</strong><br>
-                <span class="client-code">{{ reg.client.code }}</span>
-              </td>
-              <td>{{ getTypeRegLabel(reg.type) }}</td>
-              <td>{{ reg.description }}</td>
-              <td class="montant-col montant-regularisation">{{ formatMontant(reg.montant) }}</td>
-              <td>{{ reg.reference || '-' }}</td>
-            </tr>
-            <tr v-if="regularisations.length === 0">
-              <td colspan="6" class="no-data">Aucune régularisation enregistrée</td>
-            </tr>
-          </tbody>
-          <tfoot v-if="regularisations.length > 0">
-            <tr class="total-row">
-              <td colspan="4" class="total-label">SOUS-TOTAL RÉGULARISATIONS</td>
-              <td class="montant-col total-cell">{{ formatMontant(totaux.regularisations) }}</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
       <!-- Synthèse -->
       <div class="section">
         <h2>SYNTHÈSE</h2>
@@ -180,14 +136,10 @@
               <td class="synthese-label">Total des rejets de chèques</td>
               <td class="montant-col montant-rejet">{{ formatMontant(totaux.rejets) }}</td>
             </tr>
-            <tr>
-              <td class="synthese-label">Total des régularisations</td>
-              <td class="montant-col montant-regularisation">{{ formatMontant(totaux.regularisations) }}</td>
-            </tr>
           </tbody>
           <tfoot>
             <tr class="total-row">
-              <td class="total-label">SOLDE NET (Pertes + Rejets - Régularisations)</td>
+              <td class="total-label">SOLDE NET (Pertes + Rejets)</td>
               <td class="montant-col total-cell">{{ formatMontant(totaux.solde) }}</td>
             </tr>
           </tfoot>
@@ -216,19 +168,16 @@ import { Printer } from '@element-plus/icons-vue';
 const props = defineProps({
   pertes: { type: Array, default: () => [] },
   rejets: { type: Array, default: () => [] },
-  regularisations: { type: Array, default: () => [] },
   periode: { type: Object, required: true }
 });
 
 const totaux = computed(() => {
   const pertes = props.pertes.reduce((sum, p) => sum + p.montant, 0);
   const rejets = props.rejets.reduce((sum, r) => sum + r.montant, 0);
-  const regularisations = props.regularisations.reduce((sum, r) => sum + r.montant, 0);
   return {
     pertes,
     rejets,
-    regularisations,
-    solde: pertes + rejets - regularisations
+    solde: pertes + rejets
   };
 });
 
@@ -240,17 +189,6 @@ const getStatutRejetClass = (rejet) => {
     non_regularise: 'statut-danger'
   };
   return classes[statut] || 'statut-warning';
-};
-
-const getTypeRegLabel = (type) => {
-  const labels = {
-    remboursement: 'Remboursement',
-    avoir: 'Avoir',
-    annulation: 'Annulation',
-    rectification: 'Rectification',
-    remise: 'Remise gracieuse'
-  };
-  return labels[type] || type;
 };
 
 const formatMontant = (montant) => {
@@ -324,11 +262,6 @@ const handleClose = () => window.close();
 }
 
 .montant-rejet {
-  color: #000000;
-  font-weight: bold;
-}
-
-.montant-regularisation {
   color: #000000;
   font-weight: bold;
 }

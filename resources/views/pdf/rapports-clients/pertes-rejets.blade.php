@@ -1,14 +1,14 @@
 @extends('pdf.rapports._layout-rapport')
 
-@section('title', 'Pertes, Rejets et Régularisations')
+@section('title', 'Pertes et Rejets')
 @section('page-size', 'A4 portrait')
 @section('page-margin', '20mm 25mm')
-@section('report-title', $titre ?? 'PERTES, REJETS ET RÉGULARISATIONS')
+@section('report-title', $titre ?? 'PERTES ET REJETS')
 
 @php
     $subtitleParts = [];
     if (!empty($typeFilter)) {
-        $labels = ['perte' => 'Pertes', 'rejet' => 'Rejets', 'regularisation' => 'Régularisations'];
+        $labels = ['perte' => 'Pertes', 'rejet' => 'Rejets'];
         $subtitleParts[] = $labels[$typeFilter] ?? $typeFilter;
     }
     if (!empty($periode['debut']) && !empty($periode['fin'])) {
@@ -29,9 +29,6 @@
 @section('extra-styles')
     .client-block { margin-bottom: 25px; page-break-inside: avoid; }
     .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
-    .synthese-table { margin-top: 20px; }
-    .synthese-table td { padding: 8px 12px; }
-    .synthese-label { font-weight: 600; }
 @endsection
 
 @section('content')
@@ -50,7 +47,6 @@
                         <tr>
                             <th style="width: 30px">N°</th>
                             <th>Date</th>
-                            <th>Type</th>
                             <th>Réf. Facture</th>
                             <th class="montant" style="width: 110px">Montant</th>
                             <th>Observations</th>
@@ -61,7 +57,6 @@
                             <tr>
                                 <td><strong>{{ $ligne['numero'] }}</strong></td>
                                 <td>{{ $ligne['date_reglement'] }}</td>
-                                <td>{{ $ligne['type_reglement_libelle'] }}</td>
                                 <td>{{ $ligne['facture_reference'] ?? '-' }}</td>
                                 <td class="montant">{{ number_format($ligne['montant'], 0, ',', ' ') }}</td>
                                 <td style="font-size: 9px;">{{ $ligne['observations'] ?? '-' }}</td>
@@ -70,7 +65,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="total-row">
-                            <td colspan="4" class="total-label">Total :</td>
+                            <td colspan="3" class="total-label">Total :</td>
                             <td class="montant">{{ number_format($clientData['total'], 0, ',', ' ') }}</td>
                             <td></td>
                         </tr>
@@ -78,27 +73,5 @@
                 </table>
             </div>
         @endforeach
-
-        {{-- Synthèse --}}
-        <table class="report-table synthese-table" style="width: 50%; margin-left: auto;">
-            <tbody>
-                <tr>
-                    <td class="synthese-label">Total Pertes</td>
-                    <td class="montant"><strong>{{ number_format($totaux['pertes'], 0, ',', ' ') }}</strong></td>
-                </tr>
-                <tr>
-                    <td class="synthese-label">Total Rejets</td>
-                    <td class="montant"><strong>{{ number_format($totaux['rejets'], 0, ',', ' ') }}</strong></td>
-                </tr>
-                <tr>
-                    <td class="synthese-label">Total Régularisations</td>
-                    <td class="montant"><strong>{{ number_format($totaux['regularisations'], 0, ',', ' ') }}</strong></td>
-                </tr>
-                <tr style="border-top: 2px solid #000;">
-                    <td class="synthese-label">Solde Net (Pertes + Rejets - Régularisations)</td>
-                    <td class="montant"><strong>{{ number_format($totaux['solde'], 0, ',', ' ') }}</strong></td>
-                </tr>
-            </tbody>
-        </table>
     @endif
 @endsection

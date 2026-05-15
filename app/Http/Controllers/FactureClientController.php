@@ -122,25 +122,39 @@ class FactureClientController extends Controller
     {
         $facture = FactureClient::with('client')->findOrFail($id);
 
-        $reglements = ReglementClient::with(['banqueDepot', 'compteBancaire'])
+        $reglements = ReglementClient::with(['banqueDepot', 'approvisionnement'])
             ->where('facture_id', $id)
             ->orderBy('date_reglement', 'desc')
             ->get()
             ->map(fn($r) => $r->toApiArray());
 
-        $banques = Banque::with(['comptes' => function ($q) {
-            $q->orderBy('numero_compte');
+        // Pour le dropdown de la page règlement on liste les approvisionnements (référence bordereau)
+        // regroupés par banque. Le compte bancaire est résolu via l'approvisionnement.
+        $banques = Banque::with(['comptes.approvisionnements' => function ($q) {
+            $q->whereNotNull('reference_bordereau')
+              ->orderBy('date_depot', 'desc');
         }])
             ->orderBy('nom')
             ->get()
-            ->map(fn($b) => [
-                'id' => $b->id,
-                'nom' => $b->nom,
-                'comptes' => $b->comptes->map(fn($c) => [
-                    'id' => $c->id,
-                    'numero_compte' => $c->numero_compte,
-                ]),
-            ]);
+            ->map(function ($b) {
+                $approvisionnements = collect();
+                foreach ($b->comptes as $compte) {
+                    foreach ($compte->approvisionnements as $appro) {
+                        $approvisionnements->push([
+                            'id' => $appro->id,
+                            'reference_bordereau' => $appro->reference_bordereau,
+                            'date_depot' => $appro->date_depot?->format('Y-m-d'),
+                            'compte_bancaire_id' => $compte->id,
+                            'compte_numero' => $compte->numero_compte,
+                        ]);
+                    }
+                }
+                return [
+                    'id' => $b->id,
+                    'nom' => $b->nom,
+                    'approvisionnements' => $approvisionnements->values(),
+                ];
+            });
 
         $institutions = ReglementClient::getInstitutions();
 
@@ -168,17 +182,6 @@ class FactureClientController extends Controller
             'ristourne' => ['nullable', 'numeric', 'min:0'],
             'client_id' => ['required', 'integer', 'exists:clients,id'],
         ]);
-
-        // Vérifier s'il y a un saut de numéro
-        $saut = FactureClient::verifierSaut($request->reference);
-        if ($saut !== null && !$request->force_saut) {
-            return response()->json([
-                'success' => false,
-                'saut_numero' => true,
-                'message' => "Attention : vous sautez {$saut} numéro(s) de référence.",
-                'numeros_sautes' => $saut,
-            ], 422);
-        }
 
         $ristourne = $request->ristourne ?? 0;
 

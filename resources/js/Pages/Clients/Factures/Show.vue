@@ -187,7 +187,6 @@
 
     <!-- Modal Facture -->
     <FactureClientModal
-      ref="factureModalRef"
       v-model="showFactureModal"
       :facture="selectedFacture"
       :clients="clients"
@@ -220,7 +219,6 @@ const props = defineProps({
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
 const modalLoading = ref(false);
-const factureModalRef = ref(null);
 
 const breadcrumbs = [
   { title: 'Tableau de bord', path: '/dashboard' },

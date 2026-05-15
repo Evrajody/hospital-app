@@ -151,6 +151,7 @@ class BanqueController extends Controller
     {
         $validated = $request->validate([
             'compte_bancaire_id' => 'required|exists:comptes_bancaires,id',
+            'reference_bordereau' => 'required|string|max:100',
             'date_depot' => 'required|date',
             'montant' => 'required|numeric|min:1',
             'observations' => 'nullable|string',
@@ -172,7 +173,8 @@ class BanqueController extends Controller
                 $validated['montant'],
                 $validated['date_depot'],
                 $validated['observations'] ?? null,
-                $pieceJointe
+                $pieceJointe,
+                $validated['reference_bordereau']
             );
 
             DB::commit();

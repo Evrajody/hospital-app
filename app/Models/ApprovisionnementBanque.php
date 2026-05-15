@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ApprovisionnementBanque extends Model
 {
@@ -14,6 +15,7 @@ class ApprovisionnementBanque extends Model
 
     protected $fillable = [
         'compte_bancaire_id',
+        'reference_bordereau',
         'date_depot',
         'montant',
         'observations',
@@ -40,5 +42,13 @@ class ApprovisionnementBanque extends Model
     public function createur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Règlements clients déposés sur ce bordereau
+     */
+    public function reglementsClients(): HasMany
+    {
+        return $this->hasMany(ReglementClient::class, 'approvisionnement_id');
     }
 }

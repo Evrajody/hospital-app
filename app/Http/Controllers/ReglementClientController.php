@@ -20,7 +20,7 @@ class ReglementClientController extends Controller
      */
     public function indexView(Request $request): InertiaResponse
     {
-        $query = ReglementClient::with(['facture', 'client', 'banqueDepot', 'compteBancaire'])
+        $query = ReglementClient::with(['facture', 'client', 'banqueDepot', 'approvisionnement'])
             ->orderBy('date_reglement', 'desc');
 
         if ($request->filled('client_id')) {
@@ -88,11 +88,11 @@ class ReglementClientController extends Controller
             'date_reglement' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
-            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet'],
+            'type_reglement' => ['nullable', 'string', 'in:reglement,perte'],
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
-            'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
+            'approvisionnement_id' => ['nullable', 'required_unless:type_reglement,perte', 'integer', 'exists:approvisionnements_banques,id'],
             'observations' => ['nullable', 'string'],
             'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'montant_rejet' => ['nullable', 'numeric', 'min:0'],
@@ -128,7 +128,7 @@ class ReglementClientController extends Controller
                 'institution' => $request->institution,
                 'reference_cheque' => $request->reference_cheque,
                 'banque_depot_id' => $request->banque_depot_id,
-                'compte_bancaire_id' => $request->compte_bancaire_id,
+                'approvisionnement_id' => $request->approvisionnement_id,
                 'observations' => $request->observations,
                 'bordereau_depot_path' => $bordereauPath,
                 'montant_rejet' => (float) ($request->montant_rejet ?? 0),
@@ -143,7 +143,7 @@ class ReglementClientController extends Controller
             $montantReglement = (float) $request->montant;
             ActivityLog::log('create', 'reglement_client', "Règlement de " . number_format($montantReglement, 0, ',', ' ') . " XOF sur facture {$facture->reference}", $reglement, ['montant' => $montantReglement]);
 
-            $reglement->load(['facture', 'client', 'banqueDepot', 'compteBancaire']);
+            $reglement->load(['facture', 'client', 'banqueDepot', 'approvisionnement']);
 
             return response()->json([
                 'success' => true,
@@ -171,11 +171,11 @@ class ReglementClientController extends Controller
             'date_reglement' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
-            'type_reglement' => ['nullable', 'string', 'in:reglement,perte,rejet'],
+            'type_reglement' => ['nullable', 'string', 'in:reglement,perte'],
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
-            'compte_bancaire_id' => ['nullable', 'integer', 'exists:comptes_bancaires,id'],
+            'approvisionnement_id' => ['nullable', 'required_unless:type_reglement,perte', 'integer', 'exists:approvisionnements_banques,id'],
             'observations' => ['nullable', 'string'],
             'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'montant_rejet' => ['nullable', 'numeric', 'min:0'],
@@ -213,7 +213,7 @@ class ReglementClientController extends Controller
                 'institution' => $request->institution,
                 'reference_cheque' => $request->reference_cheque,
                 'banque_depot_id' => $request->banque_depot_id,
-                'compte_bancaire_id' => $request->compte_bancaire_id,
+                'approvisionnement_id' => $request->approvisionnement_id,
                 'observations' => $request->observations,
                 'bordereau_depot_path' => $bordereauPath,
                 'montant_rejet' => (float) ($request->montant_rejet ?? $reglement->montant_rejet ?? 0),
@@ -238,7 +238,7 @@ class ReglementClientController extends Controller
 
             ActivityLog::log('update', 'reglement_client', "Modification du règlement #{$reglement->id}", $reglement);
 
-            $reglement->load(['facture', 'client', 'banqueDepot', 'compteBancaire']);
+            $reglement->load(['facture', 'client', 'banqueDepot', 'approvisionnement']);
 
             return response()->json([
                 'success' => true,

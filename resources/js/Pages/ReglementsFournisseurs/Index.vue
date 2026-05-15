@@ -292,7 +292,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="N° règlements" width="130" align="center">
+          <el-table-column label="Nb règlements" width="130" align="center">
             <template #default="{ row }">
               <el-tag size="small" type="info">{{ row.count }}</el-tag>
             </template>

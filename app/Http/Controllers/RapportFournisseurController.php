@@ -714,7 +714,7 @@ class RapportFournisseurController extends Controller
             $debitPeriode += (float) ApprovisionnementBanque::where('compte_bancaire_id', $cb->id)
                 ->whereBetween('date_depot', [$dateDebut, $dateFin])
                 ->sum('montant');
-            $debitPeriode += (float) ReglementClient::where('compte_bancaire_id', $cb->id)
+            $debitPeriode += (float) ReglementClient::whereHas('approvisionnement', fn($q) => $q->where('compte_bancaire_id', $cb->id))
                 ->whereBetween('date_reglement', [$dateDebut, $dateFin])
                 ->sum('montant');
 
@@ -749,7 +749,7 @@ class RapportFournisseurController extends Controller
                 $debitAvant += (float) ApprovisionnementBanque::where('compte_bancaire_id', $cb->id)
                     ->where('date_depot', '<', $dateDebut)
                     ->sum('montant');
-                $debitAvant += (float) ReglementClient::where('compte_bancaire_id', $cb->id)
+                $debitAvant += (float) ReglementClient::whereHas('approvisionnement', fn($q) => $q->where('compte_bancaire_id', $cb->id))
                     ->where('date_reglement', '<', $dateDebut)
                     ->sum('montant');
 
@@ -804,7 +804,7 @@ class RapportFournisseurController extends Controller
                 }
 
                 // ReglementClient (DEBIT - money in)
-                $regClients = ReglementClient::where('compte_bancaire_id', $cb->id)
+                $regClients = ReglementClient::whereHas('approvisionnement', fn($q) => $q->where('compte_bancaire_id', $cb->id))
                     ->whereBetween('date_reglement', [$dateDebut, $dateFin])
                     ->with('client')
                     ->orderBy('date_reglement')

@@ -246,7 +246,6 @@
 
     <!-- Modal Facture -->
     <FactureClientModal
-      ref="factureModalRef"
       v-model="showFactureModal"
       :facture="selectedFacture"
       :clients="clients"
@@ -303,7 +302,6 @@ const loading = ref(false);
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
 const modalLoading = ref(false);
-const factureModalRef = ref(null);
 
 const localFilters = reactive({
   search: props.filters?.search || '',
@@ -469,9 +467,6 @@ const handleFactureSuccess = async (data) => {
       showFactureModal.value = false;
       selectedFacture.value = null;
       router.reload();
-    } else if (result.saut_numero) {
-      // Saut de numéro détecté - afficher le warning
-      factureModalRef.value?.showSautWarning(result.numeros_sautes);
     } else {
       ElMessage.error(result.message || 'Erreur');
     }

@@ -10,16 +10,14 @@
 @endif
 
 @section('extra-styles')
-    .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 8px 0; margin: 30px 0 10px; border-bottom: 1px solid #000; }
     .solde { font-weight: bold; }
-    .compte-cell { font-family: 'Courier New', monospace; font-size: 9px; text-align: center; }
+    .date-cell { vertical-align: top; }
 @endsection
 
 @section('content')
     @if(count($data) === 0)
         <p style="text-align: center; padding: 40px; color: #666;">Aucune donnée trouvée pour cette période.</p>
     @else
-        {{-- Brouillard de chèques groupé par date --}}
         @php
             $groups = [];
             $currentDate = null;
@@ -30,9 +28,6 @@
                 }
                 $groups[count($groups) - 1]['entries'][] = $entry;
             }
-            $totalDebit = collect($data)->sum('debit');
-            $totalCredit = collect($data)->sum('credit');
-            $soldeGeneral = count($data) > 0 ? $data[count($data) - 1]['solde'] : 0;
         @endphp
 
         <table class="report-table">
@@ -47,13 +42,11 @@
             </thead>
             <tbody>
                 @foreach($groups as $group)
-                    <tr>
-                        <td><strong>{{ $group['date'] }}</strong></td>
-                        <td colspan="4"></td>
-                    </tr>
-                    @foreach($group['entries'] as $entry)
+                    @foreach($group['entries'] as $i => $entry)
                         <tr>
-                            <td></td>
+                            @if($i === 0)
+                                <td class="date-cell" rowspan="{{ count($group['entries']) }}"><strong>{{ $group['date'] }}</strong></td>
+                            @endif
                             <td>{{ $entry['libelle'] }}</td>
                             <td class="montant">{{ $entry['debit'] ? number_format($entry['debit'], 0, ',', ' ') : '' }}</td>
                             <td class="montant">{{ $entry['credit'] ? number_format($entry['credit'], 0, ',', ' ') : '' }}</td>
@@ -62,48 +55,6 @@
                     @endforeach
                 @endforeach
             </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td colspan="2" class="total-label">TOTAUX</td>
-                    <td class="montant">{{ number_format($totalDebit, 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($totalCredit, 0, ',', ' ') }}</td>
-                    <td class="montant solde">{{ number_format($soldeGeneral, 0, ',', ' ') }}</td>
-                </tr>
-            </tfoot>
-        </table>
-
-        {{-- Imputations Comptables --}}
-        <div class="section-title">IMPUTATIONS COMPTABLES</div>
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th style="width: 70px">Date</th>
-                    <th style="width: 100px">N° Pièce</th>
-                    <th>Libellé</th>
-                    <th class="compte-cell" style="width: 80px">Cpte Débit</th>
-                    <th class="compte-cell" style="width: 80px">Cpte Crédit</th>
-                    <th class="montant" style="width: 100px">Montant</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($data as $entry)
-                    <tr>
-                        <td>{{ $entry['date'] }}</td>
-                        <td><strong>{{ $entry['reference'] }}</strong></td>
-                        <td>{{ $entry['client_nom'] }} ({{ $entry['facture_ref'] }})</td>
-                        <td class="compte-cell">{{ $entry['compte_debit'] }}</td>
-                        <td class="compte-cell">{{ $entry['compte_credit'] }}</td>
-                        <td class="montant">{{ number_format($entry['montant'], 0, ',', ' ') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-            <tfoot>
-                @php $totalMontant = collect($data)->sum('montant'); @endphp
-                <tr class="total-row">
-                    <td colspan="5" class="total-label">TOTAL</td>
-                    <td class="montant">{{ number_format($totalMontant, 0, ',', ' ') }}</td>
-                </tr>
-            </tfoot>
         </table>
     @endif
 @endsection

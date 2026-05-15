@@ -82,13 +82,13 @@
         <el-menu-item-group v-if="can('rapports.voir')">
           <template #title><span v-if="!isCollapse" class="menu-group-title"><el-icon><Printer /></el-icon> Rapports</span></template>
           <el-menu-item index="/rapports/fournisseurs" @click="navigate('/rapports/fournisseurs')">
-            <template #title>Fournisseurs</template>
+            <template #title>Rapports Fournisseurs</template>
           </el-menu-item>
           <el-menu-item index="/rapports/clients" @click="navigate('/rapports/clients')">
-            <template #title>Clients</template>
+            <template #title>Rapports   Clients</template>
           </el-menu-item>
           <el-menu-item index="/rapports/banques" @click="navigate('/rapports/banques')">
-            <template #title>Banques</template>
+            <template #title>Rapports Banques</template>
           </el-menu-item>
         </el-menu-item-group>
 

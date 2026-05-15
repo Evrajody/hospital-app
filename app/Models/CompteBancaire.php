@@ -68,13 +68,19 @@ class CompteBancaire extends Model
     /**
      * Ajouter un approvisionnement et mettre à jour le solde
      */
-    public function approvisionner(float $montant, string $dateDepot, ?string $observations = null, ?string $pieceJointe = null): ApprovisionnementBanque
-    {
+    public function approvisionner(
+        float $montant,
+        string $dateDepot,
+        ?string $observations = null,
+        ?string $pieceJointe = null,
+        ?string $referenceBordereau = null
+    ): ApprovisionnementBanque {
         $approvisionnement = $this->approvisionnements()->create([
             'date_depot' => $dateDepot,
             'montant' => $montant,
             'observations' => $observations,
             'piece_jointe' => $pieceJointe,
+            'reference_bordereau' => $referenceBordereau,
             'created_by' => auth()->id(),
         ]);
 

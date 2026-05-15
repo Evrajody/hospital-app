@@ -1,20 +1,20 @@
 @extends('pdf.rapports._layout-rapport')
 
-@section('title', "Chiffre d'Affaires")
+@section('title', "Chiffres d'Affaires (CA)")
 @section('page-size', 'A4 portrait')
 @section('page-margin', '20mm 25mm')
-@section('report-title', $titre ?? "CHIFFRE D'AFFAIRES")
+@section('report-title', $titre ?? "CHIFFRES D'AFFAIRES (CA)")
 
 @if(in_array($mode, ['global_du', 'global_au', 'global_periode']))
     @if($mode === 'global_du' && !empty($dateRef))
-        @section('report-subtitle', 'CA du ' . \Carbon\Carbon::parse($dateRef)->format('d/m/Y'))
+        @section('report-subtitle', 'Du ' . \Carbon\Carbon::parse($dateRef)->format('d/m/Y'))
     @elseif($mode === 'global_au' && !empty($dateRef))
-        @section('report-subtitle', 'CA au ' . \Carbon\Carbon::parse($dateRef)->format('d/m/Y'))
+        @section('report-subtitle', 'Au ' . \Carbon\Carbon::parse($dateRef)->format('d/m/Y'))
     @elseif($mode === 'global_periode' && !empty($periode['debut']) && !empty($periode['fin']))
         @section('report-subtitle', 'Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y'))
     @endif
 @elseif($mode === 'par_client')
-    @section('report-subtitle', 'CA par client' . (!empty($periode['debut']) && !empty($periode['fin']) ? ' - Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : ''))
+    @section('report-subtitle', 'Par client' . (!empty($periode['debut']) && !empty($periode['fin']) ? ' - Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : ''))
 @endif
 
 @section('extra-styles')

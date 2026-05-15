@@ -108,7 +108,6 @@
             >
               <el-option label="Règlement" value="reglement" />
               <el-option label="Perte" value="perte" />
-              <el-option label="Rejet" value="rejet" />
             </el-select>
           </el-form-item>
 
@@ -263,7 +262,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="N&deg; r&egrave;glements" width="130" align="center">
+          <el-table-column label="Nb r&egrave;glements" width="130" align="center">
             <template #default="{ row }">
               <el-tag size="small" type="info">{{ row.count }}</el-tag>
             </template>
@@ -317,7 +316,7 @@
               {{ selectedReglement.banque_depot?.nom || '-' }}
             </el-descriptions-item>
             <el-descriptions-item label="R&eacute;f. Bordereau">
-              {{ selectedReglement.compte_bancaire?.numero_compte || '-' }}
+              {{ selectedReglement.approvisionnement?.reference_bordereau || '-' }}
             </el-descriptions-item>
             <el-descriptions-item v-if="selectedReglement.observations" label="Observations">
               {{ selectedReglement.observations }}
@@ -587,7 +586,7 @@ const handleEdit = (reglement) => {
     institution: reglement.institution || '',
     reference_cheque: reglement.reference_cheque || '',
     banque_depot_id: reglement.banque_depot?.id || null,
-    compte_bancaire_id: reglement.compte_bancaire?.id || null,
+    approvisionnement_id: reglement.approvisionnement?.id || null,
     observations: reglement.observations || '',
   };
   editDialogVisible.value = true;

@@ -97,34 +97,6 @@ class FactureClient extends Model
         return str_pad($numero, 4, '0', STR_PAD_LEFT) . $suffixe;
     }
 
-    /**
-     * Vérifier s'il y a un saut de numéro
-     */
-    public static function verifierSaut(string $reference): ?int
-    {
-        $mois = date('m');
-        $annee = date('y');
-        $suffixe = "/{$mois}/{$annee}";
-
-        $derniere = self::where('reference', 'LIKE', "%{$suffixe}")
-            ->orderBy('reference', 'desc')
-            ->value('reference');
-
-        if (!$derniere) {
-            $attendu = 1;
-        } else {
-            $attendu = (int) substr($derniere, 0, 4) + 1;
-        }
-
-        $saisi = (int) substr($reference, 0, 4);
-
-        if ($saisi > $attendu) {
-            return $saisi - $attendu; // nombre de numéros sautés
-        }
-
-        return null;
-    }
-
     // ==========================================
     // MÉTHODES D'INSTANCE
     // ==========================================

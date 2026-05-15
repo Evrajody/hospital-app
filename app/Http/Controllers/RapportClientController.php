@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovisionnementBanque;
 use App\Models\Client;
 use App\Models\FactureClient;
 use App\Models\ReglementClient;
@@ -87,12 +88,18 @@ class RapportClientController extends Controller
                 $lignes = [];
                 $totalFacture = 0;
                 $totalPaye = 0;
+                $totalPerte = 0;
                 $totalRejet = 0;
+                $totalSolde = 0;
 
                 foreach ($clientFactures as $index => $facture) {
                     $montantFacture = (float) $facture->montant - (float) ($facture->ristourne ?? 0);
-                    $montantPaye = (float) $facture->montant_paye;
-                    $rejet = $montantFacture - $montantPaye;
+                    $reglementsNonPerte = $facture->reglements->where('type_reglement', '!=', 'perte');
+                    $reglementsPerte = $facture->reglements->where('type_reglement', 'perte');
+                    $montantPaye = (float) $reglementsNonPerte->sum('montant');
+                    $totalPerteFacture = (float) $reglementsPerte->sum('montant');
+                    $totalRejetFacture = (float) $facture->reglements->sum('montant_rejet');
+                    $solde = $montantFacture - $montantPaye - $totalPerteFacture - $totalRejetFacture;
 
                     $dernierReglement = $facture->reglements->sortByDesc('date_reglement')->first();
 
@@ -103,22 +110,32 @@ class RapportClientController extends Controller
                         'date_reglement' => $dernierReglement?->date_reglement?->format('d/m/Y') ?? '-',
                         'montant_facture' => $montantFacture,
                         'montant_paye' => $montantPaye,
-                        'rejet' => max(0, $rejet),
+                        'total_perte' => $totalPerteFacture,
+                        'total_rejet' => $totalRejetFacture,
+                        'solde' => $solde,
                     ];
 
                     $totalFacture += $montantFacture;
                     $totalPaye += $montantPaye;
-                    $totalRejet += max(0, $rejet);
+                    $totalPerte += $totalPerteFacture;
+                    $totalRejet += $totalRejetFacture;
+                    $totalSolde += $solde;
                 }
 
                 $data[] = [
                     'client_id' => $cId,
                     'numero_compte' => $client->compteComptable?->numero_compte ?? '-',
                     'raison_sociale' => $client->nom,
+                    'type_client' => $client->type_client,
+                    'type_client_label' => $client->type_client
+                        ? (Client::TYPES_LABELS[$client->type_client] ?? ucfirst($client->type_client))
+                        : null,
                     'lignes' => $lignes,
                     'total_facture' => $totalFacture,
                     'total_paye' => $totalPaye,
+                    'total_perte' => $totalPerte,
                     'total_rejet' => $totalRejet,
+                    'total_solde' => $totalSolde,
                 ];
             }
         } elseif ($mode === 'tous_clients') {
@@ -135,21 +152,40 @@ class RapportClientController extends Controller
             $numero = 0;
             foreach ($clientsAvecFactures as $client) {
                 $factures = $client->facturesClient()
+                    ->with('reglements')
                     ->whereBetween('date_facture', [$deb, $fin])
                     ->get();
 
-                $totalFacture = $factures->sum(fn($f) => (float) $f->montant - (float) ($f->ristourne ?? 0));
-                $totalPaye = $factures->sum(fn($f) => (float) $f->montant_paye);
-                $totalRejet = max(0, $totalFacture - $totalPaye);
+                $totalFacture = 0;
+                $totalPaye = 0;
+                $totalPerte = 0;
+                $totalRejet = 0;
+                foreach ($factures as $f) {
+                    $mf = (float) $f->montant - (float) ($f->ristourne ?? 0);
+                    $mp = (float) $f->reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+                    $tp = (float) $f->reglements->where('type_reglement', 'perte')->sum('montant');
+                    $tr = (float) $f->reglements->sum('montant_rejet');
+                    $totalFacture += $mf;
+                    $totalPaye += $mp;
+                    $totalPerte += $tp;
+                    $totalRejet += $tr;
+                }
+                $totalSolde = $totalFacture - $totalPaye - $totalPerte - $totalRejet;
 
                 $numero++;
                 $data[] = [
                     'numero' => $numero,
                     'numero_compte' => $client->compteComptable?->numero_compte ?? '-',
                     'raison_sociale' => $client->nom,
+                    'type_client' => $client->type_client,
+                    'type_client_label' => $client->type_client
+                        ? (Client::TYPES_LABELS[$client->type_client] ?? ucfirst($client->type_client))
+                        : null,
                     'total_facture' => $totalFacture,
                     'total_paye' => $totalPaye,
+                    'total_perte' => $totalPerte,
                     'total_rejet' => $totalRejet,
+                    'total_solde' => $totalSolde,
                 ];
             }
 
@@ -157,11 +193,35 @@ class RapportClientController extends Controller
             $dateFin = $fin;
         }
 
+        // Groupement par type uniquement pour le mode "par_client" sans filtre de type
+        $groupesParType = null;
+        if ($mode === 'par_client' && !$typeClient && count($data) > 0) {
+            $groupes = [];
+            foreach ($data as $clientData) {
+                $type = $clientData['type_client'] ?: 'non_defini';
+                $label = $clientData['type_client_label'] ?: 'Non défini';
+                if (!isset($groupes[$type])) {
+                    $groupes[$type] = [
+                        'type' => $type,
+                        'label' => $label,
+                        'clients' => [],
+                    ];
+                }
+                $groupes[$type]['clients'][] = $clientData;
+            }
+            $groupesParType = array_values($groupes);
+        }
+
         return [
             'data' => $data,
+            'groupes_par_type' => $groupesParType,
             'mode' => $mode,
             'periode' => ['debut' => $dateDebut, 'fin' => $dateFin],
             'selectedClientId' => $clientId ? (int) $clientId : null,
+            'type_client' => $typeClient,
+            'type_client_label' => $typeClient
+                ? (Client::TYPES_LABELS[$typeClient] ?? ucfirst($typeClient))
+                : null,
         ];
     }
 
@@ -176,7 +236,7 @@ class RapportClientController extends Controller
         $data = [];
 
         if ($mode === 'par_client' || $mode === 'un_client') {
-            $query = FactureClient::with(['client.compteComptable'])
+            $query = FactureClient::with(['client.compteComptable', 'reglements'])
                 ->where('reste_a_payer', '>', 0);
 
             if ($mode === 'un_client' && $clientId) {
@@ -187,6 +247,13 @@ class RapportClientController extends Controller
                 $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
             }
 
+            if ($dateDebut) {
+                $query->where('date_facture', '>=', $dateDebut);
+            }
+            if ($dateFin) {
+                $query->where('date_facture', '<=', $dateFin);
+            }
+
             $factures = $query->orderBy('client_id')->orderBy('date_facture')->get();
 
             $grouped = $factures->groupBy('client_id');
@@ -195,11 +262,15 @@ class RapportClientController extends Controller
                 $lignes = [];
                 $totalFacture = 0;
                 $totalPaye = 0;
+                $totalPerte = 0;
+                $totalRejet = 0;
                 $totalReste = 0;
 
                 foreach ($clientFactures as $index => $facture) {
                     $montantFacture = (float) $facture->montant - (float) ($facture->ristourne ?? 0);
-                    $montantPaye = (float) $facture->montant_paye;
+                    $montantPaye = (float) $facture->reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+                    $perteFacture = (float) $facture->reglements->where('type_reglement', 'perte')->sum('montant');
+                    $rejetFacture = (float) $facture->reglements->sum('montant_rejet');
                     $resteAPayer = max(0, $montantFacture - $montantPaye);
 
                     $lignes[] = [
@@ -208,11 +279,15 @@ class RapportClientController extends Controller
                         'date_facture' => $facture->date_facture?->format('d/m/Y'),
                         'montant_facture' => $montantFacture,
                         'montant_paye' => $montantPaye,
+                        'total_rejet' => $rejetFacture,
+                        'total_perte' => $perteFacture,
                         'reste_a_payer' => $resteAPayer,
                     ];
 
                     $totalFacture += $montantFacture;
                     $totalPaye += $montantPaye;
+                    $totalPerte += $perteFacture;
+                    $totalRejet += $rejetFacture;
                     $totalReste += $resteAPayer;
                 }
 
@@ -220,9 +295,15 @@ class RapportClientController extends Controller
                     'client_id' => $cId,
                     'numero_compte' => $client->compteComptable?->numero_compte ?? '-',
                     'raison_sociale' => $client->nom,
+                    'type_client' => $client->type_client,
+                    'type_client_label' => $client->type_client
+                        ? (Client::TYPES_LABELS[$client->type_client] ?? ucfirst($client->type_client))
+                        : null,
                     'lignes' => $lignes,
                     'total_facture' => $totalFacture,
                     'total_paye' => $totalPaye,
+                    'total_perte' => $totalPerte,
+                    'total_rejet' => $totalRejet,
                     'total_reste' => $totalReste,
                 ];
             }
@@ -240,13 +321,22 @@ class RapportClientController extends Controller
             $numero = 0;
             foreach ($clientsAvecCreances as $client) {
                 $facturesQuery = $client->facturesClient()
+                    ->with('reglements')
                     ->where('reste_a_payer', '>', 0);
                 if ($dateDebut) $facturesQuery->where('date_facture', '>=', $dateDebut);
                 if ($dateFin) $facturesQuery->where('date_facture', '<=', $dateFin);
                 $factures = $facturesQuery->get();
 
-                $totalFacture = $factures->sum(fn($f) => (float) $f->montant - (float) ($f->ristourne ?? 0));
-                $totalPaye = $factures->sum(fn($f) => (float) $f->montant_paye);
+                $totalFacture = 0;
+                $totalPaye = 0;
+                $totalPerte = 0;
+                $totalRejet = 0;
+                foreach ($factures as $f) {
+                    $totalFacture += (float) $f->montant - (float) ($f->ristourne ?? 0);
+                    $totalPaye += (float) $f->reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+                    $totalPerte += (float) $f->reglements->where('type_reglement', 'perte')->sum('montant');
+                    $totalRejet += (float) $f->reglements->sum('montant_rejet');
+                }
                 $totalReste = max(0, $totalFacture - $totalPaye);
 
                 $numero++;
@@ -254,6 +344,12 @@ class RapportClientController extends Controller
                     'numero' => $numero,
                     'numero_compte' => $client->compteComptable?->numero_compte ?? '-',
                     'raison_sociale' => $client->nom,
+                    'type_client' => $client->type_client,
+                    'type_client_label' => $client->type_client
+                        ? (Client::TYPES_LABELS[$client->type_client] ?? ucfirst($client->type_client))
+                        : null,
+                    'total_perte' => $totalPerte,
+                    'total_rejet' => $totalRejet,
                     'total_facture' => $totalFacture,
                     'total_paye' => $totalPaye,
                     'total_reste' => $totalReste,
@@ -261,11 +357,35 @@ class RapportClientController extends Controller
             }
         }
 
+        // Groupement par type uniquement pour le mode "par_client" sans filtre de type
+        $groupesParType = null;
+        if ($mode === 'par_client' && !$typeClient && count($data) > 0) {
+            $groupes = [];
+            foreach ($data as $clientData) {
+                $type = $clientData['type_client'] ?: 'non_defini';
+                $label = $clientData['type_client_label'] ?: 'Non défini';
+                if (!isset($groupes[$type])) {
+                    $groupes[$type] = [
+                        'type' => $type,
+                        'label' => $label,
+                        'clients' => [],
+                    ];
+                }
+                $groupes[$type]['clients'][] = $clientData;
+            }
+            $groupesParType = array_values($groupes);
+        }
+
         return [
             'data' => $data,
+            'groupes_par_type' => $groupesParType,
             'mode' => $mode,
             'periode' => ['debut' => $dateDebut, 'fin' => $dateFin],
             'selectedClientId' => $clientId ? (int) $clientId : null,
+            'type_client' => $typeClient,
+            'type_client_label' => $typeClient
+                ? (Client::TYPES_LABELS[$typeClient] ?? ucfirst($typeClient))
+                : null,
         ];
     }
 
@@ -273,70 +393,166 @@ class RapportClientController extends Controller
     {
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
-        $banqueId = $request->input('banque_id');
 
         $data = [];
 
         if ($dateDebut && $dateFin) {
-            $reglements = ReglementClient::with([
-                    'client.compteComptable',
-                    'facture',
-                    'banqueDepot',
-                    'compteBancaire.compteOhada',
+            // On groupe par approvisionnement (SB) : pour chaque SB de la période,
+            // on liste ses chèques (CH liés via approvisionnement_id), puis la ligne SB.
+            // Le solde repart à 0 à chaque nouveau groupe SB.
+            $approvisionnements = ApprovisionnementBanque::with([
+                    'compteBancaire.banque',
+                    'reglementsClients' => fn($q) => $q
+                        ->where('type_reglement', '!=', 'perte')
+                        ->whereNotNull('reference_cheque')
+                        ->where('reference_cheque', '!=', '')
+                        ->with('client.compteComptable', 'facture')
+                        ->orderBy('date_reglement')
+                        ->orderBy('id'),
                 ])
-                ->when($banqueId, fn($q) => $q->where('banque_depot_id', $banqueId))
-                ->where('date_reglement', '>=', $dateDebut)
-                ->where('date_reglement', '<=', $dateFin)
-                ->orderBy('banque_depot_id')
-                ->orderBy('date_reglement')
+                ->whereNotNull('reference_bordereau')
+                ->where('reference_bordereau', '!=', '')
+                ->where('date_depot', '>=', $dateDebut)
+                ->where('date_depot', '<=', $dateFin)
+                ->orderBy('date_depot')
                 ->orderBy('id')
                 ->get();
 
-            $solde = 0;
-            foreach ($reglements as $r) {
-                $montant = (float) $r->montant;
-                $isCheque = !empty($r->reference_cheque);
+            $lastDate = null;
+            foreach ($approvisionnements as $appro) {
+                $solde = 0;
+                $dateGroupe = $appro->date_depot->format('d/m/Y');
+                $dateRawGroupe = $appro->date_depot->format('Y-m-d');
+                $showDateForGroup = $dateGroupe !== $lastDate;
+                $lastDate = $dateGroupe;
+                $isFirstLineOfGroup = true;
 
-                $libelle = $isCheque
-                    ? "CHn° {$r->reference_cheque}/{$r->client->nom}"
-                    : ($r->institution
-                        ? "SBn° {$r->institution}/{$r->client->nom}"
-                        : $r->client->nom);
+                // Lignes CH du groupe
+                foreach ($appro->reglementsClients as $r) {
+                    $montant = (float) $r->montant;
+                    $solde += $montant;
+                    $compteCredit = $r->client?->compteComptable?->numero_compte ?? '411';
+                    $compteCreditLib = $r->client?->compteComptable?->libelle ?? 'Clients';
 
-                $debit = $isCheque ? $montant : 0;
-                $credit = !$isCheque ? $montant : 0;
-                $solde += $debit - $credit;
+                    $data[] = [
+                        'date' => $dateGroupe,
+                        'show_date' => $showDateForGroup && $isFirstLineOfGroup,
+                        'date_raw' => $dateRawGroupe,
+                        'group_id' => 'sb-' . $appro->id,
+                        'nature' => 'CH',
+                        'libelle' => "CHn° {$r->reference_cheque}/" . ($r->client?->nom ?? '-'),
+                        'debit' => $montant,
+                        'credit' => 0,
+                        'solde' => $solde,
+                        'montant' => $montant,
+                        'reference' => $r->reference_cheque,
+                        'client_nom' => $r->client?->nom ?? '-',
+                        'facture_ref' => $r->facture?->reference ?? '-',
+                        'compte_debit' => '57',
+                        'compte_debit_libelle' => 'Chèques à encaisser',
+                        'compte_credit' => $compteCredit,
+                        'compte_credit_libelle' => $compteCreditLib,
+                    ];
+                    $isFirstLineOfGroup = false;
+                }
 
-                $compteDebit = $r->compteBancaire?->compteOhada?->numero_compte
-                    ?? ($r->banqueDepot ? '52' : '57');
-                $compteDebitLib = $r->compteBancaire?->compteOhada?->libelle
-                    ?? ($r->banqueDepot ? 'Banque ' . $r->banqueDepot->nom : 'Caisse');
-                $compteCredit = $r->client->compteComptable?->numero_compte ?? '411';
-                $compteCreditLib = $r->client->compteComptable?->libelle ?? 'Clients';
+                // Ligne SB (clôture du groupe)
+                $montantSB = (float) $appro->montant;
+                $solde -= $montantSB;
+                $banqueNom = $appro->compteBancaire?->banque?->nom ?? '-';
 
                 $data[] = [
-                    'date' => $r->date_reglement->format('d/m/Y'),
-                    'date_raw' => $r->date_reglement->format('Y-m-d'),
-                    'banque_depot_id' => $r->banque_depot_id,
-                    'banque_depot' => $r->banqueDepot?->nom,
-                    'libelle' => $libelle,
-                    'debit' => $debit,
-                    'credit' => $credit,
+                    'date' => $dateGroupe,
+                    'show_date' => $showDateForGroup && $isFirstLineOfGroup,
+                    'date_raw' => $dateRawGroupe,
+                    'group_id' => 'sb-' . $appro->id,
+                    'nature' => 'SB',
+                    'libelle' => "SBn° {$appro->reference_bordereau}/{$banqueNom}",
+                    'debit' => 0,
+                    'credit' => $montantSB,
                     'solde' => $solde,
-                    'montant' => $montant,
-                    'reference' => $r->reference_cheque ?? $r->institution ?? '-',
-                    'client_nom' => $r->client->nom,
-                    'facture_ref' => $r->facture?->reference ?? '-',
-                    'compte_debit' => $compteDebit,
-                    'compte_debit_libelle' => $compteDebitLib,
-                    'compte_credit' => $compteCredit,
-                    'compte_credit_libelle' => $compteCreditLib,
+                    'montant' => $montantSB,
                 ];
             }
         }
 
         return [
             'data' => $data,
+            'periode' => ['debut' => $dateDebut, 'fin' => $dateFin],
+        ];
+    }
+
+    /**
+     * Imputations comptables clients : pour chaque SB (bordereau déposé) de la période,
+     * on génère une écriture comptable groupée :
+     *  - 1 ligne débit : compte bancaire OHADA + montant SB + "S/Rglt {banque}"
+     *  - N lignes crédit : compte client OHADA + montant CH + "Fn°{ref_facture}"
+     */
+    private function buildImputationsComptablesData(Request $request): array
+    {
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
+
+        $groupes = [];
+
+        if ($dateDebut && $dateFin) {
+            $approvisionnements = ApprovisionnementBanque::with([
+                    'compteBancaire.banque',
+                    'compteBancaire.compteOhada',
+                    'reglementsClients' => fn($q) => $q
+                        ->where('type_reglement', '!=', 'perte')
+                        ->whereNotNull('reference_cheque')
+                        ->where('reference_cheque', '!=', '')
+                        ->with('client.compteComptable', 'facture')
+                        ->orderBy('date_reglement')
+                        ->orderBy('id'),
+                ])
+                ->whereNotNull('reference_bordereau')
+                ->where('reference_bordereau', '!=', '')
+                ->where('date_depot', '>=', $dateDebut)
+                ->where('date_depot', '<=', $dateFin)
+                ->orderBy('date_depot')
+                ->orderBy('id')
+                ->get();
+
+            foreach ($approvisionnements as $appro) {
+                $banqueNom = $appro->compteBancaire?->banque?->nom ?? '-';
+                $compteBanque = $appro->compteBancaire?->compteOhada?->numero_compte ?? '52';
+                $montantSB = (float) $appro->montant;
+
+                $lignes = [];
+
+                // Ligne débit (banque)
+                $lignes[] = [
+                    'compte' => $compteBanque,
+                    'debit' => $montantSB,
+                    'credit' => 0,
+                    'libelle' => "S/Rglt {$banqueNom}",
+                ];
+
+                // Lignes crédit (clients)
+                foreach ($appro->reglementsClients as $r) {
+                    $compteClient = $r->client?->compteComptable?->numero_compte ?? '411';
+                    $ref = $r->facture_reference ?: ($r->facture?->reference ?? '-');
+                    $lignes[] = [
+                        'compte' => $compteClient,
+                        'debit' => 0,
+                        'credit' => (float) $r->montant,
+                        'libelle' => "Fn°{$ref}",
+                    ];
+                }
+
+                $groupes[] = [
+                    'date' => $appro->date_depot->format('d/m/Y'),
+                    'date_raw' => $appro->date_depot->format('Y-m-d'),
+                    'reference_bordereau' => $appro->reference_bordereau,
+                    'lignes' => $lignes,
+                ];
+            }
+        }
+
+        return [
+            'groupes' => $groupes,
             'periode' => ['debut' => $dateDebut, 'fin' => $dateFin],
         ];
     }
@@ -421,56 +637,27 @@ class RapportClientController extends Controller
         ];
     }
 
-    public function reglementsParTypeClient(Request $request): JsonResponse
-    {
-        $dateDebut = $request->input('date_debut');
-        $dateFin = $request->input('date_fin');
-
-        $query = ReglementClient::with(['client'])
-            ->when($dateDebut, fn($q) => $q->where('date_reglement', '>=', $dateDebut))
-            ->when($dateFin, fn($q) => $q->where('date_reglement', '<=', $dateFin));
-
-        $reglements = $query->get();
-
-        $groupes = [];
-        foreach ($reglements as $r) {
-            $type = $r->client?->type_client ?: 'non_defini';
-            $label = $type !== 'non_defini'
-                ? (\App\Models\Client::TYPES_LABELS[$type] ?? ucfirst($type))
-                : 'Non défini';
-            if (!isset($groupes[$type])) {
-                $groupes[$type] = [
-                    'type' => $type,
-                    'label' => $label,
-                    'nombre' => 0,
-                    'total' => 0,
-                ];
-            }
-            $groupes[$type]['nombre']++;
-            $groupes[$type]['total'] += (float) $r->montant;
-        }
-
-        return response()->json([
-            'groupes' => array_values($groupes),
-            'total_general' => array_sum(array_column($groupes, 'total')),
-            'date_debut' => $dateDebut,
-            'date_fin' => $dateFin,
-        ]);
-    }
-
     private function buildPertesRejetsData(Request $request): array
     {
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
-        $typeFilter = $request->input('type_reglement'); // perte, rejet, regularisation or null for all
+        $typeFilter = $request->input('type_reglement'); // perte, rejet or null for all
         $clientId = $request->input('client_id');
         $typeClient = $request->input('type_client');
 
+        // Un règlement entre dans le rapport s'il est :
+        //  - de type "perte" (pertes sèches), OU
+        //  - de type "reglement" mais avec un montant_rejet > 0 (rejet partiel/total du chèque).
         $query = ReglementClient::with(['client.compteComptable', 'facture', 'banqueDepot'])
-            ->whereIn('type_reglement', ['perte', 'rejet', 'regularisation']);
+            ->where(function ($q) {
+                $q->where('type_reglement', 'perte')
+                  ->orWhere('montant_rejet', '>', 0);
+            });
 
-        if ($typeFilter) {
-            $query->where('type_reglement', $typeFilter);
+        if ($typeFilter === 'perte') {
+            $query->where('type_reglement', 'perte');
+        } elseif ($typeFilter === 'rejet') {
+            $query->where('montant_rejet', '>', 0);
         }
 
         if ($clientId) {
@@ -490,68 +677,106 @@ class RapportClientController extends Controller
 
         $reglements = $query->orderBy('date_reglement')->orderBy('id')->get();
 
-        $data = [];
-        $totaux = ['pertes' => 0, 'rejets' => 0, 'regularisations' => 0];
-
+        // Chaque règlement peut générer 1 ou 2 lignes dans le rapport :
+        //  - une ligne "perte"  si type_reglement = 'perte'
+        //  - une ligne "rejet"  si montant_rejet > 0
+        $eclate = [];
         foreach ($reglements as $r) {
-            $montant = (float) $r->montant;
-            $type = $r->type_reglement;
-
-            if ($type === 'perte') $totaux['pertes'] += $montant;
-            elseif ($type === 'rejet') $totaux['rejets'] += $montant;
-            elseif ($type === 'regularisation') $totaux['regularisations'] += $montant;
-
-            $data[] = [
-                'id' => $r->id,
+            $base = [
+                'reglement_id' => $r->id,
                 'date_reglement' => $r->date_reglement?->format('d/m/Y'),
                 'date_reglement_raw' => $r->date_reglement?->format('Y-m-d'),
-                'type_reglement' => $type,
-                'type_reglement_libelle' => $r->type_reglement_libelle,
-                'type_reglement_couleur' => $r->type_reglement_couleur,
+                'client_id' => $r->client_id,
                 'client_nom' => $r->client_nom ?: $r->client?->nom,
                 'client_code' => $r->client?->compteComptable?->numero_compte ?? '-',
                 'type_client' => $r->client?->type_client,
                 'type_client_label' => $r->client ? (\App\Models\Client::TYPES_LABELS[$r->client->type_client] ?? $r->client->type_client) : null,
                 'facture_reference' => $r->facture_reference ?: $r->facture?->reference,
-                'montant' => $montant,
                 'reference_cheque' => $r->reference_cheque,
                 'institution' => $r->institution,
                 'banque_depot' => $r->banqueDepot?->nom,
                 'observations' => $r->observations,
             ];
-        }
 
-        $totaux['solde'] = $totaux['pertes'] + $totaux['rejets'] - $totaux['regularisations'];
-
-        // Grouper par client pour le PDF
-        $dataParClient = [];
-        foreach ($reglements->groupBy('client_id') as $cId => $clientReglements) {
-            $client = $clientReglements->first()->client;
-            $lignes = [];
-            $totalClient = 0;
-
-            foreach ($clientReglements as $index => $r) {
-                $montant = (float) $r->montant;
-                $totalClient += $montant;
-                $lignes[] = [
-                    'numero' => $index + 1,
-                    'date_reglement' => $r->date_reglement?->format('d/m/Y'),
-                    'type_reglement' => $r->type_reglement,
-                    'type_reglement_libelle' => $r->type_reglement_libelle,
-                    'facture_reference' => $r->facture_reference ?: $r->facture?->reference,
-                    'montant' => $montant,
-                    'observations' => $r->observations,
+            if ($r->type_reglement === 'perte') {
+                $eclate[] = $base + [
+                    'nature' => 'perte',
+                    'nature_libelle' => 'Perte',
+                    'montant' => (float) $r->montant,
                 ];
             }
 
-            $dataParClient[] = [
-                'client_id' => $cId,
-                'numero_compte' => $client?->compteComptable?->numero_compte ?? '-',
-                'raison_sociale' => $client?->nom ?? '-',
-                'lignes' => $lignes,
-                'total' => $totalClient,
+            $montantRejet = (float) ($r->montant_rejet ?? 0);
+            if ($montantRejet > 0 && $r->type_reglement !== 'perte') {
+                $eclate[] = $base + [
+                    'nature' => 'rejet',
+                    'nature_libelle' => 'Rejet',
+                    'montant' => $montantRejet,
+                ];
+            }
+        }
+
+        // Application du filtre nature côté lignes éclatées (utile si une perte aurait aussi un montant_rejet, cas marginal).
+        if ($typeFilter === 'perte' || $typeFilter === 'rejet') {
+            $eclate = array_values(array_filter($eclate, fn($l) => $l['nature'] === $typeFilter));
+        }
+
+        $totaux = ['pertes' => 0, 'rejets' => 0];
+        foreach ($eclate as $l) {
+            if ($l['nature'] === 'perte') $totaux['pertes'] += $l['montant'];
+            elseif ($l['nature'] === 'rejet') $totaux['rejets'] += $l['montant'];
+        }
+        $totaux['solde'] = $totaux['pertes'] + $totaux['rejets'];
+
+        // Construire la sortie "data" plate (pour le tableau de l'onglet)
+        $data = [];
+        foreach ($eclate as $l) {
+            $data[] = [
+                'id' => $l['reglement_id'] . '-' . $l['nature'],
+                'reglement_id' => $l['reglement_id'],
+                'date_reglement' => $l['date_reglement'],
+                'date_reglement_raw' => $l['date_reglement_raw'],
+                'type_reglement' => $l['nature'],
+                'type_reglement_libelle' => $l['nature_libelle'],
+                'type_reglement_couleur' => $l['nature'] === 'perte' ? 'danger' : 'warning',
+                'client_nom' => $l['client_nom'],
+                'client_code' => $l['client_code'],
+                'type_client' => $l['type_client'],
+                'type_client_label' => $l['type_client_label'],
+                'facture_reference' => $l['facture_reference'],
+                'montant' => $l['montant'],
+                'reference_cheque' => $l['reference_cheque'],
+                'institution' => $l['institution'],
+                'banque_depot' => $l['banque_depot'],
+                'observations' => $l['observations'],
             ];
         }
+
+        // Grouper par client pour le PDF
+        $parClient = [];
+        foreach ($eclate as $l) {
+            $cId = $l['client_id'];
+            if (!isset($parClient[$cId])) {
+                $parClient[$cId] = [
+                    'client_id' => $cId,
+                    'numero_compte' => $l['client_code'],
+                    'raison_sociale' => $l['client_nom'] ?? '-',
+                    'lignes' => [],
+                    'total' => 0,
+                ];
+            }
+            $parClient[$cId]['lignes'][] = [
+                'numero' => count($parClient[$cId]['lignes']) + 1,
+                'date_reglement' => $l['date_reglement'],
+                'nature' => $l['nature'],
+                'nature_libelle' => $l['nature_libelle'],
+                'facture_reference' => $l['facture_reference'],
+                'montant' => $l['montant'],
+                'observations' => $l['observations'],
+            ];
+            $parClient[$cId]['total'] += $l['montant'];
+        }
+        $dataParClient = array_values($parClient);
 
         return [
             'data' => $data,
@@ -580,6 +805,11 @@ class RapportClientController extends Controller
     public function brouillardCheques(Request $request): JsonResponse
     {
         return response()->json($this->buildBrouillardChequesData($request));
+    }
+
+    public function imputationsComptables(Request $request): JsonResponse
+    {
+        return response()->json($this->buildImputationsComptablesData($request));
     }
 
     public function chiffreAffaires(Request $request): JsonResponse
@@ -627,7 +857,7 @@ class RapportClientController extends Controller
     public function brouillardChequesPdf(Request $request)
     {
         $result = $this->buildBrouillardChequesData($request);
-        $result['titre'] = 'Brouillard de Chèques & Imputations Comptables';
+        $result['titre'] = 'Brouillard de Chèques';
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
 
         $pdf = Pdf::loadView('pdf.rapports-clients.brouillard-cheques', $result);
@@ -638,10 +868,24 @@ class RapportClientController extends Controller
             : $pdf->download('brouillard-cheques.pdf');
     }
 
+    public function imputationsComptablesPdf(Request $request)
+    {
+        $result = $this->buildImputationsComptablesData($request);
+        $result['titre'] = 'Imputations Comptables Clients';
+        $result['generatedAt'] = now()->format('d/m/Y à H:i');
+
+        $pdf = Pdf::loadView('pdf.rapports-clients.imputations-comptables', $result);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('imputations-comptables.pdf')
+            : $pdf->download('imputations-comptables.pdf');
+    }
+
     public function chiffreAffairesPdf(Request $request)
     {
         $result = $this->buildChiffreAffairesData($request);
-        $result['titre'] = "Chiffre d'Affaire";
+        $result['titre'] = "CHIFFRES D'AFFAIRES (CA)";
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
 
         $pdf = Pdf::loadView('pdf.rapports-clients.chiffre-affaires', $result);
@@ -655,7 +899,7 @@ class RapportClientController extends Controller
     public function pertesRejetsPdf(Request $request)
     {
         $result = $this->buildPertesRejetsData($request);
-        $result['titre'] = 'Pertes, Rejets et Régularisations';
+        $result['titre'] = 'Pertes et Rejets';
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
 
         $pdf = Pdf::loadView('pdf.rapports-clients.pertes-rejets', $result);
@@ -713,45 +957,73 @@ class RapportClientController extends Controller
         $result = $this->buildEtatReglementsData($request);
         $mode = $result['mode'];
         $titre = 'État des Règlements Clients';
+        if (!empty($result['type_client_label'])) {
+            $titre .= ' — ' . strtoupper($result['type_client_label']);
+        }
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
             $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
                 . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
         }
 
         if ($mode === 'tous_clients') {
-            $rows = array_map(fn($c) => [
-                $c['numero'] ?? '',
-                $c['numero_compte'],
-                $c['raison_sociale'],
-                $c['total_facture'],
-                $c['total_paye'],
-                $c['total_rejet'],
-            ], $result['data']);
+            $rows = [];
+            if (empty($result['type_client'])) {
+                $sorted = collect($result['data'])
+                    ->sortBy(fn($r) => ($r['type_client_label'] ?? 'zzz') . '|' . ($r['raison_sociale'] ?? ''))
+                    ->values();
+                $lastType = null;
+                foreach ($sorted as $c) {
+                    $label = $c['type_client_label'] ?? 'Non défini';
+                    if ($label !== $lastType) {
+                        $rows[] = [$label, '', '', '', '', '', '', ''];
+                        $lastType = $label;
+                    }
+                    $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_solde']];
+                }
+            } else {
+                foreach ($result['data'] as $c) {
+                    $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_solde']];
+                }
+            }
             $totFact = array_sum(array_column($result['data'], 'total_facture'));
             $totPaye = array_sum(array_column($result['data'], 'total_paye'));
             $totRejet = array_sum(array_column($result['data'], 'total_rejet'));
-            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totRejet];
+            $totPerte = array_sum(array_column($result['data'], 'total_perte'));
+            $totSolde = array_sum(array_column($result['data'], 'total_solde'));
+            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totRejet, $totPerte, $totSolde];
 
             return \App\Support\ExcelExporter::download(
-                ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Rejet/Reste'],
+                ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Total rejet', 'Total pertes', 'Solde'],
                 $rows,
                 'etat-reglements-clients',
                 $titre,
             );
         }
 
-        // Mode par_client / un_client : aplatir avec en-têtes
+        // Mode par_client / un_client : aplatir avec en-têtes (+ groupes par type si dispo)
         $rows = [];
-        foreach ($result['data'] as $bloc) {
-            $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'], '', '', '', '', '', ''];
-            foreach ($bloc['lignes'] as $l) {
-                $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['date_reglement'], $l['montant_facture'], $l['montant_paye'], $l['rejet']];
+        $renderGroupes = (!empty($result['groupes_par_type']))
+            ? $result['groupes_par_type']
+            : [['label' => null, 'clients' => $result['data']]];
+
+        foreach ($renderGroupes as $groupe) {
+            if (!empty($groupe['label'])) {
+                $rows[] = ['=== ' . strtoupper($groupe['label']) . ' ===', '', '', '', '', '', '', '', '', ''];
             }
-            $rows[] = ['', '', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet']];
+            foreach ($groupe['clients'] as $bloc) {
+                $suffixe = ($mode === 'un_client' && !empty($bloc['type_client_label']))
+                    ? ' - ' . $bloc['type_client_label']
+                    : '';
+                $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'] . $suffixe, '', '', '', '', '', '', '', '', ''];
+                foreach ($bloc['lignes'] as $l) {
+                    $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['date_reglement'], $l['montant_facture'], $l['montant_paye'], $l['total_rejet'], $l['total_perte'], $l['solde']];
+                }
+                $rows[] = ['', '', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet'], $bloc['total_perte'], $bloc['total_solde']];
+            }
         }
 
         return \App\Support\ExcelExporter::download(
-            ['Client', 'N°', 'Référence', 'Date Facture', 'Date Règlement', 'Mt Facture', 'Mt Payé', 'Rejet'],
+            ['Client', 'N°', 'Référence', 'Date Facture', 'Date Règlement', 'Mt Facture', 'Mt Payé', 'Total rejet', 'Total pertes', 'Solde'],
             $rows,
             'etat-reglements-clients',
             $titre,
@@ -763,44 +1035,76 @@ class RapportClientController extends Controller
         $result = $this->buildEtatCreancesData($request);
         $mode = $result['mode'];
         $titre = 'États Périodiques des Créances Clients';
+        if (!empty($result['type_client_label'])) {
+            $titre .= ' — ' . strtoupper($result['type_client_label']);
+        }
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
             $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
                 . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+        } elseif (!empty($result['periode']['fin'])) {
+            $titre .= ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
         }
 
         if ($mode === 'tous_clients') {
-            $rows = array_map(fn($c) => [
-                $c['numero'] ?? '',
-                $c['numero_compte'],
-                $c['raison_sociale'],
-                $c['total_facture'],
-                $c['total_paye'],
-                $c['total_reste'],
-            ], $result['data']);
+            // Sans filtre de type, on insère des lignes-séparateurs par type.
+            $rows = [];
+            if (empty($result['type_client'])) {
+                $sorted = collect($result['data'])
+                    ->sortBy(fn($r) => ($r['type_client_label'] ?? 'zzz') . '|' . ($r['raison_sociale'] ?? ''))
+                    ->values();
+                $lastType = null;
+                foreach ($sorted as $c) {
+                    $label = $c['type_client_label'] ?? 'Non défini';
+                    if ($label !== $lastType) {
+                        $rows[] = [$label, '', '', '', '', '', '', ''];
+                        $lastType = $label;
+                    }
+                    $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_reste']];
+                }
+            } else {
+                foreach ($result['data'] as $c) {
+                    $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_reste']];
+                }
+            }
             $totFact = array_sum(array_column($result['data'], 'total_facture'));
             $totPaye = array_sum(array_column($result['data'], 'total_paye'));
+            $totRejet = array_sum(array_column($result['data'], 'total_rejet'));
+            $totPerte = array_sum(array_column($result['data'], 'total_perte'));
             $totReste = array_sum(array_column($result['data'], 'total_reste'));
-            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totReste];
+            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totRejet, $totPerte, $totReste];
 
             return \App\Support\ExcelExporter::download(
-                ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Reste à payer'],
+                ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Total rejet', 'Total pertes', 'Reste à payer'],
                 $rows,
                 'etat-creances-clients',
                 $titre,
             );
         }
 
+        // par_client / un_client. Si groupes par type disponibles, on intercale un en-tête de type.
         $rows = [];
-        foreach ($result['data'] as $bloc) {
-            $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'], '', '', '', '', ''];
-            foreach ($bloc['lignes'] as $l) {
-                $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['montant_facture'], $l['montant_paye'], $l['reste_a_payer']];
+        $renderGroupes = (!empty($result['groupes_par_type']))
+            ? $result['groupes_par_type']
+            : [['label' => null, 'clients' => $result['data']]];
+
+        foreach ($renderGroupes as $groupe) {
+            if (!empty($groupe['label'])) {
+                $rows[] = ['=== ' . strtoupper($groupe['label']) . ' ===', '', '', '', '', '', '', ''];
             }
-            $rows[] = ['', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_reste']];
+            foreach ($groupe['clients'] as $bloc) {
+                $suffixe = ($mode === 'un_client' && !empty($bloc['type_client_label']))
+                    ? ' - ' . $bloc['type_client_label']
+                    : '';
+                $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'] . $suffixe, '', '', '', '', '', '', ''];
+                foreach ($bloc['lignes'] as $l) {
+                    $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['montant_facture'], $l['montant_paye'], $l['total_rejet'], $l['total_perte'], $l['reste_a_payer']];
+                }
+                $rows[] = ['', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet'], $bloc['total_perte'], $bloc['total_reste']];
+            }
         }
 
         return \App\Support\ExcelExporter::download(
-            ['Client', 'N°', 'Référence', 'Date Facture', 'Mt Facture', 'Mt Payé', 'Reste à payer'],
+            ['Client', 'N°', 'Référence', 'Date Facture', 'Mt Facture', 'Mt Payé', 'Total rejet', 'Total pertes', 'Reste à payer'],
             $rows,
             'etat-creances-clients',
             $titre,
@@ -818,23 +1122,48 @@ class RapportClientController extends Controller
 
         $rows = array_map(fn($l) => [
             $l['date'],
-            $l['banque_depot'] ?? '',
+            $l['nature'],
             $l['libelle'],
-            $l['compte_debit'] . ' — ' . $l['compte_debit_libelle'],
-            $l['compte_credit'] . ' — ' . $l['compte_credit_libelle'],
             $l['debit'] ?: '',
             $l['credit'] ?: '',
             $l['solde'],
         ], $result['data']);
 
-        $totDebit = array_sum(array_column($result['data'], 'debit'));
-        $totCredit = array_sum(array_column($result['data'], 'credit'));
-        $rows[] = ['', '', 'TOTAL', '', '', $totDebit, $totCredit, ''];
-
         return \App\Support\ExcelExporter::download(
-            ['Date', 'Banque dépôt', 'Libellé', 'Compte Débit', 'Compte Crédit', 'Débit', 'Crédit', 'Solde'],
+            ['Date', 'Nature', 'Libellé', 'Débit', 'Crédit', 'Solde'],
             $rows,
             'brouillard-cheques',
+            $titre,
+        );
+    }
+
+    public function imputationsComptablesExcel(Request $request)
+    {
+        $result = $this->buildImputationsComptablesData($request);
+        $titre = 'Imputations Comptables Clients';
+        if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
+            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+        }
+
+        $rows = [];
+        foreach ($result['groupes'] as $g) {
+            $rows[] = ["Date d'imputation : {$g['date']}", '', '', ''];
+            foreach ($g['lignes'] as $l) {
+                $rows[] = [
+                    $l['compte'],
+                    $l['debit'] ?: '',
+                    $l['credit'] ?: '',
+                    $l['libelle'],
+                ];
+            }
+            $rows[] = ['', '', '', ''];
+        }
+
+        return \App\Support\ExcelExporter::download(
+            ['Compte', 'Débit', 'Crédit', 'Libellé'],
+            $rows,
+            'imputations-comptables',
             $titre,
         );
     }
@@ -843,7 +1172,7 @@ class RapportClientController extends Controller
     {
         $result = $this->buildChiffreAffairesData($request);
         $mode = $result['mode'];
-        $titre = "Chiffre d'Affaire";
+        $titre = "CHIFFRES D'AFFAIRES (CA)";
 
         if (in_array($mode, ['global_du', 'global_au', 'global_periode'])) {
             $d = $result['data'];
@@ -883,7 +1212,7 @@ class RapportClientController extends Controller
     public function pertesRejetsExcel(Request $request)
     {
         $result = $this->buildPertesRejetsData($request);
-        $titre = 'Pertes, Rejets et Régularisations';
+        $titre = 'Pertes et Rejets';
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
             $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
                 . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
@@ -891,68 +1220,19 @@ class RapportClientController extends Controller
 
         $rows = array_map(fn($l) => [
             $l['date_reglement'],
-            $l['type_reglement_libelle'],
             $l['client_code'] . ' — ' . ($l['client_nom'] ?? '-'),
-            $l['type_client_label'] ?? '',
             $l['facture_reference'] ?? '',
             $l['reference_cheque'] ?? '',
             $l['montant'],
             $l['observations'] ?? '',
         ], $result['data']);
 
-        $t = $result['totaux'];
-        $rows[] = ['', '', '', '', '', 'Pertes', $t['pertes'], ''];
-        $rows[] = ['', '', '', '', '', 'Rejets', $t['rejets'], ''];
-        $rows[] = ['', '', '', '', '', 'Régularisations', $t['regularisations'], ''];
-        $rows[] = ['', '', '', '', '', 'SOLDE', $t['solde'], ''];
-
         return \App\Support\ExcelExporter::download(
-            ['Date', 'Type', 'Client', 'Type client', 'Réf. Facture', 'N° Chèque', 'Montant', 'Observations'],
+            ['Date', 'Client', 'Réf. Facture', 'N° Chèque', 'Montant', 'Observations'],
             $rows,
             'pertes-rejets',
             $titre,
         );
     }
 
-    public function reglementsParTypeClientExcel(Request $request)
-    {
-        $dateDebut = $request->input('date_debut');
-        $dateFin = $request->input('date_fin');
-
-        $query = ReglementClient::with(['client'])
-            ->when($dateDebut, fn($q) => $q->where('date_reglement', '>=', $dateDebut))
-            ->when($dateFin, fn($q) => $q->where('date_reglement', '<=', $dateFin));
-
-        $reglements = $query->get();
-
-        $groupes = [];
-        foreach ($reglements as $r) {
-            $type = $r->client?->type_client ?: 'non_defini';
-            $label = $type !== 'non_defini'
-                ? (\App\Models\Client::TYPES_LABELS[$type] ?? ucfirst($type))
-                : 'Non défini';
-            if (!isset($groupes[$type])) {
-                $groupes[$type] = ['label' => $label, 'nombre' => 0, 'total' => 0];
-            }
-            $groupes[$type]['nombre']++;
-            $groupes[$type]['total'] += (float) $r->montant;
-        }
-
-        $rows = array_map(fn($g) => [$g['label'], $g['nombre'], $g['total']], array_values($groupes));
-        $totalGeneral = array_sum(array_column($groupes, 'total'));
-        $rows[] = ['TOTAL', array_sum(array_column($groupes, 'nombre')), $totalGeneral];
-
-        $titre = 'Règlements par type de client';
-        if ($dateDebut && $dateFin) {
-            $titre .= ' du ' . \Carbon\Carbon::parse($dateDebut)->format('d/m/Y')
-                . ' au ' . \Carbon\Carbon::parse($dateFin)->format('d/m/Y');
-        }
-
-        return \App\Support\ExcelExporter::download(
-            ['Type de client', 'Nombre', 'Total'],
-            $rows,
-            'reglements-par-type-client',
-            $titre,
-        );
-    }
 }

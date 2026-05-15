@@ -284,14 +284,15 @@ Route::prefix('rapports')->middleware('permission:rapports.voir')->group(functio
         Route::get('/api/etat-reglements', [RapportClientController::class, 'etatReglements']);
         Route::get('/api/etat-creances', [RapportClientController::class, 'etatCreances']);
         Route::get('/api/brouillard-cheques', [RapportClientController::class, 'brouillardCheques']);
+        Route::get('/api/imputations-comptables', [RapportClientController::class, 'imputationsComptables']);
         Route::get('/api/chiffre-affaires', [RapportClientController::class, 'chiffreAffaires']);
         Route::get('/api/pertes-rejets', [RapportClientController::class, 'pertesRejets']);
-        Route::get('/api/reglements-par-type-client', [RapportClientController::class, 'reglementsParTypeClient']);
 
         // Export PDF
         Route::get('/pdf/etat-reglements', [RapportClientController::class, 'etatReglementsPdf']);
         Route::get('/pdf/etat-creances', [RapportClientController::class, 'etatCreancesPdf']);
         Route::get('/pdf/brouillard-cheques', [RapportClientController::class, 'brouillardChequesPdf']);
+        Route::get('/pdf/imputations-comptables', [RapportClientController::class, 'imputationsComptablesPdf']);
         Route::get('/pdf/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesPdf']);
         Route::get('/pdf/pertes-rejets', [RapportClientController::class, 'pertesRejetsPdf']);
 
@@ -299,9 +300,9 @@ Route::prefix('rapports')->middleware('permission:rapports.voir')->group(functio
         Route::get('/excel/etat-reglements', [RapportClientController::class, 'etatReglementsExcel']);
         Route::get('/excel/etat-creances', [RapportClientController::class, 'etatCreancesExcel']);
         Route::get('/excel/brouillard-cheques', [RapportClientController::class, 'brouillardChequesExcel']);
+        Route::get('/excel/imputations-comptables', [RapportClientController::class, 'imputationsComptablesExcel']);
         Route::get('/excel/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesExcel']);
         Route::get('/excel/pertes-rejets', [RapportClientController::class, 'pertesRejetsExcel']);
-        Route::get('/excel/reglements-par-type-client', [RapportClientController::class, 'reglementsParTypeClientExcel']);
 
         // Pages standalone (backward compat)
         Route::get('/etat-reglements', [RapportClientController::class, 'etatReglementsPage'])->name('rapports.clients.etat-reglements');

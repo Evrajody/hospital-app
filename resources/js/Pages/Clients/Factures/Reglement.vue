@@ -154,7 +154,7 @@
               @submit.prevent="handleSubmit"
             >
               <el-row :gutter="20">
-                <el-col :span="6">
+                <el-col :span="8">
                   <el-form-item label="N&deg; de ligne" prop="numero_ligne">
                     <el-input
                       v-model="form.numero_ligne"
@@ -163,16 +163,15 @@
                     />
                   </el-form-item>
                 </el-col>
-                <el-col :span="6">
+                <el-col :span="8">
                   <el-form-item label="Type" prop="type_reglement">
                     <el-select v-model="form.type_reglement" style="width: 100%">
                       <el-option value="reglement" label="Règlement" />
                       <el-option value="perte" label="Perte" />
-                      <el-option value="rejet" label="Rejet" />
                     </el-select>
                   </el-form-item>
                 </el-col>
-                <el-col :span="6">
+                <el-col :span="8">
                   <el-form-item prop="date_reglement">
                     <template #label>
                       <span>Date <span class="required-star">*</span></span>
@@ -186,7 +185,10 @@
                     />
                   </el-form-item>
                 </el-col>
-                <el-col :span="6">
+              </el-row>
+
+              <el-row :gutter="20">
+                <el-col :span="form.type_reglement === 'reglement' ? 12 : 24">
                   <el-form-item prop="montant">
                     <template #label>
                       <span>Montant <span class="required-star">*</span></span>
@@ -201,9 +203,24 @@
                     </el-input>
                   </el-form-item>
                 </el-col>
+                <el-col v-if="form.type_reglement === 'reglement'" :span="12">
+                  <el-form-item prop="montant_rejet">
+                    <template #label>
+                      <span>Montant rejeté</span>
+                    </template>
+                    <el-input
+                      :model-value="formatInputMontant(form.montant_rejet)"
+                      @input="val => form.montant_rejet = parseInputMontant(val)"
+                      placeholder="0"
+                      :prefix-icon="Money"
+                    >
+                      <template #append>XOF</template>
+                    </el-input>
+                  </el-form-item>
+                </el-col>
               </el-row>
 
-              <template v-if="form.type_reglement !== 'perte' && form.type_reglement !== 'rejet'">
+              <template v-if="form.type_reglement !== 'perte'">
                 <el-row :gutter="20">
                   <el-col :span="12">
                     <el-form-item label="Institution">
@@ -258,20 +275,23 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="R&eacute;f&eacute;rence bordereau">
+                    <el-form-item prop="approvisionnement_id">
+                      <template #label>
+                        <span>R&eacute;f&eacute;rence bordereau <span class="required-star">*</span></span>
+                      </template>
                       <el-select
-                        v-model="form.compte_bancaire_id"
+                        v-model="form.approvisionnement_id"
                         filterable
-                        placeholder="S&eacute;lectionner un compte"
+                        placeholder="S&eacute;lectionner un bordereau"
                         style="width: 100%"
                         clearable
                         :disabled="!form.banque_depot_id"
                       >
                         <el-option
-                          v-for="compte in filteredComptes"
-                          :key="compte.id"
-                          :label="compte.numero_compte"
-                          :value="compte.id"
+                          v-for="appro in filteredApprovisionnements"
+                          :key="appro.id"
+                          :label="appro.reference_bordereau"
+                          :value="appro.id"
                         />
                       </el-select>
                     </el-form-item>
@@ -295,25 +315,6 @@
                   </el-col>
                 </el-row>
               </template>
-
-              <el-row v-if="form.type_reglement === 'rejet'" :gutter="20">
-                <el-col :span="12">
-                  <el-form-item prop="montant_rejet">
-                    <template #label>
-                      <span>Montant rejeté</span>
-                    </template>
-                    <el-input
-                      :model-value="formatInputMontant(form.montant_rejet)"
-                      @input="val => form.montant_rejet = parseInputMontant(val)"
-                      placeholder="0"
-                      :prefix-icon="Money"
-                    >
-                      <template #append>XOF</template>
-                    </el-input>
-                    <div class="form-hint">Comptabilisé dans l'état des pertes / rejets.</div>
-                  </el-form-item>
-                </el-col>
-              </el-row>
 
               <el-form-item label="Notes / Remarques">
                 <el-input
@@ -428,12 +429,11 @@
               <el-select v-model="editForm.type_reglement" style="width: 100%">
                 <el-option value="reglement" label="R&egrave;glement" />
                 <el-option value="perte" label="Perte" />
-                <el-option value="rejet" label="Rejet" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row v-if="editForm.type_reglement === 'rejet'" :gutter="20">
+        <el-row v-if="editForm.type_reglement === 'reglement'" :gutter="20">
           <el-col :span="12">
             <el-form-item label="Montant rejet&eacute;">
               <el-input-number
@@ -504,7 +504,7 @@
             {{ selectedReglement.banque_depot?.nom || '-' }}
           </el-descriptions-item>
           <el-descriptions-item label="R&eacute;f. Bordereau">
-            {{ selectedReglement.compte_bancaire?.numero_compte || '-' }}
+            {{ selectedReglement.approvisionnement?.reference_bordereau || '-' }}
           </el-descriptions-item>
           <el-descriptions-item v-if="selectedReglement.observations" label="Observations">
             {{ selectedReglement.observations }}
@@ -572,7 +572,7 @@ const form = ref({
   institution: '',
   reference_cheque: '',
   banque_depot_id: null,
-  compte_bancaire_id: null,
+  approvisionnement_id: null,
   observations: '',
 });
 
@@ -607,14 +607,14 @@ const newReste = computed(() => {
   return Math.max(0, resteAPayer.value - montant);
 });
 
-const filteredComptes = computed(() => {
+const filteredApprovisionnements = computed(() => {
   if (!form.value.banque_depot_id) return [];
   const banque = props.banques.find(b => b.id === form.value.banque_depot_id);
-  return banque?.comptes || [];
+  return banque?.approvisionnements || [];
 });
 
 const handleBanqueChange = () => {
-  form.value.compte_bancaire_id = null;
+  form.value.approvisionnement_id = null;
 };
 
 const handleCancel = () => {
@@ -640,6 +640,11 @@ const handleSubmit = async () => {
     return;
   }
 
+  if (form.value.type_reglement !== 'perte' && !form.value.approvisionnement_id) {
+    ElMessage.error('La r\u00e9f\u00e9rence bordereau est obligatoire');
+    return;
+  }
+
   submitting.value = true;
 
   const dateReglement = form.value.date_reglement instanceof Date
@@ -653,13 +658,13 @@ const handleSubmit = async () => {
     formData.append('type_reglement', form.value.type_reglement);
     formData.append('date_reglement', dateReglement);
     formData.append('montant', form.value.montant);
-    if (form.value.type_reglement === 'rejet') {
+    if (form.value.type_reglement === 'reglement') {
       formData.append('montant_rejet', form.value.montant_rejet || 0);
     }
     if (form.value.institution) formData.append('institution', form.value.institution);
     if (form.value.reference_cheque) formData.append('reference_cheque', form.value.reference_cheque);
     if (form.value.banque_depot_id) formData.append('banque_depot_id', form.value.banque_depot_id);
-    if (form.value.compte_bancaire_id) formData.append('compte_bancaire_id', form.value.compte_bancaire_id);
+    if (form.value.approvisionnement_id) formData.append('approvisionnement_id', form.value.approvisionnement_id);
     if (form.value.observations) formData.append('observations', form.value.observations);
     if (bordereauFile.value) formData.append('bordereau_depot', bordereauFile.value);
 
@@ -711,7 +716,7 @@ const handleEditReglement = (reglement) => {
     institution: reglement.institution || '',
     reference_cheque: reglement.reference_cheque || '',
     banque_depot_id: reglement.banque_depot?.id || null,
-    compte_bancaire_id: reglement.compte_bancaire?.id || null,
+    approvisionnement_id: reglement.approvisionnement?.id || null,
     observations: reglement.observations || '',
     bordereau_depot_path: reglement.bordereau_depot_path || null,
   };
@@ -785,11 +790,6 @@ const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 const formatDate = (date) => {
   if (!date) return '-';
   return new Date(date).toLocaleDateString('fr-FR');
-};
-
-const getModeLabel = (mode) => {
-  const labels = { especes: 'Esp\u00e8ces', cheque: 'Ch\u00e8que', virement: 'Virement' };
-  return labels[mode] || mode;
 };
 </script>
 

@@ -93,19 +93,11 @@
               </tr>
             </template>
           </tbody>
-          <tfoot>
-            <tr class="total-row">
-              <td colspan="2" class="total-label">TOTAUX</td>
-              <td class="montant-col total-cell">{{ formatMontant(totalDebit) }}</td>
-              <td class="montant-col total-cell">{{ formatMontant(totalCredit) }}</td>
-              <td class="montant-col total-cell solde-col">{{ formatMontant(soldeGeneral) }}</td>
-            </tr>
-          </tfoot>
         </table>
       </div>
 
       <!-- Imputations Comptables -->
-      <div v-if="data.length > 0" class="section" style="margin-top: 40px">
+      <div v-if="imputations.length > 0" class="section" style="margin-top: 40px">
         <div class="section-title">IMPUTATIONS COMPTABLES</div>
         <table class="data-table">
           <thead>
@@ -119,7 +111,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(entry, idx) in data" :key="'imp-' + idx">
+            <tr v-for="(entry, idx) in imputations" :key="'imp-' + idx">
               <td>{{ entry.date }}</td>
               <td><strong>{{ entry.reference }}</strong></td>
               <td>{{ entry.client_nom }} ({{ entry.facture_ref }})</td>
@@ -128,12 +120,6 @@
               <td class="montant-col">{{ formatMontant(entry.montant) }}</td>
             </tr>
           </tbody>
-          <tfoot>
-            <tr class="total-row">
-              <td colspan="5" class="total-label">TOTAL</td>
-              <td class="montant-col total-cell">{{ formatMontant(totalMontant) }}</td>
-            </tr>
-          </tfoot>
         </table>
       </div>
 
@@ -187,22 +173,7 @@ const groupedData = computed(() => {
   return groups;
 });
 
-const totalDebit = computed(() => {
-  return props.data.reduce((sum, e) => sum + (e.debit || 0), 0);
-});
-
-const totalCredit = computed(() => {
-  return props.data.reduce((sum, e) => sum + (e.credit || 0), 0);
-});
-
-const soldeGeneral = computed(() => {
-  if (props.data.length === 0) return 0;
-  return props.data[props.data.length - 1].solde;
-});
-
-const totalMontant = computed(() => {
-  return props.data.reduce((sum, e) => sum + (e.montant || 0), 0);
-});
+const imputations = computed(() => props.data.filter(e => e.nature === 'CH'));
 
 const openCriteres = () => {
   showCriteres.value = true;
