@@ -221,99 +221,155 @@
               </el-row>
 
               <template v-if="form.type_reglement !== 'perte'">
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="Institution">
-                      <el-select
-                        v-model="form.institution"
-                        filterable
-                        allow-create
-                        default-first-option
-                        placeholder="S&eacute;lectionner ou saisir"
-                        style="width: 100%"
-                        clearable
-                      >
-                        <el-option
-                          v-for="inst in institutions"
-                          :key="inst"
-                          :label="inst"
-                          :value="inst"
-                        />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="R&eacute;f&eacute;rence ch&egrave;que">
-                      <el-input
-                        v-model="form.reference_cheque"
-                        placeholder="N&deg; du ch&egrave;que"
-                      />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
+                <el-divider>Source du règlement</el-divider>
 
-                <el-divider>D&eacute;p&ocirc;t bancaire</el-divider>
+                <el-form-item>
+                  <el-radio-group v-model="form.source_paiement" @change="handleSourceChange">
+                    <el-radio-button label="direct">Paiement direct (chèque / espèces)</el-radio-button>
+                    <el-radio-button label="avance" :disabled="avancesDisponibles.length === 0">
+                      Imputer sur une avance
+                      <span v-if="avancesDisponibles.length === 0" style="font-size: 11px; opacity: 0.7;">(aucune dispo)</span>
+                    </el-radio-button>
+                  </el-radio-group>
+                </el-form-item>
 
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="Banque de d&eacute;p&ocirc;t">
-                      <el-select
-                        v-model="form.banque_depot_id"
-                        filterable
-                        placeholder="S&eacute;lectionner une banque"
-                        style="width: 100%"
-                        clearable
-                        @change="handleBanqueChange"
-                      >
-                        <el-option
-                          v-for="banque in banques"
-                          :key="banque.id"
-                          :label="banque.nom"
-                          :value="banque.id"
-                        />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item prop="approvisionnement_id">
-                      <template #label>
-                        <span>R&eacute;f&eacute;rence bordereau <span class="required-star">*</span></span>
-                      </template>
-                      <el-select
-                        v-model="form.approvisionnement_id"
-                        filterable
-                        placeholder="S&eacute;lectionner un bordereau"
-                        style="width: 100%"
-                        clearable
-                        :disabled="!form.banque_depot_id"
-                      >
-                        <el-option
-                          v-for="appro in filteredApprovisionnements"
-                          :key="appro.id"
-                          :label="appro.reference_bordereau"
-                          :value="appro.id"
-                        />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
+                <!-- BLOC IMPUTATION SUR AVANCE -->
+                <template v-if="form.source_paiement === 'avance'">
+                  <el-row :gutter="20">
+                    <el-col :span="24">
+                      <el-form-item label="Avance à imputer" prop="avance_id">
+                        <el-select
+                          v-model="form.avance_id"
+                          filterable
+                          placeholder="Sélectionner une avance disponible"
+                          style="width: 100%"
+                          clearable
+                        >
+                          <el-option
+                            v-for="a in avancesDisponibles"
+                            :key="a.id"
+                            :label="`${a.societe_emettrice} — Chq ${a.numero_cheque} — Solde ${formatMontant(a.montant_restant)}`"
+                            :value="a.id"
+                          >
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                              <span><strong>{{ a.societe_emettrice }}</strong> — Chq {{ a.numero_cheque }}<span v-if="a.numero_proforma"> — Proforma {{ a.numero_proforma }}</span></span>
+                              <span style="color: #059669; font-weight: 600; margin-left: 12px;">{{ formatMontant(a.montant_restant) }}</span>
+                            </div>
+                          </el-option>
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-alert
+                    v-if="selectedAvance"
+                    type="info"
+                    :closable="false"
+                    style="margin-bottom: 16px"
+                  >
+                    <div>
+                      Avance de <strong>{{ selectedAvance.societe_emettrice }}</strong> — Chèque {{ selectedAvance.numero_cheque }} du {{ selectedAvance.date_cheque }}
+                    </div>
+                    <div>
+                      Montant total : <strong>{{ formatMontant(selectedAvance.montant) }}</strong>
+                      &nbsp;|&nbsp; Déjà utilisé : <strong>{{ formatMontant(selectedAvance.montant_utilise) }}</strong>
+                      &nbsp;|&nbsp; Solde restant : <strong style="color: #059669">{{ formatMontant(selectedAvance.montant_restant) }}</strong>
+                    </div>
+                  </el-alert>
+                </template>
 
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="Bordereau de dépôt (PDF ou image)">
-                      <el-upload
-                        :auto-upload="false"
-                        :on-change="handleBordereauChange"
-                        :on-remove="handleBordereauRemove"
-                        :file-list="bordereauFileList"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        :limit="1"
-                      >
-                        <el-button :icon="UploadFilled">Joindre un bordereau</el-button>
-                      </el-upload>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
+                <!-- BLOC PAIEMENT DIRECT (chèque/espèces) -->
+                <template v-else>
+                  <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="Institution">
+                        <el-select
+                          v-model="form.institution"
+                          filterable
+                          allow-create
+                          default-first-option
+                          placeholder="S&eacute;lectionner ou saisir"
+                          style="width: 100%"
+                          clearable
+                        >
+                          <el-option
+                            v-for="inst in institutions"
+                            :key="inst"
+                            :label="inst"
+                            :value="inst"
+                          />
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="R&eacute;f&eacute;rence ch&egrave;que">
+                        <el-input
+                          v-model="form.reference_cheque"
+                          placeholder="N&deg; du ch&egrave;que (vide si espèces)"
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+
+                  <el-divider>Dépôt bancaire <span style="font-size: 11px; opacity: 0.6; font-weight: normal;">(optionnel — laisser vide pour espèces)</span></el-divider>
+
+                  <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="Banque de d&eacute;p&ocirc;t">
+                        <el-select
+                          v-model="form.banque_depot_id"
+                          filterable
+                          placeholder="S&eacute;lectionner une banque"
+                          style="width: 100%"
+                          clearable
+                          @change="handleBanqueChange"
+                        >
+                          <el-option
+                            v-for="banque in banques"
+                            :key="banque.id"
+                            :label="banque.nom"
+                            :value="banque.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="Référence bordereau" prop="approvisionnement_id">
+                        <el-select
+                          v-model="form.approvisionnement_id"
+                          filterable
+                          placeholder="S&eacute;lectionner un bordereau"
+                          style="width: 100%"
+                          clearable
+                          :disabled="!form.banque_depot_id"
+                        >
+                          <el-option
+                            v-for="appro in filteredApprovisionnements"
+                            :key="appro.id"
+                            :label="appro.reference_bordereau"
+                            :value="appro.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+
+                  <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="Bordereau de dépôt (PDF ou image)">
+                        <el-upload
+                          :auto-upload="false"
+                          :on-change="handleBordereauChange"
+                          :on-remove="handleBordereauRemove"
+                          :file-list="bordereauFileList"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          :limit="1"
+                        >
+                          <el-button :icon="UploadFilled">Joindre un bordereau</el-button>
+                        </el-upload>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </template>
               </template>
 
               <el-form-item label="Notes / Remarques">
@@ -539,6 +595,7 @@ const props = defineProps({
   reglements: { type: Array, default: () => [] },
   banques: { type: Array, default: () => [] },
   institutions: { type: Array, default: () => [] },
+  avancesDisponibles: { type: Array, default: () => [] },
   user: { type: Object, default: () => null },
 });
 
@@ -566,6 +623,8 @@ const showDetail = (reglement) => {
 const form = ref({
   numero_ligne: String(props.reglements.length + 1).padStart(3, '0'),
   type_reglement: 'reglement',
+  source_paiement: 'direct', // 'direct' = chèque/espèces, 'avance' = imputation sur avance
+  avance_id: null,
   date_reglement: new Date(),
   montant: null,
   montant_rejet: 0,
@@ -613,8 +672,27 @@ const filteredApprovisionnements = computed(() => {
   return banque?.approvisionnements || [];
 });
 
+const selectedAvance = computed(() => {
+  if (!form.value.avance_id) return null;
+  return props.avancesDisponibles.find(a => a.id === form.value.avance_id) || null;
+});
+
 const handleBanqueChange = () => {
   form.value.approvisionnement_id = null;
+};
+
+const handleSourceChange = () => {
+  // Vide les champs incompatibles quand on bascule
+  if (form.value.source_paiement === 'avance') {
+    form.value.institution = '';
+    form.value.reference_cheque = '';
+    form.value.banque_depot_id = null;
+    form.value.approvisionnement_id = null;
+    bordereauFile.value = null;
+    bordereauFileList.value = [];
+  } else {
+    form.value.avance_id = null;
+  }
 };
 
 const handleCancel = () => {
@@ -640,9 +718,15 @@ const handleSubmit = async () => {
     return;
   }
 
-  if (form.value.type_reglement !== 'perte' && !form.value.approvisionnement_id) {
-    ElMessage.error('La r\u00e9f\u00e9rence bordereau est obligatoire');
-    return;
+  if (form.value.source_paiement === 'avance') {
+    if (!form.value.avance_id) {
+      ElMessage.error('S\u00e9lectionnez une avance \u00e0 imputer');
+      return;
+    }
+    if (selectedAvance.value && form.value.montant > selectedAvance.value.montant_restant) {
+      ElMessage.error(`Le montant d\u00e9passe le solde restant de l'avance (${formatMontant(selectedAvance.value.montant_restant)})`);
+      return;
+    }
   }
 
   submitting.value = true;
@@ -661,19 +745,19 @@ const handleSubmit = async () => {
     if (form.value.type_reglement === 'reglement') {
       formData.append('montant_rejet', form.value.montant_rejet || 0);
     }
-    if (form.value.institution) formData.append('institution', form.value.institution);
-    if (form.value.reference_cheque) formData.append('reference_cheque', form.value.reference_cheque);
-    if (form.value.banque_depot_id) formData.append('banque_depot_id', form.value.banque_depot_id);
-    if (form.value.approvisionnement_id) formData.append('approvisionnement_id', form.value.approvisionnement_id);
+    if (form.value.source_paiement === 'avance' && form.value.avance_id) {
+      formData.append('avance_id', form.value.avance_id);
+    } else {
+      if (form.value.institution) formData.append('institution', form.value.institution);
+      if (form.value.reference_cheque) formData.append('reference_cheque', form.value.reference_cheque);
+      if (form.value.banque_depot_id) formData.append('banque_depot_id', form.value.banque_depot_id);
+      if (form.value.approvisionnement_id) formData.append('approvisionnement_id', form.value.approvisionnement_id);
+      if (bordereauFile.value) formData.append('bordereau_depot', bordereauFile.value);
+    }
     if (form.value.observations) formData.append('observations', form.value.observations);
-    if (bordereauFile.value) formData.append('bordereau_depot', bordereauFile.value);
 
-    const response = await fetch('/api/reglements-clients', {
+    const response = await fetchApi('/api/reglements-clients', {
       method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-        'Accept': 'application/json',
-      },
       body: formData,
     });
 
@@ -737,12 +821,8 @@ const handleEditSubmit = async () => {
     });
     if (editBordereauFile.value) formData.append('bordereau_depot', editBordereauFile.value);
 
-    const response = await fetch(`/api/reglements-clients/${editingReglementId.value}`, {
+    const response = await fetchApi(`/api/reglements-clients/${editingReglementId.value}`, {
       method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-        'Accept': 'application/json',
-      },
       body: formData,
     });
     const result = await response.json();

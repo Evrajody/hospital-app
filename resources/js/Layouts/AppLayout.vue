@@ -59,6 +59,10 @@
             <el-icon><Money /></el-icon>
             <template #title>Règlements</template>
           </el-menu-item>
+          <el-menu-item v-if="can('reglements-clients.voir')" index="/avances-clients" @click="navigate('/avances-clients')">
+            <el-icon><Wallet /></el-icon>
+            <template #title>Avances</template>
+          </el-menu-item>
         </el-menu-item-group>
 
         <div class="menu-separator"></div>
@@ -198,7 +202,8 @@ import {
   Fold,
   List,
   Key,
-  More
+  More,
+  Wallet
 } from '@element-plus/icons-vue';
 
 // Props

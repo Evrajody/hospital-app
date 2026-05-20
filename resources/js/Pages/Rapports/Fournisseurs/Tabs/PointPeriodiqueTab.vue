@@ -3,22 +3,16 @@
     <!-- Filtres -->
     <div class="filters-section">
       <el-form :inline="true" class="filters-form">
-        <el-form-item label="Date début">
+        <el-form-item label="Période">
           <el-date-picker
-            v-model="dateDebut"
-            type="date"
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
             format="DD/MM/YYYY"
             value-format="YYYY-MM-DD"
-            placeholder="Date début"
-          />
-        </el-form-item>
-        <el-form-item label="Date fin">
-          <el-date-picker
-            v-model="dateFin"
-            type="date"
-            format="DD/MM/YYYY"
-            value-format="YYYY-MM-DD"
-            placeholder="Date fin"
+            unlink-panels
           />
         </el-form-item>
         <el-form-item>
@@ -66,8 +60,7 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const titre = ref('');
@@ -76,14 +69,15 @@ const groupes = ref([]);
 const formatMontant = (v) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
 
 const fetchData = async () => {
-  if (!dateDebut.value || !dateFin.value) {
+  const [debut, fin] = dateRange.value || [];
+  if (!debut || !fin) {
     ElMessage.warning('Veuillez indiquer la période complète');
     return;
   }
 
   loading.value = true;
   try {
-    const params = new URLSearchParams({ date_debut: dateDebut.value, date_fin: dateFin.value });
+    const params = new URLSearchParams({ date_debut: debut, date_fin: fin });
     const res = await fetch(`/rapports/fournisseurs/api/point-periodique?${params}`);
     const json = await res.json();
     titre.value = json.titre || '';
@@ -97,7 +91,8 @@ const fetchData = async () => {
 };
 
 const buildPdfParams = () => {
-  return new URLSearchParams({ date_debut: dateDebut.value, date_fin: dateFin.value });
+  const [debut, fin] = dateRange.value || [];
+  return new URLSearchParams({ date_debut: debut || '', date_fin: fin || '' });
 };
 
 const exportPdf = () => {

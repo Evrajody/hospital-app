@@ -47,23 +47,16 @@
           </el-radio>
           <div class="critere-dates" v-if="selectedMode === 'tous_clients'">
             <div class="critere-date-row">
-              <span class="critere-label">Date début :</span>
+              <span class="critere-label">Période :</span>
               <el-date-picker
-                v-model="dateDebut"
-                type="date"
+                v-model="dateRange"
+                type="daterange"
+                range-separator="à"
+                start-placeholder="Date début"
+                end-placeholder="Date fin"
                 format="DD/MM/YYYY"
                 value-format="YYYY-MM-DD"
-                placeholder="Date début"
-              />
-            </div>
-            <div class="critere-date-row">
-              <span class="critere-label">Date fin :</span>
-              <el-date-picker
-                v-model="dateFin"
-                type="date"
-                format="DD/MM/YYYY"
-                value-format="YYYY-MM-DD"
-                placeholder="Date fin"
+                unlink-panels
               />
             </div>
           </div>
@@ -251,8 +244,7 @@ const props = defineProps({
 
 const selectedMode = ref(props.mode);
 const selectedClientId = ref(props.selectedClientId);
-const dateDebut = ref(props.periode.debut);
-const dateFin = ref(props.periode.fin);
+const dateRange = ref(props.periode.debut && props.periode.fin ? [props.periode.debut, props.periode.fin] : []);
 const loading = ref(false);
 const showReport = ref(props.data.length > 0);
 const showCriteres = ref(!showReport.value);
@@ -283,8 +275,9 @@ const afficher = () => {
   const params = { mode: selectedMode.value };
   if (selectedMode.value === 'un_client') params.client_id = selectedClientId.value;
   if (selectedMode.value === 'tous_clients') {
-    params.date_debut = dateDebut.value;
-    params.date_fin = dateFin.value;
+    const [debut, fin] = dateRange.value || [];
+    params.date_debut = debut;
+    params.date_fin = fin;
   }
   router.get('/rapports/clients/etat-reglements', params, {
     preserveState: false,

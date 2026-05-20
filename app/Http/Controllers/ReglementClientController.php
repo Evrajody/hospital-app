@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\AvanceClient;
 use App\Models\Banque;
 use App\Models\Client;
 use App\Models\FactureClient;
@@ -92,13 +93,32 @@ class ReglementClientController extends Controller
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
-            'approvisionnement_id' => ['nullable', 'required_unless:type_reglement,perte', 'integer', 'exists:approvisionnements_banques,id'],
+            'approvisionnement_id' => ['nullable', 'integer', 'exists:approvisionnements_banques,id'],
+            'avance_id' => ['nullable', 'integer', 'exists:avances_clients,id'],
             'observations' => ['nullable', 'string'],
             'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'montant_rejet' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $facture = FactureClient::findOrFail($request->facture_id);
+
+        // Si imputation sur avance : vérifier appartenance au client et solde disponible
+        $avance = null;
+        if ($request->filled('avance_id')) {
+            $avance = AvanceClient::findOrFail($request->avance_id);
+            if ($avance->client_id !== $facture->client_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "L'avance sélectionnée n'appartient pas à ce client.",
+                ], 422);
+            }
+            if ((float) $request->montant > $avance->montant_restant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le montant dépasse le solde restant de cette avance (' . number_format($avance->montant_restant, 0, ',', ' ') . ' XOF)',
+                ], 422);
+            }
+        }
 
         $bordereauPath = null;
         if ($request->hasFile('bordereau_depot')) {
@@ -129,6 +149,7 @@ class ReglementClientController extends Controller
                 'reference_cheque' => $request->reference_cheque,
                 'banque_depot_id' => $request->banque_depot_id,
                 'approvisionnement_id' => $request->approvisionnement_id,
+                'avance_id' => $request->avance_id,
                 'observations' => $request->observations,
                 'bordereau_depot_path' => $bordereauPath,
                 'montant_rejet' => (float) ($request->montant_rejet ?? 0),
@@ -137,6 +158,10 @@ class ReglementClientController extends Controller
             ]);
 
             $facture->enregistrerPaiement($request->montant);
+
+            if ($avance) {
+                $avance->recalculerSolde();
+            }
 
             DB::commit();
 
@@ -175,7 +200,7 @@ class ReglementClientController extends Controller
             'institution' => ['nullable', 'string', 'max:255'],
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
-            'approvisionnement_id' => ['nullable', 'required_unless:type_reglement,perte', 'integer', 'exists:approvisionnements_banques,id'],
+            'approvisionnement_id' => ['nullable', 'integer', 'exists:approvisionnements_banques,id'],
             'observations' => ['nullable', 'string'],
             'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'montant_rejet' => ['nullable', 'numeric', 'min:0'],
@@ -261,12 +286,17 @@ class ReglementClientController extends Controller
     {
         $reglement = ReglementClient::findOrFail($id);
         $facture = $reglement->facture;
+        $avance = $reglement->avance;
 
         try {
             DB::beginTransaction();
 
             $montant = (float) $reglement->montant;
             $reglement->delete();
+
+            if ($avance) {
+                $avance->recalculerSolde();
+            }
 
             // Reverser le paiement sur la facture
             $facture->montant_paye = max(0, (float) $facture->montant_paye - $montant);

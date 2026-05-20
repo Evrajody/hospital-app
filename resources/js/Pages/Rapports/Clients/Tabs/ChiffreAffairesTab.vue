@@ -16,12 +16,17 @@
           <el-date-picker v-model="dateRef" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Sélectionner une date" />
         </el-form-item>
 
-        <el-form-item v-if="selectedMode === 'global_periode' || selectedMode === 'par_client'" label="Date début">
-          <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date début" />
-        </el-form-item>
-
-        <el-form-item v-if="selectedMode === 'global_periode' || selectedMode === 'par_client'" label="Date fin">
-          <el-date-picker v-model="dateFin" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date fin" />
+        <el-form-item v-if="selectedMode === 'global_periode' || selectedMode === 'par_client'" label="Période">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
         </el-form-item>
 
         <el-form-item v-if="selectedMode === 'par_client'" label="Client">
@@ -109,8 +114,7 @@ const props = defineProps({
 
 const selectedMode = ref('global_du');
 const selectedClientId = ref(null);
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const dateRef = ref('');
 const loading = ref(false);
 const fetched = ref(false);
@@ -141,8 +145,9 @@ const fetchData = async () => {
     const params = new URLSearchParams({ mode: selectedMode.value });
     if (dateRef.value) params.append('date_ref', dateRef.value);
     if (selectedClientId.value) params.append('client_id', selectedClientId.value);
-    if (dateDebut.value) params.append('date_debut', dateDebut.value);
-    if (dateFin.value) params.append('date_fin', dateFin.value);
+    const [debut, fin] = dateRange.value || [];
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
 
     const res = await fetch(`/rapports/clients/api/chiffre-affaires?${params}`);
     const json = await res.json();
@@ -169,8 +174,9 @@ const buildPdfParams = () => {
   const params = new URLSearchParams({ mode: selectedMode.value });
   if (dateRef.value) params.append('date_ref', dateRef.value);
   if (selectedClientId.value) params.append('client_id', selectedClientId.value);
-  if (dateDebut.value) params.append('date_debut', dateDebut.value);
-  if (dateFin.value) params.append('date_fin', dateFin.value);
+  const [debut, fin] = dateRange.value || [];
+  if (debut) params.append('date_debut', debut);
+  if (fin) params.append('date_fin', fin);
   return params;
 };
 

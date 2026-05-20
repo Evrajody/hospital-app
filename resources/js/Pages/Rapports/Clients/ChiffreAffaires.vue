@@ -53,23 +53,16 @@
           </el-radio>
           <div class="critere-dates" v-if="selectedMode === 'global_periode'">
             <div class="critere-date-row">
-              <span class="critere-label">Date début :</span>
+              <span class="critere-label">Période :</span>
               <el-date-picker
-                v-model="dateDebut"
-                type="date"
+                v-model="dateRange"
+                type="daterange"
+                range-separator="à"
+                start-placeholder="Date début"
+                end-placeholder="Date fin"
                 format="DD/MM/YYYY"
                 value-format="YYYY-MM-DD"
-                placeholder="Date début"
-              />
-            </div>
-            <div class="critere-date-row">
-              <span class="critere-label">Date fin :</span>
-              <el-date-picker
-                v-model="dateFin"
-                type="date"
-                format="DD/MM/YYYY"
-                value-format="YYYY-MM-DD"
-                placeholder="Date fin"
+                unlink-panels
               />
             </div>
           </div>
@@ -105,23 +98,16 @@
             </div>
             <div class="critere-dates" v-if="usePeriode">
               <div class="critere-date-row">
-                <span class="critere-label">Date début :</span>
+                <span class="critere-label">Période :</span>
                 <el-date-picker
-                  v-model="dateDebut"
-                  type="date"
+                  v-model="dateRange"
+                  type="daterange"
+                  range-separator="à"
+                  start-placeholder="Date début"
+                  end-placeholder="Date fin"
                   format="DD/MM/YYYY"
                   value-format="YYYY-MM-DD"
-                  placeholder="Date début"
-                />
-              </div>
-              <div class="critere-date-row">
-                <span class="critere-label">Date fin :</span>
-                <el-date-picker
-                  v-model="dateFin"
-                  type="date"
-                  format="DD/MM/YYYY"
-                  value-format="YYYY-MM-DD"
-                  placeholder="Date fin"
+                  unlink-panels
                 />
               </div>
             </div>
@@ -295,8 +281,7 @@ const props = defineProps({
 
 const selectedMode = ref(props.mode);
 const selectedClientId = ref(props.selectedClientId);
-const dateDebut = ref(props.periode.debut);
-const dateFin = ref(props.periode.fin);
+const dateRange = ref(props.periode.debut && props.periode.fin ? [props.periode.debut, props.periode.fin] : []);
 const dateRef = ref(props.dateRef);
 const usePeriode = ref(!!(props.periode.debut && props.periode.fin && props.mode === 'par_client'));
 const loading = ref(false);
@@ -332,15 +317,16 @@ const afficher = () => {
   loading.value = true;
   const params = { mode: selectedMode.value };
 
+  const [debut, fin] = dateRange.value || [];
   if (selectedMode.value === 'par_client') {
     params.client_id = selectedClientId.value;
     if (usePeriode.value) {
-      params.date_debut = dateDebut.value;
-      params.date_fin = dateFin.value;
+      params.date_debut = debut;
+      params.date_fin = fin;
     }
   } else if (selectedMode.value === 'global_periode') {
-    params.date_debut = dateDebut.value;
-    params.date_fin = dateFin.value;
+    params.date_debut = debut;
+    params.date_fin = fin;
   } else {
     params.date_ref = dateRef.value;
   }

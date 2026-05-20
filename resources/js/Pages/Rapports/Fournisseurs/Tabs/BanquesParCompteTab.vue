@@ -2,11 +2,17 @@
   <div class="tab-content">
     <div class="filters-section">
       <el-form :inline="true" class="filters-form">
-        <el-form-item label="Date début">
-          <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" />
-        </el-form-item>
-        <el-form-item label="Date fin">
-          <el-date-picker v-model="dateFin" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" />
+        <el-form-item label="Période">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchData" :loading="loading">Afficher</el-button>
@@ -51,16 +57,16 @@ import { useMontant } from '@/Composables/useMontant';
 
 const { formatMontant } = useMontant();
 
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const data = ref([]);
 
 const buildParams = () => {
   const params = new URLSearchParams();
-  if (dateDebut.value) params.append('date_debut', dateDebut.value);
-  if (dateFin.value) params.append('date_fin', dateFin.value);
+  const [debut, fin] = dateRange.value || [];
+  if (debut) params.append('date_debut', debut);
+  if (fin) params.append('date_fin', fin);
   return params;
 };
 

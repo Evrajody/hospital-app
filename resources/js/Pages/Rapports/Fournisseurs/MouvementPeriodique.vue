@@ -36,23 +36,16 @@
           </el-checkbox>
           <div class="critere-dates" v-if="usePeriode">
             <div class="critere-date-row">
-              <span class="critere-label">Date début :</span>
+              <span class="critere-label">Période :</span>
               <el-date-picker
-                v-model="dateDebut"
-                type="date"
+                v-model="dateRange"
+                type="daterange"
+                range-separator="à"
+                start-placeholder="Date début"
+                end-placeholder="Date fin"
                 format="DD/MM/YYYY"
                 value-format="YYYY-MM-DD"
-                placeholder="Date début"
-              />
-            </div>
-            <div class="critere-date-row">
-              <span class="critere-label">Date fin :</span>
-              <el-date-picker
-                v-model="dateFin"
-                type="date"
-                format="DD/MM/YYYY"
-                value-format="YYYY-MM-DD"
-                placeholder="Date fin"
+                unlink-panels
               />
             </div>
           </div>
@@ -180,8 +173,7 @@ const userName = computed(() => page.props.auth?.user?.name ?? 'Utilisateur');
 
 const selectedFournisseurId = ref(props.selectedFournisseurId);
 const usePeriode = ref(!!(props.periode.debut && props.periode.fin));
-const dateDebut = ref(props.periode.debut);
-const dateFin = ref(props.periode.fin);
+const dateRange = ref(props.periode.debut && props.periode.fin ? [props.periode.debut, props.periode.fin] : []);
 const loading = ref(false);
 const exportLoading = ref(false);
 const showReport = ref(props.lignes.length > 0 || props.fournisseur !== null);
@@ -201,9 +193,10 @@ const afficher = () => {
 
   loading.value = true;
   const params = { fournisseur_id: selectedFournisseurId.value };
-  if (usePeriode.value && dateDebut.value && dateFin.value) {
-    params.date_debut = dateDebut.value;
-    params.date_fin = dateFin.value;
+  const [debut, fin] = dateRange.value || [];
+  if (usePeriode.value && debut && fin) {
+    params.date_debut = debut;
+    params.date_fin = fin;
   }
 
   router.get('/rapports/fournisseurs/mouvement-periodique', params, {
@@ -221,9 +214,10 @@ const handleExportPdf = () => {
   exportLoading.value = true;
 
   const params = new URLSearchParams({ fournisseur_id: selectedFournisseurId.value });
-  if (usePeriode.value && dateDebut.value && dateFin.value) {
-    params.set('date_debut', dateDebut.value);
-    params.set('date_fin', dateFin.value);
+  const [debut, fin] = dateRange.value || [];
+  if (usePeriode.value && debut && fin) {
+    params.set('date_debut', debut);
+    params.set('date_fin', fin);
   }
 
   window.open(`/rapports/fournisseurs/pdf/mouvement-factures?${params.toString()}`, '_blank');

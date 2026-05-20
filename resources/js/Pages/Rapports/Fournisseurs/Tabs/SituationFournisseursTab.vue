@@ -54,21 +54,14 @@
 
         <el-form-item v-if="filtreDate === 'periode'" label="Période">
           <el-date-picker
-            v-model="dateDebut"
-            type="date"
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
             format="DD/MM/YYYY"
             value-format="YYYY-MM-DD"
-            placeholder="Date début"
-            style="width: 160px"
-          />
-          <span style="margin: 0 8px;">à</span>
-          <el-date-picker
-            v-model="dateFin"
-            type="date"
-            format="DD/MM/YYYY"
-            value-format="YYYY-MM-DD"
-            placeholder="Date fin"
-            style="width: 160px"
+            unlink-panels
           />
         </el-form-item>
 
@@ -235,8 +228,7 @@ const selectedMode = ref('tous');
 const selectedCompteId = ref(null);
 const selectedFournisseurId = ref(null);
 const filtreDate = ref('periode'); // 'periode' | 'point'
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const datePoint = ref('');
 const loading = ref(false);
 
@@ -245,8 +237,7 @@ const onFiltreDateChange = () => {
   if (filtreDate.value === 'periode') {
     datePoint.value = '';
   } else {
-    dateDebut.value = '';
-    dateFin.value = '';
+    dateRange.value = [];
   }
 };
 const fetched = ref(false);
@@ -272,11 +263,12 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const params = new URLSearchParams({ mode: selectedMode.value });
+    const [debut, fin] = dateRange.value || [];
     if (filtreDate.value === 'point' && datePoint.value) {
       params.append('date_point', datePoint.value);
     } else if (filtreDate.value === 'periode') {
-      if (dateDebut.value) params.append('date_debut', dateDebut.value);
-      if (dateFin.value) params.append('date_fin', dateFin.value);
+      if (debut) params.append('date_debut', debut);
+      if (fin) params.append('date_fin', fin);
     }
     if (selectedMode.value === 'par_compte' && selectedCompteId.value) {
       params.append('compte_id', selectedCompteId.value);
@@ -312,11 +304,12 @@ const getSummaryTous = ({ columns, data: tableData }) => {
 
 const buildPdfParams = () => {
   const params = new URLSearchParams({ mode: selectedMode.value });
+  const [debut, fin] = dateRange.value || [];
   if (filtreDate.value === 'point' && datePoint.value) {
     params.append('date_point', datePoint.value);
   } else if (filtreDate.value === 'periode') {
-    if (dateDebut.value) params.append('date_debut', dateDebut.value);
-    if (dateFin.value) params.append('date_fin', dateFin.value);
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
   }
   if (selectedMode.value === 'par_compte' && selectedCompteId.value) {
     params.append('compte_id', selectedCompteId.value);

@@ -20,12 +20,17 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Date début">
-          <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date début" />
-        </el-form-item>
-
-        <el-form-item label="Date fin">
-          <el-date-picker v-model="dateFin" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date fin" />
+        <el-form-item label="Période">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
         </el-form-item>
 
         <el-form-item>
@@ -92,8 +97,7 @@ const props = defineProps({
 const { formatMontant } = useMontant();
 
 const selectedFournisseurId = ref(null);
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const factures = ref([]);
@@ -109,8 +113,9 @@ const fetchData = async () => {
   try {
     const params = new URLSearchParams();
     if (selectedFournisseurId.value) params.append('fournisseur_id', selectedFournisseurId.value);
-    if (dateDebut.value) params.append('date_debut', dateDebut.value);
-    if (dateFin.value) params.append('date_fin', dateFin.value);
+    const [debut, fin] = dateRange.value || [];
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
 
     const res = await fetch(`/rapports/fournisseurs/api/factures-soldes?${params}`);
     const json = await res.json();
@@ -142,8 +147,9 @@ const getSummary = ({ columns }) => {
 const exportExcel = () => {
   const params = new URLSearchParams();
   if (selectedFournisseurId.value) params.append('fournisseur_id', selectedFournisseurId.value);
-  if (dateDebut.value) params.append('date_debut', dateDebut.value);
-  if (dateFin.value) params.append('date_fin', dateFin.value);
+  const [debut, fin] = dateRange.value || [];
+  if (debut) params.append('date_debut', debut);
+  if (fin) params.append('date_fin', fin);
   window.open(`/rapports/fournisseurs/excel/factures-soldes?${params}`, '_blank');
 };
 </script>

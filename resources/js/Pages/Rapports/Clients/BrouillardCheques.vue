@@ -13,23 +13,16 @@
       <div class="criteres-subtitle">Indiquez la période</div>
       <div class="criteres-body">
         <div class="critere-date-row">
-          <span class="critere-label">Date début :</span>
+          <span class="critere-label">Période :</span>
           <el-date-picker
-            v-model="dateDebut"
-            type="date"
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
             format="DD/MM/YYYY"
             value-format="YYYY-MM-DD"
-            placeholder="Date début"
-          />
-        </div>
-        <div class="critere-date-row">
-          <span class="critere-label">Date fin :</span>
-          <el-date-picker
-            v-model="dateFin"
-            type="date"
-            format="DD/MM/YYYY"
-            value-format="YYYY-MM-DD"
-            placeholder="Date fin"
+            unlink-panels
           />
         </div>
       </div>
@@ -149,8 +142,7 @@ const props = defineProps({
   periode: { type: Object, default: () => ({ debut: '', fin: '' }) },
 });
 
-const dateDebut = ref(props.periode.debut);
-const dateFin = ref(props.periode.fin);
+const dateRange = ref(props.periode.debut && props.periode.fin ? [props.periode.debut, props.periode.fin] : []);
 const loading = ref(false);
 const showReport = ref(props.data.length > 0);
 const showCriteres = ref(!showReport.value);
@@ -180,15 +172,16 @@ const openCriteres = () => {
 };
 
 const afficher = () => {
-  if (!dateDebut.value || !dateFin.value) {
+  const [debut, fin] = dateRange.value || [];
+  if (!debut || !fin) {
     ElMessage.warning('Veuillez indiquer la période (date début et date fin)');
     return;
   }
 
   loading.value = true;
   router.get('/rapports/clients/brouillard-cheques', {
-    date_debut: dateDebut.value,
-    date_fin: dateFin.value,
+    date_debut: debut,
+    date_fin: fin,
   }, {
     preserveState: false,
     onFinish: () => {

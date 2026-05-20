@@ -37,26 +37,18 @@
           />
         </el-form-item>
 
-        <template v-if="selectedMode === 'periode'">
-          <el-form-item label="Date début">
-            <el-date-picker
-              v-model="dateDebut"
-              type="date"
-              format="DD/MM/YYYY"
-              value-format="YYYY-MM-DD"
-              placeholder="Date début"
-            />
-          </el-form-item>
-          <el-form-item label="Date fin">
-            <el-date-picker
-              v-model="dateFin"
-              type="date"
-              format="DD/MM/YYYY"
-              value-format="YYYY-MM-DD"
-              placeholder="Date fin"
-            />
-          </el-form-item>
-        </template>
+        <el-form-item v-if="selectedMode === 'periode'" label="Période">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </el-form-item>
 
         <el-form-item>
           <el-button type="primary" @click="fetchData" :loading="loading">Afficher</el-button>
@@ -191,8 +183,7 @@ const props = defineProps({
 const selectedFournisseurId = ref(null);
 const selectedMode = ref('date');
 const dateRef = ref('');
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const activeSubTab = ref('resume');
@@ -208,7 +199,8 @@ const fetchData = async () => {
     ElMessage.warning('Veuillez sélectionner une date');
     return;
   }
-  if (selectedMode.value === 'periode' && (!dateDebut.value || !dateFin.value)) {
+  const [debut, fin] = dateRange.value || [];
+  if (selectedMode.value === 'periode' && (!debut || !fin)) {
     ElMessage.warning('Veuillez sélectionner la période complète');
     return;
   }
@@ -219,8 +211,8 @@ const fetchData = async () => {
     if (selectedMode.value === 'date') {
       params.append('date', dateRef.value);
     } else {
-      params.append('date_debut', dateDebut.value);
-      params.append('date_fin', dateFin.value);
+      params.append('date_debut', debut);
+      params.append('date_fin', fin);
     }
     if (selectedFournisseurId.value) {
       params.append('fournisseur_id', selectedFournisseurId.value);
@@ -260,8 +252,9 @@ const buildPdfParams = (type) => {
   if (selectedMode.value === 'date') {
     params.append('date', dateRef.value);
   } else {
-    params.append('date_debut', dateDebut.value);
-    params.append('date_fin', dateFin.value);
+    const [debut, fin] = dateRange.value || [];
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
   }
   if (selectedFournisseurId.value) {
     params.append('fournisseur_id', selectedFournisseurId.value);

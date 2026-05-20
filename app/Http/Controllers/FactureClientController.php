@@ -158,11 +158,24 @@ class FactureClientController extends Controller
 
         $institutions = ReglementClient::getInstitutions();
 
+        // Avances disponibles pour ce client
+        $avancesDisponibles = \App\Models\AvanceClient::where('client_id', $facture->client_id)
+            ->whereIn('statut', [
+                \App\Models\AvanceClient::STATUT_DISPONIBLE,
+                \App\Models\AvanceClient::STATUT_PARTIELLEMENT_UTILISEE,
+            ])
+            ->orderBy('date_cheque', 'desc')
+            ->get()
+            ->map(fn($a) => $a->toApiArray())
+            ->filter(fn($a) => $a['montant_restant'] > 0)
+            ->values();
+
         return Inertia::render('Clients/Factures/Reglement', [
             'facture' => $facture->toApiArray(),
             'reglements' => $reglements,
             'banques' => $banques,
             'institutions' => $institutions,
+            'avancesDisponibles' => $avancesDisponibles,
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',

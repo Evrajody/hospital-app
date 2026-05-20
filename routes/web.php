@@ -17,6 +17,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AvanceClientController;
 
 // Page d'accueil → redirect to login or dashboard
 Route::get('/', function () {
@@ -163,6 +164,22 @@ Route::prefix('api/reglements-clients')->group(function () {
     Route::post('/', [ReglementClientController::class, 'store'])->middleware('permission:reglements-clients.creer')->name('api.reglements-clients.store');
     Route::put('/{id}', [ReglementClientController::class, 'update'])->middleware('permission:reglements-clients.modifier')->name('api.reglements-clients.update');
     Route::delete('/{id}', [ReglementClientController::class, 'destroy'])->middleware('permission:reglements-clients.supprimer')->name('api.reglements-clients.destroy');
+});
+
+// Avances Clients Routes
+Route::prefix('avances-clients')->middleware('permission:reglements-clients.voir')->group(function () {
+    Route::get('/', [AvanceClientController::class, 'indexView'])->name('avances-clients.index');
+});
+
+// API Avances Clients
+Route::prefix('api/avances-clients')->group(function () {
+    Route::post('/', [AvanceClientController::class, 'store'])->middleware('permission:reglements-clients.creer')->name('api.avances-clients.store');
+    Route::put('/{id}', [AvanceClientController::class, 'update'])->middleware('permission:reglements-clients.modifier')->name('api.avances-clients.update');
+    Route::delete('/{id}', [AvanceClientController::class, 'destroy'])->middleware('permission:reglements-clients.supprimer')->name('api.avances-clients.destroy');
+    Route::get('/client/{clientId}', [AvanceClientController::class, 'disponiblesParClient'])
+        ->where('clientId', '[0-9]+')
+        ->middleware('permission:reglements-clients.voir')
+        ->name('api.avances-clients.disponibles-par-client');
 });
 
 // Plan Comptable Routes

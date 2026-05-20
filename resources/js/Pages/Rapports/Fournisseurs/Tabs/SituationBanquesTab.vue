@@ -19,22 +19,16 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="Date début">
+        <el-form-item label="Période">
           <el-date-picker
-            v-model="dateDebut"
-            type="date"
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
             format="DD/MM/YYYY"
             value-format="YYYY-MM-DD"
-            placeholder="Date début"
-          />
-        </el-form-item>
-        <el-form-item label="Date fin">
-          <el-date-picker
-            v-model="dateFin"
-            type="date"
-            format="DD/MM/YYYY"
-            value-format="YYYY-MM-DD"
-            placeholder="Date fin"
+            unlink-panels
           />
         </el-form-item>
         <el-form-item>
@@ -135,8 +129,7 @@ const props = defineProps({
 
 const mode = ref('toutes');
 const banqueId = ref('');
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const titre = ref('');
@@ -210,7 +203,8 @@ const getSummaryResume = ({ columns }) => {
 };
 
 const fetchData = async () => {
-  if (!dateDebut.value || !dateFin.value) {
+  const [debut, fin] = dateRange.value || [];
+  if (!debut || !fin) {
     ElMessage.warning('Veuillez indiquer la période complète');
     return;
   }
@@ -219,8 +213,8 @@ const fetchData = async () => {
   try {
     const params = new URLSearchParams({
       mode: mode.value,
-      date_debut: dateDebut.value,
-      date_fin: dateFin.value,
+      date_debut: debut,
+      date_fin: fin,
     });
     if (mode.value === 'par_banque' && banqueId.value) {
       params.append('banque_id', banqueId.value);
@@ -251,10 +245,11 @@ const fetchData = async () => {
 };
 
 const buildPdfParams = () => {
+  const [debut, fin] = dateRange.value || [];
   const params = new URLSearchParams({
     mode: mode.value,
-    date_debut: dateDebut.value,
-    date_fin: dateFin.value,
+    date_debut: debut || '',
+    date_fin: fin || '',
   });
   if (mode.value === 'par_banque' && banqueId.value) {
     params.append('banque_id', banqueId.value);

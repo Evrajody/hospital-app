@@ -3,12 +3,17 @@
     <!-- Filtres (partagés entre les 2 sous-onglets) -->
     <div class="filters-section">
       <el-form :inline="true" class="filters-form">
-        <el-form-item label="Date début">
-          <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date début" />
-        </el-form-item>
-
-        <el-form-item label="Date fin">
-          <el-date-picker v-model="dateFin" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date fin" />
+        <el-form-item label="Période">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
         </el-form-item>
 
         <el-form-item>
@@ -94,8 +99,7 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const activeSubTab = ref('brouillard');
@@ -119,13 +123,14 @@ const brouillardSpanMethod = ({ rowIndex, columnIndex }) => {
 };
 
 const fetchData = async () => {
-  if (!dateDebut.value || !dateFin.value) {
+  const [debut, fin] = dateRange.value || [];
+  if (!debut || !fin) {
     ElMessage.warning('Veuillez indiquer la période (date début et date fin)');
     return;
   }
   loading.value = true;
   try {
-    const params = new URLSearchParams({ date_debut: dateDebut.value, date_fin: dateFin.value });
+    const params = new URLSearchParams({ date_debut: debut, date_fin: fin });
     const [resBrouillard, resImputations] = await Promise.all([
       fetch(`/rapports/clients/api/brouillard-cheques?${params}`),
       fetch(`/rapports/clients/api/imputations-comptables?${params}`),
@@ -142,7 +147,10 @@ const fetchData = async () => {
   }
 };
 
-const buildParams = () => new URLSearchParams({ date_debut: dateDebut.value, date_fin: dateFin.value });
+const buildParams = () => {
+  const [debut, fin] = dateRange.value || [];
+  return new URLSearchParams({ date_debut: debut || '', date_fin: fin || '' });
+};
 
 const exportBrouillardPdf = () => {
   window.open(`/rapports/clients/pdf/brouillard-cheques?${buildParams()}`, '_blank');

@@ -24,12 +24,17 @@
           <el-checkbox v-model="usePeriode">Période</el-checkbox>
         </el-form-item>
 
-        <el-form-item v-if="usePeriode" label="Date début">
-          <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date début" />
-        </el-form-item>
-
-        <el-form-item v-if="usePeriode" label="Date fin">
-          <el-date-picker v-model="dateFin" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date fin" />
+        <el-form-item v-if="usePeriode" label="Période">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
         </el-form-item>
 
         <el-form-item>
@@ -112,8 +117,7 @@ const props = defineProps({
 
 const selectedFournisseurId = ref(null);
 const usePeriode = ref(false);
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const lignes = ref([]);
@@ -136,8 +140,9 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const params = new URLSearchParams({ fournisseur_id: selectedFournisseurId.value });
-    if (usePeriode.value && dateDebut.value) params.append('date_debut', dateDebut.value);
-    if (usePeriode.value && dateFin.value) params.append('date_fin', dateFin.value);
+    const [debut, fin] = dateRange.value || [];
+    if (usePeriode.value && debut) params.append('date_debut', debut);
+    if (usePeriode.value && fin) params.append('date_fin', fin);
 
     const res = await fetch(`/rapports/fournisseurs/api/mouvement-factures?${params}`);
     const json = await res.json();
@@ -170,8 +175,9 @@ const getSummary = ({ columns }) => {
 
 const buildPdfParams = () => {
   const params = new URLSearchParams({ fournisseur_id: selectedFournisseurId.value });
-  if (usePeriode.value && dateDebut.value) params.append('date_debut', dateDebut.value);
-  if (usePeriode.value && dateFin.value) params.append('date_fin', dateFin.value);
+  const [debut, fin] = dateRange.value || [];
+  if (usePeriode.value && debut) params.append('date_debut', debut);
+  if (usePeriode.value && fin) params.append('date_fin', fin);
   return params;
 };
 

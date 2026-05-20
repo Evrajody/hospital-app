@@ -26,6 +26,7 @@ class ReglementClient extends Model
         'reference_cheque',
         'banque_depot_id',
         'approvisionnement_id',
+        'avance_id',
         'observations',
         'bordereau_depot_path',
         'created_by',
@@ -86,6 +87,11 @@ class ReglementClient extends Model
     public function approvisionnement(): BelongsTo
     {
         return $this->belongsTo(ApprovisionnementBanque::class, 'approvisionnement_id');
+    }
+
+    public function avance(): BelongsTo
+    {
+        return $this->belongsTo(AvanceClient::class, 'avance_id');
     }
 
     public function createur(): BelongsTo
@@ -153,6 +159,13 @@ class ReglementClient extends Model
                 'reference_bordereau' => $this->approvisionnement->reference_bordereau,
                 'date_depot' => $this->approvisionnement->date_depot?->format('Y-m-d'),
                 'compte_bancaire_id' => $this->approvisionnement->compte_bancaire_id,
+            ] : null,
+            'avance_id' => $this->avance_id,
+            'avance' => $this->avance ? [
+                'id' => $this->avance->id,
+                'societe_emettrice' => $this->avance->societe_emettrice,
+                'numero_cheque' => $this->avance->numero_cheque,
+                'numero_proforma' => $this->avance->numero_proforma,
             ] : null,
             'observations' => $this->observations,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),

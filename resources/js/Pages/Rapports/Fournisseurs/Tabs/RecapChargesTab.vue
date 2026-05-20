@@ -25,22 +25,16 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="Date début">
+        <el-form-item label="Période">
           <el-date-picker
-            v-model="dateDebut"
-            type="date"
+            v-model="dateRange"
+            type="daterange"
+            range-separator="à"
+            start-placeholder="Date début"
+            end-placeholder="Date fin"
             format="DD/MM/YYYY"
             value-format="YYYY-MM-DD"
-            placeholder="Date début"
-          />
-        </el-form-item>
-        <el-form-item label="Date fin">
-          <el-date-picker
-            v-model="dateFin"
-            type="date"
-            format="DD/MM/YYYY"
-            value-format="YYYY-MM-DD"
-            placeholder="Date fin"
+            unlink-panels
           />
         </el-form-item>
         <el-form-item>
@@ -85,8 +79,7 @@ const { formatMontant } = useMontant();
 
 const mode = ref('toutes');
 const compteId = ref(null);
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const titre = ref('');
@@ -105,7 +98,8 @@ const loadComptes = async () => {
 onMounted(() => loadComptes());
 
 const fetchData = async () => {
-  if (!dateDebut.value || !dateFin.value) {
+  const [debut, fin] = dateRange.value || [];
+  if (!debut || !fin) {
     ElMessage.warning('Veuillez indiquer la période complète');
     return;
   }
@@ -113,8 +107,8 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const params = new URLSearchParams({
-      date_debut: dateDebut.value,
-      date_fin: dateFin.value,
+      date_debut: debut,
+      date_fin: fin,
       mode: mode.value,
     });
     if (mode.value === 'par_compte' && compteId.value) {
@@ -144,9 +138,10 @@ const getSummary = ({ columns }) => {
 };
 
 const buildPdfParams = () => {
+  const [debut, fin] = dateRange.value || [];
   const params = new URLSearchParams({
-    date_debut: dateDebut.value,
-    date_fin: dateFin.value,
+    date_debut: debut || '',
+    date_fin: fin || '',
     mode: mode.value,
   });
   if (mode.value === 'par_compte' && compteId.value) {

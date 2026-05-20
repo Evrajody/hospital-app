@@ -22,11 +22,17 @@
         </template>
 
         <template v-if="selectedMode === 'periode'">
-          <el-form-item label="Date début">
-            <el-date-picker v-model="dateDebut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date début" />
-          </el-form-item>
-          <el-form-item label="Date fin">
-            <el-date-picker v-model="dateFin" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" placeholder="Date fin" />
+          <el-form-item label="Période">
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="à"
+              start-placeholder="Date début"
+              end-placeholder="Date fin"
+              format="DD/MM/YYYY"
+              value-format="YYYY-MM-DD"
+              unlink-panels
+            />
           </el-form-item>
         </template>
 
@@ -153,8 +159,7 @@ import { ElMessage } from 'element-plus';
 const selectedMode = ref('mois_annee');
 const selectedMois = ref(new Date().getMonth() + 1);
 const selectedAnnee = ref(new Date().getFullYear());
-const dateDebut = ref('');
-const dateFin = ref('');
+const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
 const activeSubTab = ref('declaration');
@@ -194,7 +199,8 @@ const fetchData = async () => {
     ElMessage.warning('Veuillez sélectionner le mois et l\'année');
     return;
   }
-  if (selectedMode.value === 'periode' && (!dateDebut.value || !dateFin.value)) {
+  const [debut, fin] = dateRange.value || [];
+  if (selectedMode.value === 'periode' && (!debut || !fin)) {
     ElMessage.warning('Veuillez sélectionner la période complète');
     return;
   }
@@ -206,8 +212,8 @@ const fetchData = async () => {
       params.append('mois', selectedMois.value);
       params.append('annee', selectedAnnee.value);
     } else {
-      params.append('date_debut', dateDebut.value);
-      params.append('date_fin', dateFin.value);
+      params.append('date_debut', debut);
+      params.append('date_fin', fin);
     }
 
     const res = await fetch(`/rapports/fournisseurs/api/declaration-aib?${params}`);
@@ -257,8 +263,9 @@ const buildPdfParams = (type) => {
     params.append('mois', selectedMois.value);
     params.append('annee', selectedAnnee.value);
   } else {
-    params.append('date_debut', dateDebut.value);
-    params.append('date_fin', dateFin.value);
+    const [debut, fin] = dateRange.value || [];
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
   }
   return params;
 };
