@@ -1199,39 +1199,45 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate();
 
-    // === Validation des 2 blocs d'imputation ===
-    if (form.imputationsDebits.length === 0) {
-      activeTab.value = 'imputations';
-      validationErrors.value = [{ field: 'Imputations Débits', message: 'Au moins une ligne de débit (charges/immo/personnel) est obligatoire.' }];
-      ElMessage.error('Bloc 1 (Débits) : au moins une ligne est obligatoire.');
-      return;
-    }
-    if (form.imputationsCredits.length === 0) {
-      activeTab.value = 'imputations';
-      validationErrors.value = [{ field: 'Imputations Crédits', message: 'Au moins une ligne de crédit (fournisseur) est obligatoire.' }];
-      ElMessage.error('Bloc 2 (Crédits) : au moins une ligne est obligatoire.');
-      return;
-    }
-    const allLines = [...form.imputationsDebits, ...form.imputationsCredits];
-    if (allLines.some(l => !l.compte_id || !l.montant)) {
-      activeTab.value = 'imputations';
-      validationErrors.value = [{ field: 'Imputations', message: 'Chaque ligne doit avoir un compte et un montant.' }];
-      ElMessage.error('Chaque ligne d\'imputation doit avoir un compte et un montant.');
-      return;
-    }
-    if (!totalDebitsMatch.value) {
-      activeTab.value = 'imputations';
-      const ecart = formatMontant(ecartDebits.value);
-      validationErrors.value = [{ field: 'Bloc Débits', message: `Le total débits doit égaler le Montant HT (écart : ${ecart}).` }];
-      ElMessage.error(`Bloc 1 : total débits ≠ HT (écart : ${ecart}).`);
-      return;
-    }
-    if (!totalCreditsMatch.value) {
-      activeTab.value = 'imputations';
-      const ecart = formatMontant(ecartCredits.value);
-      validationErrors.value = [{ field: 'Bloc Crédits', message: `Le total crédits doit égaler le Montant TTC (écart : ${ecart}).` }];
-      ElMessage.error(`Bloc 2 : total crédits ≠ TTC (écart : ${ecart}).`);
-      return;
+    // === Imputations optionnelles ===
+    // L'utilisateur peut sauvegarder sans imputations.
+    // En revanche, s'il commence à saisir, on exige un état cohérent (les 2 blocs équilibrés).
+    const hasAnyImputation = form.imputationsDebits.length > 0 || form.imputationsCredits.length > 0;
+
+    if (hasAnyImputation) {
+      if (form.imputationsDebits.length === 0) {
+        activeTab.value = 'imputations';
+        validationErrors.value = [{ field: 'Imputations Débits', message: 'Vous avez commencé à saisir l\'imputation : ajoutez aussi au moins une ligne débit, ou supprimez les lignes crédit pour rester sans imputation.' }];
+        ElMessage.error('Bloc 1 (Débits) vide alors que des lignes crédit sont saisies.');
+        return;
+      }
+      if (form.imputationsCredits.length === 0) {
+        activeTab.value = 'imputations';
+        validationErrors.value = [{ field: 'Imputations Crédits', message: 'Vous avez commencé à saisir l\'imputation : ajoutez aussi au moins une ligne crédit, ou supprimez les lignes débit pour rester sans imputation.' }];
+        ElMessage.error('Bloc 2 (Crédits) vide alors que des lignes débit sont saisies.');
+        return;
+      }
+      const allLines = [...form.imputationsDebits, ...form.imputationsCredits];
+      if (allLines.some(l => !l.compte_id || !l.montant)) {
+        activeTab.value = 'imputations';
+        validationErrors.value = [{ field: 'Imputations', message: 'Chaque ligne doit avoir un compte et un montant.' }];
+        ElMessage.error('Chaque ligne d\'imputation doit avoir un compte et un montant.');
+        return;
+      }
+      if (!totalDebitsMatch.value) {
+        activeTab.value = 'imputations';
+        const ecart = formatMontant(ecartDebits.value);
+        validationErrors.value = [{ field: 'Bloc Débits', message: `Le total débits doit égaler le Montant HT (écart : ${ecart}).` }];
+        ElMessage.error(`Bloc 1 : total débits ≠ HT (écart : ${ecart}).`);
+        return;
+      }
+      if (!totalCreditsMatch.value) {
+        activeTab.value = 'imputations';
+        const ecart = formatMontant(ecartCredits.value);
+        validationErrors.value = [{ field: 'Bloc Crédits', message: `Le total crédits doit égaler le Montant TTC (écart : ${ecart}).` }];
+        ElMessage.error(`Bloc 2 : total crédits ≠ TTC (écart : ${ecart}).`);
+        return;
+      }
     }
 
     // === Construire le payload imputations[] avec nature ===

@@ -820,7 +820,40 @@ const handleFactureSuccess = async (factureData) => {
     if (result.success) {
       ElMessage.success(result.message || (isEdit ? 'Facture modifiée' : 'Facture créée'));
       showFactureModal.value = false;
+      const factureId = result.data?.id || selectedFacture.value?.id;
+      const hasImputation = !!result.has_imputation;
       router.reload({ only: ['factures', 'stats'] });
+
+      const confirmed = await ElMessageBox.confirm(
+        'Autorisez-vous une imputation comptable à l\'enregistrement de cette pièce comptable ?',
+        'Imputation comptable',
+        {
+          confirmButtonText: 'Oui',
+          cancelButtonText: 'Non',
+          type: 'info',
+        }
+      ).catch(() => false);
+
+      if (confirmed && factureId) {
+        try {
+          const r = await fetchApi(`/api/factures-fournisseurs/${factureId}/imputation`, { method: 'POST' });
+          const j = await r.json();
+          if (j.success) {
+            ElMessage.success(j.message || 'Écritures générées');
+            // Naviguer vers la fiche facture pour afficher l'offcanvas
+            router.visit(`/factures-fournisseurs/${factureId}?show_imputation=1`);
+            return;
+          } else if (j.reason === 'missing') {
+            ElMessageBox.alert(j.message, 'Imputations manquantes', { type: 'warning', confirmButtonText: 'OK' });
+          } else if (j.reason === 'incomplete') {
+            ElMessageBox.alert(j.message, 'Imputations incomplètes', { type: 'warning', confirmButtonText: 'OK' });
+          } else {
+            ElMessage.error(j.message || 'Erreur');
+          }
+        } catch {
+          ElMessage.error('Erreur de connexion');
+        }
+      }
     } else {
       ElMessage.error(result.message || 'Une erreur est survenue');
     }

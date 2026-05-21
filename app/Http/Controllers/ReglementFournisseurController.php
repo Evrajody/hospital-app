@@ -303,13 +303,8 @@ class ReglementFournisseurController extends Controller
             // Mettre à jour la facture
             $facture->enregistrerPaiement($montantReglement);
 
-            // Créer les écritures comptables du règlement
-            // (sauf pour les règlements en espèces — pas d'imputation comptable)
-            if ($reglement->mode_paiement !== 'especes') {
-                $facture->load(['fournisseur.compteComptable']);
-                $reglement->load(['compteTresorerie', 'lignes.compte']);
-                EcritureComptable::creerEcrituresReglement($reglement, $facture);
-            }
+            // Pas de génération auto des écritures du règlement à la création.
+            // L'utilisateur déclenchera explicitement via le bouton "Générer les écritures comptables".
 
             DB::commit();
 
@@ -513,9 +508,11 @@ class ReglementFournisseurController extends Controller
             }
 
             // ==========================================
-            // 8. RÉGÉNÉRER LES ÉCRITURES COMPTABLES (sauf espèces)
+            // 8. RE-SYNC DES ÉCRITURES UNIQUEMENT SI ELLES EXISTAIENT DÉJÀ
             // ==========================================
-            if ($nouveauMode !== 'especes') {
+            $avaitEcritures = EcritureComptable::where('reglement_id', $reglement->id)->exists();
+            if ($avaitEcritures && $nouveauMode !== 'especes') {
+                EcritureComptable::supprimerEcrituresReglement($reglement->id);
                 $reglement->load(['compteTresorerie', 'lignes.compte']);
                 $facture->load(['fournisseur.compteComptable']);
                 EcritureComptable::creerEcrituresReglement($reglement, $facture);
@@ -624,6 +621,55 @@ class ReglementFournisseurController extends Controller
             'success' => true,
             'data' => $stats,
         ]);
+    }
+
+    /**
+     * Générer (ou re-générer) les écritures comptables d'un règlement.
+     * Refuse si le mode = espèces, ou si la facture n'a pas d'imputations comptables.
+     */
+    public function creerEcritures(int $id): JsonResponse
+    {
+        $reglement = ReglementFournisseur::with(['facture.fournisseur.compteComptable', 'facture.imputations.compte', 'compteTresorerie', 'lignes.compte'])
+            ->findOrFail($id);
+
+        if ($reglement->mode_paiement === 'especes') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pas d\'écritures comptables pour un règlement en espèces.',
+            ], 422);
+        }
+
+        $facture = $reglement->facture;
+        if (!$facture) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Facture liée introuvable.',
+            ], 422);
+        }
+
+        // On ne peut pas générer les écritures du règlement tant que la facture n'a pas d'imputations comptables.
+        if ($facture->imputations->isEmpty() && !$facture->compte_id) {
+            return response()->json([
+                'success' => false,
+                'reason' => 'missing',
+                'message' => "Impossible de générer les écritures de ce règlement tant que la facture n'a pas d'imputation comptable. Saisissez d'abord l'imputation sur la facture.",
+            ], 422);
+        }
+
+        try {
+            EcritureComptable::supprimerEcrituresReglement($reglement->id);
+            EcritureComptable::creerEcrituresReglement($reglement, $facture);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Écritures comptables générées avec succès.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la génération : ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

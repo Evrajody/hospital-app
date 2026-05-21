@@ -107,6 +107,8 @@ Route::prefix('api/reglements-fournisseurs')->group(function () {
         ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.mandat-data');
     Route::get('/{id}/imputation-data', [ReglementFournisseurController::class, 'imputationData'])->middleware('permission:reglements-fournisseurs.voir')
         ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.imputation-data');
+    Route::post('/{id}/creer-ecritures', [ReglementFournisseurController::class, 'creerEcritures'])->middleware('permission:reglements-fournisseurs.modifier')
+        ->where('id', '[0-9]+')->name('api.reglements-fournisseurs.creer-ecritures');
 });
 
 // Factures Fournisseurs Routes

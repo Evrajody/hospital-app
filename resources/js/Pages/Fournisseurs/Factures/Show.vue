@@ -7,6 +7,24 @@
           <el-tag :type="getStatutType(facture.statut_paiement)" size="large">
             {{ getStatutLabel(facture.statut_paiement) }}
           </el-tag>
+          <el-tag
+            v-if="!facture.has_imputation"
+            type="info"
+            size="default"
+            effect="plain"
+            style="margin-left: 8px;"
+          >
+            Imputation non saisie
+          </el-tag>
+          <el-tag
+            v-else
+            :type="facture.has_ecritures_facture ? 'success' : 'warning'"
+            size="default"
+            effect="plain"
+            style="margin-left: 8px;"
+          >
+            {{ facture.has_ecritures_facture ? 'Écritures générées' : 'Écritures non générées' }}
+          </el-tag>
           <div>
             <h1 class="page-title">{{ facture.numero }}</h1>
             <p class="page-subtitle">
@@ -53,11 +71,12 @@
                   Imprimer
                 </el-dropdown-item> -->
                 <el-dropdown-item
-                  v-if="facture.compte || (facture.imputations && facture.imputations.length > 0)"
+                  v-if="facture.has_ecritures_facture"
                   command="imputation"
-                  :icon="Notebook"
+                  :icon="Document"
+                  divided
                 >
-                  Imputation Comptable
+                  Voir Imputation Comptable
                 </el-dropdown-item>
                 <el-dropdown-item divided command="delete" :icon="Delete">
                   <span style="color: #f56c6c">Supprimer</span>
@@ -934,10 +953,37 @@ const handleFactureSuccess = async (factureData) => {
     if (result.success) {
       ElMessage.success(result.message || 'Facture modifiée avec succès');
       showFactureModal.value = false;
-      router.reload({
-        only: ['facture', 'reglements'],
-        onSuccess: () => openImputationDrawer(),
-      });
+      const hasImputation = !!result.has_imputation;
+      router.reload({ only: ['facture', 'reglements'] });
+
+      const confirmed = await ElMessageBox.confirm(
+        'Autorisez-vous une imputation comptable à l\'enregistrement de cette pièce comptable ?',
+        'Imputation comptable',
+        {
+          confirmButtonText: 'Oui',
+          cancelButtonText: 'Non',
+          type: 'info',
+        }
+      ).catch(() => false);
+
+      if (confirmed) {
+        try {
+          const r = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}/imputation`, { method: 'POST' });
+          const j = await r.json();
+          if (j.success) {
+            ElMessage.success(j.message || 'Écritures générées');
+            openImputationDrawer();
+          } else if (j.reason === 'missing') {
+            ElMessageBox.alert(j.message, 'Imputations manquantes', { type: 'warning', confirmButtonText: 'OK' });
+          } else if (j.reason === 'incomplete') {
+            ElMessageBox.alert(j.message, 'Imputations incomplètes', { type: 'warning', confirmButtonText: 'OK' });
+          } else {
+            ElMessage.error(j.message || 'Erreur');
+          }
+        } catch {
+          ElMessage.error('Erreur de connexion');
+        }
+      }
     } else {
       ElMessage.error(result.message || 'Une erreur est survenue');
     }

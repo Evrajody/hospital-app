@@ -210,18 +210,35 @@
                   <el-form-item label="Montant payé" prop="montant">
                     <el-input
                       :model-value="formatInputMontant(form.montant)"
+                      @input="val => hasCompteCredits ? null : (form.montant = parseInputMontant(val))"
                       placeholder="0"
                       :prefix-icon="Money"
-                      readonly
+                      :readonly="hasCompteCredits"
                     >
                       <template #append>XOF</template>
                     </el-input>
                     <div class="form-hint">
-                      Calculé : Σ lignes − AIB
+                      <template v-if="hasCompteCredits">Calculé : Σ lignes − AIB</template>
+                      <!-- <template v-else>Montant à régler (compte fournisseur par défaut)</template> -->
                     </div>
                   </el-form-item>
                 </el-col>
               </el-row>
+
+              <!-- Info quand pas d'imputations crédit sur la facture -->
+              <el-alert
+                v-if="!hasCompteCredits"
+                type="info"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 16px"
+              >
+                <template #title>
+                  <span style="font-size: 13px;">
+                    La facture n'a pas d'imputation comptable détaillée. Le règlement utilisera le compte fournisseur par défaut.
+                  </span>
+                </template>
+              </el-alert>
 
               <!-- Multi-fournisseur : tableau des comptes à régler -->
               <el-row :gutter="20" v-if="hasCompteCredits">
@@ -548,7 +565,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   ArrowLeft,
   Document,
@@ -739,9 +756,12 @@ const form = reactive({
   lignes: [], // Multi-fournisseur
 });
 
-// Synchroniser form.montant = bank cash (calculé)
+// Synchroniser form.montant = bank cash (calculé) uniquement si la facture a des imputations crédit
+// (sinon l'utilisateur saisit le montant directement)
 watch(montantBankCash, (val) => {
-  form.montant = val;
+  if (hasCompteCredits.value) {
+    form.montant = val;
+  }
 });
 
 // Initialiser au moins une ligne vide
@@ -935,7 +955,48 @@ const submitPayment = async (forceInsufficient = false) => {
 
     if (data.success) {
       ElMessage.success(data.message || (isEdit.value ? 'Règlement modifié avec succès' : 'Règlement enregistré avec succès'));
-      router.visit(`/factures-fournisseurs/${props.facture.id}?show_imputation=1`);
+
+      const isEspeces = form.mode_paiement === 'especes';
+
+      if (isEspeces) {
+        ElMessage.info('Règlement en espèces : pas d\'écritures comptables à générer.');
+        router.visit(`/factures-fournisseurs/${props.facture.id}`);
+        return;
+      }
+
+      const confirmed = await ElMessageBox.confirm(
+        'Autorisez-vous une imputation comptable à l\'enregistrement de cette pièce comptable ?',
+        'Imputation comptable',
+        {
+          confirmButtonText: 'Oui',
+          cancelButtonText: 'Non',
+          type: 'info',
+        }
+      ).catch(() => false);
+
+      let ecrituresGenerees = false;
+      if (confirmed) {
+        // Génération globale : facture + tous ses règlements
+        try {
+          const r = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}/imputation`, { method: 'POST' });
+          const j = await r.json();
+          if (j.success) {
+            ElMessage.success(j.message || 'Écritures générées');
+            ecrituresGenerees = true;
+          } else if (j.reason === 'missing') {
+            await ElMessageBox.alert(j.message, 'Imputations manquantes', { type: 'warning', confirmButtonText: 'OK' });
+          } else if (j.reason === 'incomplete') {
+            await ElMessageBox.alert(j.message, 'Imputations incomplètes', { type: 'warning', confirmButtonText: 'OK' });
+          } else {
+            ElMessage.error(j.message || 'Erreur lors de la génération');
+          }
+        } catch {
+          ElMessage.error('Erreur de connexion');
+        }
+      }
+
+      // Si écritures générées avec succès, on ouvre directement l'offcanvas sur la fiche facture
+      router.visit(`/factures-fournisseurs/${props.facture.id}${ecrituresGenerees ? '?show_imputation=1' : ''}`);
     } else if (data.insufficient_balance) {
       insufficientData.solde = data.solde_actuel;
       insufficientData.montant = data.montant_demande;

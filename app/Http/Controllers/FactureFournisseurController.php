@@ -230,9 +230,22 @@ class FactureFournisseurController extends Controller
                     'libelle' => $imp->compte->libelle,
                 ] : null,
             ])->values()->toArray(),
+            // État des écritures comptables (pour bouton + badge)
+            'has_imputation' => (bool) ($facture->imputation_id || $facture->compte_id || $facture->imputations->isNotEmpty()),
+            'has_ecritures_facture' => \App\Models\EcritureComptable::where('facture_id', $id)
+                ->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)
+                ->exists(),
         ];
 
         // Récupérer les règlements depuis la base de données
+        $reglementsIds = ReglementFournisseur::where('facture_id', $id)
+            ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+            ->pluck('id');
+        $reglementsAvecEcritures = \App\Models\EcritureComptable::whereIn('reglement_id', $reglementsIds)
+            ->pluck('reglement_id')
+            ->unique()
+            ->flip();
+
         $reglements = ReglementFournisseur::where('facture_id', $id)
             ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
             ->with(['compteTresorerie'])
@@ -246,6 +259,7 @@ class FactureFournisseurController extends Controller
                 'reference' => $r->reference,
                 'observations' => $r->observations,
                 'deduire_aib' => (bool) $r->deduire_aib,
+                'has_ecritures' => $reglementsAvecEcritures->has($r->id),
                 'compte_bancaire' => $r->compteTresorerie ? [
                     'id' => $r->compteTresorerie->id,
                     'banque' => $r->compteTresorerie->libelle,
@@ -619,12 +633,9 @@ class FactureFournisseurController extends Controller
 
             $this->syncImputationsMultiples($facture, $request->input('imputations', []));
 
-            // Générer automatiquement les écritures comptables de la facture
+            // Pas de génération auto des écritures à la création
+            // (le frontend demandera explicitement via creerImputation si l'utilisateur veut)
             $facture->load(['imputations.compte', 'fournisseur.compteComptable']);
-            EcritureComptable::where('facture_id', $facture->id)
-                ->where('type', EcritureComptable::TYPE_FACTURE)
-                ->delete();
-            EcritureComptable::creerEcrituresFacture($facture);
 
             // Vérifier si la facture a une imputation
             $hasImputation = $facture->imputation_id || $facture->compte_id || $facture->imputations->isNotEmpty();
@@ -711,12 +722,18 @@ class FactureFournisseurController extends Controller
                 $this->syncImputationsMultiples($facture, $request->input('imputations', []));
             }
 
-            // Régénérer automatiquement les écritures comptables de la facture
+            // Re-sync uniquement si des écritures de type facture existaient déjà
+            // (sinon, l'utilisateur doit déclencher manuellement via creerImputation).
             $facture->load(['imputations.compte', 'fournisseur.compteComptable']);
-            EcritureComptable::where('facture_id', $facture->id)
+            $avaitEcritures = EcritureComptable::where('facture_id', $facture->id)
                 ->where('type', EcritureComptable::TYPE_FACTURE)
-                ->delete();
-            EcritureComptable::creerEcrituresFacture($facture);
+                ->exists();
+            if ($avaitEcritures) {
+                EcritureComptable::where('facture_id', $facture->id)
+                    ->where('type', EcritureComptable::TYPE_FACTURE)
+                    ->delete();
+                EcritureComptable::creerEcrituresFacture($facture);
+            }
 
             DB::commit();
 
@@ -1028,27 +1045,78 @@ class FactureFournisseurController extends Controller
         $facture = FactureFournisseur::with(['fournisseur.compteComptable', 'compte', 'imputations.compte'])
             ->findOrFail($id);
 
+        // 1. Vérifier que des imputations existent
         if ($facture->imputations->isEmpty() && !$facture->compte_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cette facture n\'a aucune imputation comptable saisie',
+                'reason' => 'missing',
+                'message' => "Les imputations comptables n'existent pas pour cette facture. Vous devez d'abord les saisir.",
             ], 422);
         }
 
+        // 2. Vérifier que les imputations englobent le montant de la facture
+        // (uniquement pour la nouvelle structure multi-imputations, pas pour le legacy compte_id seul)
+        if ($facture->imputations->isNotEmpty()) {
+            $totalDebits = (float) $facture->imputations->where('nature', 'debit')->sum('montant');
+            $totalCredits = (float) $facture->imputations->where('nature', 'credit')->sum('montant');
+            $montantHt = (float) $facture->montant_ht;
+            $montantTtc = (float) $facture->montant_ttc;
+
+            $manques = [];
+            if (abs($totalDebits - $montantHt) > 0.5) {
+                $ecart = number_format($montantHt - $totalDebits, 0, ',', ' ');
+                $manques[] = "le total des débits (" . number_format($totalDebits, 0, ',', ' ') . " XOF) ne couvre pas le montant HT (" . number_format($montantHt, 0, ',', ' ') . " XOF) — écart : {$ecart} XOF";
+            }
+            if (abs($totalCredits - $montantTtc) > 0.5) {
+                $ecart = number_format($montantTtc - $totalCredits, 0, ',', ' ');
+                $manques[] = "le total des crédits (" . number_format($totalCredits, 0, ',', ' ') . " XOF) ne couvre pas le montant TTC (" . number_format($montantTtc, 0, ',', ' ') . " XOF) — écart : {$ecart} XOF";
+            }
+
+            if (!empty($manques)) {
+                return response()->json([
+                    'success' => false,
+                    'reason' => 'incomplete',
+                    'message' => "Les imputations comptables sont incomplètes : " . implode(' ; ', $manques) . ".",
+                ], 422);
+            }
+        }
+
         try {
-            // Supprimer les anciennes écritures de type facture si elles existent (cas modification)
+            DB::beginTransaction();
+
+            // 1. Re-générer les écritures de la facture
             \App\Models\EcritureComptable::where('facture_id', $id)
                 ->where('type', \App\Models\EcritureComptable::TYPE_FACTURE)
                 ->delete();
-
-            // Créer les nouvelles écritures
             \App\Models\EcritureComptable::creerEcrituresFacture($facture);
+
+            // 2. Re-générer les écritures de TOUS les règlements non-annulés et non-espèces de la facture
+            $reglements = ReglementFournisseur::with(['compteTresorerie', 'lignes.compte'])
+                ->where('facture_id', $id)
+                ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+                ->where('mode_paiement', '!=', 'especes')
+                ->get();
+
+            $nbReglements = 0;
+            foreach ($reglements as $reglement) {
+                \App\Models\EcritureComptable::supprimerEcrituresReglement($reglement->id);
+                \App\Models\EcritureComptable::creerEcrituresReglement($reglement, $facture);
+                $nbReglements++;
+            }
+
+            DB::commit();
+
+            $msg = 'Imputation comptable créée avec succès';
+            if ($nbReglements > 0) {
+                $msg .= " ({$nbReglements} règlement(s) inclus)";
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Imputation comptable créée avec succès',
+                'message' => $msg,
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la création de l\'imputation',
@@ -1340,10 +1408,10 @@ class FactureFournisseurController extends Controller
             'date_facture_bc' => ['nullable', 'date'],
             'observations' => ['nullable', 'string'],
             'metadata' => ['nullable', 'array'],
-            'imputations' => ['required', 'array', 'min:1'],
-            'imputations.*.compte_id' => ['required', 'integer', 'exists:plan_comptable_ohada,id'],
-            'imputations.*.nature' => ['required', 'string', 'in:debit,credit'],
-            'imputations.*.montant' => ['required', 'numeric', 'min:0'],
+            'imputations' => ['nullable', 'array'],
+            'imputations.*.compte_id' => ['required_with:imputations', 'integer', 'exists:plan_comptable_ohada,id'],
+            'imputations.*.nature' => ['required_with:imputations', 'string', 'in:debit,credit'],
+            'imputations.*.montant' => ['required_with:imputations', 'numeric', 'min:0'],
             'imputations.*.libelle' => ['nullable', 'string', 'max:500'],
             'imputations.*.imputation_code' => ['nullable', 'string', 'max:10'],
         ];
