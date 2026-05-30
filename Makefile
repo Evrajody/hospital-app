@@ -3,8 +3,8 @@
 # =============================================================================
 # Variables
 # =============================================================================
-DOCKER_COMPOSE     = docker-compose
-DOCKER_COMPOSE_PROD = docker-compose -f docker-compose.prod.yml
+DOCKER_COMPOSE     = docker compose
+DOCKER_COMPOSE_PROD = docker compose -f docker-compose.prod.yml
 EXEC_APP           = $(DOCKER_COMPOSE) exec app
 EXEC_APP_PROD      = $(DOCKER_COMPOSE_PROD) exec app
 EXEC_DB            = $(DOCKER_COMPOSE) exec db
