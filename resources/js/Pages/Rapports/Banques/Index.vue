@@ -119,8 +119,7 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
   width: 100%;
   padding: 11px 12px;
   border: none;
-  border-left: 3px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: #374151;
   font-size: 13px;
@@ -134,10 +133,9 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
 }
 
 .rail-item.active {
-  background: var(--el-color-primary-light-9, #e6f3ec);
-  color: var(--gov-green, #008751);
+  background: var(--gov-green, #008751);
+  color: #ffffff;
   font-weight: 600;
-  border-left-color: var(--gov-green, #008751);
 }
 
 .rail-icon {
@@ -195,10 +193,8 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
     border-bottom: 3px solid transparent;
   }
 
-  .rail-item.active {
-    border-left: none;
-    border-bottom-color: var(--gov-green, #008751);
-    box-shadow: none;
+  .rail-item {
+    border-bottom: none;
   }
 }
 </style>

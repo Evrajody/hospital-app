@@ -6,7 +6,7 @@
 
 @section('title', 'États Périodiques des Créances Clients')
 @section('page-size', 'A4 portrait')
-@section('page-margin', '22mm 25mm')
+@section('page-margin', '32mm 25mm 22mm')
 @section('report-title', ($titre ?? 'ÉTATS PÉRIODIQUES DES CRÉANCES CLIENTS') . $typeSuffix)
 @section('report-subtitle', 'Factures non soldées' . (!empty($periode['debut']) && !empty($periode['fin']) ? ' - Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : (!empty($periode['fin']) ? ' - Au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : '')))
 

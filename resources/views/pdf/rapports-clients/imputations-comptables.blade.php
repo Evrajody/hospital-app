@@ -2,7 +2,7 @@
 
 @section('title', 'Imputations Comptables Clients')
 @section('page-size', 'A4 portrait')
-@section('page-margin', '22mm 25mm')
+@section('page-margin', '32mm 25mm 22mm')
 @section('report-title', $titre ?? 'IMPUTATIONS COMPTABLES CLIENTS')
 
 @if(!empty($periode['debut']) && !empty($periode['fin']))

@@ -2,7 +2,7 @@
 
 @section('title', 'Situation des Fournisseurs')
 @section('page-size', 'A4 {{ $mode === "par_fournisseur" ? "landscape" : "portrait" }}')
-@section('page-margin', '22mm 25mm')
+@section('page-margin', '32mm 25mm 22mm')
 @php
     $suffixe = '';
     $dp = $date_point ?? null;

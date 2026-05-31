@@ -2,7 +2,7 @@
 
 @section('title', 'Mouvement Factures Fournisseur')
 @section('page-size', 'A4 landscape')
-@section('page-margin', '22mm 20mm')
+@section('page-margin', '32mm 20mm 22mm')
 @section('report-title', $titre ?? 'ÉTAT DES MOUVEMENTS FACTURES')
 
 @if(!empty($periode['debut']) && !empty($periode['fin']))

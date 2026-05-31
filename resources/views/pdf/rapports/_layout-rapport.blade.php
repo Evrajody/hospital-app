@@ -6,7 +6,8 @@
     <style>
         @page {
             size: @yield('page-size', 'A4 landscape');
-            margin: @yield('page-margin', '24mm 20mm');
+            /* haut / côtés / bas — marge haute généreuse pour laisser respirer */
+            margin: @yield('page-margin', '32mm 20mm 22mm');
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
