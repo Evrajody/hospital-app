@@ -120,6 +120,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 
@@ -260,7 +262,7 @@ const buildPdfParams = () => {
 const getBasePath = () => window.location.pathname.includes('/rapports/banques') ? '/rapports/banques' : '/rapports/fournisseurs';
 
 const exportPdf = () => {
-  window.open(`${getBasePath()}/pdf/situation-banques?${buildPdfParams()}`, '_blank');
+  openPdf(`${getBasePath()}/pdf/situation-banques?${buildPdfParams()}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

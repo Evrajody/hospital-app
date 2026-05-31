@@ -235,6 +235,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 
@@ -371,7 +373,7 @@ const getSummary = ({ columns, data: tableData }) => {
 };
 
 const exportPdf = () => {
-  window.open(`/rapports/clients/pdf/etat-creances?${buildBaseParams()}`, '_blank');
+  openPdf(`/rapports/clients/pdf/etat-creances?${buildBaseParams()}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

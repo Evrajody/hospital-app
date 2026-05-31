@@ -69,7 +69,7 @@
               <span class="sub-tab-label">Résumé par fournisseur</span>
             </template>
 
-            <el-table style="width: 100%" :data="resume" border size="small" stripe show-summary :summary-method="getSummaryResume">
+            <el-table style="width: 100%" :data="resume" border size="small" stripe>
               <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" />
               <el-table-column label="Total Mt TTC" min-width="130" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_facture) }}</template>
@@ -112,6 +112,7 @@
               </div>
               <el-table style="width: 100%" :data="fData.lignes" border size="small" stripe>
                 <el-table-column prop="numero_piece" label="N°PC" min-width="90" />
+                <el-table-column prop="libelle" label="Libellé facture" min-width="180" show-overflow-tooltip />
                 <el-table-column prop="date" label="Date PC" min-width="85" />
                 <el-table-column prop="date_reglement" label="Date Règ." min-width="85" />
                 <el-table-column label="Mt TTC" min-width="95" align="right">
@@ -149,17 +150,6 @@
               </div>
             </div>
 
-            <!-- Grand Total -->
-            <div class="grand-total">
-              <span>TOTAL GÉNÉRAL</span>
-              <span>Mt TTC : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
-              <span>Avoir : <strong>{{ formatMontant(grandTotaux.avoir) }}</strong></span>
-              <span>Mt M.O. : <strong>{{ formatMontant(grandTotaux.montant_mo) }}</strong></span>
-              <span>AIB : <strong>{{ formatMontant(grandTotaux.montant_aib) }}</strong></span>
-              <span>Rég. Période : <strong>{{ formatMontant(grandTotaux.reg_periode) }}</strong></span>
-              <span style="font-weight: bold;">Mt Total Rég. : {{ formatMontant(grandTotaux.mt_total_reg) }}</span>
-            </div>
-
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('detail')">Exporter PDF</el-button>
               <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
@@ -173,6 +163,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 
@@ -233,20 +225,6 @@ const fetchData = async () => {
   }
 };
 
-const getSummaryResume = ({ columns, data: tableData }) => {
-  const sums = [];
-  columns.forEach((col, i) => {
-    if (i === 0) { sums[i] = 'TOTAL'; return; }
-    const keyMap = {
-      1: 'total_montant_facture', 2: 'total_avoir', 3: 'total_montant_mo',
-      4: 'total_aib', 5: 'total_reg_periode', 6: 'total_mt_reg'
-    };
-    const key = keyMap[i];
-    sums[i] = key ? formatMontant(tableData.reduce((s, r) => s + (r[key] || 0), 0)) : '';
-  });
-  return sums;
-};
-
 const buildPdfParams = (type) => {
   const params = new URLSearchParams({ mode: selectedMode.value, type });
   if (selectedMode.value === 'date') {
@@ -263,7 +241,7 @@ const buildPdfParams = (type) => {
 };
 
 const exportPdf = (type) => {
-  window.open(`/rapports/fournisseurs/pdf/factures-reglees?${buildPdfParams(type)}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/factures-reglees?${buildPdfParams(type)}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

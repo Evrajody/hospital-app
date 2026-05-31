@@ -3,9 +3,14 @@
     <!-- Left Side - Form -->
     <div class="login-form-section">
       <div class="form-wrapper">
-        <!-- Logo -->
+        <!-- Logo officiel -->
         <div class="login-header">
-          <el-icon :size="48" color="#409EFF"><OfficeBuilding /></el-icon>
+          <img
+            src="/images/ministere_sante.png"
+            alt="Ministère de la Santé — République du Bénin"
+            class="login-logo"
+          />
+          <div class="gov-liserai login-liserai"></div>
           <h1>Hôpital de zone de Ménontin</h1>
           <p class="welcome-text">Bienvenue ! Connectez-vous à votre compte</p>
         </div>
@@ -189,6 +194,20 @@ const handleLogin = async () => {
 .login-header {
   text-align: center;
   margin-bottom: 40px;
+}
+
+.login-logo {
+  max-width: 280px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.login-liserai {
+  max-width: 280px;
+  margin: 14px auto 0;
+  border-radius: 2px;
 }
 
 .login-header h1 {

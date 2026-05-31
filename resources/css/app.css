@@ -22,7 +22,41 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Custom styles pour Element Plus */
+/* Charte gouvernementale — République du Bénin (Ministère de la Santé) */
 :root {
-    --el-color-primary: #409eff;
+    /* Couleur principale : vert Bénin */
+    --el-color-primary: #008751;
+    --el-color-primary-light-3: #4dab85;
+    --el-color-primary-light-5: #80c3a8;
+    --el-color-primary-light-7: #b3dbcb;
+    --el-color-primary-light-8: #cce7dc;
+    --el-color-primary-light-9: #e6f3ec;
+    --el-color-primary-dark-2: #006c41;
     --el-font-family: var(--font-primary);
+
+    /* Couleurs du drapeau national */
+    --gov-green: #008751;
+    --gov-gold: #fcd116;
+    --gov-red: #e8112d;
+    --gov-navy: #001529;
+}
+
+/* En-têtes de tableaux en gras (lisibilité — notamment les rapports) */
+.el-table thead th.el-table__cell,
+.el-table thead th.el-table__cell .cell {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* Liseré tricolore (drapeau du Bénin) — à poser en bandeau */
+.gov-liserai,
+.gov-tricolore {
+    height: 4px;
+    width: 100%;
+    background: linear-gradient(
+        to right,
+        var(--gov-green) 0 33.33%,
+        var(--gov-gold) 33.33% 66.66%,
+        var(--gov-red) 66.66% 100%
+    );
 }

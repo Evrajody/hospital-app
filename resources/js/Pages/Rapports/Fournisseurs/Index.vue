@@ -9,124 +9,40 @@
         </div>
       </div>
 
-      <!-- Tabs -->
-      <el-tabs v-model="activeTab" type="border-card" class="rapports-tabs">
-        <el-tab-pane name="mouvement-factures" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><TrendCharts /></el-icon>
-              Mouvement Factures
-            </span>
-          </template>
-          <MouvementFacturesTab :fournisseurs="fournisseurs" />
-        </el-tab-pane>
+      <!-- Disposition parallèle : rail des rapports à gauche, contenu à droite -->
+      <div class="rapports-layout">
+        <aside class="rapports-rail">
+          <button
+            v-for="r in reports"
+            :key="r.name"
+            type="button"
+            class="rail-item"
+            :class="{ active: activeTab === r.name }"
+            @click="activeTab = r.name"
+          >
+            <el-icon class="rail-icon"><component :is="r.icon" /></el-icon>
+            <span class="rail-label">{{ r.label }}</span>
+          </button>
+        </aside>
 
-        <el-tab-pane name="situation-fournisseurs" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Wallet /></el-icon>
-              Situation fournisseurs
-            </span>
-          </template>
-          <SituationFournisseursTab :fournisseurs="fournisseurs" :comptes="comptes" />
-        </el-tab-pane>
-
-        <el-tab-pane name="factures-reglees" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><DocumentCopy /></el-icon>
-              Factures réglées
-            </span>
-          </template>
-          <FacturesRegleesTab :fournisseurs="fournisseurs" />
-        </el-tab-pane>
-
-        <el-tab-pane name="factures-soldes" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Coin /></el-icon>
-              Factures et Soldes
-            </span>
-          </template>
-          <FacturesSoldesTab :fournisseurs="fournisseurs" />
-        </el-tab-pane>
-
-        <el-tab-pane name="declaration-aib" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><List /></el-icon>
-              Déclaration AIB
-            </span>
-          </template>
-          <DeclarationAibTab />
-        </el-tab-pane>
-
-        <el-tab-pane name="point-periodique" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Money /></el-icon>
-              Point périodique PC
-            </span>
-          </template>
-          <PointPeriodiqueTab />
-        </el-tab-pane>
-
-        <el-tab-pane name="bordereau-transmission" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Document /></el-icon>
-              Bordereau transmission
-            </span>
-          </template>
-          <BordereauTransmissionTab />
-        </el-tab-pane>
-
-        <el-tab-pane name="recap-charges" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Tickets /></el-icon>
-              Récap. charges
-            </span>
-          </template>
-          <RecapChargesTab />
-        </el-tab-pane>
-
-        <el-tab-pane name="recap-investissements" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><DataBoard /></el-icon>
-              Récap. investissements
-            </span>
-          </template>
-          <RecapInvestissementsTab />
-        </el-tab-pane>
-
-        <el-tab-pane name="declaration-tva" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><List /></el-icon>
-              Déclaration TVA
-            </span>
-          </template>
-          <DeclarationTvaTab />
-        </el-tab-pane>
-
-        <el-tab-pane name="banques-par-compte" lazy>
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Coin /></el-icon>
-              Banques par compte
-            </span>
-          </template>
-          <BanquesParCompteTab />
-        </el-tab-pane>
-      </el-tabs>
+        <section class="rapports-content">
+          <transition name="report-slide" mode="out-in">
+            <keep-alive>
+              <component
+                :is="activeReport.component"
+                v-bind="activeReport.props"
+                :key="activeReport.name"
+              />
+            </keep-alive>
+          </transition>
+        </section>
+      </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, markRaw } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
   Document,
@@ -163,7 +79,22 @@ const breadcrumbs = [
   { title: 'Rapports Fournisseurs', path: '/rapports/fournisseurs' },
 ];
 
+const reports = [
+  { name: 'mouvement-factures', label: 'Mouvement Factures', icon: markRaw(TrendCharts), component: markRaw(MouvementFacturesTab), props: { fournisseurs: props.fournisseurs } },
+  { name: 'situation-fournisseurs', label: 'Situation fournisseurs', icon: markRaw(Wallet), component: markRaw(SituationFournisseursTab), props: { fournisseurs: props.fournisseurs, comptes: props.comptes } },
+  { name: 'factures-reglees', label: 'Factures réglées', icon: markRaw(DocumentCopy), component: markRaw(FacturesRegleesTab), props: { fournisseurs: props.fournisseurs } },
+  { name: 'factures-soldes', label: 'Factures et Soldes', icon: markRaw(Coin), component: markRaw(FacturesSoldesTab), props: { fournisseurs: props.fournisseurs } },
+  { name: 'declaration-aib', label: 'Déclaration AIB', icon: markRaw(List), component: markRaw(DeclarationAibTab), props: {} },
+  { name: 'point-periodique', label: 'Point périodique PC', icon: markRaw(Money), component: markRaw(PointPeriodiqueTab), props: {} },
+  { name: 'bordereau-transmission', label: 'Bordereau transmission', icon: markRaw(Document), component: markRaw(BordereauTransmissionTab), props: {} },
+  { name: 'recap-charges', label: 'Récap. charges', icon: markRaw(Tickets), component: markRaw(RecapChargesTab), props: {} },
+  { name: 'recap-investissements', label: 'Récap. investissements', icon: markRaw(DataBoard), component: markRaw(RecapInvestissementsTab), props: {} },
+  { name: 'declaration-tva', label: 'Déclaration TVA', icon: markRaw(List), component: markRaw(DeclarationTvaTab), props: {} },
+  { name: 'banques-par-compte', label: 'Banques par compte', icon: markRaw(Coin), component: markRaw(BanquesParCompteTab), props: {} },
+];
+
 const activeTab = ref('mouvement-factures');
+const activeReport = computed(() => reports.find((r) => r.name === activeTab.value) || reports[0]);
 </script>
 
 <style scoped>
@@ -192,40 +123,115 @@ const activeTab = ref('mouvement-factures');
   margin: 0;
 }
 
-/* Tabs styling */
-.rapports-tabs {
-  border-radius: 0;
-}
-
-:deep(.el-tabs--border-card) {
+/* Disposition parallèle */
+.rapports-layout {
+  display: flex;
+  align-items: stretch;
   border: 1px solid #ddd;
-  border-radius: 0;
-  box-shadow: none;
+  background: #fff;
+  min-height: 620px;
 }
 
-:deep(.el-tabs__header) {
-  background-color: #f9fafb;
-  border-bottom: 2px solid #333;
+.rapports-rail {
+  width: 248px;
+  flex-shrink: 0;
+  background: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
 }
 
-:deep(.el-tabs__item) {
-  height: 44px;
-  line-height: 44px;
-  font-size: 13px;
-}
-
-:deep(.el-tabs__item.is-active) {
-  background-color: #ffffff;
-  font-weight: 600;
-}
-
-:deep(.el-tabs__content) {
-  padding: 20px;
-}
-
-.tab-label {
+.rail-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #374151;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.rail-item:hover {
+  background: #eef2f7;
+}
+
+.rail-item.active {
+  background: #ffffff;
+  color: var(--gov-green, #008751);
+  font-weight: 600;
+  border-left-color: var(--gov-green, #008751);
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+}
+
+.rail-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.rail-label {
+  line-height: 1.3;
+}
+
+.rapports-content {
+  flex: 1;
+  min-width: 0;
+  padding: 20px;
+  overflow-x: auto;
+}
+
+/* Animation de transition entre rapports */
+.report-slide-enter-active,
+.report-slide-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.report-slide-enter-from {
+  opacity: 0;
+  transform: translateX(14px);
+}
+
+.report-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-14px);
+}
+
+/* Responsive : rail horizontal sur petit écran */
+@media (max-width: 900px) {
+  .rapports-layout {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .rapports-rail {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .rail-item {
+    width: auto;
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+
+  .rail-item.active {
+    border-left: none;
+    border-bottom-color: var(--gov-green, #008751);
+    box-shadow: none;
+  }
 }
 </style>

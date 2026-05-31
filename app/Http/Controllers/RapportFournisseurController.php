@@ -428,6 +428,7 @@ class RapportFournisseurController extends Controller
 
                 $row = [
                     'numero_piece' => $fact->numero_piece,
+                    'libelle' => $fact->libelle,
                     'date' => $fact->date?->format('d/m/Y'),
                     'date_reglement' => $dateReg?->format('d/m/Y'),
                     'montant_facture' => (float) ($fact->montant_ttc ?: $fact->montant_facture),
@@ -1836,6 +1837,7 @@ class RapportFournisseurController extends Controller
         $factures = FactureFournisseur::whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
             ->where('assujetti_tva', true)
             ->whereBetween('date', [$dateDebut, $dateFin])
+            ->with('fournisseur')
             ->orderBy('date')
             ->orderBy('numero_piece')
             ->get();
@@ -1852,6 +1854,8 @@ class RapportFournisseurController extends Controller
             $lignes[] = [
                 'date' => $f->date?->format('d/m/Y'),
                 'numero_piece' => $f->numero_piece,
+                'fournisseur' => $f->fournisseur?->nom ?? '-',
+                'fournisseur_ifu' => $f->fournisseur?->ifu ?? '',
                 'libelle' => $f->libelle,
                 'montant_ttc' => $ttc,
                 'taux_tva' => $tauxTva,

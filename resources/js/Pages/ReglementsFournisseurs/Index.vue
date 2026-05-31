@@ -524,6 +524,9 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+
+const { openPdf } = usePdfViewer();
 
 // Simple debounce function
 const debounce = (fn, delay) => {
@@ -644,8 +647,7 @@ const breadcrumbs = [
 // Methods
 const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
+    maximumFractionDigits: 0,
     minimumFractionDigits: 0
   }).format(montant || 0);
 };
@@ -779,7 +781,7 @@ const handleViewFactureFromModal = () => {
 
 const handlePrintMandat = () => {
   if (selectedReglement.value) {
-    window.open(`/reglements-fournisseurs/${selectedReglement.value.id}/mandat`, '_blank');
+    openPdf(`/reglements-fournisseurs/${selectedReglement.value.id}/mandat`, 'Bordereau de règlement');
   }
 };
 
@@ -816,7 +818,7 @@ const downloadImputationPdf = () => {
 const handleMoreActions = async (command, reglement) => {
   switch (command) {
     case 'mandat':
-      window.open(`/reglements-fournisseurs/${reglement.id}/mandat`, '_blank');
+      openPdf(`/reglements-fournisseurs/${reglement.id}/mandat`, 'Bordereau de règlement');
       break;
     case 'imputation':
       await openImputationDrawer(reglement);

@@ -12,12 +12,14 @@
         <table class="report-table">
             <thead>
                 <tr>
-                    <th style="width: 90px">Date</th>
-                    <th style="width: 100px">N° PC</th>
+                    <th style="width: 70px">Date</th>
+                    <th style="width: 85px">N° PC</th>
+                    <th>Fournisseur</th>
+                    <th style="width: 105px">IFU</th>
                     <th>Libellé facture</th>
-                    <th class="montant" style="width: 110px">Montant TTC</th>
-                    <th class="montant" style="width: 80px">Taux TVA</th>
-                    <th class="montant" style="width: 110px">Montant TVA</th>
+                    <th class="montant" style="width: 95px">Montant TTC</th>
+                    <th class="montant" style="width: 65px">Taux TVA</th>
+                    <th class="montant" style="width: 95px">Montant TVA</th>
                 </tr>
             </thead>
             <tbody>
@@ -25,6 +27,8 @@
                     <tr>
                         <td>{{ $ligne['date'] }}</td>
                         <td>{{ $ligne['numero_piece'] }}</td>
+                        <td>{{ $ligne['fournisseur'] }}</td>
+                        <td>{{ $ligne['fournisseur_ifu'] }}</td>
                         <td>{{ $ligne['libelle'] }}</td>
                         <td class="montant">{{ number_format($ligne['montant_ttc'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($ligne['taux_tva'], 2) }}%</td>
@@ -34,7 +38,7 @@
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="3" class="total-label">TOTAL :</td>
+                    <td colspan="5" class="total-label">TOTAL :</td>
                     <td class="montant">{{ number_format($totaux['ttc'], 0, ',', ' ') }}</td>
                     <td></td>
                     <td class="montant">{{ number_format($totaux['tva'], 0, ',', ' ') }}</td>

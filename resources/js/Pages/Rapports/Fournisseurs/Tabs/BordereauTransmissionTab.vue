@@ -74,6 +74,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Document, List } from '@element-plus/icons-vue';
@@ -115,12 +117,12 @@ const fetchData = async () => {
 
 const exportMandats = () => {
   const ids = selectedIds.value.join(',');
-  window.open(`/rapports/fournisseurs/pdf/mandats?ids=${ids}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/mandats?ids=${ids}`, 'Aperçu du rapport');
 };
 
 const exportBordereau = () => {
   const ids = selectedIds.value.join(',');
-  window.open(`/rapports/fournisseurs/pdf/bordereau-transmission?ids=${ids}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/bordereau-transmission?ids=${ids}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

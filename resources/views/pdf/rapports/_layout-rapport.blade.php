@@ -63,6 +63,8 @@
         /* Tableaux — fond blanc, traits simples */
         table.report-table {
             width: 100%;
+            max-width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             font-size: 10px;
             margin-top: 10px;
@@ -75,11 +77,15 @@
             font-weight: bold;
             text-transform: uppercase;
             font-size: 9px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         table.report-table td {
             background: #fff;
             border: 1px solid #000;
             padding: 5px 4px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         table.report-table .montant {
             text-align: right;
@@ -137,6 +143,9 @@
             {{ $etablissement['adresse'] }}
             @if(!empty($etablissement['telephone']))
                 - Tél: {{ $etablissement['telephone'] }}
+            @endif
+            @if(!empty($etablissement['ifu']))
+                <br>IFU: {{ $etablissement['ifu'] }}
             @endif
         </div>
     </div>

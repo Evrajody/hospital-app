@@ -565,36 +565,36 @@
           <tr><td colspan="2" style="height: 10px;"></td></tr>
           <tr>
             <td class="mandat-label">MONTANT FACTURE HT :</td>
-            <td>{{ mandatData.facture.montant_facture }} <em>FCFA</em></td>
+            <td>{{ mandatData.facture.montant_facture }}</td>
           </tr>
           <tr v-if="mandatData.facture.montant_tva > 0">
             <td class="mandat-label">MONTANT TVA ({{ mandatData.facture.taux_tva }}%) :</td>
-            <td>{{ mandatData.facture.montant_tva }} <em>FCFA</em></td>
+            <td>{{ mandatData.facture.montant_tva }}</td>
           </tr>
           <tr>
             <td class="mandat-label">MONTANT TTC :</td>
-            <td>{{ mandatData.facture.montant_ttc }} <em>FCFA</em></td>
+            <td>{{ mandatData.facture.montant_ttc }}</td>
           </tr>
           <tr>
             <td class="mandat-label">MONTANT AVOIR :</td>
-            <td>{{ mandatData.facture.montant_avoir }} <em>FCFA</em></td>
+            <td>{{ mandatData.facture.montant_avoir }}</td>
           </tr>
           <tr v-if="mandatData.facture.taux_aib > 0">
             <td class="mandat-label">IMPÔT / AIB {{ mandatData.facture.taux_aib }}% :</td>
-            <td>{{ mandatData.facture.montant_aib }} <em>FCFA</em></td>
+            <td>{{ mandatData.facture.montant_aib }}</td>
           </tr>
           <tr><td colspan="2" style="height: 10px;"></td></tr>
           <tr>
-            <td class="mandat-label">MONTANT PAYE (FCFA) :</td>
+            <td class="mandat-label">MONTANT PAYE :</td>
             <td>
-              {{ mandatData.facture.montant_paye }} <em>FCFA</em>
+              {{ mandatData.facture.montant_paye }}
               <span class="mandat-lettres">{{ mandatData.facture.montant_paye_lettres }}</span>
             </td>
           </tr>
           <tr>
-            <td class="mandat-label">RESTE A PAYER (FCFA) :</td>
+            <td class="mandat-label">RESTE A PAYER :</td>
             <td>
-              {{ mandatData.facture.reste_a_payer }} <em>FCFA</em>
+              {{ mandatData.facture.reste_a_payer }}
               <span class="mandat-lettres">{{ mandatData.facture.reste_a_payer_lettres }}</span>
             </td>
           </tr>
@@ -768,8 +768,7 @@ const progressColor = computed(() => {
 // Methods
 const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
+    maximumFractionDigits: 0,
     minimumFractionDigits: 0
   }).format(montant || 0);
 };

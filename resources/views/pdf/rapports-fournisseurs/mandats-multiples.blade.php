@@ -168,40 +168,40 @@
             <table>
                 <tr>
                     <td class="details-label">MONTANT FACTURE HT :</td>
-                    <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }} <em>FCFA</em></td>
+                    <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
                 </tr>
                 @if($facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0)
                 <tr>
                     <td class="details-label">MONTANT TVA ({{ $facture->taux_tva }}%) :</td>
-                    <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }} <em>FCFA</em></td>
+                    <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
                 </tr>
                 @endif
                 <tr>
                     <td class="details-label">MONTANT TTC :</td>
-                    <td>{{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }} <em>FCFA</em></td>
+                    <td>{{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }}</td>
                 </tr>
                 <tr>
                     <td class="details-label">MONTANT AVOIR :</td>
-                    <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }} <em>FCFA</em></td>
+                    <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }}</td>
                 </tr>
                 @if($facture->taux && (float) $facture->taux > 0)
                 <tr>
                     <td class="details-label">IMPÔT / AIB {{ $facture->taux }}% :</td>
-                    <td>{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }} <em>FCFA</em></td>
+                    <td>{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }}</td>
                 </tr>
                 @endif
                 <tr>
-                    <td class="details-label">MONTANT PAYE (FCFA) :</td>
+                    <td class="details-label">MONTANT PAYE :</td>
                     <td>
-                        {{ number_format((float) $facture->montant_paye, 0, ',', ' ') }} <em>FCFA</em>
+                        {{ number_format((float) $facture->montant_paye, 0, ',', ' ') }}
                         <span class="montant-lettres">{{ strtoupper($montantEnLettres) }}</span>
                     </td>
                 </tr>
                 <tr>
                     @php $resteAPayer = (float) $facture->reste_a_payer; @endphp
-                    <td class="details-label">RESTE A PAYER (FCFA) :</td>
+                    <td class="details-label">RESTE A PAYER :</td>
                     <td>
-                        {{ number_format($resteAPayer, 0, ',', ' ') }} <em>FCFA</em>
+                        {{ number_format($resteAPayer, 0, ',', ' ') }}
                         @if($resteAPayer > 0)
                         <span class="montant-lettres">{{ $resteAPayerLettres }}</span>
                         @endif

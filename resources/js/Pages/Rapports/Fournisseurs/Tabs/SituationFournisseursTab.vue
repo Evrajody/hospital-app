@@ -215,6 +215,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { InfoFilled } from '@element-plus/icons-vue';
@@ -321,7 +323,7 @@ const buildPdfParams = () => {
 };
 
 const exportPdf = () => {
-  window.open(`/rapports/fournisseurs/pdf/situation-fournisseurs?${buildPdfParams()}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/situation-fournisseurs?${buildPdfParams()}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

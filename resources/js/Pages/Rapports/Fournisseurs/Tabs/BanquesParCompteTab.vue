@@ -51,6 +51,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useMontant } from '@/Composables/useMontant';
@@ -85,7 +87,7 @@ const fetchData = async () => {
 };
 
 const exportPdf = () => {
-  window.open(`/rapports/fournisseurs/pdf/banques-par-compte?${buildParams()}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/banques-par-compte?${buildParams()}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

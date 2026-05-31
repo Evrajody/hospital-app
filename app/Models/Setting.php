@@ -45,6 +45,7 @@ class Setting extends Model
                 'telephone' => $settings['etablissement_telephone'] ?? '',
                 'email' => $settings['etablissement_email'] ?? '',
                 'directeur' => $settings['etablissement_directeur'] ?? '',
+                'ifu' => $settings['etablissement_ifu'] ?? '',
             ];
         });
     }

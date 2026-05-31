@@ -18,6 +18,7 @@
                 <thead>
                     <tr>
                         <th style="width: 70px">N°PC</th>
+                        <th>Libellé facture</th>
                         <th style="width: 65px">Date PC</th>
                         <th style="width: 65px">Date Règ.</th>
                         <th class="montant">Mt TTC</th>
@@ -33,6 +34,7 @@
                     @foreach($fData['lignes'] as $ligne)
                         <tr>
                             <td>{{ $ligne['numero_piece'] }}</td>
+                            <td>{{ $ligne['libelle'] }}</td>
                             <td>{{ $ligne['date'] }}</td>
                             <td>{{ $ligne['date_reglement'] }}</td>
                             <td class="montant">{{ number_format($ligne['montant_facture'], 0, ',', ' ') }}</td>
@@ -47,7 +49,7 @@
                 </tbody>
                 <tfoot>
                     <tr class="total-row">
-                        <td colspan="3" class="total-label">Total Fournisseur :</td>
+                        <td colspan="4" class="total-label">Total Fournisseur :</td>
                         <td class="montant">{{ number_format($fData['totaux']['montant_facture'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($fData['totaux']['avoir'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($fData['totaux']['montant_mo'], 0, ',', ' ') }}</td>
@@ -59,21 +61,5 @@
                 </tfoot>
             </table>
         @endforeach
-
-        {{-- Grand Total --}}
-        <table class="report-table" style="margin-top: 15px;">
-            <tfoot>
-                <tr class="total-row">
-                    <td colspan="3" class="total-label">TOTAL GÉNÉRAL</td>
-                    <td class="montant">{{ number_format($grandTotaux['montant_facture'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['avoir'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['montant_mo'], 0, ',', ' ') }}</td>
-                    <td class="montant"></td>
-                    <td class="montant">{{ number_format($grandTotaux['montant_aib'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['reg_periode'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['mt_total_reg'], 0, ',', ' ') }}</td>
-                </tr>
-            </tfoot>
-        </table>
     @endif
 @endsection

@@ -96,6 +96,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 
@@ -153,7 +155,7 @@ const buildParams = () => {
 };
 
 const exportBrouillardPdf = () => {
-  window.open(`/rapports/clients/pdf/brouillard-cheques?${buildParams()}`, '_blank');
+  openPdf(`/rapports/clients/pdf/brouillard-cheques?${buildParams()}`, 'Aperçu du rapport');
 };
 const exportBrouillardExcel = () => {
   window.open(`/rapports/clients/excel/brouillard-cheques?${buildParams()}`, '_blank');
@@ -166,7 +168,7 @@ const printBrouillard = () => {
 };
 
 const exportImputationsPdf = () => {
-  window.open(`/rapports/clients/pdf/imputations-comptables?${buildParams()}`, '_blank');
+  openPdf(`/rapports/clients/pdf/imputations-comptables?${buildParams()}`, 'Aperçu du rapport');
 };
 const exportImputationsExcel = () => {
   window.open(`/rapports/clients/excel/imputations-comptables?${buildParams()}`, '_blank');

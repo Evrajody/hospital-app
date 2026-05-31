@@ -164,8 +164,7 @@ const typesImmo = computed(() => {
 
 const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
+    maximumFractionDigits: 0,
     minimumFractionDigits: 0
   }).format(montant || 0);
 };

@@ -46,6 +46,15 @@
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
+              <el-form-item label="IFU (Identifiant Fiscal Unique)" prop="ifu">
+                <el-input v-model="form.ifu" placeholder="Ex: 3201912345678" />
+                <div class="form-hint">Apparaît dans les en-têtes des rapports et déclarations fiscales</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :xs="24" :sm="12">
               <el-form-item label="Nom du Directeur" prop="directeur">
                 <el-input v-model="form.directeur" placeholder="Ex: Dr. Jean DUPONT" />
                 <div class="form-hint">Apparaît en bas des bordereaux de règlement</div>
@@ -90,6 +99,7 @@ const form = reactive({
   telephone: props.etablissement?.telephone || '',
   email: props.etablissement?.email || '',
   directeur: props.etablissement?.directeur || '',
+  ifu: props.etablissement?.ifu || '',
 });
 
 const rules = {

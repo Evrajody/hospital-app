@@ -1180,7 +1180,10 @@ class FactureFournisseurController extends Controller
         ]);
         $pdf->setPaper('a4', 'landscape');
 
-        return $pdf->download("imputation-comptable-{$facture->id}.pdf");
+        $filename = "imputation-comptable-{$facture->id}.pdf";
+        return request()->query('action') === 'stream'
+            ? $pdf->stream($filename)
+            : $pdf->download($filename);
     }
 
     /**
@@ -1375,7 +1378,10 @@ class FactureFournisseurController extends Controller
             'etablissement' => \App\Models\Setting::getEtablissement(),
         ]);
 
-        return $pdf->stream("etat-reglement-{$facture->id}.pdf");
+        $filename = "etat-reglement-{$facture->id}.pdf";
+        return request()->query('action') === 'stream'
+            ? $pdf->stream($filename)
+            : $pdf->download($filename);
     }
 
     /**

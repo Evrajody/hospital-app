@@ -705,7 +705,10 @@ class ReglementFournisseurController extends Controller
         $pdf = Pdf::loadView('pdf.mandat-paiement', $data);
         $pdf->setPaper('a4', 'portrait');
 
-        return $pdf->stream("bordereau-reglement-{$reglement->id}.pdf");
+        $filename = "bordereau-reglement-{$reglement->id}.pdf";
+        return request()->query('action') === 'stream'
+            ? $pdf->stream($filename)
+            : $pdf->download($filename);
     }
 
     /**
@@ -816,7 +819,10 @@ class ReglementFournisseurController extends Controller
         ]);
         $pdf->setPaper('a4', 'landscape');
 
-        return $pdf->stream("imputation-reglement-{$reglement->id}.pdf");
+        $filename = "imputation-reglement-{$reglement->id}.pdf";
+        return request()->query('action') === 'stream'
+            ? $pdf->stream($filename)
+            : $pdf->download($filename);
     }
 
     /**
@@ -904,7 +910,7 @@ class ReglementFournisseurController extends Controller
             default => $reglement->mode_paiement,
         };
 
-        $montantFormate = number_format($montant, 0, ',', ' ') . ' FCFA';
+        $montantFormate = number_format($montant, 0, ',', ' ');
         $montantEnLettres = $this->convertirMontantEnLettres($montant) . ' francs CFA';
 
         $etablissementLive = \App\Models\Setting::getEtablissement();

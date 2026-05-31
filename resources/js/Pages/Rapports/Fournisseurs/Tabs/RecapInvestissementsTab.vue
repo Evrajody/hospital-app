@@ -71,6 +71,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useMontant } from '@/Composables/useMontant';
@@ -151,7 +153,7 @@ const buildPdfParams = () => {
 };
 
 const exportPdf = () => {
-  window.open(`/rapports/fournisseurs/pdf/recap-investissements?${buildPdfParams()}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/recap-investissements?${buildPdfParams()}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

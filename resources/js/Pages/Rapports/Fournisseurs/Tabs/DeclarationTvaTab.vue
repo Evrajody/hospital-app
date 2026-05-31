@@ -46,8 +46,10 @@
 
         <el-table :data="lignes" border size="small" stripe show-summary :summary-method="summaryMethod">
           <el-table-column prop="date" label="Date" min-width="100" />
-          <el-table-column prop="numero_piece" label="N° PC" min-width="120" />
-          <el-table-column prop="libelle" label="Libellé facture" min-width="300" />
+          <el-table-column prop="numero_piece" label="N° PC" min-width="110" />
+          <el-table-column prop="fournisseur" label="Fournisseur" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="fournisseur_ifu" label="IFU" min-width="130" />
+          <el-table-column prop="libelle" label="Libellé facture" min-width="240" show-overflow-tooltip />
           <el-table-column label="Montant TTC" min-width="130" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_ttc) }}</template>
           </el-table-column>
@@ -69,6 +71,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useMontant } from '@/Composables/useMontant';
@@ -118,7 +122,7 @@ const summaryMethod = ({ columns }) => {
 };
 
 const exportPdf = () => {
-  window.open(`/rapports/fournisseurs/pdf/declaration-tva?${buildParams()}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/declaration-tva?${buildParams()}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

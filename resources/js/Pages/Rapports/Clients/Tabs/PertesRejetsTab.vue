@@ -101,6 +101,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 
@@ -159,7 +161,7 @@ const fetchData = async () => {
 };
 
 const exportPdf = () => {
-  window.open(`/rapports/clients/pdf/pertes-rejets?${buildParams()}`, '_blank');
+  openPdf(`/rapports/clients/pdf/pertes-rejets?${buildParams()}`, 'Aperçu du rapport');
 };
 
 const exportExcel = () => {

@@ -155,6 +155,7 @@ class ProfileController extends Controller
             'telephone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'directeur' => 'required|string|max:255',
+            'ifu' => 'nullable|string|max:50',
         ]);
 
         foreach ($validated as $key => $value) {

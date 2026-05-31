@@ -35,17 +35,6 @@
                     </tr>
                 @endforeach
             </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td class="total-label">TOTAL GÉNÉRAL</td>
-                    <td class="montant">{{ number_format($grandTotaux['montant_facture'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['avoir'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['montant_mo'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['montant_aib'], 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandTotaux['reg_periode'], 0, ',', ' ') }}</td>
-                    <td class="montant" style="font-weight: bold;">{{ number_format($grandTotaux['mt_total_reg'], 0, ',', ' ') }}</td>
-                </tr>
-            </tfoot>
         </table>
     @endif
 @endsection

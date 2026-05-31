@@ -2,11 +2,22 @@
   <el-container class="app-container">
     <!-- Sidebar -->
     <el-aside :width="isCollapse ? '64px' : '250px'" class="app-sidebar">
-      <div class="sidebar-header">
-        <el-icon v-if="!isCollapse" :size="32" color="#409EFF">
-          <OfficeBuilding />
-        </el-icon>
-        <h2 v-if="!isCollapse">Hôpital de zone de Ménontin</h2>
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">
+          <img
+            v-if="!isCollapse"
+            src="/images/ministere_sante.png"
+            alt="Ministère de la Santé — République du Bénin"
+            class="sidebar-logo-img"
+          />
+          <el-icon v-else :size="28" color="#008751">
+            <OfficeBuilding />
+          </el-icon>
+        </div>
+        <div class="gov-liserai"></div>
+      </div>
+      <div v-if="!isCollapse" class="sidebar-header">
+        <h2>Hôpital de zone de Ménontin</h2>
       </div>
 
       <el-menu
@@ -15,7 +26,7 @@
         class="sidebar-menu"
         background-color="#001529"
         text-color="#fff"
-        active-text-color="#409EFF"
+        active-text-color="#fcd116"
       >
         <!-- Dashboard -->
         <el-menu-item index="/dashboard" @click="navigate('/dashboard')">
@@ -177,6 +188,9 @@
         <slot />
       </el-main>
     </el-container>
+
+    <!-- Visualiseur PDF global (aperçu + téléchargement explicite) -->
+    <PdfViewerDrawer />
   </el-container>
 </template>
 
@@ -185,6 +199,7 @@ import { ref, computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { usePermissions } from '@/Composables/usePermissions';
 import { useInactivityLogout } from '@/Composables/useInactivityLogout';
+import PdfViewerDrawer from '@/Components/PdfViewerDrawer.vue';
 import {
   OfficeBuilding,
   HomeFilled,
@@ -267,8 +282,38 @@ const handleCommand = (command) => {
   position: relative;
 }
 
+.sidebar-brand {
+  background: #fff;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px;
+  min-height: 56px;
+}
+
+.sidebar-logo-img {
+  max-width: 100%;
+  height: auto;
+  max-height: 46px;
+  display: block;
+}
+
+.gov-liserai {
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(
+    to right,
+    #008751 0 33.33%,
+    #fcd116 33.33% 66.66%,
+    #e8112d 66.66% 100%
+  );
+}
+
 .sidebar-header {
-  min-height: 64px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -286,6 +331,7 @@ const handleCommand = (command) => {
   word-break: break-word;
   line-height: 1.3;
   flex: 1;
+  text-align: center;
 }
 
 .sidebar-menu {

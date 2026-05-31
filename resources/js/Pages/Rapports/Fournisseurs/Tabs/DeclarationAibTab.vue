@@ -153,6 +153,8 @@
 </template>
 
 <script setup>
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 
@@ -271,7 +273,7 @@ const buildPdfParams = (type) => {
 };
 
 const exportPdf = (type) => {
-  window.open(`/rapports/fournisseurs/pdf/declaration-aib?${buildPdfParams(type)}`, '_blank');
+  openPdf(`/rapports/fournisseurs/pdf/declaration-aib?${buildPdfParams(type)}`, 'Aperçu du rapport');
 };
 
 const printReport = (type) => {

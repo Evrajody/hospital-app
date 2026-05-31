@@ -496,6 +496,9 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+
+const { openPdf } = usePdfViewer();
 
 // Props
 const props = defineProps({
@@ -578,8 +581,7 @@ const breadcrumbs = [
 // Methods
 const formatMontant = (montant) => {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
+    maximumFractionDigits: 0,
     minimumFractionDigits: 0
   }).format(montant || 0);
 };
@@ -757,10 +759,10 @@ const handleViewReglement = (reglement) => {
 const handleReglementActions = async (command, reglement) => {
   switch (command) {
     case 'mandat':
-      window.open(`/reglements-fournisseurs/${reglement.id}/mandat`, '_blank');
+      openPdf(`/reglements-fournisseurs/${reglement.id}/mandat`, 'Bordereau de règlement');
       break;
     case 'imputation':
-      window.open(`/reglements-fournisseurs/${reglement.id}/imputation`, '_blank');
+      openPdf(`/reglements-fournisseurs/${reglement.id}/imputation`, 'Imputation comptable');
       break;
     case 'facture':
       if (reglement.facture) {
