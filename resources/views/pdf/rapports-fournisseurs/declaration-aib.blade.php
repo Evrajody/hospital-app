@@ -2,7 +2,7 @@
 
 @section('title', $titreDeclaration)
 @section('page-size', 'A4 landscape')
-@section('page-margin', '15mm 20mm')
+@section('page-margin', '22mm 20mm')
 @section('report-title', $titreDeclaration)
 
 @section('content')

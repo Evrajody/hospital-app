@@ -166,11 +166,10 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
 }
 
 .rail-item.active {
-  background: #ffffff;
+  background: var(--el-color-primary-light-9, #e6f3ec);
   color: var(--gov-green, #008751);
   font-weight: 600;
   border-left-color: var(--gov-green, #008751);
-  box-shadow: inset 0 0 0 1px #e5e7eb;
 }
 
 .rail-icon {
@@ -197,12 +196,12 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
 
 .report-slide-enter-from {
   opacity: 0;
-  transform: translateX(14px);
+  transform: translateY(8px);
 }
 
 .report-slide-leave-to {
   opacity: 0;
-  transform: translateX(-14px);
+  transform: translateY(-4px);
 }
 
 /* Responsive : rail horizontal sur petit écran */

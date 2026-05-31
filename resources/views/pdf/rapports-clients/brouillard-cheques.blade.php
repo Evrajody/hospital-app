@@ -2,7 +2,7 @@
 
 @section('title', 'Brouillard de Chèques')
 @section('page-size', 'A4 portrait')
-@section('page-margin', '20mm 25mm')
+@section('page-margin', '22mm 25mm')
 @section('report-title', $titre ?? 'BROUILLARD DE CHÈQUES')
 
 @if(!empty($periode['debut']) && !empty($periode['fin']))

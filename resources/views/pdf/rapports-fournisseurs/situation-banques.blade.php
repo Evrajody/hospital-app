@@ -2,7 +2,7 @@
 
 @section('title', $titre ?? 'Situation des banques')
 @section('page-size', 'A4 portrait')
-@section('page-margin', '20mm 25mm')
+@section('page-margin', '22mm 25mm')
 @section('report-title', $titre)
 
 @section('extra-styles')

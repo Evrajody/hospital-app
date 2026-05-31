@@ -2,7 +2,7 @@
 
 @section('title', ($titre ?? 'Etat des factures réglées') . ' - Résumé')
 @section('page-size', 'A4 landscape')
-@section('page-margin', '15mm 20mm')
+@section('page-margin', '22mm 20mm')
 @section('report-title', $titre ?? 'Etat des factures réglées')
 @section('report-subtitle', '(Résumé par fournisseur)')
 

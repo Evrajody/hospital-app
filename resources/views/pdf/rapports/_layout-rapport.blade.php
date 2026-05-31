@@ -6,7 +6,7 @@
     <style>
         @page {
             size: @yield('page-size', 'A4 landscape');
-            margin: @yield('page-margin', '20mm 25mm');
+            margin: @yield('page-margin', '24mm 20mm');
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -17,10 +17,25 @@
             padding: 0 10mm;
         }
 
-        /* En-tête hôpital — pas de cadre */
+        /* En-tête hôpital — logo à gauche, infos centrées */
         .header-section {
-            text-align: center;
+            width: 100%;
             margin-bottom: 10px;
+        }
+        .header-section td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+        .header-logo-cell {
+            width: 150px;
+        }
+        .header-logo {
+            height: 44px;
+            width: auto;
+        }
+        .header-spacer-cell {
+            width: 150px;
         }
         .header-section .hospital-name {
             font-size: 16px;
@@ -135,20 +150,29 @@
     @php
         $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement();
     @endphp
-    {{-- En-tête hôpital --}}
-    <div class="header-section">
-        <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-        <div class="hospital-info">
-            {{ $etablissement['pays'] }}<br>
-            {{ $etablissement['adresse'] }}
-            @if(!empty($etablissement['telephone']))
-                - Tél: {{ $etablissement['telephone'] }}
-            @endif
-            @if(!empty($etablissement['ifu']))
-                <br>IFU: {{ $etablissement['ifu'] }}
-            @endif
-        </div>
-    </div>
+    {{-- En-tête hôpital : logo en haut à gauche, infos centrées --}}
+    <table class="header-section">
+        <tr>
+            <td class="header-logo-cell">
+                <img class="header-logo" src="{{ public_path('images/ministere_sante.png') }}"
+                     alt="Ministère de la Santé - République du Bénin" />
+            </td>
+            <td style="text-align: center;">
+                <div class="hospital-name">{{ $etablissement['nom'] }}</div>
+                <div class="hospital-info">
+                    {{ $etablissement['pays'] }}<br>
+                    {{ $etablissement['adresse'] }}
+                    @if(!empty($etablissement['telephone']))
+                        - Tél: {{ $etablissement['telephone'] }}
+                    @endif
+                    @if(!empty($etablissement['ifu']))
+                        <br>IFU: {{ $etablissement['ifu'] }}
+                    @endif
+                </div>
+            </td>
+            <td class="header-spacer-cell"></td>
+        </tr>
+    </table>
 
     {{-- Titre du rapport --}}
     <div class="report-title-wrapper">

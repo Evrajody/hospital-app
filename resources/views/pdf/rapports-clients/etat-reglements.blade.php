@@ -6,7 +6,7 @@
 
 @section('title', 'État des Règlements Clients')
 @section('page-size', 'A4 portrait')
-@section('page-margin', '20mm 25mm')
+@section('page-margin', '22mm 25mm')
 @section('report-title', ($titre ?? 'ÉTAT DES RÈGLEMENTS CLIENTS') . $typeSuffix)
 
 @if($mode === 'un_client')

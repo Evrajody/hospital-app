@@ -3,7 +3,7 @@
     v-model="state.visible"
     :title="state.title"
     direction="rtl"
-    size="72%"
+    size="55%"
     :destroy-on-close="true"
     class="pdf-viewer-drawer"
   >
@@ -37,8 +37,10 @@ const { state, close } = usePdfViewer();
 
 const withParam = (url, kv) => url + (url.includes('?') ? '&' : '?') + kv;
 
-// Aperçu : on stream le PDF en inline dans l'iframe
-const streamUrl = computed(() => (state.url ? withParam(state.url, 'action=stream') : ''));
+// Aperçu : on stream le PDF inline, sans la barre d'outils native du lecteur PDF
+const streamUrl = computed(() =>
+  state.url ? `${withParam(state.url, 'action=stream')}#toolbar=0&navpanes=0&scrollbar=0&view=FitH` : ''
+);
 
 // Téléchargement explicite : URL sans action => Content-Disposition: attachment
 const downloadPdf = () => {
@@ -63,7 +65,7 @@ const printPdf = () => {
 <style scoped>
 .pdf-viewer-body {
   height: 100%;
-  background: #525659;
+  background: #ffffff;
 }
 
 .pdf-frame {
