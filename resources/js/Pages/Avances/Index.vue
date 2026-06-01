@@ -126,11 +126,19 @@
               <el-tag :type="statutColor(row.statut)" size="small">{{ row.statut_libelle }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="Actions" min-width="180" align="center">
+          <el-table-column label="Actions" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" :icon="View" @click="openDetail(row)">Détails</el-button>
-              <el-button size="small" type="warning" :icon="Edit" @click="openEdit(row)" />
-              <el-button size="small" type="danger" :icon="Delete" @click="handleDelete(row)" :disabled="row.montant_utilise > 0" />
+              <el-button-group>
+                <el-tooltip content="Détails" placement="top">
+                  <el-button size="small" :icon="View" @click="openDetail(row)" />
+                </el-tooltip>
+                <el-tooltip content="Modifier" placement="top">
+                  <el-button size="small" type="warning" :icon="Edit" @click="openEdit(row)" />
+                </el-tooltip>
+                <el-tooltip content="Supprimer" placement="top">
+                  <el-button size="small" type="danger" :icon="Delete" @click="handleDelete(row)" :disabled="row.montant_utilise > 0" />
+                </el-tooltip>
+              </el-button-group>
             </template>
           </el-table-column>
         </el-table>

@@ -1,6 +1,6 @@
 {{-- Entête officielle commune aux bordereaux et autres documents PDF.
      Utilisation : @include('pdf._entete-officiel') (la variable $etablissement doit être disponible). --}}
-<div style="padding-top: 12mm; margin-bottom: 10px;">
+<div style="margin-bottom: 10px;">
     <table style="width: 100%; border-collapse: collapse;">
         <tr>
             <td style="vertical-align: middle; width: 62%; padding: 0;">

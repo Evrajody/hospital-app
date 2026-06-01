@@ -6,16 +6,17 @@
     <style>
         @page {
             size: @yield('page-size', 'A4 landscape');
-            /* haut / côtés / bas — marge haute généreuse pour laisser respirer */
-            margin: @yield('page-margin', '32mm 20mm 22mm');
+            margin: 0;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* dompdf ignore les marges @page avec setPaper() : les marges sont portées
+           par le body (haut / côtés / bas) pour garantir un rendu correct. */
         body {
             font-family: 'Times New Roman', serif;
             font-size: 11px;
             color: #000;
             line-height: 1.4;
-            padding: 0 10mm;
+            padding: 26mm 20mm 22mm;
         }
 
         /* En-tête hôpital — logo à gauche, infos centrées */
@@ -127,11 +128,11 @@
         /* Pied de page */
         .footer-section {
             position: fixed;
-            bottom: 10mm;
+            bottom: 8mm;
             left: 0;
             right: 0;
             font-size: 10px;
-            padding: 0 10mm;
+            padding: 0 20mm;
             color: #666;
             font-style: italic;
         }

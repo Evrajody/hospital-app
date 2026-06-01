@@ -20,6 +20,7 @@
             font-size: 12px;
             color: #000000;
             line-height: 1.4;
+            padding: 20mm 18mm 18mm;
         }
 
         /* En-tete */

@@ -16,7 +16,7 @@
             font-size: 13px;
             color: #000;
             line-height: 1.5;
-            padding: 0 15mm;
+            padding: 20mm 18mm 18mm;
         }
 
         .page-break { page-break-after: always; }
