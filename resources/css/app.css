@@ -24,14 +24,16 @@ h1, h2, h3, h4, h5, h6 {
 /* Custom styles pour Element Plus */
 /* Charte gouvernementale — République du Bénin (Ministère de la Santé) */
 :root {
-    /* Couleur principale : vert Bénin */
-    --el-color-primary: #008751;
-    --el-color-primary-light-3: #4dab85;
-    --el-color-primary-light-5: #80c3a8;
-    --el-color-primary-light-7: #b3dbcb;
-    --el-color-primary-light-8: #cce7dc;
-    --el-color-primary-light-9: #e6f3ec;
-    --el-color-primary-dark-2: #006c41;
+    /* Couleur principale : vert foncé #14532D.
+       !important car le CSS d'Element Plus (importé via app.js) se charge APRÈS app.css
+       et écraserait sinon ces variables (la primaire resterait au bleu #409eff par défaut). */
+    --el-color-primary: #14532D !important;
+    --el-color-primary-light-3: #5B876C !important;
+    --el-color-primary-light-5: #8AA996 !important;
+    --el-color-primary-light-7: #B9CBC0 !important;
+    --el-color-primary-light-8: #D0DDD5 !important;
+    --el-color-primary-light-9: #E8EEEA !important;
+    --el-color-primary-dark-2: #104224 !important;
     --el-font-family: var(--font-primary);
 
     /* Couleurs du drapeau national */

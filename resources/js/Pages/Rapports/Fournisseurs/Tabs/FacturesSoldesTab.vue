@@ -20,7 +20,14 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Période">
+        <el-form-item label="Filtre date">
+          <el-radio-group v-model="filtreDate" size="default" @change="onFiltreDateChange">
+            <el-radio-button label="periode">Période</el-radio-button>
+            <el-radio-button label="point">Date</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item v-if="filtreDate === 'periode'" label="Période">
           <el-date-picker
             v-model="dateRange"
             type="daterange"
@@ -31,6 +38,24 @@
             value-format="YYYY-MM-DD"
             unlink-panels
           />
+        </el-form-item>
+
+        <el-form-item v-else label="À la date">
+          <el-date-picker
+            v-model="datePoint"
+            type="date"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
+            placeholder="Date d'arrêté"
+            style="width: 200px"
+            clearable
+          />
+          <el-tooltip
+            content="Solde arrêté à cette date : règlements effectués jusqu'à cette date inclus"
+            placement="top"
+          >
+            <el-icon style="margin-left: 6px; color: #909399; cursor: help;"><InfoFilled /></el-icon>
+          </el-tooltip>
         </el-form-item>
 
         <el-form-item>
@@ -88,6 +113,7 @@
 <script setup>
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import { InfoFilled } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
 
 const props = defineProps({
@@ -97,25 +123,46 @@ const props = defineProps({
 const { formatMontant } = useMontant();
 
 const selectedFournisseurId = ref(null);
+const filtreDate = ref('periode'); // 'periode' | 'point'
 const dateRange = ref([]);
+const datePoint = ref('');
 const loading = ref(false);
 const fetched = ref(false);
 const factures = ref([]);
 const totaux = ref({});
+
+// Quand l'utilisateur bascule entre Période et Date, on vide l'autre champ
+const onFiltreDateChange = () => {
+  if (filtreDate.value === 'periode') {
+    datePoint.value = '';
+  } else {
+    dateRange.value = [];
+  }
+};
 
 const formatDate = (date) => {
   if (!date) return '-';
   return new Date(date).toLocaleDateString('fr-FR');
 };
 
+// Construit les paramètres de requête communs (API + Excel)
+const buildParams = () => {
+  const params = new URLSearchParams();
+  if (selectedFournisseurId.value) params.append('fournisseur_id', selectedFournisseurId.value);
+  const [debut, fin] = dateRange.value || [];
+  if (filtreDate.value === 'point' && datePoint.value) {
+    params.append('date_point', datePoint.value);
+  } else if (filtreDate.value === 'periode') {
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
+  }
+  return params;
+};
+
 const fetchData = async () => {
   loading.value = true;
   try {
-    const params = new URLSearchParams();
-    if (selectedFournisseurId.value) params.append('fournisseur_id', selectedFournisseurId.value);
-    const [debut, fin] = dateRange.value || [];
-    if (debut) params.append('date_debut', debut);
-    if (fin) params.append('date_fin', fin);
+    const params = buildParams();
 
     const res = await fetch(`/rapports/fournisseurs/api/factures-soldes?${params}`);
     const json = await res.json();
@@ -145,12 +192,7 @@ const getSummary = ({ columns }) => {
 };
 
 const exportExcel = () => {
-  const params = new URLSearchParams();
-  if (selectedFournisseurId.value) params.append('fournisseur_id', selectedFournisseurId.value);
-  const [debut, fin] = dateRange.value || [];
-  if (debut) params.append('date_debut', debut);
-  if (fin) params.append('date_fin', fin);
-  window.open(`/rapports/fournisseurs/excel/factures-soldes?${params}`, '_blank');
+  window.open(`/rapports/fournisseurs/excel/factures-soldes?${buildParams()}`, '_blank');
 };
 </script>
 

@@ -1,48 +1,112 @@
-@extends('pdf.rapports._layout-rapport')
+{{-- Point périodique des PC — UNE pièce comptable par page.
+     Template AUTONOME : chaque page reprend l'en-tête (logo + établissement + titre)
+     afin que chaque fiche PC soit un document complet et imprimable séparément. --}}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ $titre ?? 'Etat des PC' }}</title>
+    <style>
+        @page { size: A4 portrait; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; font-size: 11px; color: #000; line-height: 1.4; }
 
-@section('title', $titre ?? 'Etat des PC')
-@section('page-size', 'A4 portrait')
-@section('page-margin', '32mm 25mm 22mm')
-@section('report-title', $titre)
+        .pc-page { padding: 26mm 20mm 24mm; }
+        .pc-page + .pc-page { page-break-before: always; }
 
-@section('extra-styles')
-    .date-header { font-size: 12px; margin: 20px 0 10px; }
-    .date-header strong { text-decoration: underline; }
-    .date-header em { font-style: italic; }
-@endsection
+        .header-section { width: 100%; margin-bottom: 10px; }
+        .header-section td { border: none; padding: 0; vertical-align: middle; }
+        .header-logo-cell { width: 150px; }
+        .header-logo { height: 44px; width: auto; }
+        .header-spacer-cell { width: 150px; }
+        .hospital-name { font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .hospital-info { font-size: 10px; color: #333; line-height: 1.6; margin-top: 4px; }
 
-@section('content')
-    @if(count($groupes) === 0)
-        <p style="text-align: center; padding: 40px; color: #666;">Aucune pi&egrave;ce comptable trouv&eacute;e.</p>
+        .report-title-wrapper { text-align: center; margin: 15px 0; }
+        .report-title { display: inline-block; text-align: center; padding: 10px 20px; border: 1px solid #000; }
+        .report-title h1 { font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+
+        .date-header { font-size: 12px; margin: 20px 0 10px; }
+        .date-header strong { text-decoration: underline; }
+        .date-header em { font-style: italic; }
+
+        table.report-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        table.report-table th { background: #fff; border: 1px solid #000; padding: 6px 4px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 9px; }
+        table.report-table td { background: #fff; border: 1px solid #000; padding: 6px 8px; }
+        table.report-table .montant { text-align: right; font-family: 'Courier New', monospace; }
+
+        .footer-section { position: fixed; bottom: 8mm; left: 0; right: 0; font-size: 10px; padding: 0 20mm; color: #666; font-style: italic; }
+        .footer-section td { border: none; padding: 4px 0; }
+    </style>
+</head>
+<body>
+    @php
+        $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement();
+    @endphp
+
+    @if(count($pieces ?? []) === 0)
+        <div class="pc-page">
+            <p style="text-align: center; padding: 40px; color: #666;">Aucune pi&egrave;ce comptable trouv&eacute;e.</p>
+        </div>
     @else
-        @foreach($groupes as $groupe)
-            <div class="date-header">
-                <strong>Date d'enregistrement :</strong> <em>{{ $groupe['date_longue'] }}</em>
-            </div>
-            <table class="report-table">
-                <thead>
+        @foreach($pieces as $piece)
+            <div class="pc-page">
+                {{-- En-tête établissement (centré, sans logo, repris sur chaque page) --}}
+                <table class="header-section">
                     <tr>
-                        <th style="width: 120px">N&deg; PC</th>
-                        <th>Objet PC</th>
-                        <th class="montant" style="width: 130px">Montant TTC</th>
+                        <td style="text-align: center;">
+                            <div class="hospital-name">{{ $etablissement['nom'] }}</div>
+                            <div class="hospital-info">
+                                {{ $etablissement['pays'] }}<br>
+                                {{ $etablissement['adresse'] }}
+                                @if(!empty($etablissement['telephone']))
+                                    - Tél: {{ $etablissement['telephone'] }}
+                                @endif
+                                @if(!empty($etablissement['ifu']))
+                                    <br>IFU: {{ $etablissement['ifu'] }}
+                                @endif
+                            </div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach($groupe['lignes'] as $ligne)
+                </table>
+
+                {{-- Titre du rapport --}}
+                <div class="report-title-wrapper">
+                    <div class="report-title"><h1>{{ $titre }}</h1></div>
+                </div>
+
+                {{-- Date d'enregistrement de la pièce --}}
+                <div class="date-header">
+                    <strong>Date d'enregistrement :</strong> <em>{{ $piece['date_longue'] }}</em>
+                </div>
+
+                {{-- La pièce comptable --}}
+                <table class="report-table">
+                    <thead>
                         <tr>
-                            <td>{{ $ligne['numero_piece'] }}</td>
-                            <td>{{ $ligne['libelle'] }}</td>
-                            <td class="montant">{{ number_format($ligne['montant'], 0, ',', ' ') }}</td>
+                            <th style="width: 140px">N&deg; PC</th>
+                            <th>Objet PC</th>
+                            <th class="montant" style="width: 140px">Montant TTC</th>
                         </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr class="total-row">
-                        <td colspan="2" class="total-label">TOTAL :</td>
-                        <td class="montant">{{ number_format($groupe['total'], 0, ',', ' ') }}</td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ $piece['numero_piece'] }}</td>
+                            <td>{{ $piece['libelle'] }}</td>
+                            <td class="montant">{{ number_format($piece['montant'], 0, ',', ' ') }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         @endforeach
     @endif
-@endsection
+
+    {{-- Pied de page répété --}}
+    <table class="footer-section">
+        <tr>
+            <td>Édité par {{ $generatedBy ?? 'Utilisateur' }} - {{ $generatedAt ?? now()->format('d/m/Y à H:i') }}</td>
+            <td style="text-align: right;">Page <span class="page-num"></span></td>
+        </tr>
+    </table>
+</body>
+</html>

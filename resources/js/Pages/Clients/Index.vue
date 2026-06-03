@@ -68,7 +68,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="factures" :icon="Document">
-                      Voir les factures
+                      Voir
                     </el-dropdown-item>
                     <el-dropdown-item command="edit" :icon="Edit">
                       Modifier

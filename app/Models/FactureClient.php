@@ -22,6 +22,7 @@ class FactureClient extends Model
         'client_nom',
         'montant_paye',
         'reste_a_payer',
+        'date_solde',
         'statut',
         'created_by',
         'created_by_name',
@@ -33,6 +34,7 @@ class FactureClient extends Model
         'ristourne' => 'decimal:2',
         'montant_paye' => 'decimal:2',
         'reste_a_payer' => 'decimal:2',
+        'date_solde' => 'date',
     ];
 
     const STATUT_NON_PAYEE = 'non_payee';

@@ -45,7 +45,8 @@ class Setting extends Model
                 'telephone' => $settings['etablissement_telephone'] ?? '',
                 'email' => $settings['etablissement_email'] ?? '',
                 'directeur' => $settings['etablissement_directeur'] ?? '',
-                'ifu' => $settings['etablissement_ifu'] ?? '',
+                // IFU : valeur par défaut (IFU de l'hôpital) si non renseignée dans Admin > Établissement.
+                'ifu' => ($settings['etablissement_ifu'] ?? '') ?: '6201200887407',
             ];
         });
     }

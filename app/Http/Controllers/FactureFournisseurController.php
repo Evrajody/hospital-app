@@ -876,7 +876,7 @@ class FactureFournisseurController extends Controller
     /**
      * Marquer une facture comme soldée (API)
      */
-    public function solder(int $id): JsonResponse
+    public function solder(Request $request, int $id): JsonResponse
     {
         $facture = FactureFournisseur::findOrFail($id);
 
@@ -895,13 +895,19 @@ class FactureFournisseurController extends Controller
             ], 422);
         }
 
+        // Date à laquelle la facture est marquée comme soldée (par défaut aujourd'hui,
+        // modifiable côté UI). Le statut reste 'payee' (comportement inchangé) : c'est la
+        // présence d'une date_solde qui distingue une facture marquée soldée manuellement.
+        // Aucun règlement n'est créé.
+        $dateSolde = $request->input('date_solde', now()->toDateString());
+
         try {
-            // Marquer comme payée (soldée)
             $facture->statut = FactureFournisseur::STATUT_PAYEE;
             $facture->reste_a_payer = 0;
+            $facture->date_solde = $dateSolde;
             $facture->save();
 
-            ActivityLog::log('settle', 'facture_fournisseur', "Solde de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
+            ActivityLog::log('settle', 'facture_fournisseur', "Facture {$facture->numero_piece} marquée comme soldée au " . \Carbon\Carbon::parse($dateSolde)->format('d/m/Y'), $facture, ['numero_piece' => $facture->numero_piece, 'date_solde' => $dateSolde]);
 
             return response()->json([
                 'success' => true,

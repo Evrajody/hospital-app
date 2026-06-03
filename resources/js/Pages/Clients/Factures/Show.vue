@@ -301,15 +301,25 @@ const handleAction = (command) => {
     case 'print':
       ElMessage.info('Impression en cours de d\u00e9veloppement...');
       break;
-    case 'solder':
-      ElMessageBox.confirm(
-        'Voulez-vous marquer cette facture comme soldée ?',
-        'Confirmation',
-        { confirmButtonText: 'Oui, solder', cancelButtonText: 'Annuler', type: 'warning' }
-      ).then(async () => {
+    case 'solder': {
+      const d = new Date();
+      const aujourdhui = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      ElMessageBox.prompt(
+        'Date à laquelle la facture est marquée comme soldée (le reste à payer éventuel restera visible comme déficit). Aucun règlement n\'est créé.',
+        'Marquer comme soldée',
+        {
+          confirmButtonText: 'Marquer comme soldée',
+          cancelButtonText: 'Annuler',
+          inputType: 'date',
+          inputValue: aujourdhui,
+          inputValidator: (val) => (val ? true : 'Veuillez saisir une date'),
+          type: 'warning',
+        }
+      ).then(async ({ value }) => {
         try {
           const response = await fetchApi(`/api/factures-clients/${props.facture.id}/solder`, {
             method: 'POST',
+            body: { date_solde: value },
           });
           const result = await response.json();
           if (result.success) {
@@ -323,6 +333,7 @@ const handleAction = (command) => {
         }
       }).catch(() => {});
       break;
+    }
     case 'delete':
       ElMessageBox.confirm(
         '\u00cates-vous s\u00fbr de vouloir supprimer cette facture ?',

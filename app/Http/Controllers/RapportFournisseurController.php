@@ -386,25 +386,50 @@ class RapportFournisseurController extends Controller
 
         $reglements = $reglementQuery->get();
 
-        if ($reglements->isEmpty()) {
-            $emptyResult['titre'] = $titre ?? '';
+        // Regrouper les règlements par facture
+        $reglementsByFacture = $reglements->groupBy('facture_id');
+        $factureIdsAvecReglement = $reglementsByFacture->keys()->all();
+
+        // Factures ayant reçu un règlement dans la période
+        $facturesReglees = FactureFournisseur::whereIn('id', $factureIdsAvecReglement)
+            ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
+            ->with('fournisseur.compteComptable')
+            ->get();
+
+        // Factures MARQUÉES comme soldées (date_solde renseignée, sans règlement) dont la
+        // date de mise en solde tombe dans la période : elles apparaissent avec leur montant
+        // réellement payé, d'où un déficit visible (montant facture > montant total réglé).
+        // Garde défensive : si la migration ajoutant `date_solde` n'a pas encore été exécutée,
+        // on ignore cette partie pour ne pas casser le rapport (qui reste fonctionnel).
+        $facturesSoldees = collect();
+        if (\Illuminate\Support\Facades\Schema::hasColumn('factures_fournisseurs', 'date_solde')) {
+            $soldeQuery = FactureFournisseur::whereNotNull('date_solde')
+                ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
+                ->whereNotIn('id', $factureIdsAvecReglement)
+                ->with('fournisseur.compteComptable');
+
+            if ($fournisseurId) {
+                $soldeQuery->where('fournisseur_id', $fournisseurId);
+            }
+
+            if ($mode === 'date' && $date) {
+                $soldeQuery->whereDate('date_solde', $date);
+            } else {
+                $soldeQuery->whereBetween('date_solde', [$dateDebut, $dateFin]);
+            }
+
+            $facturesSoldees = $soldeQuery->get();
+        }
+
+        if ($facturesReglees->isEmpty() && $facturesSoldees->isEmpty()) {
+            $emptyResult['titre'] = $titre;
             return $emptyResult;
         }
 
-        // Group reglements by facture_id
-        $reglementsByFacture = $reglements->groupBy('facture_id');
-        $factureIds = $reglementsByFacture->keys()->toArray();
-
-        // Load factures with fournisseur
-        $factures = FactureFournisseur::whereIn('id', $factureIds)
-            ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-            ->with('fournisseur.compteComptable')
-            ->orderBy('fournisseur_id')
-            ->orderBy('date')
-            ->get();
-
-        // Group by fournisseur
-        $grouped = $factures->groupBy('fournisseur_id');
+        // Fusionner et grouper par fournisseur (ordonné par fournisseur)
+        $grouped = $facturesReglees->concat($facturesSoldees)
+            ->sortBy('fournisseur_id')
+            ->groupBy('fournisseur_id');
 
         $resume = [];
         $detail = [];
@@ -420,11 +445,19 @@ class RapportFournisseurController extends Controller
 
             $lignes = [];
             $totauxFournisseur = array_fill_keys(array_keys($grandTotaux), 0);
+            $aSoldeeManuelle = false;
 
-            foreach ($fFactures as $fact) {
+            foreach ($fFactures->sortBy(fn($f) => $f->date?->getTimestamp() ?? 0) as $fact) {
                 $factReglements = $reglementsByFacture[$fact->id] ?? collect();
                 $regPeriode = (float) $factReglements->sum('montant');
-                $dateReg = $factReglements->sortByDesc('date_reglement')->first()?->date_reglement;
+                $marqueeSoldee = !is_null($fact->date_solde);
+                if ($marqueeSoldee) {
+                    $aSoldeeManuelle = true;
+                }
+
+                // Date affichée : dernière date de règlement, sinon la date de mise en solde.
+                $dateReg = $factReglements->sortByDesc('date_reglement')->first()?->date_reglement
+                    ?? $fact->date_solde;
 
                 $row = [
                     'numero_piece' => $fact->numero_piece,
@@ -438,6 +471,7 @@ class RapportFournisseurController extends Controller
                     'montant_aib' => (float) $fact->montant_reduction,
                     'reg_periode' => $regPeriode,
                     'mt_total_reg' => (float) $fact->montant_paye,
+                    'marquee_soldee' => $marqueeSoldee,
                 ];
                 $lignes[] = $row;
 
@@ -453,6 +487,7 @@ class RapportFournisseurController extends Controller
                 'fournisseur' => $fournisseurLabel,
                 'lignes' => $lignes,
                 'totaux' => $totauxFournisseur,
+                'has_soldee' => $aSoldeeManuelle,
             ];
 
             $resume[] = [
@@ -463,6 +498,7 @@ class RapportFournisseurController extends Controller
                 'total_aib' => $totauxFournisseur['montant_aib'],
                 'total_reg_periode' => $totauxFournisseur['reg_periode'],
                 'total_mt_reg' => $totauxFournisseur['mt_total_reg'],
+                'has_soldee' => $aSoldeeManuelle,
             ];
 
             foreach (array_keys($grandTotaux) as $key) {
@@ -495,14 +531,12 @@ class RapportFournisseurController extends Controller
             $dateFin = Carbon::create($annee, $mois, 1)->endOfMonth()->format('Y-m-d');
             $moisNoms = ['', 'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
             $titreDeclaration = 'DECLARATION AIB MOIS DE ' . ($moisNoms[(int) $mois] ?? '') . ' ' . $annee;
-            $titreEtat = 'ETAT AIB MOIS DE ' . ($moisNoms[(int) $mois] ?? '') . ' ' . $annee;
         } elseif ($mode === 'periode' && $dateDebut && $dateFin) {
             $titreDeclaration = 'DECLARATION AIB DU ' . Carbon::parse($dateDebut)->format('d/m/Y') . ' AU ' . Carbon::parse($dateFin)->format('d/m/Y');
-            $titreEtat = 'ETAT AIB DU ' . Carbon::parse($dateDebut)->format('d/m/Y') . ' AU ' . Carbon::parse($dateFin)->format('d/m/Y');
         } else {
             return [
-                'mode' => $mode, 'titreDeclaration' => '', 'titreEtat' => '',
-                'lignes' => [], 'lignesTfu' => [], 'totaux' => ['montant_mo' => 0, 'montant_aib' => 0],
+                'mode' => $mode, 'titreDeclaration' => '',
+                'lignes' => [], 'totaux' => ['montant_mo' => 0, 'montant_aib' => 0],
                 'parTaux' => [], 'montantTotal' => 0, 'montantEnLettres' => '',
                 'dateDebut' => null, 'dateFin' => null, 'mois' => $mois, 'annee' => $annee,
             ];
@@ -529,10 +563,6 @@ class RapportFournisseurController extends Controller
         $lignes = [];
         $totalMontantMo = 0;
         $totalMontantAib = 0;
-
-        // Lignes pour Point avec TFU
-        $lignesTfu = [];
-        $numero = 1;
 
         // Grouper par taux pour le bordereau
         $parTaux = [];
@@ -570,16 +600,6 @@ class RapportFournisseurController extends Controller
                 'montant_aib' => $montantAib,
             ];
 
-            $lignesTfu[] = [
-                'numero' => $numero++,
-                'ifu' => $fournisseur?->ifu ?? '',
-                'fournisseur' => $fournisseur?->nom ?? 'Inconnu',
-                'adresse' => $f->libelle,
-                'mt_prestation' => $montantMo,
-                'taux_aib' => $tauxAib,
-                'montant_aib' => $montantAib,
-            ];
-
             $totalMontantMo += $montantMo;
             $totalMontantAib += $montantAib;
 
@@ -597,9 +617,7 @@ class RapportFournisseurController extends Controller
         return [
             'mode' => $mode,
             'titreDeclaration' => $titreDeclaration,
-            'titreEtat' => $titreEtat,
             'lignes' => $lignes,
-            'lignesTfu' => $lignesTfu,
             'totaux' => ['montant_mo' => $totalMontantMo, 'montant_aib' => $totalMontantAib],
             'parTaux' => array_values($parTaux),
             'montantTotal' => $totalMontantAib,
@@ -617,7 +635,7 @@ class RapportFournisseurController extends Controller
         $dateFin = $request->input('date_fin');
 
         if (!$dateDebut || !$dateFin) {
-            return ['titre' => '', 'groupes' => [], 'dateDebut' => null, 'dateFin' => null];
+            return ['titre' => '', 'groupes' => [], 'pieces' => [], 'dateDebut' => null, 'dateFin' => null];
         }
 
         $titre = 'ETAT DES PC DU ' . Carbon::parse($dateDebut)->format('d/m/Y') . ' au ' . Carbon::parse($dateFin)->format('d/m/Y');
@@ -632,6 +650,7 @@ class RapportFournisseurController extends Controller
         $grouped = $factures->groupBy(fn($f) => $f->date->format('Y-m-d'));
 
         $groupes = [];
+        $pieces = []; // liste à plat (1 entrée par pièce comptable) pour le PDF "une PC par page"
         foreach ($grouped as $dateKey => $facturesJour) {
             $dateObj = Carbon::parse($dateKey);
             $lignes = [];
@@ -643,6 +662,13 @@ class RapportFournisseurController extends Controller
                     'numero_piece' => $f->numero_piece,
                     'libelle' => $f->libelle,
                     'montant' => $montant,
+                ];
+                $pieces[] = [
+                    'numero_piece' => $f->numero_piece,
+                    'libelle' => $f->libelle,
+                    'montant' => $montant,
+                    'date' => $dateObj->format('d/m/Y'),
+                    'date_longue' => mb_strtoupper($dateObj->locale('fr')->translatedFormat('l j F Y')),
                 ];
                 $totalJour += $montant;
             }
@@ -658,6 +684,7 @@ class RapportFournisseurController extends Controller
         return [
             'titre' => $titre,
             'groupes' => $groupes,
+            'pieces' => $pieces,
             'dateDebut' => $dateDebut,
             'dateFin' => $dateFin,
         ];
@@ -865,8 +892,11 @@ class RapportFournisseurController extends Controller
     private function buildFacturesSoldesData(Request $request): array
     {
         $fournisseurId = $request->input('fournisseur_id');
-        $dateDebut = $request->input('date_debut');
-        $dateFin = $request->input('date_fin');
+        // "Date du point" : on arrête l'état à cette date (factures émises et règlements
+        // effectués jusqu'à elle). Si fournie, elle prime sur date_debut/date_fin.
+        $datePoint = $request->input('date_point');
+        $dateDebut = $datePoint ? null : $request->input('date_debut');
+        $dateFin = $datePoint ?: $request->input('date_fin');
 
         $query = FactureFournisseur::with(['fournisseur.compteComptable'])
             ->where('statut', '!=', FactureFournisseur::STATUT_ANNULEE);
@@ -884,10 +914,24 @@ class RapportFournisseurController extends Controller
 
         $factures = $query->orderBy('date_facture_bc')->get();
 
-        $data = $factures->map(function ($f) {
+        $data = $factures->map(function ($f) use ($datePoint) {
             $code = $f->fournisseur?->compteComptable?->numero_compte;
             $nom = $f->fournisseur?->nom ?? '-';
             $fournisseurLabel = $code ? "[{$code}] {$nom}" : $nom;
+
+            if ($datePoint) {
+                // Solde arrêté à la date : on recalcule à partir des règlements effectués
+                // jusqu'à cette date. Les colonnes montant_paye/reste_a_payer sont des
+                // cumuls "à aujourd'hui", inadaptés à un arrêté à une date passée.
+                $montantPaye = (float) $f->reglements()
+                    ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+                    ->where('date_reglement', '<=', $datePoint)
+                    ->sum('montant');
+                $resteAPayer = (float) $f->montant_net - $montantPaye;
+            } else {
+                $montantPaye = (float) $f->montant_paye;
+                $resteAPayer = (float) $f->reste_a_payer;
+            }
 
             return [
                 'id' => $f->id,
@@ -895,8 +939,8 @@ class RapportFournisseurController extends Controller
                 'date_facture' => $f->date_facture_bc?->format('Y-m-d'),
                 'fournisseur_label' => $fournisseurLabel,
                 'montant_ttc' => (float) $f->montant_net,
-                'montant_paye' => (float) $f->montant_paye,
-                'reste_a_payer' => (float) $f->reste_a_payer,
+                'montant_paye' => $montantPaye,
+                'reste_a_payer' => $resteAPayer,
             ];
         });
 
@@ -909,6 +953,9 @@ class RapportFournisseurController extends Controller
         return [
             'factures' => $data->toArray(),
             'totaux' => $totaux,
+            'date_point' => $datePoint,
+            'date_debut' => $dateDebut,
+            'date_fin' => $dateFin,
         ];
     }
 
@@ -1085,12 +1132,10 @@ class RapportFournisseurController extends Controller
         $views = [
             'declaration' => 'pdf.rapports-fournisseurs.declaration-aib',
             'bordereau' => 'pdf.rapports-fournisseurs.bordereau-versement-aib',
-            'tfu' => 'pdf.rapports-fournisseurs.etat-aib-tfu',
         ];
         $filenames = [
             'declaration' => 'declaration-aib.pdf',
             'bordereau' => 'bordereau-versement-aib.pdf',
-            'tfu' => 'etat-aib-tfu.pdf',
         ];
 
         $view = $views[$type] ?? $views['declaration'];
@@ -1619,11 +1664,12 @@ class RapportFournisseurController extends Controller
         $rows = [];
 
         foreach ($data['detail'] as $bloc) {
-            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', ''];
+            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', '', '', ''];
             foreach ($bloc['lignes'] as $l) {
                 $rows[] = [
                     '',
                     $l['numero_piece'],
+                    $l['libelle'],
                     $l['date'],
                     $l['date_reglement'],
                     $l['montant_facture'],
@@ -1635,14 +1681,11 @@ class RapportFournisseurController extends Controller
                     $l['mt_total_reg'],
                 ];
             }
-            $t = $bloc['totaux'];
-            $rows[] = ['', '', '', 'Sous-total', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['reg_periode'], $t['mt_total_reg']];
+            // Lignes "Total Fournisseur" (sous-total) et "TOTAL GÉNÉRAL" retirées à la demande.
         }
-        $g = $data['grandTotaux'];
-        $rows[] = ['', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'], $g['avoir'], $g['montant_mo'], '', $g['montant_aib'], $g['reg_periode'], $g['mt_total_reg']];
 
         return \App\Support\ExcelExporter::download(
-            ['Fournisseur', 'N° PC', 'Date Fact.', 'Date Règl.', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Règl. période', 'Mt Total Règ.'],
+            ['Fournisseur', 'N° PC', 'Libellé', 'Date Fact.', 'Date Règl.', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Règl. période', 'Mt Total Règ.'],
             $rows,
             'factures-reglees',
             $data['titre'] ?: 'Etat des factures réglées',
@@ -1808,11 +1851,16 @@ class RapportFournisseurController extends Controller
         $t = $data['totaux'];
         $rows[] = ['', '', 'TOTAL', $t['montant_ttc'], $t['montant_paye'], $t['reste_a_payer']];
 
+        $titre = 'Factures et soldes';
+        if (!empty($data['date_point'])) {
+            $titre .= ' au ' . \Carbon\Carbon::parse($data['date_point'])->format('d/m/Y');
+        }
+
         return \App\Support\ExcelExporter::download(
             ['N° PC', 'Date', 'Fournisseur', 'Mt TTC', 'Mt Payé', 'Reste à payer'],
             $rows,
             'factures-soldes',
-            'Factures et soldes',
+            $titre,
         );
     }
 

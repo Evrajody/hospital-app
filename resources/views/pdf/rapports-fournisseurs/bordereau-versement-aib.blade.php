@@ -1,37 +1,53 @@
-@extends('pdf.rapports._layout-rapport')
-
-@section('title', 'Bordereau de versement AIB')
-@section('page-size', 'A4 portrait')
-@section('page-margin', '32mm 25mm 22mm')
-@section('report-title', 'BORDEREAU DE VERSEMENT AIB')
-
-@section('extra-styles')
-    .header-admin { text-align: center; font-size: 12px; line-height: 1.6; margin-bottom: 10px; }
-    .header-admin .bold { font-weight: bold; }
-    .header-admin .sep { font-size: 10px; color: #666; }
-    .titre-encadre { border: 1px solid #000; padding: 10px 15px; text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px auto; max-width: 500px; }
-    .section-header { border: 1px solid #000; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12px; text-transform: uppercase; }
-    .section-content { border: 1px solid #000; border-top: none; padding: 12px 15px; }
-    .info-line { margin: 4px 0; font-size: 11px; }
-    .info-line strong { font-weight: bold; }
-    table.droits { width: 100%; border-collapse: collapse; font-size: 11px; margin: 0; }
-    table.droits th { background: #fff; border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; }
-    table.droits td { border: 1px solid #000; padding: 5px 8px; }
-    table.droits .montant { text-align: right; font-family: 'Courier New', monospace; }
-    table.droits .cat-header td { font-weight: bold; font-size: 11px; }
-    table.droits .total-row td { font-weight: bold; font-size: 12px; border-top: 1px solid #000; }
-    .lettres-row td { font-size: 10px; font-style: italic; padding: 8px; }
-    .paiement-section { margin-top: 5px; }
-    .paiement-line { margin: 8px 0; font-size: 11px; }
-    .paiement-line .box { display: inline-block; width: 20px; height: 14px; border: 1px solid #000; vertical-align: middle; margin: 0 8px; }
-    .paiement-line .underline { display: inline-block; border-bottom: 1px solid #000; min-width: 150px; }
-    .signature-table { width: 100%; margin-top: 15px; }
-    .signature-table td { border: 1px solid #000; padding: 10px 12px; vertical-align: top; font-size: 10px; height: 120px; }
-@endsection
-
-@section('content')
-    {{-- EN-TETE ADMINISTRATIF (replaces the standard header/title from layout) --}}
-    <table style="width: 100%; border: none; margin-bottom: 10px;">
+{{-- Bordereau de versement AIB — reproduction conforme du formulaire officiel DGID.
+     Template AUTONOME (n'étend PAS _layout-rapport) : pas d'en-tête hôpital, pas de
+     cadre titre, pas de pied de page "Édité par". Tient sur une seule page A4 portrait. --}}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bordereau de versement AIB</title>
+    <style>
+        @page { size: A4 portrait; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 11px;
+            color: #000;
+            line-height: 1.4;
+            padding: 12mm 15mm;
+        }
+        .header-admin { text-align: center; font-size: 12px; line-height: 1.6; }
+        .header-admin .bold { font-weight: bold; }
+        .header-admin .sep { font-size: 10px; color: #666; }
+        .titre-encadre { border: 1px solid #000; padding: 10px 15px; text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        .annee-mois { width: 100%; border: none; margin: 12px 0 10px; }
+        .annee-mois td { border: none; font-size: 13px; }
+        .section-header { border: 1px solid #000; background: #c9c9c9; padding: 6px 10px; text-align: center; font-weight: bold; font-size: 12px; text-transform: uppercase; }
+        .section-content { border: 1px solid #000; border-top: none; padding: 12px 15px; }
+        .info-line { margin: 4px 0; font-size: 11px; }
+        .info-line strong { font-weight: bold; }
+        table.droits { width: 100%; border-collapse: collapse; font-size: 11px; margin: 0; }
+        table.droits th { background: #fff; border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; }
+        table.droits td { border: 1px solid #000; padding: 5px 8px; }
+        table.droits .montant { text-align: right; font-family: 'Courier New', monospace; }
+        table.droits .cat-header td { font-weight: bold; font-size: 11px; background: #e2e2e2; }
+        table.droits .total-row td { font-weight: bold; font-size: 12px; border-top: 1px solid #000; }
+        table.droits .lettres-row td { font-size: 10px; font-style: italic; padding: 8px; }
+        .paiement-section { border-bottom: none; }
+        .paiement-line { margin: 8px 0; font-size: 11px; }
+        .paiement-line .box { display: inline-block; width: 20px; height: 14px; border: 1px solid #000; vertical-align: middle; margin: 0 8px; }
+        .paiement-line .underline { display: inline-block; border-bottom: 1px solid #000; min-width: 150px; }
+        .signature-table { width: 100%; border-collapse: collapse; }
+        .signature-table td { border: 1px solid #000; padding: 10px 12px; vertical-align: top; font-size: 10px; height: 120px; }
+    </style>
+</head>
+<body>
+    @php
+        // Le template étant autonome (sans le layout commun), on récupère ici l'établissement.
+        $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement();
+    @endphp
+    {{-- EN-TETE ADMINISTRATIF --}}
+    <table style="width: 100%; border: none;">
         <tr>
             <td style="width: 40%; border: none; vertical-align: top;">
                 <div class="header-admin">
@@ -45,18 +61,18 @@
             </td>
             <td style="width: 60%; border: none; vertical-align: top; padding-top: 10px;">
                 <div class="titre-encadre">
-                    BORDEREAU DE VERSEMENT DES PR&Eacute;L&Egrave;VEMENTS D'ACOMPTE IMPUTABLE SUR L'IMP&Ocirc;T ASSIS SUR LES B&Eacute;N&Eacute;FICES
+                    BORDEREAU DE VERSEMENT DES PRELEVEMENTS D'ACOMPTE IMPUTABLE SUR L'IMP&Ocirc;T ASSIS SUR LES BENEFICES
                 </div>
             </td>
         </tr>
     </table>
 
-    <table style="width: 100%; border: none; margin-bottom: 15px;">
+    <table class="annee-mois">
         <tr>
-            <td style="border: none; font-size: 13px;">
+            <td>
                 <strong>Ann&eacute;e</strong>&nbsp;&nbsp;&nbsp;<strong>{{ $annee ?? \Carbon\Carbon::parse($dateDebut)->format('Y') }}</strong>
             </td>
-            <td style="border: none; text-align: right; font-size: 13px;">
+            <td style="text-align: right;">
                 @php
                     $moisNoms = ['', 'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
                 @endphp
@@ -67,7 +83,7 @@
 
     {{-- I- IDENTIFICATION DU REDEVABLE --}}
     <div class="section-header">I- IDENTIFICATION DU REDEVABLE</div>
-    <div class="section-content" style="position: relative;">
+    <div class="section-content">
         <table style="width: 100%; border: none;">
             <tr>
                 <td style="border: none; width: 65%; vertical-align: top;">
@@ -92,7 +108,7 @@
     </div>
 
     {{-- II- LIQUIDATION DES DROITS --}}
-    <div class="section-header" style="margin-top: 15px;">II- LIQUIDATION DES DROITS</div>
+    <div class="section-header" style="margin-top: 12px;">II- LIQUIDATION DES DROITS</div>
     <table class="droits">
         <thead>
             <tr>
@@ -126,18 +142,16 @@
                 <td class="montant"></td>
                 <td class="montant">{{ number_format($montantTotal, 0, ',', ' ') }}</td>
             </tr>
+
+            {{-- Montant en lettres (même cadre que la liquidation) --}}
+            <tr class="lettres-row">
+                <td colspan="3">Montant du versement en lettres : {{ $montantEnLettres }}</td>
+            </tr>
         </tbody>
-    </table>
-    <table class="droits">
-        <tr class="lettres-row">
-            <td colspan="3" style="font-size: 10px;">
-                Montant du versement en lettres : {{ $montantEnLettres }}
-            </td>
-        </tr>
     </table>
 
     {{-- III- PAIEMENT --}}
-    <div class="section-header" style="margin-top: 10px;">III-PAIEMENT (Obligatoirement joint &agrave; la d&eacute;claration)</div>
+    <div class="section-header" style="margin-top: 12px;">III-PAIEMENT (Obligatoirement joint &agrave; la d&eacute;claration)</div>
     <div class="section-content paiement-section">
         <div class="paiement-line">
             Esp&egrave;ces <span class="box"></span>
@@ -154,7 +168,7 @@
         </div>
     </div>
 
-    {{-- SIGNATURES --}}
+    {{-- SIGNATURES (rattachées directement au cadre paiement) --}}
     <table class="signature-table">
         <tr>
             <td style="width: 50%;">
@@ -174,4 +188,5 @@
             </td>
         </tr>
     </table>
-@endsection
+</body>
+</html>

@@ -97,7 +97,7 @@ docker-compose exec db psql -U hospital_user -d hospital_db  # PostgreSQL
 - **Base de données**: hospital_db
 - **Utilisateur**: hospital_user
 - **Mot de passe**: password
-
+    
 ## Développement
 
 Les fichiers du projet sont montés dans le conteneur, donc tous les changements sont reflétés en temps réel.

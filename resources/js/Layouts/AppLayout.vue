@@ -6,15 +6,15 @@
         <div class="sidebar-logo">
           <img
             v-if="!isCollapse"
-            src="/images/ministere_sante.png"
+            src="/images/ministere_sante_without_republic.png"
             alt="Ministère de la Santé — République du Bénin"
             class="sidebar-logo-img"
           />
-          <el-icon v-else :size="28" color="#008751">
+          <el-icon v-else :size="28" color="#14532D">
             <OfficeBuilding />
           </el-icon>
         </div>
-        <div class="gov-liserai"></div>
+        <!-- <div class="gov-liserai"></div> -->
       </div>
       <div v-if="!isCollapse" class="sidebar-header">
         <h2>Hôpital de zone de Ménontin</h2>
@@ -24,7 +24,7 @@
         :default-active="currentRoute"
         :collapse="isCollapse"
         class="sidebar-menu"
-        background-color="#001529"
+        background-color="#14532D"
         text-color="#fff"
         active-text-color="#fcd116"
       >
@@ -275,7 +275,7 @@ const handleCommand = (command) => {
 }
 
 .app-sidebar {
-  background-color: #001529;
+  background-color: #14532D;
   transition: width 0.3s;
   display: flex;
   flex-direction: column;

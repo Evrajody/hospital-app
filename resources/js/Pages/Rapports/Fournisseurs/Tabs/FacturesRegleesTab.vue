@@ -106,12 +106,22 @@
               <span class="sub-tab-label">Détail par fournisseur</span>
             </template>
 
+            <div v-if="detailHasSoldee" class="soldee-legend">
+              <span class="soldee-swatch"></span>
+              Lignes en orange = factures <strong>marquées comme soldées</strong> (clôturées sans règlement) ; le « Mt Total Rég. » en rouge signale le déficit.
+            </div>
+
             <div v-for="(fData, fi) in detail" :key="fi" class="fournisseur-block">
               <div class="fournisseur-header-box">
                 <strong>Fournisseur :</strong> {{ fData.fournisseur }}
               </div>
-              <el-table style="width: 100%" :data="fData.lignes" border size="small" stripe>
-                <el-table-column prop="numero_piece" label="N°PC" min-width="90" />
+              <el-table style="width: 100%" :data="fData.lignes" border size="small" stripe :row-class-name="rowClassSoldee">
+                <el-table-column label="N°PC" min-width="120">
+                  <template #default="{ row }">
+                    {{ row.numero_piece }}
+                    <el-tag v-if="row.marquee_soldee" type="warning" size="small" effect="plain" style="margin-left: 4px;">Soldée</el-tag>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="libelle" label="Libellé facture" min-width="180" show-overflow-tooltip />
                 <el-table-column prop="date" label="Date PC" min-width="85" />
                 <el-table-column prop="date_reglement" label="Date Règ." min-width="85" />
@@ -135,19 +145,10 @@
                 </el-table-column>
                 <el-table-column label="Mt Total Rég." min-width="110" align="right">
                   <template #default="{ row }">
-                    <span style="font-weight: bold;">{{ formatMontant(row.mt_total_reg) }}</span>
+                    <span style="font-weight: bold;" :style="{ color: row.marquee_soldee ? '#b91c1c' : 'inherit' }">{{ formatMontant(row.mt_total_reg) }}</span>
                   </template>
                 </el-table-column>
               </el-table>
-              <div class="fournisseur-totals">
-                <span><strong>Total Fournisseur :</strong></span>
-                <span>Mt TTC <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong></span>
-                <span>Avoir <strong>{{ formatMontant(fData.totaux.avoir) }}</strong></span>
-                <span>Mt M.O. <strong>{{ formatMontant(fData.totaux.montant_mo) }}</strong></span>
-                <span>AIB <strong>{{ formatMontant(fData.totaux.montant_aib) }}</strong></span>
-                <span>Rég. Période <strong>{{ formatMontant(fData.totaux.reg_periode) }}</strong></span>
-                <span>Mt Total Rég. <strong>{{ formatMontant(fData.totaux.mt_total_reg) }}</strong></span>
-              </div>
             </div>
 
             <div class="actions-bar">
@@ -165,12 +166,15 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },
 });
+
+const detailHasSoldee = computed(() => detail.value.some((f) => f.has_soldee));
+const rowClassSoldee = ({ row }) => (row.marquee_soldee ? 'row-soldee' : '');
 
 const selectedFournisseurId = ref(null);
 const selectedMode = ref('date');
@@ -269,4 +273,8 @@ const printReport = (type) => {
 .fournisseur-totals { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; background: #fafafa; border: 1px solid #eee; font-size: 12px; }
 .grand-total { display: flex; gap: 24px; flex-wrap: wrap; padding: 14px; background: #f0f0f0; border: 2px solid #333; font-size: 14px; margin-top: 16px; }
 .actions-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
+.soldee-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #92400e; background: #fff7ed; border: 1px solid #fed7aa; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; }
+.soldee-swatch { display: inline-block; width: 14px; height: 14px; background: #fff7ed; border: 2px solid #fb923c; border-radius: 2px; flex-shrink: 0; }
+.row-soldee { background: #fff7ed; }
+:deep(.el-table .row-soldee td.el-table__cell) { background: #fff7ed; }
 </style>

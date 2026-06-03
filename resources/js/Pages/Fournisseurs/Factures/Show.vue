@@ -874,22 +874,25 @@ const handleAction = (command) => {
     case 'pay':
       router.visit(`/factures-fournisseurs/${props.facture.id}/regler`);
       break;
-    case 'marquer_soldee':
-      ElMessageBox.confirm(
-        `Êtes-vous sûr de vouloir marquer cette facture comme soldée ?
-
-Cette action clôturera définitivement la facture, même si le montant payé (${formatMontant(props.facture.montant_paye)}) ne correspond pas exactement au montant net (${formatMontant(montantNetAPayer.value)}).`,
+    case 'marquer_soldee': {
+      const d = new Date();
+      const aujourdhui = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      ElMessageBox.prompt(
+        `Date à laquelle la facture est marquée comme soldée. La facture sera clôturée même si le montant payé (${formatMontant(props.facture.montant_paye)}) ne couvre pas le montant net (${formatMontant(montantNetAPayer.value)}) : le reliquat restera visible comme déficit. Aucun règlement n'est créé.`,
         'Marquer comme soldée',
         {
-          confirmButtonText: 'Oui, solder la facture',
+          confirmButtonText: 'Marquer comme soldée',
           cancelButtonText: 'Annuler',
+          inputType: 'date',
+          inputValue: aujourdhui,
+          inputValidator: (val) => (val ? true : 'Veuillez saisir une date'),
           type: 'warning',
-          dangerouslyUseHTMLString: false
         }
-      ).then(async () => {
+      ).then(async ({ value }) => {
         try {
           const response = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}/solder`, {
-            method: 'POST'
+            method: 'POST',
+            body: { date_solde: value },
           });
 
           const result = await response.json();
@@ -908,6 +911,7 @@ Cette action clôturera définitivement la facture, même si le montant payé ($
         // User cancelled
       });
       break;
+    }
     case 'edit':
       selectedFacture.value = props.facture;
       showFactureModal.value = true;

@@ -841,17 +841,29 @@ const handleEditSubmit = async () => {
 };
 
 const handleSolder = async () => {
+  const d = new Date();
+  const aujourdhui = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let dateSolde;
   try {
-    await ElMessageBox.confirm(
-      'Voulez-vous marquer cette facture comme soldée ?',
-      'Confirmation',
-      { confirmButtonText: 'Oui, solder', cancelButtonText: 'Annuler', type: 'warning' }
+    const { value } = await ElMessageBox.prompt(
+      'Date à laquelle la facture est marquée comme soldée (le reste à payer éventuel restera visible comme déficit). Aucun règlement n\'est créé.',
+      'Marquer comme soldée',
+      {
+        confirmButtonText: 'Marquer comme soldée',
+        cancelButtonText: 'Annuler',
+        inputType: 'date',
+        inputValue: aujourdhui,
+        inputValidator: (val) => (val ? true : 'Veuillez saisir une date'),
+        type: 'warning',
+      }
     );
+    dateSolde = value;
   } catch { return; }
 
   try {
     const response = await fetchApi(`/api/factures-clients/${props.facture.id}/solder`, {
       method: 'POST',
+      body: { date_solde: dateSolde },
     });
     const result = await response.json();
     if (result.success) {

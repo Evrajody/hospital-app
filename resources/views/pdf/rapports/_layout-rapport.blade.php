@@ -152,13 +152,9 @@
     @php
         $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement();
     @endphp
-    {{-- En-tête hôpital : logo en haut à gauche, infos centrées --}}
+    {{-- En-tête établissement : infos centrées en haut (sans logo) --}}
     <table class="header-section">
         <tr>
-            <td class="header-logo-cell">
-                <img class="header-logo" src="{{ public_path('images/ministere_sante.png') }}"
-                     alt="Ministère de la Santé - République du Bénin" />
-            </td>
             <td style="text-align: center;">
                 <div class="hospital-name">{{ $etablissement['nom'] }}</div>
                 <div class="hospital-info">
@@ -172,7 +168,6 @@
                     @endif
                 </div>
             </td>
-            <td class="header-spacer-cell"></td>
         </tr>
     </table>
 

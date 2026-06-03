@@ -6,11 +6,11 @@
         <!-- Logo officiel -->
         <div class="login-header">
           <img
-            src="/images/ministere_sante.png"
+            src="/images/ministere_sante_without_republic.png"
             alt="Ministère de la Santé — République du Bénin"
             class="login-logo"
           />
-          <div class="gov-liserai login-liserai"></div>
+          <!-- <div class="gov-liserai login-liserai"></div> -->
           <h1>Hôpital de zone de Ménontin</h1>
           <p class="welcome-text">Bienvenue ! Connectez-vous à votre compte</p>
         </div>
@@ -244,7 +244,8 @@ const handleLogin = async () => {
 /* Right Side - Image */
 .login-image-section {
   flex: 1;
-  background: linear-gradient(135deg, #001529 0%, #003a5c 100%);
+  background-color:  #14532D;
+  /* background-image: linear-gradient(135deg, #001529 0%, #003a5c 100%); */
   position: relative;
   overflow: hidden;
 }

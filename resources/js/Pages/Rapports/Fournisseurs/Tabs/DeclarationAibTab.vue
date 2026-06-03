@@ -118,34 +118,6 @@
             </div>
           </el-tab-pane>
 
-          <!-- Sous-onglet POINT AVEC TFU -->
-          <el-tab-pane name="tfu">
-            <template #label><span class="sub-tab-label">Point avec TFU</span></template>
-
-            <div class="report-title">{{ titreEtat }}</div>
-
-            <el-table style="width: 100%" :data="lignesTfu" border size="small" stripe show-summary :summary-method="getSummaryTfu">
-              <el-table-column prop="numero" label="N°" min-width="50" align="center" />
-              <el-table-column prop="ifu" label="N° IFU" min-width="120" />
-              <el-table-column prop="fournisseur" label="Fournisseur" min-width="220" />
-              <el-table-column prop="adresse" label="Adresses" min-width="200" />
-              <el-table-column label="Mt prestation" min-width="110" align="right">
-                <template #default="{ row }">{{ formatMontant(row.mt_prestation) }}</template>
-              </el-table-column>
-              <el-table-column label="Taux AIB" min-width="75" align="right">
-                <template #default="{ row }">{{ Math.round(row.taux_aib) }}%</template>
-              </el-table-column>
-              <el-table-column label="Montant AIB" min-width="110" align="right">
-                <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
-              </el-table-column>
-            </el-table>
-
-            <div class="actions-bar">
-              <el-button type="primary" @click="exportPdf('tfu')">Exporter PDF</el-button>
-              <el-button @click="printReport('tfu')">Imprimer</el-button>
-            </div>
-          </el-tab-pane>
-
         </el-tabs>
       </template>
     </div>
@@ -167,9 +139,7 @@ const fetched = ref(false);
 const activeSubTab = ref('declaration');
 
 const titreDeclaration = ref('');
-const titreEtat = ref('');
 const lignes = ref([]);
-const lignesTfu = ref([]);
 const totaux = ref({});
 const parTaux = ref([]);
 const montantTotal = ref(0);
@@ -221,9 +191,7 @@ const fetchData = async () => {
     const res = await fetch(`/rapports/fournisseurs/api/declaration-aib?${params}`);
     const json = await res.json();
     titreDeclaration.value = json.titreDeclaration || '';
-    titreEtat.value = json.titreEtat || '';
     lignes.value = json.lignes || [];
-    lignesTfu.value = json.lignesTfu || [];
     totaux.value = json.totaux || {};
     parTaux.value = json.parTaux || [];
     montantTotal.value = json.montantTotal || 0;
@@ -243,17 +211,6 @@ const getSummaryDeclaration = ({ columns, data: tableData }) => {
     if (i === 0) { sums[i] = 'TOTAL'; return; }
     if (i === 5) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.montant_mo || 0), 0)); return; }
     if (i === 7) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.montant_aib || 0), 0)); return; }
-    sums[i] = '';
-  });
-  return sums;
-};
-
-const getSummaryTfu = ({ columns, data: tableData }) => {
-  const sums = [];
-  columns.forEach((col, i) => {
-    if (i === 0) { sums[i] = 'TOTAL'; return; }
-    if (i === 4) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.mt_prestation || 0), 0)); return; }
-    if (i === 6) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.montant_aib || 0), 0)); return; }
     sums[i] = '';
   });
   return sums;
