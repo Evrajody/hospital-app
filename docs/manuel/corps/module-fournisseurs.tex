@@ -1,0 +1,84 @@
+% =====================================================================
+%  MODULE FOURNISSEURS — corps (chapitres)
+%  Périmètre strict : groupe « Factures Fournisseurs » de la barre latérale
+%  (Fournisseurs, Factures, Règlements) + le tableau de bord.
+%  Captures : dossier images_fournisseurs/.
+% =====================================================================
+\chapter{Présentation du module Fournisseurs}
+
+Le module \textbf{Fournisseurs} prend en charge l'ensemble du suivi des achats de l'établissement, depuis l'enregistrement d'un fournisseur jusqu'au paiement de ses factures. Dans la barre latérale, il correspond au groupe \menu{Factures Fournisseurs}, qui réunit trois écrans complémentaires~: \menu{Fournisseurs}, \menu{Factures} et \menu{Règlements}. Le présent guide décrit ces trois écrans ainsi que le tableau de bord d'accueil.
+
+\section{Accès et connexion}
+L'application s'ouvre dans un navigateur web à l'adresse fournie par l'établissement. Après avoir saisi votre adresse e-mail et votre mot de passe sur l'écran de connexion, vous arrivez sur le tableau de bord. La barre latérale, à gauche, donne accès au groupe \menu{Factures Fournisseurs} dès lors que votre profil vous y autorise.
+
+\section{Le circuit d'une facture d'achat}
+Le traitement d'une facture suit toujours le même enchaînement, d'un écran à l'autre du module~:
+
+\begin{enumerate}
+  \item \textbf{Fournisseur} --- on crée, ou l'on retrouve, la fiche du fournisseur concerné.
+  \item \textbf{Facture} --- on saisit la facture~: ses montants, sa TVA et son AIB sont calculés automatiquement.
+  \item \textbf{Enregistrement} --- on enregistre la facture.
+  \item \textbf{Règlement} --- on enregistre le ou les paiements correspondants, jusqu'au solde complet de la facture.
+\end{enumerate}
+
+\section{Qui utilise ce module}
+Les profils \textbf{Administrateur} et \textbf{Comptable} disposent de la saisie complète~: ils créent et modifient les fournisseurs, les factures et les règlements. Les profils \textbf{Gestionnaire} et \textbf{Utilisateur} accèdent aux mêmes écrans en consultation seule. La barre latérale n'affiche que les rubriques autorisées pour le profil connecté.
+
+% =====================================================================
+\chapter{Le tableau de bord}
+
+À l'ouverture d'une session, le \menu{Tableau de bord} offre une vue d'ensemble immédiate de l'activité d'achat. En haut, une série de cartes met en avant les indicateurs clés, parmi lesquels le nombre de \textbf{factures en attente} et le montant total des \textbf{dettes fournisseurs} restant à régler. Juste en dessous, le tableau \textbf{Dernières factures fournisseurs} liste les pièces les plus récentes avec leur numéro, le fournisseur, le montant, la date et le statut, et un bouton permet d'ouvrir directement la liste complète des factures.
+
+La colonne de droite présente la \textbf{situation des banques}, c'est-à-dire le solde de chaque compte et le solde total disponible. Enfin, deux graphiques complètent la page~: l'\textbf{évolution mensuelle} des montants sur les douze derniers mois et la \textbf{répartition des charges} par fournisseur sur l'année en cours.
+
+\screenshot{images_fournisseurs/dashboard_fournisseur.png}{Tableau de bord~: cartes d'indicateurs, dernières factures fournisseurs, situation des banques et graphiques.}
+
+% =====================================================================
+\chapter{Les fournisseurs}
+
+\section{La liste des fournisseurs}
+L'écran \menu{Fournisseurs} affiche la liste de tous les fournisseurs enregistrés. Une carte rappelle le \textbf{nombre total} de fournisseurs. Sous cette carte, une barre permet de \textbf{rechercher} un fournisseur (par raison sociale, contact, e-mail, téléphone ou numéro IFU), de \textbf{filtrer} par compte comptable, puis de réinitialiser ces critères. Le tableau présente, pour chaque fournisseur~: la raison sociale, le type, le numéro IFU, le compte comptable rattaché, le contact, le téléphone et l'adresse e-mail. La colonne \menu{Actions}, en début de ligne, regroupe les opérations disponibles (consulter, modifier, et selon le profil, supprimer). Le bouton \bouton{Nouveau Fournisseur}, en haut à droite, ouvre le formulaire de création.
+
+\screenshot{images_fournisseurs/fournisseur_list.png}{Écran « Gestion des Fournisseurs »~: carte de total, recherche, filtre par compte comptable et tableau.}
+
+\section{Créer ou modifier un fournisseur}
+Le formulaire de création s'organise en deux volets. Le premier rassemble les \textbf{informations générales}~: la \champ{Raison sociale} (obligatoire), le \champ{Type} de fournisseur (médicaments et produits pharmaceutiques, équipements médicaux, consommables et fournitures, services, maintenance, ou autres), la personne à contacter et sa fonction, les numéros de téléphone, l'adresse e-mail, l'adresse postale, la ville et le pays. Il comporte aussi les \textbf{informations fiscales}~: le numéro \champ{IFU} (treize chiffres, obligatoire) et le \champ{RCCM}.
+
+Le second volet concerne le \textbf{compte comptable}. Chaque fournisseur est rattaché à un compte d'achat~; on peut sélectionner un compte existant ou en créer un directement depuis le formulaire. Il est possible d'associer un compte principal et, au besoin, des comptes supplémentaires. La modification d'un fournisseur réutilise exactement le même formulaire, pré-rempli avec les valeurs en cours.
+
+\section{La fiche d'un fournisseur}
+En ouvrant un fournisseur, on accède à sa fiche détaillée. Quatre cartes y résument son activité~: le nombre de factures, le total facturé, le montant déjà payé et le reste à payer. La fiche se parcourt ensuite par onglets~: \menu{Informations} (coordonnées et données fiscales), \menu{Factures} (toutes les factures du fournisseur) et \menu{Règlements} (l'historique de ses paiements).
+
+\note{Un fournisseur ne peut pas être supprimé tant qu'il possède au moins une facture~: il faut d'abord traiter ou retirer les factures concernées.}
+
+% =====================================================================
+\chapter{Les factures}
+
+\section{La liste des factures}
+L'écran \menu{Factures} présente toutes les factures d'achat. Quatre cartes de synthèse en résument l'encours~: le nombre \textbf{total de factures}, le montant des \textbf{impayées}, celui des \textbf{partiellement payées} et celui des \textbf{payées}. La barre de filtres permet de rechercher une facture et de restreindre l'affichage par fournisseur, par statut de paiement et par période.
+
+Le tableau détaille, colonne par colonne~: le \textbf{numéro de pièce}, la date d'enregistrement, le fournisseur, la date de la facture ou du bon de commande, la référence, le libellé, le \textbf{montant TTC}, le \textbf{net à payer}, le montant déjà \textbf{payé} et le \textbf{statut}. Le bouton \bouton{Nouvelle Facture} ouvre le formulaire de saisie.
+
+\screenshot{images_fournisseurs/facture_fournisseur.png}{Écran « Factures Fournisseurs »~: cartes de synthèse, filtres et tableau des factures.}
+
+\section{Saisir une facture}
+Le formulaire propose d'abord un \textbf{numéro de pièce} au format \code{PC/AAA/NNNN} (par exemple \code{PC/026/0042})~; ce numéro reste modifiable et un contrôle signale tout doublon ou format inhabituel. On renseigne ensuite les \textbf{montants}~: le montant de la facture, le montant de main-d'œuvre (qui sert de base au calcul de l'AIB), l'éventuel avoir, l'assujettissement à la TVA et son taux, ainsi que le taux d'AIB. À partir de ces saisies, l'application calcule automatiquement la TVA, le montant TTC, le montant de l'AIB et, surtout, le \textbf{net à payer}, c'est-à-dire le montant réellement dû au fournisseur une fois l'avoir et l'AIB déduits.
+
+Une facture nouvellement créée est enregistrée, puis suit son cycle de vie au fil des paiements~: elle est successivement \emph{impayée}, \emph{partiellement payée}, puis \emph{payée}. Depuis le détail d'une facture, on peut consulter son récapitulatif financier, suivre la progression du paiement, retrouver l'historique des règlements et éditer ses documents.
+
+\section{L'imputation comptable}
+Chaque facture peut recevoir une \textbf{imputation comptable}, qui répartit son montant en lignes de débit et de crédit sur les comptes appropriés. Cette ventilation prépare les écritures de la facture et peut être éditée sous forme de document. Elle s'effectue directement depuis la facture, sans quitter l'écran des factures.
+
+% =====================================================================
+\chapter{Les règlements}
+
+\section{La liste des règlements}
+L'écran \menu{Règlements} retrace tous les paiements effectués aux fournisseurs. Quatre cartes en donnent la mesure~: le \textbf{total réglé}, le montant réglé \textbf{ce mois}, le \textbf{nombre de règlements} et le \textbf{montant moyen}. Les paiements sont regroupés par facture~: pour chaque pièce, on lit le fournisseur, la date de la facture, le montant TTC, le total déjà réglé, le reste à payer et le nombre de règlements rattachés. Une barre de filtres permet de cibler un fournisseur, un mode de paiement ou une période. Le bouton \bouton{Nouveau Règlement} lance la saisie d'un paiement.
+
+\screenshot{images_fournisseurs/reglement_fournisseur.png}{Écran « Règlements Fournisseurs »~: cartes de synthèse et règlements regroupés par facture.}
+
+\section{Enregistrer un règlement}
+La saisie d'un règlement demande la date, le \textbf{montant} (qui ne peut dépasser le reste à payer de la facture), le \textbf{mode de paiement} (virement, chèque, espèces, mobile money ou carte), la référence du paiement (numéro de chèque ou de virement), le bénéficiaire et le compte de trésorerie concerné. Une option permet de \textbf{déclarer l'AIB} retenu sur ce règlement. À l'enregistrement, le numéro du règlement est attribué automatiquement, le solde du compte de trésorerie est mis à jour et la facture progresse vers le statut « payée » dès que son reste à payer s'annule.
+
+\section{Le bordereau de règlement}
+À partir d'un règlement, on peut éditer son \textbf{bordereau (ou mandat) de règlement}. Ce document officiel reprend l'objet du paiement, le bénéficiaire, le détail des montants et le montant exprimé en toutes lettres, et il réserve les emplacements de signature. Il constitue la pièce justificative du décaissement.

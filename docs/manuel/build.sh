@@ -10,6 +10,8 @@ MANUELS=(
   manuel-comptable
   manuel-gestionnaire
   manuel-utilisateur-simple     # profil « Utilisateur »
+  manuel-module-fournisseurs    # guide par module : Fournisseurs
+  manuel-module-clients         # guide par module : Clients
 )
 
 for m in "${MANUELS[@]}"; do

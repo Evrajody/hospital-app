@@ -407,3 +407,43 @@ rebuild: ## Reconstruire et redémarrer l'application
 	$(MAKE) build
 	$(MAKE) up
 	@echo "$(GREEN)✓ Reconstruction terminée!$(NC)"
+
+##@ Migration des données héritées (ancien système Access)
+
+LEGACY_DIR          = olds/migrations
+LEGACY_CLIENTS_DB   = $(LEGACY_DIR)/Base Factures Clients.accdb
+LEGACY_FSR_DB       = $(LEGACY_DIR)/Base Factures des Fournisseurs.accdb
+
+migrate-legacy-export: ## 1) Exporter les .accdb (olds/migrations) en SQL (nécessite mdbtools)
+	@command -v mdb-export >/dev/null 2>&1 || { echo "$(RED)mdbtools requis : sudo pacman -S mdbtools$(NC)"; exit 1; }
+	@mkdir -p olds/sql
+	@for pair in "$(LEGACY_CLIENTS_DB)|olds/sql/legacy_clients.sql" "$(LEGACY_FSR_DB)|olds/sql/legacy_fournisseurs.sql"; do \
+	  DBF="$${pair%%|*}"; OUT="$${pair##*|}"; \
+	  if [ ! -f "$$DBF" ]; then echo "$(RED)Introuvable : $$DBF$(NC)"; continue; fi; \
+	  echo "$(GREEN)Export $$DBF -> $$OUT$(NC)"; \
+	  echo "SET client_encoding='UTF-8';" > "$$OUT"; \
+	  mdb-schema "$$DBF" postgres >> "$$OUT" 2>/dev/null || true; \
+	  mdb-tables -1 "$$DBF" | while IFS= read -r t; do [ -z "$$t" ] && continue; echo "  - $$t"; mdb-export -D '%Y-%m-%d %H:%M:%S' -I postgres "$$DBF" "$$t" >> "$$OUT"; done; \
+	done
+	@echo "$(GREEN)✓ Exports générés dans olds/sql/$(NC)"
+
+migrate-legacy-load: ## 2) Charger les exports SQL dans les schémas de staging (legacy_clients / legacy_fsr)
+	@CLI=olds/sql/legacy_clients.sql; [ -f "$$CLI" ] || CLI=olds/sql/database_export.sql; \
+	echo "$(GREEN)Staging Clients ($$CLI) -> schéma legacy_clients...$(NC)"; \
+	( printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_clients CASCADE; CREATE SCHEMA legacy_clients; SET search_path TO legacy_clients;\n"; \
+	  sed -e 's/\xEF\xBB\xBF//g' -e 's/BOOLEAN/INTEGER/g' -e 's/-00 00:00:00/-01 00:00:00/g' "$$CLI" ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null
+	@if [ -f olds/sql/legacy_fournisseurs.sql ]; then \
+	  echo "$(GREEN)Staging Fournisseurs -> schéma legacy_fsr...$(NC)"; \
+	  ( printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_fsr CASCADE; CREATE SCHEMA legacy_fsr; SET search_path TO legacy_fsr;\n"; \
+	    sed -e 's/\xEF\xBB\xBF//g' -e 's/BOOLEAN/INTEGER/g' -e 's/-00 00:00:00/-01 00:00:00/g' olds/sql/legacy_fournisseurs.sql ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null; \
+	else echo "$(YELLOW)olds/sql/legacy_fournisseurs.sql absent — lancez 'make migrate-legacy-export'.$(NC)"; fi
+	@echo "$(GREEN)✓ Staging chargé.$(NC)"
+
+migrate-legacy-dry: migrate-legacy-load ## 3a) Simulation (aucune écriture) : compte ce qui serait importé
+	$(EXEC_APP) php artisan legacy:migrate --dry-run $(if $(only),--only=$(only),)
+
+migrate-legacy: migrate-legacy-load ## 3b) Migration RÉELLE (idempotente, transactionnelle)
+	@echo "$(YELLOW)Sauvegarde de la base avant migration...$(NC)"
+	$(MAKE) db-backup
+	$(EXEC_APP) php artisan legacy:migrate $(if $(only),--only=$(only),)
+	@echo "$(GREEN)✓ Migration héritée terminée.$(NC)"

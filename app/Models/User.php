@@ -13,12 +13,19 @@ class User extends Authenticatable
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
-     * Constantes pour les rôles
+     * Constantes pour les rôles (valeurs de la colonne `role`)
      */
+    const ROLE_SUPER_ADMIN = 'superadmin';
     const ROLE_ADMIN = 'admin';
     const ROLE_COMPTABLE = 'comptable';
     const ROLE_GESTIONNAIRE = 'gestionnaire';
     const ROLE_USER = 'user';
+
+    /**
+     * Noms des rôles Spatie (autorisation réelle)
+     */
+    const ROLE_SUPER_ADMIN_NAME = 'SuperAdministrateur';
+    const ROLE_ADMIN_NAME = 'Administrateur';
 
     /**
      * The attributes that are mass assignable.
@@ -61,11 +68,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Vérifier si l'utilisateur est super administrateur (accès total).
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPER_ADMIN_NAME) || $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    /**
      * Vérifier si l'utilisateur est admin
      */
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->role === self::ROLE_ADMIN || $this->isSuperAdmin();
     }
 
     /**
@@ -90,6 +105,7 @@ class User extends Authenticatable
     public function getRoleLibelleAttribute(): string
     {
         return match($this->role) {
+            self::ROLE_SUPER_ADMIN => 'Super Administrateur',
             self::ROLE_ADMIN => 'Administrateur',
             self::ROLE_COMPTABLE => 'Comptable',
             self::ROLE_GESTIONNAIRE => 'Gestionnaire',
