@@ -36,7 +36,7 @@
           </el-card>
 
           <!-- Signature Card -->
-          <el-card shadow="hover" class="signature-card">
+          <!-- <el-card shadow="hover" class="signature-card">
             <template #header>
               <h3>Ma Signature</h3>
             </template>
@@ -68,7 +68,7 @@
               </el-upload>
               <p class="signature-hint">PNG ou JPG, max 2 Mo</p>
             </div>
-          </el-card>
+          </el-card> -->
         </el-col>
 
         <!-- Right: Edit Forms -->
