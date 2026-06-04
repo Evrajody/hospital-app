@@ -143,7 +143,7 @@
         </template>
 
         <el-table
-          :data="groupedReglements"
+          :data="pagedGroups"
           stripe
           border
           style="width: 100%"
@@ -276,6 +276,17 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="groupedReglements.length"
+            layout="total, sizes, prev, pager, next, jumper"
+            background
+          />
+        </div>
       </el-card>
 
       <!-- Detail Modal -->
@@ -487,7 +498,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
@@ -592,6 +603,17 @@ const groupedReglements = computed(() => {
     grp.count += 1;
   }
   return Array.from(map.values());
+});
+
+// Pagination (client-side) — par facture
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedGroups = computed(() =>
+  groupedReglements.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
+);
+watch(() => groupedReglements.value.length, () => {
+  const maxPage = Math.max(1, Math.ceil(groupedReglements.value.length / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
 });
 
 const handleReset = () => {

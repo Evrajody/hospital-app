@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +25,11 @@ class AppServiceProvider extends ServiceProvider
         if (in_array(config('app.env'), ['preprod', 'production', 'frontoffice', 'backoffice'])) {
             URL::forceScheme('https');
         }
+
+        // Le super administrateur a un accès total : il passe toutes les vérifications de permission
+        // (routes via le middleware Spatie `permission:` → canAny() → Gate, ainsi que @can / Gate::allows).
+        Gate::before(function ($user, $ability) {
+            return method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin() ? true : null;
+        });
     }
 }

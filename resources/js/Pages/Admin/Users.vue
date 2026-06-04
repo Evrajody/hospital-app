@@ -9,7 +9,7 @@
       </div>
 
       <el-card shadow="never">
-        <el-table :data="props.users" stripe style="width: 100%">
+        <el-table :data="pagedUsers" stripe style="width: 100%">
           <el-table-column prop="name" label="Nom" sortable />
           <el-table-column prop="email" label="Email" sortable />
           <el-table-column prop="poste" label="Poste" sortable />
@@ -38,6 +38,17 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="props.users.length"
+            layout="total, sizes, prev, pager, next, jumper"
+            background
+          />
+        </div>
       </el-card>
 
       <!-- Modal Utilisateur -->
@@ -108,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Edit, Delete } from '@element-plus/icons-vue';
@@ -118,6 +129,17 @@ import { fetchApi } from '@/Composables/useFetch';
 const props = defineProps({
   users: { type: Array, default: () => [] },
   roles: { type: Array, default: () => [] },
+});
+
+// Pagination (client-side)
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedUsers = computed(() =>
+  props.users.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
+);
+watch(() => props.users.length, () => {
+  const maxPage = Math.max(1, Math.ceil(props.users.length / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
 });
 
 const breadcrumbs = [

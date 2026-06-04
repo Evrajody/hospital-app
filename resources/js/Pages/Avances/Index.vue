@@ -95,7 +95,7 @@
           </div>
         </template>
 
-        <el-table :data="filtered" border style="width: 100%" stripe>
+        <el-table :data="pagedAvances" border style="width: 100%" stripe>
           <el-table-column label="N° Ligne" min-width="90" prop="numero_ligne" />
           <el-table-column label="Date Chèque" min-width="110">
             <template #default="{ row }">{{ formatDate(row.date_cheque) }}</template>
@@ -145,6 +145,17 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="filtered.length"
+            layout="total, sizes, prev, pager, next, jumper"
+            background
+          />
+        </div>
       </el-card>
 
       <!-- Modal Création / Édition -->
@@ -288,7 +299,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search, Delete, Edit, View, RefreshLeft, Money, CircleCheck, Wallet, TrendCharts, ArrowDown } from '@element-plus/icons-vue';
@@ -327,6 +338,17 @@ const filtered = computed(() => {
   if (filters.value.client_id) r = r.filter(a => a.client_id === filters.value.client_id);
   if (filters.value.statut) r = r.filter(a => a.statut === filters.value.statut);
   return r;
+});
+
+// Pagination (client-side)
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedAvances = computed(() =>
+  filtered.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
+);
+watch(() => filtered.value.length, () => {
+  const maxPage = Math.max(1, Math.ceil(filtered.value.length / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
 });
 
 const resetFilters = () => { filters.value = { search: '', client_id: null, statut: '' }; };
