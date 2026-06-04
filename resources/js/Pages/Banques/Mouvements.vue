@@ -76,6 +76,12 @@
         </el-col>
       </el-row>
 
+      <el-tabs v-model="activeTab" class="bank-tabs">
+        <el-tab-pane name="mouvements">
+          <template #label>
+            <span class="tab-label"><el-icon><Tickets /></el-icon> Mouvements</span>
+          </template>
+
       <!-- Filters Card -->
       <el-card class="filter-card" shadow="never">
         <el-form :inline="true" :model="filters" class="filter-form">
@@ -206,11 +212,20 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="Actions" width="120" fixed="right" align="center">
+          <el-table-column label="Actions" width="110" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button :icon="View" size="small" @click="handleView(row)">
-                Détails
-              </el-button>
+              <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, row)">
+                <el-button size="small">
+                  Actions<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="view" :icon="View">Détails</el-dropdown-item>
+                    <el-dropdown-item v-if="row.editable" command="edit" :icon="Edit">Modifier</el-dropdown-item>
+                    <el-dropdown-item v-if="row.editable" command="delete" :icon="Delete" divided>Supprimer</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </template>
           </el-table-column>
         </el-table>
@@ -228,6 +243,96 @@
           />
         </div>
       </el-card>
+        </el-tab-pane>
+
+        <!-- Onglet Bordereaux -->
+        <el-tab-pane name="bordereaux">
+          <template #label>
+            <span class="tab-label"><el-icon><Money /></el-icon> Bordereaux</span>
+          </template>
+
+          <el-card class="table-card" shadow="never">
+            <template #header>
+              <div class="card-header">
+                <span class="card-title">{{ bordereaux.length }} bordereau(x) — cliquez sur une ligne pour voir les règlements imputés</span>
+              </div>
+            </template>
+
+            <el-table :data="bordereaux" stripe style="width: 100%" row-key="id">
+              <el-table-column type="expand">
+                <template #default="{ row }">
+                  <div class="reglements-detail">
+                    <div v-if="row.reglements.length === 0" class="text-muted" style="padding: 12px 24px;">
+                      Aucun règlement imputé sur ce bordereau.
+                    </div>
+                    <el-table v-else :data="row.reglements" size="small" style="width: 100%" class="inner-table">
+                      <el-table-column prop="date_reglement" label="Date" width="110">
+                        <template #default="{ row: r }">{{ r.date_reglement ? formatDate(r.date_reglement) : '-' }}</template>
+                      </el-table-column>
+                      <el-table-column prop="facture_reference" label="Facture" min-width="130">
+                        <template #default="{ row: r }"><span class="reference">{{ r.facture_reference || '-' }}</span></template>
+                      </el-table-column>
+                      <el-table-column prop="client_nom" label="Client" min-width="150">
+                        <template #default="{ row: r }">{{ r.client_nom || '-' }}</template>
+                      </el-table-column>
+                      <el-table-column prop="type_reglement_libelle" label="Type" width="110">
+                        <template #default="{ row: r }">{{ r.type_reglement_libelle || 'Règlement' }}</template>
+                      </el-table-column>
+                      <el-table-column prop="institution" label="Institution" min-width="120">
+                        <template #default="{ row: r }">{{ r.institution || '-' }}</template>
+                      </el-table-column>
+                      <el-table-column prop="reference_cheque" label="Réf. chèque" width="120">
+                        <template #default="{ row: r }">{{ r.reference_cheque || '-' }}</template>
+                      </el-table-column>
+                      <el-table-column prop="montant" label="Montant" width="130" align="right">
+                        <template #default="{ row: r }"><strong>{{ formatMontant(r.montant) }}</strong></template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="reference_bordereau" label="Référence" min-width="150">
+                <template #default="{ row }"><span class="reference">{{ row.reference_bordereau }}</span></template>
+              </el-table-column>
+              <el-table-column prop="date_depot" label="Date dépôt" width="120">
+                <template #default="{ row }">{{ row.date_depot ? formatDate(row.date_depot) : '-' }}</template>
+              </el-table-column>
+              <el-table-column prop="montant" label="Déposé" width="140" align="right">
+                <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
+              </el-table-column>
+              <el-table-column prop="montant_utilise" label="Utilisé" width="140" align="right">
+                <template #default="{ row }"><span class="montant-sortie">{{ formatMontant(row.montant_utilise) }}</span></template>
+              </el-table-column>
+              <el-table-column prop="montant_restant" label="Solde restant" width="150" align="right">
+                <template #default="{ row }">
+                  <strong :style="row.montant_restant <= 0 ? 'color:#ef4444;' : 'color:#059669;'">{{ formatMontant(row.montant_restant) }}</strong>
+                </template>
+              </el-table-column>
+              <el-table-column label="Utilisation" width="170">
+                <template #default="{ row }">
+                  <el-progress
+                    :percentage="row.montant > 0 ? Math.min(100, Math.round((row.montant_utilise / row.montant) * 100)) : 0"
+                    :stroke-width="10"
+                    :color="row.montant_restant <= 0 ? '#ef4444' : '#059669'"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column label="État" width="110" align="center" fixed="right">
+                <template #default="{ row }">
+                  <el-tag :type="row.montant_restant <= 0 ? 'danger' : (row.montant_utilise > 0 ? 'warning' : 'success')" size="small">
+                    {{ row.montant_restant <= 0 ? 'Épuisé' : (row.montant_utilise > 0 ? 'Partiel' : 'Disponible') }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+
+              <template #empty>
+                <el-empty description="Aucun bordereau sur ce compte" :image-size="80" />
+              </template>
+            </el-table>
+          </el-card>
+        </el-tab-pane>
+      </el-tabs>
 
       <!-- Detail Modal -->
       <el-dialog
@@ -338,11 +443,16 @@
             </template>
             <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
               <el-icon :size="20"><Document /></el-icon>
-              <span>{{ selectedMouvement.piece_jointe }}</span>
-              <el-button size="small" type="primary" link>
+              <span>{{ selectedMouvement.piece_jointe.split('/').pop() }}</span>
+              <a
+                :href="`/storage/${selectedMouvement.piece_jointe}`"
+                target="_blank"
+                rel="noopener"
+                style="color: var(--el-color-primary); display: inline-flex; align-items: center; gap: 4px; text-decoration: none; font-size: 13px;"
+              >
                 <el-icon><Download /></el-icon>
-                Télécharger
-              </el-button>
+                Consulter le bordereau
+              </a>
             </div>
           </el-alert>
         </div>
@@ -356,6 +466,55 @@
           </div>
         </template>
       </el-dialog>
+
+      <!-- Edit Mouvement Dialog -->
+      <el-dialog
+        v-model="editDialogVisible"
+        title="Modifier le mouvement"
+        width="560px"
+        :close-on-click-modal="false"
+      >
+        <el-form :model="editForm" label-position="top">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="Référence bordereau">
+                <el-input v-model="editForm.reference_bordereau" placeholder="Réf. du bordereau" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Date de dépôt">
+                <el-date-picker v-model="editForm.date_depot" type="date" value-format="YYYY-MM-DD" format="DD/MM/YYYY" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="Montant (XOF)">
+            <el-input-number v-model="editForm.montant" :min="1" :step="1000" :controls="false" style="width: 100%" />
+          </el-form-item>
+          <el-form-item label="Observations">
+            <el-input v-model="editForm.observations" type="textarea" :rows="2" placeholder="Facultatif" />
+          </el-form-item>
+          <el-form-item label="Remplacer le bordereau (PDF ou image)">
+            <el-upload
+              :auto-upload="false"
+              :on-change="handleEditFileChange"
+              :on-remove="handleEditFileRemove"
+              :file-list="editFileList"
+              accept=".pdf,.jpg,.jpeg,.png"
+              :limit="1"
+            >
+              <el-button :icon="UploadFilled">Joindre un fichier</el-button>
+            </el-upload>
+            <div v-if="editForm.piece_jointe_actuelle" style="margin-top: 6px; font-size: 13px;">
+              Actuel :
+              <a :href="`/storage/${editForm.piece_jointe_actuelle}`" target="_blank" rel="noopener" style="color: var(--el-color-primary);">consulter</a>
+            </div>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="editDialogVisible = false">Annuler</el-button>
+          <el-button type="primary" :loading="editLoading" @click="submitEdit">Enregistrer</el-button>
+        </template>
+      </el-dialog>
     </div>
   </AppLayout>
 </template>
@@ -363,7 +522,7 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   ArrowLeft,
   Search,
@@ -380,9 +539,16 @@ import {
   Coin,
   InfoFilled,
   User,
-  Document
+  Document,
+  Tickets,
+  Money,
+  Edit,
+  Delete,
+  ArrowDown,
+  UploadFilled
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { fetchApi } from '@/Composables/useFetch';
 
 // Props
 const props = defineProps({
@@ -393,6 +559,19 @@ const props = defineProps({
   mouvements: {
     type: Array,
     default: () => []
+  },
+  bordereaux: {
+    type: Array,
+    default: () => []
+  },
+  bordereaux_stats: {
+    type: Object,
+    default: () => ({
+      nombre: 0,
+      total_montant: 0,
+      total_utilise: 0,
+      total_restant: 0
+    })
   },
   stats: {
     type: Object,
@@ -417,9 +596,22 @@ const props = defineProps({
 });
 
 // State
+const activeTab = ref('mouvements');
 const loading = ref(false);
 const detailDialogVisible = ref(false);
 const selectedMouvement = ref(null);
+const editDialogVisible = ref(false);
+const editLoading = ref(false);
+const editFile = ref(null);
+const editFileList = ref([]);
+const editForm = reactive({
+  id: null,
+  reference_bordereau: '',
+  date_depot: '',
+  montant: 0,
+  observations: '',
+  piece_jointe_actuelle: null,
+});
 const filters = reactive({
   search: '',
   type: '',
@@ -507,6 +699,91 @@ const getSoldeAvant = (mouvement) => {
 const handleView = (mouvement) => {
   selectedMouvement.value = mouvement;
   detailDialogVisible.value = true;
+};
+
+const handleAction = (command, row) => {
+  if (command === 'view') handleView(row);
+  else if (command === 'edit') openEditDialog(row);
+  else if (command === 'delete') confirmDelete(row);
+};
+
+const openEditDialog = (row) => {
+  editForm.id = row.appro_id;
+  editForm.reference_bordereau = row.reference_bordereau || '';
+  editForm.date_depot = row.date_depot || row.date;
+  editForm.montant = Number(row.montant) || 0;
+  editForm.observations = row.observations || '';
+  editForm.piece_jointe_actuelle = row.piece_jointe || null;
+  editFile.value = null;
+  editFileList.value = [];
+  editDialogVisible.value = true;
+};
+
+const handleEditFileChange = (file) => {
+  editFile.value = file.raw;
+  editFileList.value = [file];
+};
+
+const handleEditFileRemove = () => {
+  editFile.value = null;
+  editFileList.value = [];
+};
+
+const submitEdit = async () => {
+  if (!editForm.reference_bordereau || !editForm.date_depot || !editForm.montant) {
+    ElMessage.warning('Référence, date et montant sont obligatoires');
+    return;
+  }
+  editLoading.value = true;
+  try {
+    const fd = new FormData();
+    fd.append('_method', 'PUT');
+    fd.append('reference_bordereau', editForm.reference_bordereau);
+    fd.append('date_depot', editForm.date_depot);
+    fd.append('montant', editForm.montant);
+    if (editForm.observations) fd.append('observations', editForm.observations);
+    if (editFile.value) fd.append('piece_jointe', editFile.value);
+
+    const response = await fetchApi(`/api/banques/approvisionnement/${editForm.id}`, {
+      method: 'POST',
+      body: fd,
+    });
+    const result = await response.json();
+    if (result.success) {
+      ElMessage.success(result.message || 'Mouvement modifié');
+      editDialogVisible.value = false;
+      router.reload();
+    } else {
+      ElMessage.error(result.message || 'Erreur lors de la modification');
+    }
+  } catch (error) {
+    ElMessage.error('Erreur de connexion');
+  } finally {
+    editLoading.value = false;
+  }
+};
+
+const confirmDelete = (row) => {
+  ElMessageBox.confirm(
+    `Supprimer ce mouvement (${row.reference || formatMontant(row.montant)}) ? Le solde du compte sera ajusté en conséquence.`,
+    'Confirmation',
+    { confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', type: 'warning' }
+  ).then(async () => {
+    try {
+      const response = await fetchApi(`/api/banques/approvisionnement/${row.appro_id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        ElMessage.success(result.message || 'Mouvement supprimé');
+        router.reload();
+      } else {
+        ElMessage.error(result.message || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      ElMessage.error('Erreur de connexion');
+    }
+  }).catch(() => {});
 };
 
 const handlePrintMouvement = () => {
@@ -617,6 +894,27 @@ export default {
 .stat-count .stat-icon {
   background-color: #f3e8ff;
   color: #9333ea;
+}
+
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.bank-tabs :deep(.el-tabs__item) {
+  font-size: 15px;
+}
+
+.reglements-detail {
+  padding: 8px 24px 16px 48px;
+  background: #f8fafc;
+}
+
+.inner-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
 }
 
 .stat-info {

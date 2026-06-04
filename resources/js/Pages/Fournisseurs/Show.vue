@@ -251,67 +251,109 @@
               v-if="factures.length > 0"
               :data="factures"
               stripe
+              border
               style="width: 100%"
               class="factures-table"
             >
-              <el-table-column prop="numero_piece" label="N° Pièce" width="140">
+              <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
                 <template #default="{ row }">
-                  <el-link type="primary" @click="handleViewFacture(row)">
-                    <strong>{{ row.numero_piece || row.numero }}</strong>
-                  </el-link>
+                  <el-dropdown trigger="click" @command="(cmd) => handleFactureAction(cmd, row)">
+                    <el-button size="small" type="primary">
+                      Actions <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="view" :icon="View">
+                          Voir
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          v-if="row.statut_paiement !== 'payee'"
+                          command="pay"
+                          :icon="Money"
+                        >
+                          Régler
+                        </el-dropdown-item>
+                        <el-dropdown-item command="edit" :icon="Edit">
+                          Modifier
+                        </el-dropdown-item>
+                        <el-dropdown-item command="etat_reglement" :icon="Document">
+                          État de Règlement
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          v-if="row.imputation_id || row.compte_id"
+                          command="imputation"
+                          :icon="CopyDocument"
+                        >
+                          Imputation Comptable
+                        </el-dropdown-item>
+                        <el-dropdown-item divided command="delete" :icon="Delete">
+                          <span style="color: #f56c6c">Supprimer</span>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="date" label="Date" width="110">
+              <el-table-column prop="numero" label="N° Pièce" width="140" sortable fixed="left" resizable>
                 <template #default="{ row }">
-                  {{ formatDate(row.date || row.date_facture) }}
+                  <span class="nowrap-cell">
+                    <el-link type="primary" @click="handleViewFacture(row)">
+                      <strong>{{ row.numero }}</strong>
+                    </el-link>
+                  </span>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120">
+              <el-table-column prop="date_facture" label="Date" width="110" sortable fixed="left" resizable>
+                <template #default="{ row }">
+                  {{ formatDate(row.date_facture) }}
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="date_facture_bc" label="Date Fact/B.C." width="120" sortable resizable>
                 <template #default="{ row }">
                   {{ row.date_facture_bc ? formatDate(row.date_facture_bc) : '-' }}
                 </template>
               </el-table-column>
 
-              <el-table-column prop="reference_facture" label="Référence" width="130" />
+              <el-table-column prop="reference_facture" label="Réf. Fact/B.C." width="140" sortable resizable />
 
-              <el-table-column prop="libelle" label="Libellé" min-width="200" />
-
-              <el-table-column prop="montant_ttc" label="Montant TTC" width="140" align="right">
+              <el-table-column prop="libelle" label="Libellé" min-width="180" sortable resizable>
                 <template #default="{ row }">
-                  <strong>{{ formatMontant(row.montant_ttc || row.montant_net) }}</strong>
+                  {{ row.libelle || '-' }}
                 </template>
               </el-table-column>
 
-              <el-table-column prop="montant_paye" label="Payé" width="130" align="right">
+              <el-table-column prop="montant_ttc" label="Montant TTC" width="140" align="right" sortable resizable>
                 <template #default="{ row }">
-                  <span class="text-success">{{ formatMontant(row.montant_paye) }}</span>
+                  <span class="nowrap-cell"><strong class="montant-ttc">{{ formatMontant(row.montant_ttc) }}</strong></span>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="reste_a_payer" label="Reste" width="130" align="right">
+              <el-table-column prop="montant_net" label="Net à payer" width="140" align="right" sortable resizable>
                 <template #default="{ row }">
-                  <span :class="{ 'text-danger': (row.reste_a_payer || 0) > 0 }">
-                    {{ formatMontant(row.reste_a_payer || (row.montant_ttc - row.montant_paye)) }}
+                  <span class="nowrap-cell"><strong>{{ formatMontant(row.montant_net) }}</strong></span>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="montant_paye" label="Payé" width="130" align="right" sortable resizable>
+                <template #default="{ row }">
+                  <span class="nowrap-cell">
+                    <el-tag :type="getPaymentTagType(row)" size="small">
+                      {{ formatMontant(row.montant_paye) }}
+                    </el-tag>
                   </span>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="statut" label="Statut" width="140" align="center">
+              <el-table-column prop="statut_paiement" label="Statut" width="130" align="center" sortable resizable>
                 <template #default="{ row }">
-                  <el-tag :type="getStatutType(row.statut || row.statut_paiement)" size="small">
-                    {{ getStatutLabel(row.statut || row.statut_paiement) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Actions" width="120" align="center" fixed="right">
-                <template #default="{ row }">
-                  <el-button-group size="small">
-                    <el-button :icon="View" @click="handleViewFacture(row)" />
-                    <el-button :icon="Edit" @click="handleEditFacture(row)" />
-                  </el-button-group>
+                  <span class="nowrap-cell">
+                    <el-tag :type="getStatutType(row.statut_paiement)" size="small">
+                      {{ getStatutLabel(row.statut_paiement) }}
+                    </el-tag>
+                  </span>
                 </template>
               </el-table-column>
             </el-table>
@@ -337,98 +379,147 @@
               </div>
             </div>
 
-            <!-- Table des règlements -->
+            <!-- Table des règlements (groupés par facture, comme le tableau principal) -->
             <el-table
               v-if="reglements.length > 0"
-              :data="reglements"
+              :data="groupedReglements"
               stripe
+              border
               style="width: 100%"
+              row-key="key"
               class="reglements-table"
             >
-              <el-table-column prop="date_reglement" label="Date" width="120">
+              <el-table-column type="expand" width="50">
                 <template #default="{ row }">
-                  {{ formatDate(row.date_reglement) }}
+                  <div class="expand-reglements">
+                    <el-table :data="row.reglements" border size="small" class="inner-reglements-table">
+                      <el-table-column label="Date" width="110">
+                        <template #default="{ row: reg }">{{ formatDate(reg.date_reglement) }}</template>
+                      </el-table-column>
+                      <el-table-column label="Mode" width="120">
+                        <template #default="{ row: reg }">
+                          <el-tag :type="getModeTagType(reg.mode_paiement)" size="small">
+                            {{ getModeLabel(reg.mode_paiement) }}
+                          </el-tag>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Référence" width="140">
+                        <template #default="{ row: reg }">
+                          <span v-if="reg.reference">{{ reg.reference }}</span>
+                          <span v-else class="text-muted">-</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Bénéficiaire" min-width="160">
+                        <template #default="{ row: reg }">
+                          <span v-if="reg.beneficiaire">{{ reg.beneficiaire }}</span>
+                          <span v-else class="text-muted">-</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Compte bancaire" width="170">
+                        <template #default="{ row: reg }">
+                          <div v-if="reg.compte_bancaire" class="compte-cell">
+                            <el-icon><CreditCard /></el-icon>
+                            <span>{{ reg.compte_bancaire.banque }}</span>
+                          </div>
+                          <span v-else class="text-muted">-</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Saisi par" width="140">
+                        <template #default="{ row: reg }">
+                          <div v-if="reg.user" class="user-cell">
+                            <el-icon><User /></el-icon>
+                            <span>{{ reg.user.name }}</span>
+                          </div>
+                          <span v-else class="text-muted">-</span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Montant" width="140" align="right">
+                        <template #default="{ row: reg }">
+                          <strong class="montant-reglement">{{ formatMontant(reg.montant) }}</strong>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="Actions" width="170" align="center" fixed="right">
+                        <template #default="{ row: reg }">
+                          <el-button-group>
+                            <el-button :icon="View" size="small" type="primary" @click="handleViewReglement(reg)">
+                              Détails
+                            </el-button>
+                            <el-dropdown @command="(cmd) => handleReglementActions(cmd, reg)">
+                              <el-button :icon="More" size="small" />
+                              <template #dropdown>
+                                <el-dropdown-menu>
+                                  <el-dropdown-item command="mandat" :icon="DocumentCopy">
+                                    Bordereau de règlement
+                                  </el-dropdown-item>
+                                  <el-dropdown-item
+                                    v-if="reg.mode_paiement !== 'especes'"
+                                    command="imputation"
+                                    :icon="DocumentCopy"
+                                  >
+                                    Imputation comptable
+                                  </el-dropdown-item>
+                                  <el-dropdown-item command="edit" :icon="Edit">
+                                    Modifier
+                                  </el-dropdown-item>
+                                  <el-dropdown-item divided command="delete" :icon="Delete">
+                                    <span style="color: #f56c6c">Supprimer</span>
+                                  </el-dropdown-item>
+                                </el-dropdown-menu>
+                              </template>
+                            </el-dropdown>
+                          </el-button-group>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="numero_reglement" label="N° Règlement" width="150">
+              <el-table-column label="N° Pièce" width="140" prop="facture">
                 <template #default="{ row }">
-                  <strong>{{ row.numero_reglement }}</strong>
+                  <span class="nowrap-cell">
+                    <el-link type="primary" @click="handleViewFacture(row.facture)">
+                      <strong>{{ row.facture.numero }}</strong>
+                    </el-link>
+                  </span>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="facture" label="Facture" width="140">
+              <el-table-column label="Date facture" width="120">
+                <template #default="{ row }">{{ formatDate(row.facture.date) }}</template>
+              </el-table-column>
+
+              <el-table-column label="Montant TTC" width="150" align="right">
                 <template #default="{ row }">
-                  <el-link v-if="row.facture" type="primary" @click="handleViewFacture(row.facture)">
-                    {{ row.facture.numero_piece || row.facture.numero }}
-                  </el-link>
-                  <span v-else class="text-muted">-</span>
+                  <span class="nowrap-cell">{{ formatMontant(row.facture.montant_ttc) }}</span>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="mode_paiement" label="Mode" width="130">
+              <el-table-column label="Total réglé" width="150" align="right">
                 <template #default="{ row }">
-                  <el-tag :type="getModeTagType(row.mode_paiement)" size="small">
-                    {{ row.mode_paiement_libelle || getModeLabel(row.mode_paiement) }}
-                  </el-tag>
+                  <span class="nowrap-cell"><strong class="montant-reglement">{{ formatMontant(row.total_montant_regle) }}</strong></span>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="reference" label="Référence" width="140">
+              <el-table-column label="Reste à payer" width="150" align="right">
                 <template #default="{ row }">
-                  {{ row.reference || '-' }}
+                  <span class="nowrap-cell" :class="row.facture.reste_a_payer > 0 ? 'reste-due' : 'reste-paid'">
+                    <strong>{{ formatMontant(row.facture.reste_a_payer) }}</strong>
+                  </span>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="compte_bancaire" label="Banque" width="140">
+              <el-table-column label="Nb règlements" width="130" align="center">
                 <template #default="{ row }">
-                  <span v-if="row.banque">{{ row.banque }}</span>
-                  <span v-else class="text-muted">-</span>
+                  <el-tag size="small" type="info">{{ row.count }}</el-tag>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="montant" label="Montant" width="140" align="right">
+              <el-table-column label="Actions" width="120" align="center" fixed="right">
                 <template #default="{ row }">
-                  <strong class="text-success">{{ formatMontant(row.montant) }}</strong>
-                </template>
-              </el-table-column>
-
-              <el-table-column prop="statut" label="Statut" width="100" align="center">
-                <template #default="{ row }">
-                  <el-tag :type="getReglementStatutType(row.statut)" size="small">
-                    {{ row.statut_libelle || row.statut }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="Actions" width="100" align="center" fixed="right">
-                <template #default="{ row }">
-                  <el-button-group size="small">
-                    <el-button :icon="View" @click="handleViewReglement(row)" />
-                    <el-dropdown @command="(cmd) => handleReglementActions(cmd, row)">
-                      <el-button :icon="More" size="small" />
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item command="mandat" :icon="Printer">
-                            Bordereau de règlement
-                          </el-dropdown-item>
-                          <el-dropdown-item
-                            v-if="row.mode_paiement !== 'especes'"
-                            command="imputation"
-                            :icon="Notebook"
-                          >
-                            Fiche d'imputation
-                          </el-dropdown-item>
-                          <el-dropdown-item command="facture" divided :icon="Document">
-                            Voir la facture
-                          </el-dropdown-item>
-                          <el-dropdown-item v-if="row.est_modifiable" divided command="annuler" :icon="Delete">
-                            <span style="color: #f56c6c">Annuler</span>
-                          </el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
-                  </el-button-group>
+                  <el-button :icon="Document" size="small" plain @click="handleViewFacture(row.facture)">
+                    Facture
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -466,7 +557,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -490,7 +581,10 @@ import {
   CreditCard,
   DocumentCopy,
   Printer,
-  Notebook
+  Notebook,
+  ArrowDown,
+  CopyDocument,
+  User
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
@@ -682,6 +776,56 @@ const handleEditFacture = (facture) => {
   showFactureModal.value = true;
 };
 
+const handlePayFacture = (facture) => {
+  router.visit(`/factures-fournisseurs/${facture.id}/regler`);
+};
+
+const getPaymentTagType = (row) => {
+  if (row.montant_paye === 0) return 'info';
+  if (row.montant_paye >= row.montant_ttc) return 'success';
+  return 'warning';
+};
+
+const handleFactureAction = (command, facture) => {
+  switch (command) {
+    case 'view':
+      handleViewFacture(facture);
+      break;
+    case 'pay':
+      handlePayFacture(facture);
+      break;
+    case 'edit':
+      handleEditFacture(facture);
+      break;
+    case 'etat_reglement':
+      router.visit(`/factures-fournisseurs/${facture.id}`);
+      break;
+    case 'imputation':
+      router.visit(`/factures-fournisseurs/${facture.id}?show_imputation=1`);
+      break;
+    case 'delete':
+      ElMessageBox.confirm(
+        'Êtes-vous sûr de vouloir supprimer cette facture ?',
+        'Confirmation',
+        { confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', type: 'warning' }
+      ).then(async () => {
+        try {
+          const response = await fetchApi(`/api/factures-fournisseurs/${facture.id}`, { method: 'DELETE' });
+          const result = await response.json();
+          if (result.success) {
+            ElMessage.success('Facture supprimée avec succès');
+            router.reload({ only: ['factures', 'stats'] });
+          } else {
+            ElMessage.error(result.message || 'Erreur lors de la suppression');
+          }
+        } catch (error) {
+          ElMessage.error('Erreur de connexion');
+        }
+      }).catch(() => {});
+      break;
+  }
+};
+
 const handleFournisseurSuccess = async (fournisseurData) => {
   serverErrors.value = null;
   modalLoading.value = true;
@@ -751,9 +895,38 @@ const getReglementStatutType = (statut) => {
   return types[statut] || 'info';
 };
 
+// Règlements groupés par facture (même structure que le tableau principal)
+const groupedReglements = computed(() => {
+  const map = new Map();
+  for (const r of props.reglements || []) {
+    const factureId = r.facture?.id ?? `${r.facture?.numero || 'unknown'}`;
+    if (!map.has(factureId)) {
+      map.set(factureId, {
+        key: `f-${factureId}`,
+        facture: {
+          id: r.facture?.id,
+          numero: r.facture?.numero || r.facture?.numero_piece || '-',
+          date: r.facture?.date || r.facture?.date_facture || null,
+          montant_ttc: parseFloat(r.facture?.montant_ttc) || 0,
+          reste_a_payer: parseFloat(r.facture?.reste_a_payer) || 0,
+        },
+        reglements: [],
+        total_montant_regle: 0,
+        count: 0,
+      });
+    }
+    const grp = map.get(factureId);
+    grp.reglements.push(r);
+    grp.total_montant_regle += parseFloat(r.montant) || 0;
+    grp.count += 1;
+  }
+  return Array.from(map.values());
+});
+
 const handleViewReglement = (reglement) => {
-  ElMessage.info(`Règlement ${reglement.numero_reglement}`);
-  // Peut ouvrir un modal avec les détails si nécessaire
+  if (reglement.facture?.id) {
+    router.visit(`/factures-fournisseurs/${reglement.facture.id}`);
+  }
 };
 
 const handleReglementActions = async (command, reglement) => {
@@ -764,29 +937,20 @@ const handleReglementActions = async (command, reglement) => {
     case 'imputation':
       openPdf(`/reglements-fournisseurs/${reglement.id}/imputation`, 'Imputation comptable');
       break;
-    case 'facture':
-      if (reglement.facture) {
-        router.visit(`/factures-fournisseurs/${reglement.facture.id}`);
+    case 'edit':
+      if (reglement.facture?.id) {
+        router.visit(`/factures-fournisseurs/${reglement.facture.id}/regler?edit=${reglement.id}`);
       }
       break;
-    case 'annuler':
+    case 'delete':
       try {
         await ElMessageBox.confirm(
           'Êtes-vous sûr de vouloir annuler ce règlement ? Le montant sera réintégré sur la facture.',
           'Confirmation',
-          {
-            confirmButtonText: 'Annuler le règlement',
-            cancelButtonText: 'Non, garder',
-            type: 'warning'
-          }
+          { confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', type: 'warning' }
         );
-
-        const response = await fetchApi(`/api/reglements-fournisseurs/${reglement.id}`, {
-          method: 'DELETE'
-        });
-
+        const response = await fetchApi(`/api/reglements-fournisseurs/${reglement.id}`, { method: 'DELETE' });
         const result = await response.json();
-
         if (result.success) {
           ElMessage.success(result.message || 'Règlement annulé avec succès');
           router.reload({ only: ['reglements', 'statsReglements', 'factures', 'stats'] });
@@ -795,7 +959,6 @@ const handleReglementActions = async (command, reglement) => {
         }
       } catch (error) {
         if (error !== 'cancel') {
-          console.error('Erreur:', error);
           ElMessage.error('Erreur de connexion au serveur');
         }
       }
@@ -1036,6 +1199,34 @@ const handleFactureSuccess = async (factureData) => {
 .reglements-table {
   border-radius: 8px;
   overflow: hidden;
+}
+
+.nowrap-cell {
+  white-space: nowrap;
+}
+
+.expand-reglements {
+  padding: 12px 16px;
+  background: #fafafa;
+}
+
+.compte-cell,
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.montant-reglement {
+  color: var(--el-color-primary);
+}
+
+.reste-due {
+  color: #f56c6c;
+}
+
+.reste-paid {
+  color: #67c23a;
 }
 
 /* Reglements Tab */

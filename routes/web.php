@@ -130,6 +130,8 @@ Route::prefix('reglements-fournisseurs')->middleware('permission:reglements-four
 // Clients Routes
 Route::prefix('clients')->middleware('permission:clients.voir')->group(function () {
     Route::get('/', [App\Http\Controllers\ClientController::class, 'index'])->name('clients.index');
+    Route::get('/{id}', [App\Http\Controllers\ClientController::class, 'show'])
+        ->where('id', '[0-9]+')->name('clients.show');
 });
 
 // API Clients
@@ -146,6 +148,8 @@ Route::prefix('factures-clients')->middleware('permission:factures-clients.voir'
         ->where('id', '[0-9]+')->name('factures-clients.show');
     Route::get('/{id}/regler', [FactureClientController::class, 'reglementView'])
         ->where('id', '[0-9]+')->name('factures-clients.regler');
+    Route::get('/{id}/etat-reglement-pdf', [FactureClientController::class, 'etatReglementPdf'])
+        ->where('id', '[0-9]+')->name('factures-clients.etat-reglement-pdf');
 });
 
 // API Factures Clients
@@ -153,6 +157,8 @@ Route::prefix('api/factures-clients')->group(function () {
     Route::post('/', [FactureClientController::class, 'store'])->middleware('permission:factures-clients.creer')->name('api.factures-clients.store');
     Route::put('/{id}', [FactureClientController::class, 'update'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.update');
     Route::post('/{id}/solder', [FactureClientController::class, 'solder'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.solder');
+    Route::get('/{id}/etat-reglement-data', [FactureClientController::class, 'etatReglementData'])->middleware('permission:factures-clients.voir')
+        ->where('id', '[0-9]+')->name('api.factures-clients.etat-reglement-data');
     Route::delete('/{id}', [FactureClientController::class, 'destroy'])->middleware('permission:factures-clients.supprimer')->name('api.factures-clients.destroy');
 });
 
@@ -212,9 +218,12 @@ Route::prefix('api')->group(function () {
 
     Route::post('/comptes-bancaires', [BanqueController::class, 'storeCompte'])->middleware('permission:banques.creer')->name('api.comptes-bancaires.store');
     Route::put('/comptes-bancaires/{compte}', [BanqueController::class, 'updateCompte'])->middleware('permission:banques.modifier')->name('api.comptes-bancaires.update');
+    Route::delete('/comptes-bancaires/{compte}', [BanqueController::class, 'destroyCompte'])->middleware('permission:banques.supprimer')->name('api.comptes-bancaires.destroy');
     Route::get('/comptes-bancaires/liste', [BanqueController::class, 'listeComptes'])->middleware('permission:banques.voir')->name('api.comptes-bancaires.liste');
 
     Route::post('/banques/approvisionnement', [BanqueController::class, 'storeApprovisionnement'])->middleware('permission:banques.modifier')->name('api.banques.approvisionnement');
+    Route::put('/banques/approvisionnement/{id}', [BanqueController::class, 'updateApprovisionnement'])->middleware('permission:banques.modifier')->where('id', '[0-9]+')->name('api.banques.approvisionnement.update');
+    Route::delete('/banques/approvisionnement/{id}', [BanqueController::class, 'destroyApprovisionnement'])->middleware('permission:banques.supprimer')->where('id', '[0-9]+')->name('api.banques.approvisionnement.destroy');
 });
 
 // Rapports Routes

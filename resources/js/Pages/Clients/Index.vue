@@ -17,7 +17,7 @@
         <el-col :xs="24" :sm="8">
           <el-card shadow="hover">
             <div class="stat-card">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+              <div class="stat-icon" style="background: #dbeafe; color: #2563eb;">
                 <el-icon :size="24"><User /></el-icon>
               </div>
               <div class="stat-content">
@@ -235,7 +235,7 @@ const handleCreate = () => {
 const handleAction = (command, client) => {
   switch (command) {
     case 'factures':
-      router.visit(`/factures-clients?client_id=${client.id}`);
+      router.visit(`/clients/${client.id}`);
       break;
     case 'edit':
       handleEdit(client);

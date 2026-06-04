@@ -18,7 +18,7 @@
         <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+              <div class="stat-icon" style="background: #dbeafe; color: #2563eb;">
                 <el-icon :size="24"><User /></el-icon>
               </div>
               <div class="stat-content">
@@ -31,7 +31,7 @@
         <!-- <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%)">
+              <div class="stat-icon" style="background: #d1fae5; color: #059669;">
                 <el-icon :size="24"><CircleCheck /></el-icon>
               </div>
               <div class="stat-content">
@@ -147,6 +147,7 @@
               <el-text v-else type="info" size="small">-</el-text>
             </template>
           </el-table-column>
+          <el-table-column prop="ifu" label="IFU" min-width="150" show-overflow-tooltip sortable="custom" resizable />
 
           <el-table-column prop="compte_comptable" label="Compte Comptable" min-width="200" show-overflow-tooltip sortable="custom" resizable>
             <template #default="{ row }">

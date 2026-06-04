@@ -133,7 +133,7 @@
             <div class="bank-list">
               <div v-for="bank in banques" :key="bank.id" class="bank-item">
                 <div class="bank-info">
-                  <el-icon :size="24" color="#409EFF"><CreditCard /></el-icon>
+                  <el-icon :size="24" color="var(--el-color-primary)"><CreditCard /></el-icon>
                   <div>
                     <p class="bank-name">{{ bank.name }}</p>
                     <p class="bank-account">{{ bank.account }}</p>
@@ -547,7 +547,7 @@ const repartitionChartOption = computed(() => ({
 
 .total-amount {
   font-weight: 700;
-  color: #409EFF;
+  color: var(--el-color-primary);
   font-size: 18px;
 }
 

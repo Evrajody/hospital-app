@@ -248,15 +248,23 @@ class BanqueController extends Controller
         // Approvisionnements (entrées)
         $entrees = ApprovisionnementBanque::where('compte_bancaire_id', $id)
             ->with('createur')
+            ->withCount('reglementsClients')
             ->get()
             ->map(fn($a) => [
                 'id' => 'appro-' . $a->id,
+                'appro_id' => $a->id,
                 'date' => $a->date_depot->format('Y-m-d'),
+                'date_depot' => $a->date_depot->format('Y-m-d'),
                 'type' => 'entree',
-                'reference' => null,
+                'reference' => $a->reference_bordereau,
+                'reference_bordereau' => $a->reference_bordereau,
                 'description' => $a->observations ?: 'Approvisionnement',
+                'observations' => $a->observations,
                 'montant' => (float) $a->montant,
                 'origine' => 'approvisionnement',
+                'piece_jointe' => $a->piece_jointe,
+                'nb_reglements_clients' => $a->reglements_clients_count,
+                'editable' => true,
                 'user' => $a->createur ? ['name' => $a->createur->name] : null,
                 'created_at' => $a->created_at,
             ]);
@@ -274,6 +282,8 @@ class BanqueController extends Controller
                 'description' => 'Règlement ' . ($r->fournisseur?->nom ?? ''),
                 'montant' => (float) $r->montant,
                 'origine' => 'reglement_fournisseur',
+                'piece_jointe' => null,
+                'editable' => false,
                 'user' => $r->createur ? ['name' => $r->createur->name] : null,
                 'created_at' => $r->created_at,
             ]);
@@ -304,6 +314,48 @@ class BanqueController extends Controller
         $total = count($mouvementsArray);
         $paginatedItems = array_slice($mouvementsArray, ($page - 1) * $perPage, $perPage);
 
+        // Bordereaux (approvisionnements) avec détail d'utilisation par les règlements clients
+        $bordereaux = ApprovisionnementBanque::where('compte_bancaire_id', $id)
+            ->whereNotNull('reference_bordereau')
+            ->with([
+                'reglementsClients' => fn($q) => $q->with('facture')->orderBy('date_reglement'),
+                'createur',
+            ])
+            ->orderBy('date_depot', 'desc')
+            ->get()
+            ->map(function ($a) {
+                $montant = (float) $a->montant;
+                $utilise = (float) $a->reglementsClients->sum('montant');
+                return [
+                    'id' => $a->id,
+                    'reference_bordereau' => $a->reference_bordereau,
+                    'date_depot' => $a->date_depot?->format('Y-m-d'),
+                    'montant' => $montant,
+                    'montant_utilise' => $utilise,
+                    'montant_restant' => $montant - $utilise,
+                    'nb_reglements' => $a->reglementsClients->count(),
+                    'observations' => $a->observations,
+                    'user' => $a->createur ? ['name' => $a->createur->name] : null,
+                    'reglements' => $a->reglementsClients->map(fn($r) => [
+                        'id' => $r->id,
+                        'date_reglement' => $r->date_reglement?->format('Y-m-d'),
+                        'facture_reference' => $r->facture_reference ?: $r->facture?->reference,
+                        'client_nom' => $r->client_nom ?: $r->client?->nom,
+                        'type_reglement_libelle' => $r->type_reglement_libelle,
+                        'institution' => $r->institution,
+                        'reference_cheque' => $r->reference_cheque,
+                        'montant' => (float) $r->montant,
+                    ])->values(),
+                ];
+            });
+
+        $bordereauxStats = [
+            'nombre' => $bordereaux->count(),
+            'total_montant' => $bordereaux->sum('montant'),
+            'total_utilise' => $bordereaux->sum('montant_utilise'),
+            'total_restant' => $bordereaux->sum('montant_restant'),
+        ];
+
         return Inertia::render('Banques/Mouvements', [
             'banque' => [
                 'id' => $compte->id,
@@ -315,6 +367,8 @@ class BanqueController extends Controller
                 'compte_comptable' => $compte->compteOhada?->numero_compte,
             ],
             'mouvements' => $paginatedItems,
+            'bordereaux' => $bordereaux,
+            'bordereaux_stats' => $bordereauxStats,
             'stats' => [
                 'total_entrees' => $entrees->sum('montant'),
                 'total_sorties' => $sorties->sum('montant'),
@@ -359,20 +413,28 @@ class BanqueController extends Controller
      */
     public function destroyBanque(Banque $banque): JsonResponse
     {
+        $comptes = $banque->comptes;
+        $compteIds = $comptes->pluck('id');
+        $numeros = $comptes->pluck('numero_compte');
+
+        // Pas de suppression en cascade : on bloque s'il existe des mouvements.
+        $nbEntrees = ApprovisionnementBanque::whereIn('compte_bancaire_id', $compteIds)->count();
+        $nbSorties = \App\Models\ReglementFournisseur::whereIn('numero_compte_bancaire', $numeros)
+            ->where('statut', '!=', \App\Models\ReglementFournisseur::STATUT_ANNULE)
+            ->count();
+        $nbMouvements = $nbEntrees + $nbSorties;
+        if ($nbMouvements > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Impossible de supprimer cette banque car elle a {$nbMouvements} mouvement(s). Veuillez d'abord supprimer les mouvements (approvisionnements / règlements) associés.",
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
 
-            // Supprimer les approvisionnements des comptes de cette banque
-            $comptes = $banque->comptes;
-            foreach ($comptes as $compte) {
-                ApprovisionnementBanque::where('compte_bancaire_id', $compte->id)->delete();
-            }
-
-            // Supprimer les comptes bancaires de cette banque
-            $banque->comptes()->delete();
-
-            // Supprimer la banque
             $nom = $banque->nom;
+            $banque->comptes()->delete();
             $banque->delete();
 
             DB::commit();
@@ -381,7 +443,7 @@ class BanqueController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Banque et ses comptes supprimés avec succès',
+                'message' => 'Banque supprimée avec succès',
             ]);
 
         } catch (\Exception $e) {
@@ -391,6 +453,140 @@ class BanqueController extends Controller
                 'success' => false,
                 'message' => 'Erreur lors de la suppression de la banque',
                 'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Supprimer un compte bancaire (API) — bloqué s'il a des mouvements.
+     */
+    public function destroyCompte(CompteBancaire $compte): JsonResponse
+    {
+        $nbEntrees = $compte->approvisionnements()->count();
+        $nbSorties = \App\Models\ReglementFournisseur::where('numero_compte_bancaire', $compte->numero_compte)
+            ->where('statut', '!=', \App\Models\ReglementFournisseur::STATUT_ANNULE)
+            ->count();
+        $nbMouvements = $nbEntrees + $nbSorties;
+        if ($nbMouvements > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Impossible de supprimer ce compte car il a {$nbMouvements} mouvement(s). Veuillez d'abord supprimer les mouvements associés.",
+            ], 422);
+        }
+
+        $compte->load('banque');
+        $libelle = ($compte->banque?->nom ?? '') . ' - ' . $compte->numero_compte;
+        $compte->delete();
+
+        ActivityLog::log('delete', 'compte_bancaire', "Suppression du compte bancaire {$libelle}", null, ['numero' => $compte->numero_compte]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Compte bancaire supprimé avec succès',
+        ]);
+    }
+
+    /**
+     * Modifier un approvisionnement / mouvement d'entrée (API).
+     */
+    public function updateApprovisionnement(Request $request, int $id): JsonResponse
+    {
+        $appro = ApprovisionnementBanque::with('compteBancaire')->findOrFail($id);
+
+        $validated = $request->validate([
+            'reference_bordereau' => 'required|string|max:100',
+            'date_depot' => 'required|date',
+            'montant' => 'required|numeric|min:1',
+            'observations' => 'nullable|string',
+            'piece_jointe' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        // Le montant ne peut pas descendre sous ce qui est déjà imputé par des règlements clients.
+        $montantUtilise = (float) $appro->reglementsClients()->sum('montant');
+        if ((float) $validated['montant'] < $montantUtilise) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le montant ne peut être inférieur au montant déjà imputé sur ce bordereau (' . number_format($montantUtilise, 0, ',', ' ') . ' XOF)',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $compte = $appro->compteBancaire;
+            $delta = (float) $validated['montant'] - (float) $appro->montant;
+
+            $appro->reference_bordereau = $validated['reference_bordereau'];
+            $appro->date_depot = $validated['date_depot'];
+            $appro->montant = $validated['montant'];
+            $appro->observations = $validated['observations'] ?? null;
+            if ($request->hasFile('piece_jointe')) {
+                $appro->piece_jointe = $request->file('piece_jointe')->store('approvisionnements', 'public');
+            }
+            $appro->save();
+
+            // Répercuter la variation de montant sur le solde du compte.
+            if ($compte && abs($delta) > 0) {
+                $compte->increment('solde', $delta);
+            }
+
+            DB::commit();
+
+            ActivityLog::log('update', 'compte_bancaire', "Modification de l'approvisionnement {$appro->reference_bordereau}", $appro, ['montant' => (float) $appro->montant]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Mouvement modifié avec succès',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la modification: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Supprimer un approvisionnement / mouvement d'entrée (API) — bloqué si des règlements y sont imputés.
+     */
+    public function destroyApprovisionnement(int $id): JsonResponse
+    {
+        $appro = ApprovisionnementBanque::with('compteBancaire')->findOrFail($id);
+
+        $nbReglements = $appro->reglementsClients()->count();
+        if ($nbReglements > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Impossible de supprimer ce mouvement car {$nbReglements} règlement(s) client(s) y sont imputés. Veuillez d'abord supprimer ces règlements.",
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $compte = $appro->compteBancaire;
+            $montant = (float) $appro->montant;
+            $reference = $appro->reference_bordereau;
+
+            if ($compte) {
+                $compte->decrement('solde', $montant);
+            }
+            $appro->delete();
+
+            DB::commit();
+
+            ActivityLog::log('delete', 'compte_bancaire', "Suppression de l'approvisionnement {$reference}", null, ['montant' => $montant]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Mouvement supprimé avec succès',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression: ' . $e->getMessage(),
             ], 500);
         }
     }

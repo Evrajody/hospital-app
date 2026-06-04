@@ -137,7 +137,7 @@ const exportExcel = () => {
 .results-section { padding: 0 4px; }
 .empty-state { padding: 40px 0; }
 .summary-cards { display: flex; gap: 16px; margin-bottom: 20px; }
-.summary-card { flex: 1; background: #fafafa; border: 1px solid #e0e0e0; border-left: 4px solid #409eff; padding: 14px 16px; }
+.summary-card { flex: 1; background: #fafafa; border: 1px solid #e0e0e0; border-left: 4px solid var(--el-color-primary); padding: 14px 16px; }
 .summary-card.danger { border-left-color: #f56c6c; }
 .summary-card .label { font-size: 12px; color: #999; margin-bottom: 4px; }
 .summary-card .value { font-size: 18px; font-weight: bold; color: #333; }

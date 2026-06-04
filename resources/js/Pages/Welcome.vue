@@ -4,7 +4,7 @@
     <nav class="navbar">
       <div class="nav-content">
         <div class="logo">
-          <el-icon :size="32" color="#409EFF"><OfficeBuilding /></el-icon>
+          <el-icon :size="32" color="var(--el-color-primary)"><OfficeBuilding /></el-icon>
           <span>Hôpital de zone de Ménontin</span>
         </div>
         <el-button type="primary" @click="navigateToLogin">
@@ -39,7 +39,7 @@
           <!-- Feature 1 -->
           <div class="feature-card">
             <div class="feature-icon">
-              <el-icon :size="40" color="#409EFF"><Document /></el-icon>
+              <el-icon :size="40" color="var(--el-color-primary)"><Document /></el-icon>
             </div>
             <h3>Factures Fournisseurs</h3>
             <p>Gestion complète des factures, règlements multiples et imputations comptables selon les normes OHADA</p>
@@ -84,7 +84,7 @@
           <!-- Feature 6 -->
           <div class="feature-card">
             <div class="feature-icon">
-              <el-icon :size="40" color="#409EFF"><Lock /></el-icon>
+              <el-icon :size="40" color="var(--el-color-primary)"><Lock /></el-icon>
             </div>
             <h3>Sécurité & Permissions</h3>
             <p>Gestion fine des rôles et permissions pour sécuriser l'accès aux données sensibles</p>
@@ -227,7 +227,7 @@ const navigateToLogin = () => {
 .feature-card:hover {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   transform: translateY(-4px);
-  border-color: #409EFF;
+  border-color: var(--el-color-primary);
 }
 
 .feature-icon {

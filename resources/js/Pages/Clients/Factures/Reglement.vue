@@ -226,6 +226,7 @@
                 <el-form-item>
                   <el-radio-group v-model="form.source_paiement" @change="handleSourceChange">
                     <el-radio-button label="direct">Paiement direct (chèque / espèces)</el-radio-button>
+                    <el-radio-button label="virement">Virement bancaire</el-radio-button>
                     <el-radio-button label="avance" :disabled="avancesDisponibles.length === 0">
                       Imputer sur une avance
                       <span v-if="avancesDisponibles.length === 0" style="font-size: 11px; opacity: 0.7;">(aucune dispo)</span>
@@ -275,6 +276,39 @@
                       &nbsp;|&nbsp; Solde restant : <strong style="color: #059669">{{ formatMontant(selectedAvance.montant_restant) }}</strong>
                     </div>
                   </el-alert>
+                </template>
+
+                <!-- BLOC VIREMENT BANCAIRE -->
+                <template v-else-if="form.source_paiement === 'virement'">
+                  <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="Banque">
+                        <el-select
+                          v-model="form.banque_depot_id"
+                          filterable
+                          placeholder="Sélectionner une banque"
+                          style="width: 100%"
+                          clearable
+                          @change="handleBanqueChange"
+                        >
+                          <el-option
+                            v-for="banque in banques"
+                            :key="banque.id"
+                            :label="banque.nom"
+                            :value="banque.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="Référence virement">
+                        <el-input
+                          v-model="form.reference_cheque"
+                          placeholder="N° / référence du virement"
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
                 </template>
 
                 <!-- BLOC PAIEMENT DIRECT (chèque/espèces) -->
@@ -345,7 +379,7 @@
                           <el-option
                             v-for="appro in filteredApprovisionnements"
                             :key="appro.id"
-                            :label="appro.reference_bordereau"
+                            :label="`${appro.reference_bordereau} — Solde ${formatMontant(appro.montant_restant)}`"
                             :value="appro.id"
                           />
                         </el-select>
@@ -353,22 +387,25 @@
                     </el-col>
                   </el-row>
 
-                  <el-row :gutter="20">
-                    <el-col :span="12">
-                      <el-form-item label="Bordereau de dépôt (PDF ou image)">
-                        <el-upload
-                          :auto-upload="false"
-                          :on-change="handleBordereauChange"
-                          :on-remove="handleBordereauRemove"
-                          :file-list="bordereauFileList"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          :limit="1"
-                        >
-                          <el-button :icon="UploadFilled">Joindre un bordereau</el-button>
-                        </el-upload>
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
+                  <!-- Traçage du solde du bordereau -->
+                  <el-alert
+                    v-if="selectedBordereau"
+                    :type="bordereauSoldeApres < 0 ? 'error' : 'info'"
+                    :closable="false"
+                    style="margin-bottom: 16px"
+                  >
+                    <div>Bordereau <strong>{{ selectedBordereau.reference_bordereau }}</strong></div>
+                    <div>
+                      Montant : <strong>{{ formatMontant(selectedBordereau.montant) }}</strong>
+                      &nbsp;|&nbsp; Déjà utilisé : <strong>{{ formatMontant(selectedBordereau.montant_utilise) }}</strong>
+                      &nbsp;|&nbsp; Solde restant : <strong style="color: #059669">{{ formatMontant(selectedBordereau.montant_restant) }}</strong>
+                    </div>
+                    <div v-if="form.montant > 0">
+                      Solde après ce règlement :
+                      <strong :style="{ color: bordereauSoldeApres < 0 ? '#f56c6c' : '#059669' }">{{ formatMontant(bordereauSoldeApres) }}</strong>
+                      <span v-if="bordereauSoldeApres < 0" style="color: #f56c6c;"> — dépasse le solde du bordereau !</span>
+                    </div>
+                  </el-alert>
                 </template>
               </template>
 
@@ -635,19 +672,6 @@ const form = ref({
   observations: '',
 });
 
-const bordereauFile = ref(null);
-const bordereauFileList = ref([]);
-
-const handleBordereauChange = (file) => {
-  bordereauFile.value = file.raw;
-  bordereauFileList.value = [file];
-};
-
-const handleBordereauRemove = () => {
-  bordereauFile.value = null;
-  bordereauFileList.value = [];
-};
-
 const rules = {
   date_reglement: [
     { required: true, message: 'La date est obligatoire', trigger: 'change' }
@@ -669,12 +693,25 @@ const newReste = computed(() => {
 const filteredApprovisionnements = computed(() => {
   if (!form.value.banque_depot_id) return [];
   const banque = props.banques.find(b => b.id === form.value.banque_depot_id);
-  return banque?.approvisionnements || [];
+  // On masque les bordereaux épuisés (solde restant ≤ 0), sauf celui déjà sélectionné
+  return (banque?.approvisionnements || []).filter(
+    a => Number(a.montant_restant) > 0 || a.id === form.value.approvisionnement_id
+  );
 });
 
 const selectedAvance = computed(() => {
   if (!form.value.avance_id) return null;
   return props.avancesDisponibles.find(a => a.id === form.value.avance_id) || null;
+});
+
+const selectedBordereau = computed(() => {
+  if (!form.value.approvisionnement_id) return null;
+  return filteredApprovisionnements.value.find(a => a.id === form.value.approvisionnement_id) || null;
+});
+
+const bordereauSoldeApres = computed(() => {
+  if (!selectedBordereau.value) return 0;
+  return selectedBordereau.value.montant_restant - (parseFloat(form.value.montant) || 0);
 });
 
 const handleBanqueChange = () => {
@@ -688,8 +725,10 @@ const handleSourceChange = () => {
     form.value.reference_cheque = '';
     form.value.banque_depot_id = null;
     form.value.approvisionnement_id = null;
-    bordereauFile.value = null;
-    bordereauFileList.value = [];
+  } else if (form.value.source_paiement === 'virement') {
+    form.value.avance_id = null;
+    form.value.institution = '';
+    form.value.approvisionnement_id = null;
   } else {
     form.value.avance_id = null;
   }
@@ -729,6 +768,11 @@ const handleSubmit = async () => {
     }
   }
 
+  if (selectedBordereau.value && form.value.montant > selectedBordereau.value.montant_restant) {
+    ElMessage.error(`Le montant d\u00e9passe le solde du bordereau (${formatMontant(selectedBordereau.value.montant_restant)})`);
+    return;
+  }
+
   submitting.value = true;
 
   const dateReglement = form.value.date_reglement instanceof Date
@@ -752,7 +796,6 @@ const handleSubmit = async () => {
       if (form.value.reference_cheque) formData.append('reference_cheque', form.value.reference_cheque);
       if (form.value.banque_depot_id) formData.append('banque_depot_id', form.value.banque_depot_id);
       if (form.value.approvisionnement_id) formData.append('approvisionnement_id', form.value.approvisionnement_id);
-      if (bordereauFile.value) formData.append('bordereau_depot', bordereauFile.value);
     }
     if (form.value.observations) formData.append('observations', form.value.observations);
 

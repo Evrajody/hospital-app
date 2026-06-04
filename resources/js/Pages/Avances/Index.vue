@@ -126,19 +126,22 @@
               <el-tag :type="statutColor(row.statut)" size="small">{{ row.statut_libelle }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="120" align="center" fixed="right">
+          <el-table-column label="Actions" width="100" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button-group>
-                <el-tooltip content="Détails" placement="top">
-                  <el-button size="small" :icon="View" @click="openDetail(row)" />
-                </el-tooltip>
-                <el-tooltip content="Modifier" placement="top">
-                  <el-button size="small" type="warning" :icon="Edit" @click="openEdit(row)" />
-                </el-tooltip>
-                <el-tooltip content="Supprimer" placement="top">
-                  <el-button size="small" type="danger" :icon="Delete" @click="handleDelete(row)" :disabled="row.montant_utilise > 0" />
-                </el-tooltip>
-              </el-button-group>
+              <el-dropdown trigger="click" @command="(cmd) => handleAvanceAction(cmd, row)">
+                <el-button size="small" type="primary">
+                  Actions <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="view" :icon="View">Voir</el-dropdown-item>
+                    <el-dropdown-item command="edit" :icon="Edit">Modifier</el-dropdown-item>
+                    <el-dropdown-item divided command="delete" :icon="Delete" :disabled="row.montant_utilise > 0">
+                      <span style="color: #f56c6c">Supprimer</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </template>
           </el-table-column>
         </el-table>
@@ -179,8 +182,16 @@
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="Montant" prop="montant">
-                <el-input-number v-model="form.montant" :min="1" :precision="0" controls-position="right" style="width: 100%" />
+              <el-form-item label="Montant (F CFA)" prop="montant">
+                <el-input-number
+                  v-model="form.montant"
+                  :min="1"
+                  :precision="0"
+                  :formatter="formatInputMontant"
+                  :parser="parseInputMontant"
+                  controls-position="right"
+                  style="width: 100%"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -228,19 +239,6 @@
               </el-form-item>
             </el-col>
           </el-row>
-
-          <el-form-item v-if="!editingId" label="Bordereau de dépôt (PDF ou image)">
-            <el-upload
-              :auto-upload="false"
-              :on-change="handleBordereauChange"
-              :on-remove="handleBordereauRemove"
-              :file-list="bordereauFileList"
-              accept=".pdf,.jpg,.jpeg,.png"
-              :limit="1"
-            >
-              <el-button :icon="UploadFilled">Joindre un bordereau</el-button>
-            </el-upload>
-          </el-form-item>
 
           <el-form-item label="Observations">
             <el-input v-model="form.observations" type="textarea" :rows="3" />
@@ -293,12 +291,12 @@
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Search, Delete, Edit, View, RefreshLeft, Money, CircleCheck, Wallet, TrendCharts, UploadFilled } from '@element-plus/icons-vue';
+import { Plus, Search, Delete, Edit, View, RefreshLeft, Money, CircleCheck, Wallet, TrendCharts, ArrowDown } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
 
-const { formatMontant } = useMontant();
+const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
 const props = defineProps({
   avances: { type: Array, default: () => [] },
@@ -359,11 +357,6 @@ const form = ref({
   observations: '',
 });
 
-const bordereauFile = ref(null);
-const bordereauFileList = ref([]);
-const handleBordereauChange = (file) => { bordereauFile.value = file.raw; bordereauFileList.value = [file]; };
-const handleBordereauRemove = () => { bordereauFile.value = null; bordereauFileList.value = []; };
-
 const rules = {
   client_id: [{ required: true, message: 'Client requis', trigger: 'change' }],
   societe_emettrice: [{ required: true, message: 'Société requise', trigger: 'blur' }],
@@ -392,8 +385,6 @@ const openCreate = () => {
     approvisionnement_id: null,
     observations: '',
   };
-  bordereauFile.value = null;
-  bordereauFileList.value = [];
   formVisible.value = true;
 };
 
@@ -437,7 +428,6 @@ const handleSubmit = async () => {
       Object.entries(form.value).forEach(([k, v]) => {
         if (v !== null && v !== undefined && v !== '') fd.append(k, v);
       });
-      if (bordereauFile.value) fd.append('bordereau_depot', bordereauFile.value);
       response = await fetchApi('/api/avances-clients', {
         method: 'POST',
         body: fd,
@@ -486,6 +476,20 @@ const handleDelete = (avance) => {
 const detailVisible = ref(false);
 const selected = ref(null);
 const openDetail = (a) => { selected.value = a; detailVisible.value = true; };
+
+const handleAvanceAction = (command, avance) => {
+  switch (command) {
+    case 'view':
+      openDetail(avance);
+      break;
+    case 'edit':
+      openEdit(avance);
+      break;
+    case 'delete':
+      handleDelete(avance);
+      break;
+  }
+};
 </script>
 
 <style scoped>

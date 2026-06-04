@@ -150,6 +150,8 @@ class FournisseurController extends Controller
                 'statut_paiement' => $this->getStatutPaiement($facture),
                 'date_facture_bc' => $facture->date_facture_bc?->format('Y-m-d'),
                 'observations' => $facture->observations,
+                'imputation_id' => $facture->imputation_id,
+                'compte_id' => $facture->compte_id,
             ];
         });
 

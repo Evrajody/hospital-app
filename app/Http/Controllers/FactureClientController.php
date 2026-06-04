@@ -132,7 +132,8 @@ class FactureClientController extends Controller
         // regroupés par banque. Le compte bancaire est résolu via l'approvisionnement.
         $banques = Banque::with(['comptes.approvisionnements' => function ($q) {
             $q->whereNotNull('reference_bordereau')
-              ->orderBy('date_depot', 'desc');
+              ->orderBy('date_depot', 'desc')
+              ->with('reglementsClients');
         }])
             ->orderBy('nom')
             ->get()
@@ -140,19 +141,27 @@ class FactureClientController extends Controller
                 $approvisionnements = collect();
                 foreach ($b->comptes as $compte) {
                     foreach ($compte->approvisionnements as $appro) {
+                        $bordereauMontant = (float) $appro->montant;
+                        $bordereauUtilise = (float) $appro->reglementsClients->sum('montant');
                         $approvisionnements->push([
                             'id' => $appro->id,
                             'reference_bordereau' => $appro->reference_bordereau,
                             'date_depot' => $appro->date_depot?->format('Y-m-d'),
                             'compte_bancaire_id' => $compte->id,
                             'compte_numero' => $compte->numero_compte,
+                            'montant' => $bordereauMontant,
+                            'montant_utilise' => $bordereauUtilise,
+                            'montant_restant' => $bordereauMontant - $bordereauUtilise,
                         ]);
                     }
                 }
                 return [
                     'id' => $b->id,
                     'nom' => $b->nom,
-                    'approvisionnements' => $approvisionnements->values(),
+                    // On masque les bordereaux épuisés (solde restant ≤ 0)
+                    'approvisionnements' => $approvisionnements
+                        ->filter(fn($a) => $a['montant_restant'] > 0)
+                        ->values(),
                 ];
             });
 
@@ -266,6 +275,90 @@ class FactureClientController extends Controller
     }
 
     /**
+     * Données JSON "État de Règlement" d'une facture client (drawer)
+     */
+    public function etatReglementData(int $id): JsonResponse
+    {
+        $facture = FactureClient::with('client.compteComptable')->findOrFail($id);
+
+        $reglements = ReglementClient::where('facture_id', $id)
+            ->orderBy('date_reglement')
+            ->orderBy('id')
+            ->get();
+
+        $montant = (float) $facture->montant;
+        $ristourne = (float) ($facture->ristourne ?? 0);
+        $montantDu = $montant - $ristourne;
+        $totalReglements = (float) $reglements->sum('montant');
+        $solde = $montantDu - $totalReglements;
+
+        return response()->json([
+            'success' => true,
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+            'client' => [
+                'nom' => $facture->client_nom ?: $facture->client?->nom,
+                'code' => $facture->client?->compteComptable?->numero_compte,
+            ],
+            'facture' => [
+                'id' => $facture->id,
+                'reference' => $facture->reference,
+                'date' => $facture->date_facture?->format('d/m/Y'),
+                'montant' => number_format($montant, 0, ',', ' '),
+                'ristourne' => number_format($ristourne, 0, ',', ' '),
+                'net_a_payer' => number_format($montantDu, 0, ',', ' '),
+            ],
+            'reglements' => $reglements->values()->map(fn($r) => [
+                'date_reglement' => $r->date_reglement?->format('d/m/Y'),
+                'type' => $r->type_reglement_libelle ?: 'Règlement',
+                'institution' => $r->institution ?: '-',
+                'reference' => $r->reference_cheque ?: '-',
+                'montant' => number_format((float) $r->montant, 0, ',', ' '),
+            ])->toArray(),
+            'total_reglements' => number_format($totalReglements, 0, ',', ' '),
+            'montant_du' => number_format($montantDu, 0, ',', ' '),
+            'solde' => number_format($solde, 0, ',', ' '),
+        ]);
+    }
+
+    /**
+     * PDF "État de Règlement" d'une facture client
+     */
+    public function etatReglementPdf(int $id)
+    {
+        $facture = FactureClient::with('client.compteComptable')->findOrFail($id);
+
+        $reglements = ReglementClient::where('facture_id', $id)
+            ->orderBy('date_reglement')
+            ->orderBy('id')
+            ->get();
+
+        $montant = (float) $facture->montant;
+        $ristourne = (float) ($facture->ristourne ?? 0);
+        $montantDu = $montant - $ristourne;
+        $totalReglements = (float) $reglements->sum('montant');
+        $solde = $montantDu - $totalReglements;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.etat-reglement-facture-client', [
+            'facture' => $facture,
+            'client' => $facture->client,
+            'clientNom' => $facture->client_nom ?: $facture->client?->nom,
+            'reglements' => $reglements,
+            'montant' => $montant,
+            'ristourne' => $ristourne,
+            'montantDu' => $montantDu,
+            'totalReglements' => $totalReglements,
+            'solde' => $solde,
+            'user' => auth()->user(),
+            'etablissement' => \App\Models\Setting::getEtablissement(),
+        ]);
+
+        $filename = "etat-reglement-client-{$facture->id}.pdf";
+        return request()->query('action') === 'stream'
+            ? $pdf->stream($filename)
+            : $pdf->download($filename);
+    }
+
+    /**
      * Marquer une facture client comme soldée
      */
     public function solder(Request $request, int $id): JsonResponse
@@ -309,10 +402,12 @@ class FactureClientController extends Controller
     {
         $facture = FactureClient::findOrFail($id);
 
-        if ((float) $facture->montant_paye > 0) {
+        // Pas de suppression en cascade : on bloque si la facture fait l'objet de règlements.
+        $nbReglements = $facture->reglements()->count();
+        if ($nbReglements > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Impossible de supprimer une facture ayant des règlements',
+                'message' => "Impossible de supprimer cette facture car elle fait l'objet de {$nbReglements} règlement(s). Veuillez d'abord supprimer les règlements associés.",
             ], 422);
         }
 

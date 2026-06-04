@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\CompteComptable;
+use App\Models\FactureClient;
+use App\Models\ReglementClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -103,6 +105,54 @@ class ClientController extends Controller
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
             ],
+        ]);
+    }
+
+    /**
+     * Afficher la fiche détail d'un client (Vue Inertia)
+     */
+    public function show(int $id): InertiaResponse
+    {
+        $client = Client::with('compteComptable')->findOrFail($id);
+
+        // Factures du client
+        $factures = FactureClient::where('client_id', $id)
+            ->with('client')
+            ->orderBy('date_facture', 'desc')
+            ->get()
+            ->map(fn($f) => $f->toApiArray());
+
+        // Règlements du client (groupés par facture côté front)
+        $reglements = ReglementClient::where('client_id', $id)
+            ->with(['facture', 'banqueDepot', 'approvisionnement', 'avance'])
+            ->orderBy('date_reglement', 'desc')
+            ->get()
+            ->map(fn($r) => $r->toApiArray());
+
+        $stats = [
+            'nombre_factures' => FactureClient::where('client_id', $id)->count(),
+            'montant_total' => (float) FactureClient::where('client_id', $id)->sum('montant'),
+            'montant_paye' => (float) FactureClient::where('client_id', $id)->sum('montant_paye'),
+            'solde' => (float) FactureClient::where('client_id', $id)->sum('reste_a_payer'),
+        ];
+
+        $statsReglements = [
+            'total_reglements' => (float) ReglementClient::where('client_id', $id)->sum('montant'),
+            'nombre_reglements' => ReglementClient::where('client_id', $id)->count(),
+        ];
+
+        return Inertia::render('Clients/Show', [
+            'client' => array_merge($client->toApiArray(), [
+                'code' => $client->compteComptable?->numero_compte,
+                'type' => $client->type_client_label ?? $client->type_client,
+                'notes' => $client->observation,
+                'email' => $client->email,
+                'numero_assurance' => $client->numero_assurance,
+            ]),
+            'factures' => $factures,
+            'reglements' => $reglements,
+            'stats' => $stats,
+            'statsReglements' => $statsReglements,
         ]);
     }
 
@@ -282,6 +332,16 @@ class ClientController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $client = Client::findOrFail($id);
+
+        // Pas de suppression en cascade : on bloque si le client est lié à des factures.
+        $nbFactures = $client->facturesClient()->count();
+        if ($nbFactures > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Impossible de supprimer ce client car il est lié à {$nbFactures} facture(s). Veuillez d'abord supprimer les factures associées.",
+            ], 422);
+        }
+
         $nom = $client->nom;
         $client->delete();
 

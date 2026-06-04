@@ -103,101 +103,68 @@
                 @endforeach
             </div>
         @endforeach
-
-        @if(count($data) > 1)
-            @php
-                $grandFacture = collect($data)->sum('total_facture');
-                $grandPaye = collect($data)->sum('total_paye');
-                $grandRejet = collect($data)->sum('total_rejet');
-                $grandPerte = collect($data)->sum('total_perte');
-                $grandSolde = collect($data)->sum('total_solde');
-            @endphp
-            <table class="report-table" style="margin-top: 20px;">
-                <tfoot>
-                    <tr class="total-row">
-                        <td class="total-label" style="text-align: right;">TOTAL GÉNÉRAL :</td>
-                        <td class="montant" style="width: 90px;">{{ number_format($grandFacture, 0, ',', ' ') }}</td>
-                        <td class="montant" style="width: 80px;">{{ number_format($grandPaye, 0, ',', ' ') }}</td>
-                        <td class="montant" style="width: 80px;">{{ number_format($grandRejet, 0, ',', ' ') }}</td>
-                        <td class="montant" style="width: 80px;">{{ number_format($grandPerte, 0, ',', ' ') }}</td>
-                        <td class="montant" style="width: 80px;">{{ number_format($grandSolde, 0, ',', ' ') }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        @endif
     @elseif($mode === 'tous_clients')
         @php
-            // Sans filtre de type, on injecte des lignes-séparateurs groupant par type.
-            $useTypeRows = empty($type_client ?? null);
-            $rows = [];
-            if ($useTypeRows) {
-                $sorted = collect($data)
+            // Un type par page : on regroupe par type et le libellé passe en en-tête au-dessus du tableau.
+            $useTypeHeaders = empty($type_client ?? null);
+            if ($useTypeHeaders) {
+                $groupes = collect($data)
                     ->sortBy(fn($r) => ($r['type_client_label'] ?? 'zzz') . '|' . ($r['raison_sociale'] ?? ''))
+                    ->groupBy(fn($r) => $r['type_client_label'] ?? 'Non défini')
+                    ->map(fn($clients, $label) => ['label' => $label, 'clients' => $clients->values()->all()])
                     ->values()
                     ->all();
-                $lastType = null;
-                foreach ($sorted as $r) {
-                    $label = $r['type_client_label'] ?? 'Non défini';
-                    if ($label !== $lastType) {
-                        $rows[] = ['__type__' => true, 'label' => $label];
-                        $lastType = $label;
-                    }
-                    $rows[] = $r;
-                }
             } else {
-                $rows = $data;
+                $groupes = [['label' => null, 'clients' => $data]];
             }
         @endphp
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th style="width: 30px">N°</th>
-                    <th style="width: 80px">N° Compte</th>
-                    <th>Raison sociale</th>
-                    <th class="montant" style="width: 95px">Montant Factures</th>
-                    <th class="montant" style="width: 95px">Montant Règlements</th>
-                    <th class="montant" style="width: 80px">Total rejet</th>
-                    <th class="montant" style="width: 80px">Total pertes</th>
-                    <th class="montant" style="width: 85px">Solde</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($rows as $row)
-                    @if(!empty($row['__type__']))
-                        <tr class="type-header-row">
-                            <td colspan="8" style="text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">{{ $row['label'] }}</td>
-                        </tr>
-                    @else
+
+        @foreach($groupes as $groupe)
+            <div class="type-group">
+                @if($useTypeHeaders)
+                    <div class="type-header">{{ $groupe['label'] }}</div>
+                @endif
+                <table class="report-table">
+                    <thead>
                         <tr>
-                            <td><strong>{{ $row['numero'] }}</strong></td>
-                            <td>{{ $row['numero_compte'] }}</td>
-                            <td><strong>{{ $row['raison_sociale'] }}</strong></td>
-                            <td class="montant">{{ number_format($row['total_facture'], 0, ',', ' ') }}</td>
-                            <td class="montant">{{ number_format($row['total_paye'], 0, ',', ' ') }}</td>
-                            <td class="montant">{{ number_format($row['total_rejet'], 0, ',', ' ') }}</td>
-                            <td class="montant">{{ number_format($row['total_perte'], 0, ',', ' ') }}</td>
-                            <td class="montant">{{ number_format($row['total_solde'], 0, ',', ' ') }}</td>
+                            <th style="width: 30px">N°</th>
+                            <th style="width: 80px">N° Compte</th>
+                            <th>Raison sociale</th>
+                            <th class="montant" style="width: 95px">Montant Factures</th>
+                            <th class="montant" style="width: 95px">Montant Règlements</th>
+                            <th class="montant" style="width: 80px">Total rejet</th>
+                            <th class="montant" style="width: 80px">Total pertes</th>
+                            <th class="montant" style="width: 85px">Solde</th>
                         </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($groupe['clients'] as $row)
+                            <tr>
+                                <td><strong>{{ $loop->iteration }}</strong></td>
+                                <td>{{ $row['numero_compte'] }}</td>
+                                <td><strong>{{ $row['raison_sociale'] }}</strong></td>
+                                <td class="montant">{{ number_format($row['total_facture'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($row['total_paye'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($row['total_rejet'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($row['total_perte'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($row['total_solde'], 0, ',', ' ') }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    @if($useTypeHeaders)
+                        <tfoot>
+                            <tr class="total-row">
+                                <td colspan="3" class="total-label">Sous-total {{ $groupe['label'] }} :</td>
+                                <td class="montant">{{ number_format(collect($groupe['clients'])->sum('total_facture'), 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format(collect($groupe['clients'])->sum('total_paye'), 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format(collect($groupe['clients'])->sum('total_rejet'), 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format(collect($groupe['clients'])->sum('total_perte'), 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format(collect($groupe['clients'])->sum('total_solde'), 0, ',', ' ') }}</td>
+                            </tr>
+                        </tfoot>
                     @endif
-                @endforeach
-            </tbody>
-            <tfoot>
-                @php
-                    $grandFacture = collect($data)->sum('total_facture');
-                    $grandPaye = collect($data)->sum('total_paye');
-                    $grandRejet = collect($data)->sum('total_rejet');
-                    $grandPerte = collect($data)->sum('total_perte');
-                    $grandSolde = collect($data)->sum('total_solde');
-                @endphp
-                <tr class="total-row">
-                    <td colspan="3" class="total-label">TOTAL GÉNÉRAL</td>
-                    <td class="montant">{{ number_format($grandFacture, 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandPaye, 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandRejet, 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandPerte, 0, ',', ' ') }}</td>
-                    <td class="montant">{{ number_format($grandSolde, 0, ',', ' ') }}</td>
-                </tr>
-            </tfoot>
-        </table>
+                </table>
+            </div>
+        @endforeach
     @endif
 @endsection

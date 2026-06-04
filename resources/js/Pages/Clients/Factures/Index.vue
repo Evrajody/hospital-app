@@ -17,7 +17,7 @@
         <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+              <div class="stat-icon" style="background: #dbeafe; color: #2563eb;">
                 <el-icon :size="24"><Document /></el-icon>
               </div>
               <div class="stat-content">
@@ -30,7 +30,7 @@
         <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+              <div class="stat-icon" style="background: #e0e7ff; color: #4f46e5;">
                 <el-icon :size="24"><Money /></el-icon>
               </div>
               <div class="stat-content">
@@ -43,7 +43,7 @@
         <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card success">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+              <div class="stat-icon" style="background: #d1fae5; color: #059669;">
                 <el-icon :size="24"><SuccessFilled /></el-icon>
               </div>
               <div class="stat-content">
@@ -56,7 +56,7 @@
         <el-col :xs="24" :sm="6">
           <el-card shadow="hover">
             <div class="stat-card danger">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)">
+              <div class="stat-icon" style="background: #fee2e2; color: #ef4444;">
                 <el-icon :size="24"><Warning /></el-icon>
               </div>
               <div class="stat-content">
@@ -172,6 +172,9 @@
                     <el-dropdown-item command="edit" :icon="Edit">
                       Modifier
                     </el-dropdown-item>
+                    <el-dropdown-item command="etat_reglement" :icon="Document">
+                      État de Règlement
+                    </el-dropdown-item>
                     <el-dropdown-item divided command="delete" :icon="Delete">
                       <span style="color: #f56c6c">Supprimer</span>
                     </el-dropdown-item>
@@ -253,6 +256,81 @@
       :loading="modalLoading"
       @success="handleFactureSuccess"
     />
+
+    <!-- Drawer État de Règlement -->
+    <el-drawer v-model="showEtatReglementDrawer" title="État de Règlement Facture" direction="rtl" size="55%" :destroy-on-close="true">
+      <div v-if="etatReglementLoading" style="text-align: center; padding: 40px; color: #909399;">Chargement...</div>
+      <div v-else-if="etatReglementData" class="etat-reglement-content">
+        <div class="etat-reglement-header">
+          <div class="imputation-hospital-name">{{ etatReglementData.etablissement.nom }}</div>
+          <div class="imputation-hospital-info">
+            {{ etatReglementData.etablissement.adresse }}<br>
+            {{ etatReglementData.etablissement.telephone ? 'Tél.: ' + etatReglementData.etablissement.telephone : '' }}
+            {{ etatReglementData.etablissement.email ? ' - E-mail: ' + etatReglementData.etablissement.email : '' }}
+          </div>
+          <div class="imputation-title-box"><span>ÉTAT DE RÈGLEMENT FACTURE</span></div>
+        </div>
+
+        <div class="etat-reglement-fournisseur">
+          <strong>Client :</strong> [{{ etatReglementData.client.code }}] {{ etatReglementData.client.nom }}
+        </div>
+
+        <div class="etat-reglement-info etat-reglement-info-framed">
+          <span><strong>Référence :</strong> {{ etatReglementData.facture.reference }}</span>
+          <span><strong>Date :</strong> {{ etatReglementData.facture.date }}</span>
+        </div>
+
+        <div class="etat-reglement-montants">
+          <span><strong>Montant :</strong> {{ etatReglementData.facture.montant }}</span>
+          <span><strong>Ristourne :</strong> {{ etatReglementData.facture.ristourne }}</span>
+          <span><strong>Net à payer :</strong> {{ etatReglementData.facture.net_a_payer }}</span>
+        </div>
+
+        <table class="etat-reglement-table">
+          <thead>
+            <tr>
+              <th>Date règlement</th>
+              <th>Type</th>
+              <th>Institution</th>
+              <th>Réf. Chèque</th>
+              <th style="text-align: right;">Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(reg, index) in etatReglementData.reglements" :key="index">
+              <td>{{ reg.date_reglement }}</td>
+              <td>{{ reg.type }}</td>
+              <td>{{ reg.institution }}</td>
+              <td>{{ reg.reference }}</td>
+              <td style="text-align: right;">{{ reg.montant }}</td>
+            </tr>
+            <tr v-if="!etatReglementData.reglements.length">
+              <td colspan="5" style="text-align: center; font-style: italic;">Aucun règlement</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="etat-reglement-totaux">
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Total règlement :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.total_reglements }}</span>
+          </div>
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Montant Dû (Net à payer) :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.montant_du }}</span>
+          </div>
+          <div class="etat-reglement-total-row">
+            <span class="etat-reglement-total-label">Solde :</span>
+            <span class="etat-reglement-total-value">{{ etatReglementData.solde }}</span>
+          </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+          <el-button type="primary" :icon="Download" @click="downloadEtatReglementPdf">Télécharger PDF</el-button>
+        </div>
+      </div>
+      <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune donnée trouvée.</div>
+    </el-drawer>
   </AppLayout>
 </template>
 
@@ -264,7 +342,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
 import {
   Plus, Search, Edit, Delete, View, More, ArrowDown,
-  Document, Money, SuccessFilled, Warning, RefreshLeft
+  Document, Money, SuccessFilled, Warning, RefreshLeft, Download
 } from '@element-plus/icons-vue';
 import { fetchApi } from '@/Composables/useFetch';
 
@@ -425,9 +503,43 @@ const handleAction = (command, facture) => {
     case 'edit':
       handleEdit(facture);
       break;
+    case 'etat_reglement':
+      openEtatReglementDrawer(facture.id);
+      break;
     case 'delete':
       handleDelete(facture);
       break;
+  }
+};
+
+const showEtatReglementDrawer = ref(false);
+const etatReglementLoading = ref(false);
+const etatReglementData = ref(null);
+const etatReglementFactureId = ref(null);
+
+const openEtatReglementDrawer = async (factureId) => {
+  etatReglementFactureId.value = factureId;
+  etatReglementData.value = null;
+  etatReglementLoading.value = true;
+  showEtatReglementDrawer.value = true;
+  try {
+    const response = await fetchApi(`/api/factures-clients/${factureId}/etat-reglement-data`);
+    const result = await response.json();
+    if (result.success) {
+      etatReglementData.value = result;
+    } else {
+      ElMessage.warning(result.message || 'Données non trouvées');
+    }
+  } catch (err) {
+    ElMessage.error('Erreur lors du chargement de l\'état de règlement');
+  } finally {
+    etatReglementLoading.value = false;
+  }
+};
+
+const downloadEtatReglementPdf = () => {
+  if (etatReglementFactureId.value) {
+    window.open(`/factures-clients/${etatReglementFactureId.value}/etat-reglement-pdf`, '_blank');
   }
 };
 
@@ -509,11 +621,29 @@ const formatDate = (date) => {
 .montant-paye { color: #059669; font-weight: 600; }
 .montant-reste { font-weight: 600; color: #666; }
 .montant-reste.has-reste { color: #dc2626; }
-.ref-link { color: #409eff; cursor: pointer; font-weight: 600; text-decoration: none; }
+.ref-link { color: var(--el-color-primary); cursor: pointer; font-weight: 600; text-decoration: none; }
 .ref-link:hover { text-decoration: underline; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .card-title { font-size: 16px; font-weight: 600; color: #374151; }
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
 .pagination-container { margin-top: 16px; padding: 0 20px 16px; display: flex; justify-content: flex-end; }
 .nowrap-cell { white-space: nowrap; }
+
+/* Drawer État de Règlement */
+.imputation-hospital-name { font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+.imputation-hospital-info { font-size: 12px; color: #444; line-height: 1.6; margin-top: 4px; }
+.imputation-title-box { margin: 20px auto 15px; display: inline-block; border: 2px solid #000; padding: 8px 30px; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+.etat-reglement-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }
+.etat-reglement-header { margin-bottom: 15px; text-align: center; }
+.etat-reglement-fournisseur { margin: 10px 0; font-size: 13px; }
+.etat-reglement-info { display: flex; gap: 25px; margin: 8px 0; font-size: 13px; }
+.etat-reglement-info-framed { border: 1px solid #000; padding: 8px; }
+.etat-reglement-montants { display: flex; gap: 40px; margin: 3px 0; font-size: 13px; }
+.etat-reglement-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+.etat-reglement-table th { border: 1px solid #000; padding: 6px 8px; font-weight: bold; text-align: center; font-size: 11px; background-color: #fff; }
+.etat-reglement-table td { border: 1px solid #000; padding: 5px 8px; }
+.etat-reglement-totaux { display: flex; flex-direction: column; align-items: flex-end; margin-top: 10px; }
+.etat-reglement-total-row { display: flex; gap: 15px; padding: 3px 0; font-size: 13px; }
+.etat-reglement-total-label { font-weight: bold; min-width: 140px; text-align: right; }
+.etat-reglement-total-value { min-width: 100px; text-align: right; }
 </style>

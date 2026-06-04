@@ -67,10 +67,35 @@ class ReglementClientController extends Controller
             'montant_moyen' => (float) (ReglementClient::avg('montant') ?? 0),
         ];
 
+        // Banques + bordereaux (pour la modification de la banque de dépôt d'un règlement)
+        $banques = Banque::with(['comptes.approvisionnements' => function ($q) {
+            $q->whereNotNull('reference_bordereau')->orderBy('date_depot', 'desc');
+        }])
+            ->orderBy('nom')
+            ->get()
+            ->map(function ($b) {
+                $approvisionnements = collect();
+                foreach ($b->comptes as $compte) {
+                    foreach ($compte->approvisionnements as $appro) {
+                        $approvisionnements->push([
+                            'id' => $appro->id,
+                            'reference_bordereau' => $appro->reference_bordereau,
+                            'date_depot' => $appro->date_depot?->format('Y-m-d'),
+                        ]);
+                    }
+                }
+                return [
+                    'id' => $b->id,
+                    'nom' => $b->nom,
+                    'approvisionnements' => $approvisionnements->values(),
+                ];
+            });
+
         return Inertia::render('ReglementClients/Index', [
             'reglements' => $reglements,
             'clients' => $clients,
             'facturesImpayees' => $facturesImpayees,
+            'banques' => $banques,
             'stats' => $stats,
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
@@ -117,6 +142,21 @@ class ReglementClientController extends Controller
                     'success' => false,
                     'message' => 'Le montant dépasse le solde restant de cette avance (' . number_format($avance->montant_restant, 0, ',', ' ') . ' XOF)',
                 ], 422);
+            }
+        }
+
+        // Vérifier le solde du bordereau (approvisionnement) si imputation dessus
+        if ($request->filled('approvisionnement_id')) {
+            $appro = \App\Models\ApprovisionnementBanque::withSum('reglementsClients', 'montant')
+                ->find($request->approvisionnement_id);
+            if ($appro) {
+                $soldeBordereau = (float) $appro->montant - (float) ($appro->reglements_clients_sum_montant ?? 0);
+                if ((float) $request->montant > $soldeBordereau) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Le montant dépasse le solde du bordereau (' . number_format($soldeBordereau, 0, ',', ' ') . ' XOF)',
+                    ], 422);
+                }
             }
         }
 

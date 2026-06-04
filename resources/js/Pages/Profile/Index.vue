@@ -431,7 +431,7 @@ const removeSignature = async () => {
 }
 
 .detail-item .el-icon {
-  color: #409EFF;
+  color: var(--el-color-primary);
   font-size: 18px;
 }
 

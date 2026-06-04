@@ -81,16 +81,16 @@ const breadcrumbs = [
 
 const reports = [
   { name: 'mouvement-factures', label: 'Mouvement Factures', icon: markRaw(TrendCharts), component: markRaw(MouvementFacturesTab), props: { fournisseurs: props.fournisseurs } },
-  { name: 'situation-fournisseurs', label: 'Situation fournisseurs', icon: markRaw(Wallet), component: markRaw(SituationFournisseursTab), props: { fournisseurs: props.fournisseurs, comptes: props.comptes } },
-  { name: 'factures-reglees', label: 'Factures réglées', icon: markRaw(DocumentCopy), component: markRaw(FacturesRegleesTab), props: { fournisseurs: props.fournisseurs } },
+  { name: 'situation-fournisseurs', label: 'Situation des fournisseurs (point des dettes)', icon: markRaw(Wallet), component: markRaw(SituationFournisseursTab), props: { fournisseurs: props.fournisseurs, comptes: props.comptes } },
+  { name: 'factures-reglees', label: 'Etat des factures réglées', icon: markRaw(DocumentCopy), component: markRaw(FacturesRegleesTab), props: { fournisseurs: props.fournisseurs } },
   { name: 'factures-soldes', label: 'Factures et Soldes', icon: markRaw(Coin), component: markRaw(FacturesSoldesTab), props: { fournisseurs: props.fournisseurs } },
-  { name: 'declaration-aib', label: 'Déclaration AIB', icon: markRaw(List), component: markRaw(DeclarationAibTab), props: {} },
-  { name: 'point-periodique', label: 'Point périodique PC', icon: markRaw(Money), component: markRaw(PointPeriodiqueTab), props: {} },
-  { name: 'bordereau-transmission', label: 'Bordereau transmission', icon: markRaw(Document), component: markRaw(BordereauTransmissionTab), props: {} },
-  { name: 'recap-charges', label: 'Récap. charges', icon: markRaw(Tickets), component: markRaw(RecapChargesTab), props: {} },
-  { name: 'recap-investissements', label: 'Récap. investissements', icon: markRaw(DataBoard), component: markRaw(RecapInvestissementsTab), props: {} },
-  { name: 'declaration-tva', label: 'Déclaration TVA', icon: markRaw(List), component: markRaw(DeclarationTvaTab), props: {} },
-  { name: 'banques-par-compte', label: 'Banques par compte', icon: markRaw(Coin), component: markRaw(BanquesParCompteTab), props: {} },
+  { name: 'declaration-aib', label: 'Etat déclaration des AIB', icon: markRaw(List), component: markRaw(DeclarationAibTab), props: {} },
+  { name: 'point-periodique', label: 'Point des pièces comptables  PC', icon: markRaw(Money), component: markRaw(PointPeriodiqueTab), props: {} },
+  { name: 'bordereau-transmission', label: 'Bordereau de transmission', icon: markRaw(Document), component: markRaw(BordereauTransmissionTab), props: {} },
+  { name: 'recap-charges', label: 'Point des charges', icon: markRaw(Tickets), component: markRaw(RecapChargesTab), props: {} },
+  { name: 'recap-investissements', label: 'Point des investissements', icon: markRaw(DataBoard), component: markRaw(RecapInvestissementsTab), props: {} },
+  { name: 'declaration-tva', label: 'Etat déclaration des TVA', icon: markRaw(List), component: markRaw(DeclarationTvaTab), props: {} },
+  // { name: 'banques-par-compte', label: 'Banques par compte', icon: markRaw(Coin), component: markRaw(BanquesParCompteTab), props: {} },
 ];
 
 const activeTab = ref('mouvement-factures');

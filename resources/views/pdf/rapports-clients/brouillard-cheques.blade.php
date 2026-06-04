@@ -12,6 +12,8 @@
 @section('extra-styles')
     .solde { font-weight: bold; }
     .date-cell { vertical-align: top; }
+    /* Ligne de bordereau (SB) : clôture et délimite chaque groupe « bordereau de versement ». */
+    .sb-row td { background: #f4f4f4; border-bottom: 2px solid #000; }
 @endsection
 
 @section('content')
@@ -19,12 +21,15 @@
         <p style="text-align: center; padding: 40px; color: #666;">Aucune donnée trouvée pour cette période.</p>
     @else
         @php
+            // Un groupe = un bordereau de versement (la date est répétée pour chaque bordereau,
+            // même si elle est identique : jamais deux bordereaux fusionnés sous une même date).
             $groups = [];
-            $currentDate = null;
+            $currentGroup = null;
             foreach ($data as $entry) {
-                if ($entry['date'] !== $currentDate) {
-                    $currentDate = $entry['date'];
-                    $groups[] = ['date' => $currentDate, 'entries' => []];
+                $gid = $entry['group_id'] ?? null;
+                if ($gid !== $currentGroup) {
+                    $currentGroup = $gid;
+                    $groups[] = ['date' => $entry['date'], 'entries' => []];
                 }
                 $groups[count($groups) - 1]['entries'][] = $entry;
             }
@@ -43,7 +48,7 @@
             <tbody>
                 @foreach($groups as $group)
                     @foreach($group['entries'] as $i => $entry)
-                        <tr>
+                        <tr class="{{ $entry['nature'] === 'SB' ? 'sb-row' : '' }}">
                             @if($i === 0)
                                 <td class="date-cell" rowspan="{{ count($group['entries']) }}"><strong>{{ $group['date'] }}</strong></td>
                             @endif

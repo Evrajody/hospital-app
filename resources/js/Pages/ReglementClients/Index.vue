@@ -362,6 +362,27 @@
           </el-row>
           <el-row :gutter="20">
             <el-col :span="12">
+              <el-form-item label="Type de r&egrave;glement">
+                <el-select v-model="editForm.type_reglement" style="width: 100%">
+                  <el-option label="R&egrave;glement" value="reglement" />
+                  <el-option label="Perte" value="perte" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Montant rejet&eacute; (XOF)">
+                <el-input-number
+                  v-model="editForm.montant_rejet"
+                  :min="0"
+                  :precision="0"
+                  controls-position="right"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
               <el-form-item label="N&deg; Ligne">
                 <el-input v-model="editForm.numero_ligne" />
               </el-form-item>
@@ -376,6 +397,34 @@
             <el-col :span="12">
               <el-form-item label="R&eacute;f. Ch&egrave;que">
                 <el-input v-model="editForm.reference_cheque" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="Banque de d&eacute;p&ocirc;t">
+                <el-select
+                  v-model="editForm.banque_depot_id"
+                  clearable
+                  placeholder="Aucune (esp&egrave;ces)"
+                  style="width: 100%"
+                  @change="handleEditBanqueChange"
+                >
+                  <el-option v-for="b in banques" :key="b.id" :label="b.nom" :value="b.id" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="R&eacute;f&eacute;rence bordereau">
+                <el-select
+                  v-model="editForm.approvisionnement_id"
+                  clearable
+                  placeholder="S&eacute;lectionner un bordereau"
+                  :disabled="!editForm.banque_depot_id"
+                  style="width: 100%"
+                >
+                  <el-option v-for="a in editApprovisionnements" :key="a.id" :label="a.reference_bordereau" :value="a.id" />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
@@ -454,6 +503,7 @@ const props = defineProps({
   reglements: { type: Array, default: () => [] },
   clients: { type: Array, default: () => [] },
   facturesImpayees: { type: Array, default: () => [] },
+  banques: { type: Array, default: () => [] },
   stats: {
     type: Object,
     default: () => ({
@@ -580,8 +630,10 @@ const handleMoreActions = (command, reglement) => {
 const handleEdit = (reglement) => {
   editingReglementId.value = reglement.id;
   editForm.value = {
+    type_reglement: reglement.type_reglement || 'reglement',
     date_reglement: reglement.date_reglement,
     montant: reglement.montant,
+    montant_rejet: reglement.montant_rejet || 0,
     numero_ligne: reglement.numero_ligne || '',
     institution: reglement.institution || '',
     reference_cheque: reglement.reference_cheque || '',
@@ -590,6 +642,16 @@ const handleEdit = (reglement) => {
     observations: reglement.observations || '',
   };
   editDialogVisible.value = true;
+};
+
+const editApprovisionnements = computed(() => {
+  if (!editForm.value || !editForm.value.banque_depot_id) return [];
+  const banque = props.banques.find(b => b.id === editForm.value.banque_depot_id);
+  return banque?.approvisionnements || [];
+});
+
+const handleEditBanqueChange = () => {
+  if (editForm.value) editForm.value.approvisionnement_id = null;
 };
 
 const handleEditSubmit = async () => {

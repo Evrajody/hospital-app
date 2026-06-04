@@ -493,9 +493,22 @@ const handleMoreActions = async (command, compte) => {
           cancelButtonText: 'Annuler',
           type: 'warning'
         }
-      ).then(() => {
-        ElMessage.success('Compte supprimé avec succès');
-      });
+      ).then(async () => {
+        try {
+          const response = await fetchApi(`/api/comptes-bancaires/${compte.id}`, {
+            method: 'DELETE',
+          });
+          const result = await response.json();
+          if (result.success) {
+            ElMessage.success(result.message || 'Compte supprimé avec succès');
+            router.reload({ only: ['banques', 'stats'] });
+          } else {
+            ElMessage.error(result.message || 'Erreur lors de la suppression');
+          }
+        } catch (error) {
+          ElMessage.error('Erreur de connexion');
+        }
+      }).catch(() => {});
       break;
   }
 };

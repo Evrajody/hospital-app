@@ -148,7 +148,7 @@ const exportExcel = () => {
   margin-bottom: 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 .selection-actions { display: flex; gap: 8px; }
 </style>

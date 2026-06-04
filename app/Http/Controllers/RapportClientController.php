@@ -434,13 +434,19 @@ class RapportClientController extends Controller
                     $compteCredit = $r->client?->compteComptable?->numero_compte ?? '411';
                     $compteCreditLib = $r->client?->compteComptable?->libelle ?? 'Clients';
 
+                    // Libellé du chèque complété par l'institution saisie lors du règlement.
+                    $chequeInfos = collect([$r->client?->nom, $r->institution])
+                        ->map(fn($v) => trim((string) $v))
+                        ->filter()
+                        ->implode(' - ');
+
                     $data[] = [
                         'date' => $dateGroupe,
                         'show_date' => $showDateForGroup && $isFirstLineOfGroup,
                         'date_raw' => $dateRawGroupe,
                         'group_id' => 'sb-' . $appro->id,
                         'nature' => 'CH',
-                        'libelle' => "CHn° {$r->reference_cheque}/" . ($r->client?->nom ?? '-'),
+                        'libelle' => "CHn° {$r->reference_cheque}/" . ($chequeInfos !== '' ? $chequeInfos : '-'),
                         'debit' => $montant,
                         'credit' => 0,
                         'solde' => $solde,
@@ -985,13 +991,6 @@ class RapportClientController extends Controller
                     $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_solde']];
                 }
             }
-            $totFact = array_sum(array_column($result['data'], 'total_facture'));
-            $totPaye = array_sum(array_column($result['data'], 'total_paye'));
-            $totRejet = array_sum(array_column($result['data'], 'total_rejet'));
-            $totPerte = array_sum(array_column($result['data'], 'total_perte'));
-            $totSolde = array_sum(array_column($result['data'], 'total_solde'));
-            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totRejet, $totPerte, $totSolde];
-
             return \App\Support\ExcelExporter::download(
                 ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Total rejet', 'Total pertes', 'Solde'],
                 $rows,
@@ -1066,13 +1065,6 @@ class RapportClientController extends Controller
                     $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_reste']];
                 }
             }
-            $totFact = array_sum(array_column($result['data'], 'total_facture'));
-            $totPaye = array_sum(array_column($result['data'], 'total_paye'));
-            $totRejet = array_sum(array_column($result['data'], 'total_rejet'));
-            $totPerte = array_sum(array_column($result['data'], 'total_perte'));
-            $totReste = array_sum(array_column($result['data'], 'total_reste'));
-            $rows[] = ['', '', 'TOTAL', $totFact, $totPaye, $totRejet, $totPerte, $totReste];
-
             return \App\Support\ExcelExporter::download(
                 ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Total rejet', 'Total pertes', 'Reste à payer'],
                 $rows,

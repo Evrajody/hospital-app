@@ -1681,7 +1681,13 @@ class RapportFournisseurController extends Controller
                     $l['mt_total_reg'],
                 ];
             }
-            // Lignes "Total Fournisseur" (sous-total) et "TOTAL GÉNÉRAL" retirées à la demande.
+            $t = $bloc['totaux'];
+            $rows[] = ['', '', '', '', 'Total Fournisseur', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['reg_periode'], $t['mt_total_reg']];
+        }
+
+        $g = $data['grandTotaux'] ?? [];
+        if (!empty($g)) {
+            $rows[] = ['', '', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'] ?? 0, $g['avoir'] ?? 0, $g['montant_mo'] ?? 0, '', $g['montant_aib'] ?? 0, $g['reg_periode'] ?? 0, $g['mt_total_reg'] ?? 0];
         }
 
         return \App\Support\ExcelExporter::download(

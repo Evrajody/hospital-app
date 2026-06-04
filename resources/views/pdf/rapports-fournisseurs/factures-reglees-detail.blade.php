@@ -54,7 +54,8 @@
     @else
         @foreach($detail as $fData)
             <div class="fournisseur-page">
-                {{-- En-tête établissement (centré, sans logo) --}}
+                @if($loop->first)
+                {{-- En-tête établissement (sans logo) — uniquement sur la 1ère page --}}
                 <table class="header-section">
                     <tr>
                         <td style="text-align: center;">
@@ -80,6 +81,7 @@
                         <div class="sous-titre">(Détail par fournisseur)</div>
                     </div>
                 </div>
+                @endif
 
                 @if(!empty($fData['has_soldee']))
                     <div class="soldee-legende"><span class="swatch"></span> Lignes en orange = factures marquées comme soldées (clôturées sans règlement) ; « Mt Total Rég. » en rouge = déficit.</div>
@@ -122,7 +124,36 @@
                             </tr>
                         @endforeach
                     </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="4" class="total-label">Total Fournisseur :</td>
+                            <td class="montant">{{ number_format($fData['totaux']['montant_facture'], 0, ',', ' ') }}</td>
+                            <td class="montant">{{ number_format($fData['totaux']['avoir'], 0, ',', ' ') }}</td>
+                            <td class="montant">{{ number_format($fData['totaux']['montant_mo'], 0, ',', ' ') }}</td>
+                            <td class="montant"></td>
+                            <td class="montant">{{ number_format($fData['totaux']['montant_aib'], 0, ',', ' ') }}</td>
+                            <td class="montant">{{ number_format($fData['totaux']['reg_periode'], 0, ',', ' ') }}</td>
+                            <td class="montant">{{ number_format($fData['totaux']['mt_total_reg'], 0, ',', ' ') }}</td>
+                        </tr>
+                    </tfoot>
                 </table>
+
+                @if($loop->last && count($detail) > 1)
+                    <table class="report-table" style="margin-top: 14px;">
+                        <tfoot>
+                            <tr class="total-row">
+                                <td colspan="4" class="total-label">TOTAL GÉNÉRAL :</td>
+                                <td class="montant">{{ number_format($grandTotaux['montant_facture'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($grandTotaux['avoir'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($grandTotaux['montant_mo'], 0, ',', ' ') }}</td>
+                                <td class="montant"></td>
+                                <td class="montant">{{ number_format($grandTotaux['montant_aib'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($grandTotaux['reg_periode'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($grandTotaux['mt_total_reg'], 0, ',', ' ') }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                @endif
             </div>
         @endforeach
     @endif

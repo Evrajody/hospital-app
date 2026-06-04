@@ -51,7 +51,8 @@
     @else
         @foreach($pieces as $piece)
             <div class="pc-page">
-                {{-- En-tête établissement (centré, sans logo, repris sur chaque page) --}}
+                @if($loop->first)
+                {{-- En-tête établissement (sans logo) — uniquement sur la 1ère page --}}
                 <table class="header-section">
                     <tr>
                         <td style="text-align: center;">
@@ -74,6 +75,7 @@
                 <div class="report-title-wrapper">
                     <div class="report-title"><h1>{{ $titre }}</h1></div>
                 </div>
+                @endif
 
                 {{-- Date d'enregistrement de la pièce --}}
                 <div class="date-header">
