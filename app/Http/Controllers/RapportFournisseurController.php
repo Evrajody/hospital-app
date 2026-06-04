@@ -1677,6 +1677,37 @@ class RapportFournisseurController extends Controller
     public function facturesRegleesExcel(Request $request)
     {
         $data = $this->buildFacturesRegleesData($request);
+
+        // Excel 2 : liste à plat — le fournisseur est répété sur chaque ligne, sans en-tête de groupe ni totaux.
+        if ($request->get('format') === '2') {
+            $rows = [];
+            foreach ($data['detail'] as $bloc) {
+                foreach ($bloc['lignes'] as $l) {
+                    $rows[] = [
+                        $bloc['fournisseur'],
+                        $l['numero_piece'],
+                        $l['libelle'],
+                        $l['date'],
+                        $l['date_reglement'],
+                        $l['montant_facture'],
+                        $l['avoir'],
+                        $l['montant_mo'],
+                        $l['taux_aib'],
+                        $l['montant_aib'],
+                        $l['reg_periode'],
+                        $l['mt_total_reg'],
+                    ];
+                }
+            }
+
+            return \App\Support\ExcelExporter::download(
+                ['Fournisseur', 'N° PC', 'Libellé', 'Date Fact.', 'Date Régl.', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Régl. période', 'Mt Total Rég.'],
+                $rows,
+                'factures-reglees-detail',
+                $data['titre'] ?: 'Etat des factures réglées',
+            );
+        }
+
         $rows = [];
 
         foreach ($data['detail'] as $bloc) {

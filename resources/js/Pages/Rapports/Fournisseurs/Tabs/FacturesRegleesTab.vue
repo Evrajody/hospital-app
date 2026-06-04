@@ -95,7 +95,17 @@
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('resume')">Exporter PDF</el-button>
-              <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
+              <el-dropdown trigger="click" @command="exportExcel">
+                <el-button type="success">
+                  Exporter Excel<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="1">Excel 1 (groupé)</el-dropdown-item>
+                    <el-dropdown-item command="2">Excel 2 (liste à plat)</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
               <el-button @click="printReport('resume')">Imprimer</el-button>
             </div>
           </el-tab-pane>
@@ -153,7 +163,17 @@
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('detail')">Exporter PDF</el-button>
-              <el-button type="success" @click="exportExcel">Exporter Excel</el-button>
+              <el-dropdown trigger="click" @command="exportExcel">
+                <el-button type="success">
+                  Exporter Excel<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="1">Excel 1 (groupé)</el-dropdown-item>
+                    <el-dropdown-item command="2">Excel 2 (liste à plat)</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
               <el-button @click="printReport('detail')">Imprimer</el-button>
             </div>
           </el-tab-pane>
@@ -168,6 +188,7 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
+import { ArrowDown } from '@element-plus/icons-vue';
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },
@@ -248,8 +269,10 @@ const exportPdf = (type) => {
   openPdf(`/rapports/fournisseurs/pdf/factures-reglees?${buildPdfParams(type)}`, 'Aperçu du rapport');
 };
 
-const exportExcel = () => {
-  window.open(`/rapports/fournisseurs/excel/factures-reglees?${buildPdfParams('detail')}`, '_blank');
+const exportExcel = (format = '1') => {
+  const params = buildPdfParams('detail');
+  if (format === '2') params.append('format', '2');
+  window.open(`/rapports/fournisseurs/excel/factures-reglees?${params}`, '_blank');
 };
 
 const printReport = (type) => {
