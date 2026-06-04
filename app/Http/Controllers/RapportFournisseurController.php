@@ -49,11 +49,18 @@ class RapportFournisseurController extends Controller
 
     private function getComptesList(): array
     {
+        // Regroupements de fournisseurs = comptes parents (ex. 401111, 401112…) sous lesquels
+        // les fournisseurs sont rattachés. On ne liste que ceux ayant au moins un fournisseur.
         $compteIds = Fournisseur::whereNotNull('compte_comptable_id')
             ->distinct()
             ->pluck('compte_comptable_id');
 
-        return CompteComptable::whereIn('id', $compteIds)
+        $parentIds = CompteComptable::whereIn('id', $compteIds)
+            ->whereNotNull('parent_id')
+            ->distinct()
+            ->pluck('parent_id');
+
+        return CompteComptable::whereIn('id', $parentIds)
             ->orderBy('numero_compte')
             ->get()
             ->map(fn($c) => [
@@ -194,7 +201,16 @@ class RapportFournisseurController extends Controller
                 ->orderBy('nom');
 
             if ($mode === 'par_compte' && $compteId) {
-                $query->where('compte_comptable_id', $compteId);
+                // $compteId = un regroupement → tous les fournisseurs dont le compte est ce compte
+                // ou un sous-compte. On matche par préfixe de numéro (robuste à la hiérarchie parent_id),
+                // ex. compte 401111 → tous les comptes commençant par "401111".
+                $compteParent = CompteComptable::find($compteId);
+                if ($compteParent && $compteParent->numero_compte) {
+                    $prefixe = $compteParent->numero_compte;
+                    $query->whereHas('compteComptable', function ($q) use ($prefixe) {
+                        $q->where('numero_compte', 'LIKE', $prefixe . '%');
+                    });
+                }
             }
 
             $fournisseurs = $query->get();
@@ -1661,6 +1677,37 @@ class RapportFournisseurController extends Controller
     public function facturesRegleesExcel(Request $request)
     {
         $data = $this->buildFacturesRegleesData($request);
+
+        // Excel 2 : liste à plat — le fournisseur est répété sur chaque ligne, sans en-tête de groupe ni totaux.
+        if ($request->get('format') === '2') {
+            $rows = [];
+            foreach ($data['detail'] as $bloc) {
+                foreach ($bloc['lignes'] as $l) {
+                    $rows[] = [
+                        $bloc['fournisseur'],
+                        $l['numero_piece'],
+                        $l['libelle'],
+                        $l['date'],
+                        $l['date_reglement'],
+                        $l['montant_facture'],
+                        $l['avoir'],
+                        $l['montant_mo'],
+                        $l['taux_aib'],
+                        $l['montant_aib'],
+                        $l['reg_periode'],
+                        $l['mt_total_reg'],
+                    ];
+                }
+            }
+
+            return \App\Support\ExcelExporter::download(
+                ['Fournisseur', 'N° PC', 'Libellé', 'Date Fact.', 'Date Régl.', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Régl. période', 'Mt Total Rég.'],
+                $rows,
+                'factures-reglees-detail',
+                $data['titre'] ?: 'Etat des factures réglées',
+            );
+        }
+
         $rows = [];
 
         foreach ($data['detail'] as $bloc) {
