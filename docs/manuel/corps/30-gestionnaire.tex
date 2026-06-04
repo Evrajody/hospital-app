@@ -1,0 +1,94 @@
+\chapter{Profil Gestionnaire}
+% =====================================================================
+
+Le \textbf{Gestionnaire} est un profil de \emph{consultation et de pilotage}. Il consulte l'ensemble des données opérationnelles (fournisseurs, clients, factures, règlements, avances) et accède à tous les rapports, mais il ne saisit ni ne modifie aucune donnée. Ce profil est destiné aux responsables qui ont besoin de suivre l'activité et d'éditer des états, sans intervenir sur les écritures.
+
+\section{Périmètre du profil}
+
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.4cm} >{\raggedright\arraybackslash}p{9.2cm}}
+\toprule
+\textbf{Module} & \textbf{Droits du Gestionnaire} \\
+\midrule
+\endhead
+Fournisseurs & Consulter \\
+Factures fournisseurs & Consulter \\
+Règlements fournisseurs & Consulter \\
+Clients & Consulter \\
+Factures clients & Consulter \\
+Règlements clients & Consulter \\
+Avances clients & Consulter \\
+Rapports & Consulter et exporter (PDF / Excel) \\
+Plan comptable, Banques & Non accessibles \\
+Paramètres, Utilisateurs, Rôles, Journal & Non accessibles \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1}
+
+\note{Le menu du Gestionnaire ne présente que le tableau de bord, les rubriques de consultation (Fournisseurs, Clients et leurs factures/règlements/avances) et les rapports. Les boutons de création, de modification et de suppression n'apparaissent pas.}
+
+\section{Le tableau de bord}
+
+À la connexion, le Gestionnaire arrive sur le \menu{Tableau de bord}~: les quatre indicateurs clés (chiffre d'affaires du mois, factures en attente, dettes fournisseurs, créances clients), le tableau des dernières factures fournisseurs, la situation des banques et les deux graphiques (évolution mensuelle, répartition des charges). C'est sa vue de pilotage privilégiée.
+
+\screenshot{images/dashboard_accueil.png}{Tableau de bord du Gestionnaire~: indicateurs, dernières factures, situation des banques et graphiques.}
+
+\section{Consulter les fournisseurs et leurs opérations}
+
+\subsection{Fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Fournisseurs} affiche la liste des fournisseurs (raison sociale, type, compte comptable, contact, téléphone, e-mail). Le Gestionnaire peut rechercher, filtrer par compte comptable et ouvrir la fiche détaillée d'un fournisseur (\bouton{Voir}) pour consulter ses informations, ses factures et ses règlements.
+
+\screenshot{images/gestion_fournisseur_liste.png}{Consultation de la liste et de la fiche d'un fournisseur.}
+
+\subsection{Factures fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Factures} présente les factures d'achat avec leurs montants et statuts, les cartes de synthèse (impayé, partiel, payé) et les filtres par fournisseur, statut et période. L'action \bouton{Voir} ouvre le détail d'une facture (récapitulatif financier, barre de progression, historique des règlements) et permet de consulter l'imputation comptable et l'état de règlement.
+
+\screenshot{images/detail_facture_forunisseur.png}{Consultation d'une facture fournisseur et de son détail.}
+
+\subsection{Règlements fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Règlements} regroupe les règlements par facture (détail dépliable), avec filtres par fournisseur, mode de paiement et période. Le Gestionnaire consulte les montants réglés, les restes à payer et le détail de chaque règlement.
+
+\screenshot{images/factures_founisseurs_av_reglements.png}{Consultation des règlements fournisseurs.}
+
+\section{Consulter les clients et leurs opérations}
+
+\subsection{Clients}
+
+Le module \menu{Factures Clients > Clients} affiche la liste des clients (numéro de compte, raison sociale, téléphone, adresse) avec recherche. L'action \bouton{Voir les factures} renvoie vers les factures du client.
+
+\screenshot{images/gestion_clients_list.png}{Consultation de la liste des clients.}
+
+\subsection{Factures clients}
+
+Le module \menu{Factures Clients > Factures} présente les factures de prestations avec leurs montants, restes et statuts, les cartes de synthèse (facturé, payé, créances) et les filtres par client, statut et période. L'action \bouton{Voir} ouvre le détail d'une facture.
+
+\screenshot{images/detail_facture_clients.png}{Consultation d'une facture client et de son détail.}
+
+\subsection{Règlements et avances clients}
+
+Le module \menu{Factures Clients > Règlements} regroupe les règlements clients par facture (détail dépliable), avec filtres par client, type et période. Le module \menu{Factures Clients > Avances} présente les chèques d'avance reçus et leur consommation (total reçu, consommé, solde disponible, statut). Le Gestionnaire consulte ces informations sans les modifier.
+
+\screenshot{images/liste_avance_clients.png}{Consultation des règlements et des avances clients.}
+
+\section{Consulter et exporter les rapports}
+
+Le menu \menu{Rapports} donne au Gestionnaire un accès complet aux trois familles d'états, avec filtres et export \bouton{PDF}, \bouton{Excel} et \bouton{Imprimer}~:
+
+\begin{itemize}
+  \item \textbf{Rapports fournisseurs} — mouvement des factures, situation des fournisseurs, factures réglées, factures et soldes, déclaration AIB, point périodique des PC, bordereau de transmission, récapitulatifs des charges et des investissements, déclaration de la TVA, banques par compte.
+  \item \textbf{Rapports clients} — état des règlements, état des créances, brouillard de chèques, chiffre d'affaires, pertes \& rejets.
+  \item \textbf{Rapports banques} — situation des banques.
+\end{itemize}
+
+C'est l'usage principal du Gestionnaire~: produire et exporter les états de suivi et de synthèse.
+
+\screenshot{images/rapport_clients.png}{Génération et export d'un rapport par le Gestionnaire.}
+
+\section{Gérer son compte}
+
+Le Gestionnaire accède à \menu{Mon Profil} (informations personnelles, mot de passe, signature) et peut se déconnecter manuellement~; la déconnexion automatique pour inactivité s'applique (voir le chapitre \og Prise en main \fg{}).
+
+% =====================================================================

@@ -1,0 +1,61 @@
+\chapter{Profil Utilisateur}
+% =====================================================================
+
+L'\textbf{Utilisateur} est un profil de \emph{consultation simple}. Il consulte les données opérationnelles (fournisseurs, clients, factures, règlements, avances) afin de retrouver une information, mais il ne saisit ni ne modifie aucune donnée, n'accède pas aux rapports et n'accède pas à l'administration. C'est le profil adapté à un agent qui doit simplement rechercher ou vérifier des éléments.
+
+\section{Périmètre du profil}
+
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.4cm} >{\raggedright\arraybackslash}p{9.2cm}}
+\toprule
+\textbf{Module} & \textbf{Droits de l'Utilisateur} \\
+\midrule
+\endhead
+Fournisseurs & Consulter \\
+Factures fournisseurs & Consulter \\
+Règlements fournisseurs & Consulter \\
+Clients & Consulter \\
+Factures clients & Consulter \\
+Règlements clients & Consulter \\
+Avances clients & Consulter \\
+Rapports & Non accessibles \\
+Plan comptable, Banques & Non accessibles \\
+Paramètres, Utilisateurs, Rôles, Journal & Non accessibles \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1}
+
+\note{Par rapport au Gestionnaire, l'Utilisateur ne dispose pas du menu \menu{Rapports}. Son menu se limite au tableau de bord et aux rubriques de consultation des fournisseurs et des clients.}
+
+\section{Le tableau de bord}
+
+À la connexion, l'Utilisateur arrive sur le \menu{Tableau de bord}, qui offre une vue d'ensemble~: les quatre indicateurs clés (chiffre d'affaires du mois, factures en attente, dettes fournisseurs, créances clients), le tableau des dernières factures fournisseurs, la situation des banques et les deux graphiques.
+
+\screenshot{images/dashboard_accueil.png}{Tableau de bord de l'Utilisateur.}
+
+\section{Consulter les fournisseurs et leurs opérations}
+
+\begin{itemize}
+  \item \menu{Factures Fournisseurs > Fournisseurs} — la liste des fournisseurs, avec recherche, filtre par compte comptable et accès à la fiche détaillée (\bouton{Voir}).
+  \item \menu{Factures Fournisseurs > Factures} — la liste des factures d'achat avec leurs montants et statuts, les filtres (fournisseur, statut, période) et le détail d'une facture (\bouton{Voir}).
+  \item \menu{Factures Fournisseurs > Règlements} — les règlements regroupés par facture, avec leur détail.
+\end{itemize}
+
+\screenshot{images/gestion_fournisseur_liste.png}{Consultation des fournisseurs, factures et règlements par l'Utilisateur.}
+
+\section{Consulter les clients et leurs opérations}
+
+\begin{itemize}
+  \item \menu{Factures Clients > Clients} — la liste des clients, avec recherche et accès à leurs factures.
+  \item \menu{Factures Clients > Factures} — la liste des factures de prestations, avec filtres et détail d'une facture.
+  \item \menu{Factures Clients > Règlements} — les règlements clients regroupés par facture.
+  \item \menu{Factures Clients > Avances} — les chèques d'avance reçus et leur consommation.
+\end{itemize}
+
+\screenshot{images/factures_clients.png}{Consultation des clients, factures, règlements et avances par l'Utilisateur.}
+
+\section{Gérer son compte}
+
+L'Utilisateur accède à \menu{Mon Profil} (informations personnelles, mot de passe, signature) et peut se déconnecter manuellement~; la déconnexion automatique pour inactivité s'applique (voir le chapitre \og Prise en main \fg{}).
+
+% =====================================================================

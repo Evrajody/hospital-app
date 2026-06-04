@@ -1,0 +1,98 @@
+\documentclass[11pt,a4paper]{report}
+
+\usepackage{fontspec}
+% Police principale : Arial. Arial étant propriétaire et absente sous Linux,
+% on utilise « Liberation Sans », métriquement identique à Arial.
+\setmainfont{Liberation Sans}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\usepackage{titling}
+\usepackage[hidelinks]{hyperref}
+
+\geometry{margin=2.4cm}
+
+% ----- Palette (alignée sur l'identité visuelle de l'application) -----
+\definecolor{primary}{HTML}{1C6FB8}
+\definecolor{accent}{HTML}{409EFF}
+\definecolor{darknavy}{HTML}{001529}
+\definecolor{success}{HTML}{2E9E5B}
+\definecolor{warn}{HTML}{C9821B}
+\definecolor{danger}{HTML}{C0392B}
+\definecolor{lightbg}{HTML}{EEF2F7}
+\definecolor{greytext}{HTML}{5A6675}
+
+% ----- Mise en forme des titres -----
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{primary}}
+  {\flushright\normalsize\color{greytext}\MakeUppercase{\chaptertitlename}\ \thechapter}
+  {6pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{10pt}{26pt}
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{darknavy}}{\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{primary}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{darknavy}}{}{0em}{}
+
+% ----- En-têtes / pieds de page -----
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\color{greytext}Guide utilisateur}
+\fancyhead[R]{\small\color{greytext}\leftmark}
+\fancyfoot[C]{\small\color{greytext}\thepage}
+
+% ----- Listes plus aérées -----
+\setlist[itemize]{leftmargin=1.4em,itemsep=2pt,topsep=3pt}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=2pt,topsep=3pt}
+
+% ----- Emplacement réservé pour une capture d'écran -----
+% L'image est volontairement générique : la LÉGENDE décrit
+% précisément la capture à insérer pour le processus concerné.
+\newcommand{\capture}[1]{%
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{images/placeholder.png}
+    \caption{#1}
+  \end{figure}%
+}
+
+% ----- Capture d'écran réelle (image encadrée + légende) -----
+%  \screenshot{images/fichier.png}{Légende}
+\newcommand{\screenshot}[2]{%
+  \begin{figure}[H]
+    \centering
+    \setlength{\fboxsep}{0pt}\setlength{\fboxrule}{0.4pt}%
+    \fcolorbox{greytext}{white}{\includegraphics[width=0.9\textwidth]{#1}}
+    \caption{#2}
+  \end{figure}%
+}
+
+% ----- Encarts (rendus simples, compatibles export Word) -----
+\newcommand{\note}[1]{\par\smallskip\noindent\textbf{\textcolor{primary}{Bon à savoir —}} #1\par\smallskip}
+\newcommand{\astuce}[1]{\par\smallskip\noindent\textbf{\textcolor{success}{Astuce —}} #1\par\smallskip}
+\newcommand{\attention}[1]{\par\smallskip\noindent\textbf{\textcolor{danger}{Attention —}} #1\par\smallskip}
+
+% ----- Raccourcis -----
+\newcommand{\menu}[1]{\textsf{\textbf{#1}}}      % chemin de menu / libellé d'écran
+\newcommand{\bouton}[1]{\textsf{[\,#1\,]}}        % bouton cliquable
+\newcommand{\champ}[1]{\textit{#1}}                % nom de champ
+
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+
+\hypersetup{
+  pdftitle={Guide utilisateur — Hôpital de zone de Ménontin},
+  pdfauthor={Hôpital de zone de Ménontin},
+}
