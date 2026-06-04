@@ -49,11 +49,18 @@ class RapportFournisseurController extends Controller
 
     private function getComptesList(): array
     {
+        // Regroupements de fournisseurs = comptes parents (ex. 401111, 401112…) sous lesquels
+        // les fournisseurs sont rattachés. On ne liste que ceux ayant au moins un fournisseur.
         $compteIds = Fournisseur::whereNotNull('compte_comptable_id')
             ->distinct()
             ->pluck('compte_comptable_id');
 
-        return CompteComptable::whereIn('id', $compteIds)
+        $parentIds = CompteComptable::whereIn('id', $compteIds)
+            ->whereNotNull('parent_id')
+            ->distinct()
+            ->pluck('parent_id');
+
+        return CompteComptable::whereIn('id', $parentIds)
             ->orderBy('numero_compte')
             ->get()
             ->map(fn($c) => [
@@ -194,7 +201,16 @@ class RapportFournisseurController extends Controller
                 ->orderBy('nom');
 
             if ($mode === 'par_compte' && $compteId) {
-                $query->where('compte_comptable_id', $compteId);
+                // $compteId = un regroupement → tous les fournisseurs dont le compte est ce compte
+                // ou un sous-compte. On matche par préfixe de numéro (robuste à la hiérarchie parent_id),
+                // ex. compte 401111 → tous les comptes commençant par "401111".
+                $compteParent = CompteComptable::find($compteId);
+                if ($compteParent && $compteParent->numero_compte) {
+                    $prefixe = $compteParent->numero_compte;
+                    $query->whereHas('compteComptable', function ($q) use ($prefixe) {
+                        $q->where('numero_compte', 'LIKE', $prefixe . '%');
+                    });
+                }
             }
 
             $fournisseurs = $query->get();

@@ -184,9 +184,17 @@
               {{ pagination.total }} compte(s) trouvé(s)
             </span>
             <div class="card-actions">
-              <el-button :icon="Download" size="small" @click="handleExport">
-                Exporter
-              </el-button>
+              <el-dropdown trigger="click" @command="handleExport">
+                <el-button :icon="Download" size="small">
+                  Exporter<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="pdf">Exporter en PDF</el-dropdown-item>
+                    <el-dropdown-item command="excel">Exporter en Excel</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
               <el-button :icon="Printer" size="small" @click="handlePrint">
                 Imprimer
               </el-button>
@@ -294,6 +302,7 @@ import {
   Coin,
   Goods,
   TrendCharts,
+  ArrowDown,
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CompteComptableModal from '@/Components/Modals/CompteComptableModal.vue';
@@ -421,12 +430,28 @@ const handlePageChange = (page) => {
   });
 };
 
-const handleExport = () => {
-  ElMessage.info('Export en cours de développement...');
+const buildExportQuery = (extra = {}) => {
+  const params = new URLSearchParams();
+  if (filters.search) params.set('search', filters.search);
+  if (filters.classe) params.set('classe', filters.classe);
+  if (filters.source) params.set('source', filters.source);
+  Object.entries(extra).forEach(([k, v]) => params.set(k, v));
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+};
+
+const handleExport = (command) => {
+  if (command === 'excel') {
+    window.location.href = '/plan-comptable/export/excel' + buildExportQuery();
+  } else {
+    // PDF : téléchargement direct
+    window.location.href = '/plan-comptable/export/pdf' + buildExportQuery({ download: 1 });
+  }
 };
 
 const handlePrint = () => {
-  ElMessage.info('Impression en cours de développement...');
+  // Ouvre le PDF en ligne dans un nouvel onglet (l'utilisateur imprime depuis le visualiseur)
+  window.open('/plan-comptable/export/pdf' + buildExportQuery(), '_blank');
 };
 
 const handleEdit = (compte) => {

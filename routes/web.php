@@ -193,6 +193,8 @@ Route::prefix('api/avances-clients')->group(function () {
 // Plan Comptable Routes
 Route::prefix('plan-comptable')->middleware('permission:plan-comptable.voir')->group(function () {
     Route::get('/', [PlanComptableController::class, 'index'])->name('plan-comptable.index');
+    Route::get('/export/pdf', [PlanComptableController::class, 'exportPdf'])->name('plan-comptable.export.pdf');
+    Route::get('/export/excel', [PlanComptableController::class, 'exportExcel'])->name('plan-comptable.export.excel');
 });
 
 // API Plan Comptable

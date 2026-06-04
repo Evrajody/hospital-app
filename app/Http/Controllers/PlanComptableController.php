@@ -107,6 +107,105 @@ class PlanComptableController extends Controller
     }
 
     /**
+     * Construire la requête filtrée (mêmes filtres que l'index, sans pagination) pour l'export.
+     */
+    private function buildExportQuery(Request $request)
+    {
+        $query = CompteComptable::query();
+
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('numero_compte', 'ILIKE', "%{$search}%")
+                  ->orWhere('libelle', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        if ($classe = $request->get('classe')) {
+            $query->where('classe', $classe);
+        }
+
+        if ($source = $request->get('source')) {
+            if ($source === 'custom') {
+                $query->where('is_custom', true);
+            } elseif ($source === 'standard') {
+                $query->where('is_custom', false);
+            }
+        }
+
+        $sortBy = $request->get('sort_by', 'numero_compte');
+        $sortOrder = $request->get('sort_order', 'asc') === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['numero_compte', 'libelle', 'classe'];
+        $sortBy = in_array($sortBy, $allowedSorts) ? $sortBy : 'numero_compte';
+
+        return $query->orderBy($sortBy, $sortOrder);
+    }
+
+    /**
+     * Sous-titre décrivant les filtres actifs de l'export.
+     */
+    private function exportSousTitre(Request $request): string
+    {
+        $parts = [];
+        if ($s = $request->get('search')) {
+            $parts[] = 'Recherche : "' . $s . '"';
+        }
+        if ($c = $request->get('classe')) {
+            $parts[] = 'Classe ' . $c;
+        }
+        if ($src = $request->get('source')) {
+            $parts[] = $src === 'custom' ? 'Comptes personnalisés' : ($src === 'standard' ? 'Comptes standard' : '');
+        }
+        return implode(' — ', array_filter($parts));
+    }
+
+    /**
+     * Export PDF du plan comptable (stream pour impression, ou téléchargement si ?download=1).
+     */
+    public function exportPdf(Request $request)
+    {
+        $comptes = $this->buildExportQuery($request)->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.plan-comptable', [
+            'comptes' => $comptes,
+            'titre' => 'PLAN COMPTABLE OHADA',
+            'sousTitre' => $this->exportSousTitre($request),
+            'generatedBy' => auth()->user()?->name ?? 'Utilisateur',
+            'generatedAt' => now()->format('d/m/Y à H:i'),
+        ])->setPaper('a4', 'portrait');
+
+        return $request->boolean('download')
+            ? $pdf->download('plan-comptable.pdf')
+            : $pdf->stream('plan-comptable.pdf');
+    }
+
+    /**
+     * Export Excel du plan comptable.
+     */
+    public function exportExcel(Request $request)
+    {
+        $comptes = $this->buildExportQuery($request)->get();
+
+        $rows = $comptes->map(fn($c) => [
+            $c->numero_compte,
+            $c->libelle,
+            $c->classe,
+            ($c->is_custom ?? false) ? 'Personnalisé' : 'Standard',
+        ])->toArray();
+
+        $titre = 'Plan Comptable OHADA';
+        if ($st = $this->exportSousTitre($request)) {
+            $titre .= ' — ' . $st;
+        }
+
+        return \App\Support\ExcelExporter::download(
+            ['N° Compte', 'Libellé', 'Classe', 'Source'],
+            $rows,
+            'plan-comptable',
+            $titre,
+        );
+    }
+
+    /**
      * Recherche de comptes (API)
      */
     public function search(Request $request): JsonResponse
