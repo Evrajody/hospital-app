@@ -141,7 +141,7 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->role !== User::ROLE_ADMIN) {
+        if (! $user->can('parametres.modifier')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Accès non autorisé',

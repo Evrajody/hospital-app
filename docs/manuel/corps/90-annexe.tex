@@ -1,0 +1,34 @@
+\chapter{Annexe~: comparatif des profils}
+% =====================================================================
+
+Le tableau suivant résume, action par action, ce que chaque profil peut faire. La mention \og Voir \fg{} indique la consultation seule, \og Gérer \fg{} la création et la modification, et \og Tout \fg{} l'ajout de la suppression.
+
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.0cm} c c c c}
+\toprule
+\textbf{Action / Module} & \textbf{Admin.} & \textbf{Compt.} & \textbf{Gest.} & \textbf{Util.} \\
+\midrule
+\endhead
+Tableau de bord & Oui & Oui & Oui & Oui \\
+Fournisseurs & Tout & Gérer & Voir & Voir \\
+Factures fournisseurs & Tout + valider & Gérer + valider & Voir & Voir \\
+Règlements fournisseurs & Tout & Gérer & Voir & Voir \\
+Clients & Tout & Gérer & Voir & Voir \\
+Factures clients & Tout & Gérer & Voir & Voir \\
+Règlements clients & Tout & Gérer & Voir & Voir \\
+Avances clients & Tout & Gérer & Voir & Voir \\
+Plan comptable & Tout & Voir & — & — \\
+Banques \& trésorerie & Tout & Voir & — & — \\
+Rapports & Oui & Oui & Oui & — \\
+Taux fiscaux & Gérer & — & — & — \\
+Établissement & Gérer & — & — & — \\
+Utilisateurs & Tout & — & — & — \\
+Rôles \& permissions & Tout & — & — & — \\
+Journal d'activité & Voir & — & — & — \\
+Mon profil & Oui & Oui & Oui & Oui \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1}
+
+\note{Ces droits correspondent à la configuration livrée par défaut. L'administrateur peut les ajuster à tout moment depuis le module \menu{Rôles \& Permissions}.}
+

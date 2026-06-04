@@ -1,0 +1,331 @@
+\chapter{Profil Administrateur}
+% =====================================================================
+
+L'\textbf{Administrateur} dispose de l'accès le plus complet à l'application. Il peut réaliser toutes les opérations métier (fournisseurs, clients, factures, règlements, avances, trésorerie, comptabilité), consulter et exporter tous les rapports, et il est le seul à accéder à l'\emph{administration}~: gestion des utilisateurs, des rôles et permissions, des paramètres fiscaux, des informations de l'établissement et du journal d'activité.
+
+\section{Périmètre du profil}
+
+Le tableau ci-dessous récapitule ce que l'Administrateur peut faire dans chaque module.
+
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.4cm} >{\raggedright\arraybackslash}p{9.2cm}}
+\toprule
+\textbf{Module} & \textbf{Droits de l'Administrateur} \\
+\midrule
+\endhead
+Fournisseurs & Consulter, créer, modifier, supprimer \\
+Factures fournisseurs & Consulter, créer, modifier, valider, solder, supprimer \\
+Règlements fournisseurs & Consulter, créer, modifier, supprimer \\
+Clients & Consulter, créer, modifier, supprimer \\
+Factures clients & Consulter, créer, modifier, solder, supprimer \\
+Règlements clients & Consulter, créer, modifier, supprimer \\
+Avances clients & Consulter, créer, modifier, supprimer \\
+Plan comptable & Consulter, créer, modifier, supprimer \\
+Banques \& trésorerie & Consulter, créer, approvisionner, modifier, supprimer \\
+Rapports & Consulter et exporter (PDF / Excel) \\
+Paramètres (taux fiscaux, établissement) & Consulter et modifier \\
+Utilisateurs & Consulter, créer, modifier, activer/désactiver, supprimer \\
+Rôles \& permissions & Consulter, créer, modifier, supprimer \\
+Journal d'activité & Consulter \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1}
+
+\section{Le tableau de bord}
+
+À la connexion, l'Administrateur arrive sur le \menu{Tableau de bord}, qui offre une vue d'ensemble de la santé financière de l'établissement.
+
+En haut, quatre indicateurs clés sont présentés sous forme de cartes~:
+
+\begin{itemize}
+  \item \menu{Chiffre d'affaires} — le montant facturé aux clients sur le mois en cours, avec l'évolution en pourcentage par rapport au mois précédent.
+  \item \menu{Factures en attente} — le nombre de factures non soldées, réparties entre clients et fournisseurs.
+  \item \menu{Dettes fournisseurs} — le total restant à payer aux fournisseurs.
+  \item \menu{Créances clients} — le total restant à encaisser auprès des clients.
+\end{itemize}
+
+En dessous, l'écran présente le tableau des \menu{Dernières factures fournisseurs} (numéro, fournisseur, montant, date, statut) avec un bouton \bouton{Voir tout} renvoyant vers la liste complète, ainsi qu'une carte \menu{Situation des banques} listant chaque compte avec son solde et le solde total. Deux graphiques complètent la page~: l'\menu{Évolution mensuelle} des recettes et dépenses sur douze mois, et la \menu{Répartition des charges} par fournisseur sur l'année.
+
+\screenshot{images/dashboard_accueil.png}{Tableau de bord~: les quatre cartes d'indicateurs, le tableau des dernières factures, la situation des banques et les deux graphiques.}
+
+\section{Gérer les fournisseurs}
+
+Le module \menu{Fournisseurs} centralise les tiers auprès desquels l'hôpital effectue ses achats. On y accède par \menu{Factures Fournisseurs > Fournisseurs}.
+
+\subsection{Consulter et rechercher}
+
+La liste affiche, pour chaque fournisseur, sa raison sociale, son type (Médicaments, Équipements, Consommables, Services, Maintenance, Autres), son compte comptable, son contact, son téléphone et son e-mail. Une carte indique le nombre total de fournisseurs. Vous pouvez rechercher un fournisseur par code, nom, compte, e-mail ou téléphone, ou filtrer par compte comptable.
+
+\screenshot{images/gestion_fournisseur_liste.png}{Liste des fournisseurs avec la carte de total, le champ de recherche et le filtre par compte comptable.}
+
+\subsection{Créer un fournisseur}
+
+Cliquez sur \bouton{Nouveau Fournisseur} pour ouvrir le formulaire, organisé en onglets~:
+
+\begin{enumerate}
+  \item \menu{Informations générales} — saisissez la \champ{Raison sociale} (obligatoire) et choisissez le \champ{Type de fournisseur}.
+  \item \menu{Coordonnées} — renseignez le contact, sa fonction, les téléphones, l'e-mail, le site web, l'adresse, la ville et le pays.
+  \item \menu{Compte comptable} — chaque fournisseur possède son propre compte auxiliaire. Vous pouvez \emph{sélectionner un compte existant} (classe 401 ou 4812) ou \emph{créer un nouveau compte}~: choisissez le compte parent, saisissez (ou générez automatiquement via le bouton \bouton{Auto}) le numéro de compte, et indiquez son libellé (par défaut, le nom du fournisseur).
+  \item \menu{Informations fiscales} — saisissez l'\champ{IFU} (treize chiffres, obligatoire) et le \champ{RCCM}.
+  \item \menu{Complémentaires} — ajoutez d'éventuelles observations.
+\end{enumerate}
+
+Naviguez avec \bouton{Précédent} et \bouton{Suivant}, puis cliquez sur \bouton{Enregistrer}. Un message confirme la création.
+
+\screenshot{images/nouveau_founisseur_form.png}{Formulaire de création d'un fournisseur~: onglet Informations générales et onglet Compte comptable.}
+
+\subsection{Consulter la fiche d'un fournisseur}
+
+Depuis la liste, l'action \bouton{Voir} ouvre la fiche détaillée, organisée en trois onglets~: \menu{Informations} (coordonnées, informations fiscales, observations, historique de création), \menu{Factures} (toutes les factures du fournisseur, avec montant, payé, reste et statut) et \menu{Règlements} (l'historique des paiements, avec accès aux bordereaux et fiches d'imputation). Des cartes statistiques affichent le nombre de factures, le total facturé, le montant payé et le reste à payer.
+
+\screenshot{images/fiche_fournisseur_detail.png}{Fiche fournisseur~: cartes statistiques et onglets Informations / Factures / Règlements.}
+
+\subsection{Modifier et supprimer}
+
+L'action \bouton{Modifier} (depuis la liste ou la fiche) rouvre le formulaire pré-rempli. L'action \bouton{Supprimer} retire le fournisseur après confirmation.
+
+\section{Gérer les factures fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Factures} permet d'enregistrer et de suivre les factures d'achat.
+
+\subsection{Consulter et filtrer}
+
+La liste présente le numéro de pièce, la date, le fournisseur, la référence, le libellé, le montant TTC, le net à payer, le montant déjà payé et le statut. Quatre cartes résument le total des factures et les montants impayés, partiellement payés et payés. Vous pouvez rechercher par numéro ou référence, et filtrer par fournisseur, par statut de paiement (Impayée, Partielle, Payée) ou par période.
+
+\screenshot{images/factures_founisseur_liste.png}{Liste des factures fournisseurs~: cartes de synthèse, filtres et tableau des factures.}
+
+\subsection{Créer une facture}
+
+Cliquez sur \bouton{Nouvelle Facture}. Le formulaire se présente en quatre onglets~:
+
+\begin{enumerate}
+  \item \menu{Informations} — saisissez le \champ{N° de pièce} (le bouton \bouton{Auto} le génère et vérifie qu'il n'existe pas déjà), la \champ{Date d'enregistrement}, la \champ{Référence / N° de bon de commande}, sa date, le \champ{Fournisseur} et le \champ{Libellé}.
+  \item \menu{Montants} — précisez si la facture est \champ{assujettie à la TVA} et son taux, le \champ{Montant HT}, un éventuel \champ{Avoir}, le \champ{Montant main-d'œuvre} (base de l'AIB), le compte et le \champ{taux d'AIB}. Un récapitulatif calcule en temps réel le HT, la TVA, l'AIB, le TTC et le net à payer.
+  \item \menu{Imputations comptables} — répartissez les \emph{débits} (charges, immobilisations, personnel) qui doivent totaliser le HT, et les \emph{crédits} (comptes fournisseurs) qui doivent totaliser le TTC. Chaque ligne précise l'imputation, le compte, le libellé et le montant~; un repère de couleur indique si le total saisi correspond à la cible.
+  \item \menu{Observations} — ajoutez vos notes.
+\end{enumerate}
+
+Cliquez sur \bouton{Enregistrer}.
+
+\note{La cohérence comptable est contrôlée~: la somme des débits doit égaler le montant HT et la somme des crédits le montant TTC.}
+
+\screenshot{images/nouvelle_facture_fournisseur_form.png}{Formulaire de facture fournisseur~: onglet Montants (calcul automatique TVA/AIB/TTC) et onglet Imputations comptables.}
+
+\subsection{Consulter le détail d'une facture}
+
+L'action \bouton{Voir} ouvre la fiche de la facture~: informations générales, imputations (débits et crédits), montants détaillés, récapitulatif financier avec barre de progression du paiement, et historique des règlements. Des badges indiquent le statut de paiement et l'état de l'imputation comptable.
+
+\screenshot{images/detail_facture_forunisseur.png}{Détail d'une facture fournisseur~: récapitulatif financier, barre de progression et historique des règlements.}
+
+\subsection{Valider l'imputation, solder, modifier, supprimer}
+
+Depuis la fiche ou le menu d'actions de la liste, l'Administrateur peut~:
+
+\begin{itemize}
+  \item \bouton{Marquer comme soldée} — clôturer manuellement une facture (après confirmation), même sans règlement intégral.
+  \item Générer les écritures d'\bouton{Imputation comptable} et les consulter dans un panneau latéral, avec téléchargement en PDF.
+  \item Ouvrir l'\bouton{État de règlement} de la facture (panneau latéral + PDF).
+  \item \bouton{Modifier} la facture ou la \bouton{Supprimer} (après confirmation).
+\end{itemize}
+
+\screenshot{images/inputation_comptable.png}{Panneau d'imputation comptable d'une facture, avec le bouton de téléchargement PDF.}
+
+\subsection{Régler une facture fournisseur}
+
+L'action \bouton{Régler} ouvre la page de règlement. Le côté gauche rappelle les informations et les montants de la facture ainsi que l'historique des paiements~; le côté droit contient le formulaire~:
+
+\begin{enumerate}
+  \item Choisissez l'\champ{Année d'exercice} et la \champ{Date de règlement}.
+  \item Si la facture comporte une imputation détaillée, répartissez le montant à solder par compte fournisseur dans le tableau (bouton \bouton{Ajouter un compte}), sinon saisissez directement le \champ{Montant payé}.
+  \item Sélectionnez le \champ{Mode de paiement}~: \emph{Espèces}, \emph{Chèque} ou \emph{Virement}. Pour un chèque ou un virement, indiquez la \champ{Banque}, le \champ{Compte bancaire}, la \champ{Référence} et sa date~; le solde du compte s'affiche pour information.
+  \item Indiquez le \champ{Bénéficiaire} (avec suggestions), cochez le cas échéant \champ{Déclarer l'AIB}, et ajoutez vos \champ{Notes}.
+  \item Un récapitulatif détaille le total à solder, la retenue AIB éventuelle et le décaissement réel. Cliquez sur \bouton{Enregistrer le règlement}.
+\end{enumerate}
+
+\attention{Si le solde du compte bancaire est insuffisant, une fenêtre demande explicitement votre autorisation avant d'enregistrer le règlement.}
+
+\screenshot{images/Nouveau_reglement_facture.png}{Page de règlement d'une facture fournisseur~: répartition par compte, mode de paiement et récapitulatif du décaissement.}
+
+\section{Suivre les règlements fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Règlements} présente tous les règlements, regroupés par facture. Quatre cartes affichent le total des règlements, le montant du mois, le nombre de règlements et le montant moyen. Vous pouvez filtrer par fournisseur, mode de paiement et période.
+
+Chaque ligne de facture se déplie pour révéler le détail des règlements (date, mode, référence, bénéficiaire, compte bancaire, auteur de la saisie, montant). Pour chaque règlement, le menu d'actions permet de générer le \bouton{Bordereau} (PDF), la fiche d'\bouton{Imputation} (PDF, sauf espèces), de \bouton{Modifier} ou de \bouton{Supprimer} le règlement. Le bouton \bouton{Nouveau Règlement} ouvre une fenêtre de sélection d'une facture impayée pour démarrer un règlement.
+
+\screenshot{images/factures_founisseurs_av_reglements.png}{Liste des règlements fournisseurs regroupés par facture, avec le détail déplié et les actions PDF.}
+
+Pour chaque règlement, le bouton \bouton{Bordereau} édite un \textbf{mandat / bordereau de règlement} au format PDF. Ce document officiel reprend l'objet, le prestataire, le détail des montants (HT, TVA, TTC, avoir, AIB, montant payé, reste à payer), le \textbf{montant en toutes lettres} et les blocs de signature du bénéficiaire et du Directeur.
+\screenshot{images/bordereau_reglement_facture_founisseur.png}{Bordereau / mandat de règlement fournisseur généré en PDF (montant en lettres et signatures).}
+
+\section{Gérer les clients}
+
+Le module \menu{Factures Clients > Clients} recense les tiers facturés par l'hôpital. La liste affiche le numéro de compte, la raison sociale, le téléphone et l'adresse, avec une carte indiquant le nombre total de clients et un champ de recherche.
+
+\subsection{Créer ou modifier un client}
+
+Le bouton \bouton{Nouveau Client} ouvre une fenêtre à deux onglets~:
+
+\begin{enumerate}
+  \item \menu{Informations} — \champ{Raison sociale} (obligatoire), \champ{Téléphone}, \champ{IFU} (treize chiffres), \champ{Type de client} (Société, Divers, Personnel, Autre), \champ{Adresse} et \champ{Observation}.
+  \item \menu{Compte comptable} — sélectionnez un compte client existant (classe 41) ou créez-en un nouveau (compte parent, numéro avec génération \bouton{Auto}, libellé).
+\end{enumerate}
+
+Cliquez sur \bouton{Enregistrer}. L'action \bouton{Modifier} rouvre ce formulaire, \bouton{Voir les factures} renvoie vers les factures du client et \bouton{Supprimer} retire le client après confirmation.
+
+\screenshot{images/gestion_clients_list.png}{Liste des clients~: recherche, tri par n° de compte et accès aux fiches détaillées.}
+
+\section{Gérer les factures clients}
+
+Le module \menu{Factures Clients > Factures} permet d'émettre et de suivre les factures de prestations. La liste affiche la référence, la date, le client, le montant, le payé, le reste et le statut~; quatre cartes synthétisent le total facturé, payé et les créances. Vous pouvez filtrer par client, statut et période.
+
+\subsection{Créer une facture client}
+
+Le bouton \bouton{Nouvelle Facture} ouvre une fenêtre où vous saisissez la \champ{Référence} (bouton \bouton{Auto} disponible), la \champ{Date}, le \champ{Client}, le \champ{Montant} et une éventuelle \champ{Ristourne}~; le \emph{net à payer} est calculé automatiquement. Cliquez sur \bouton{Enregistrer}.
+
+\screenshot{images/nouvelle_facture_clients.png}{Fenêtre de création d'une facture client avec calcul automatique du net à payer.}
+
+\subsection{Consulter, solder, modifier, supprimer}
+
+L'action \bouton{Voir} ouvre la fiche de la facture (informations, récapitulatif, barre de progression du paiement). Tant que la facture n'est pas payée, vous pouvez \bouton{Enregistrer un règlement} ou la \bouton{Marquer comme soldée}. Les actions \bouton{Modifier} et \bouton{Supprimer} sont également disponibles.
+
+\screenshot{images/detail_facture_clients.png}{Détail d'une facture client~: récapitulatif et barre de progression du paiement.}
+
+\subsection{Régler une facture client}
+
+L'action \bouton{Régler} ouvre la page de règlement. Le côté gauche rappelle les informations de la facture et l'historique des règlements~; le côté droit contient le formulaire~:
+
+\begin{enumerate}
+  \item Le \champ{N° de ligne} est attribué automatiquement. Choisissez le \champ{Type}~: \emph{Règlement} ou \emph{Perte}.
+  \item Pour un règlement, saisissez le \champ{Montant} et, le cas échéant, un \champ{Montant rejeté} (chèque rejeté).
+  \item Choisissez la \emph{source du paiement}~: un \textbf{paiement direct} (institution, référence de chèque, banque de dépôt, référence de bordereau, et téléversement du bordereau de dépôt) ou l'\textbf{imputation sur une avance} disponible du client.
+  \item Ajoutez vos \champ{Notes}. Un récapitulatif affiche le montant et le nouveau reste à payer, puis cliquez sur \bouton{Enregistrer le règlement}.
+\end{enumerate}
+
+\screenshot{images/facture_clients_reglement.png}{Page de règlement d'une facture client~: type de règlement, source du paiement et dépôt bancaire.}
+
+\section{Suivre les règlements clients}
+
+Le module \menu{Factures Clients > Règlements} présente tous les règlements clients, regroupés par facture (avec détail dépliable). Quatre cartes affichent le total, le montant du mois, le nombre et le montant moyen. Vous pouvez filtrer par client, type et période, consulter le détail d'un règlement, le modifier ou le supprimer, et démarrer un \bouton{Nouveau Règlement} en sélectionnant une facture.
+
+\screenshot{images/reglement_client_list.png}{Liste des règlements clients regroupés par facture.}
+
+\section{Gérer les avances clients}
+
+Le module \menu{Factures Clients > Avances} gère les chèques d'avance reçus de tiers (par exemple des assurances) et leur consommation. Quatre cartes affichent le total des avances reçues, le total consommé, le solde disponible et le nombre d'avances. La liste précise pour chaque avance la société émettrice, le numéro de chèque, le montant, la part utilisée, le solde et le statut (Disponible, Partiellement utilisée, Épuisée).
+
+Le bouton \bouton{Nouvelle avance} ouvre un formulaire~: \champ{Client bénéficiaire}, \champ{Société émettrice}, \champ{N° de chèque}, \champ{Date du chèque}, \champ{Montant}, éventuellement \champ{N° de proforma}, \champ{Institution}, \champ{Banque de dépôt}, \champ{Référence de bordereau} et téléversement du \champ{Bordereau de dépôt}. Une avance se consomme ensuite lors du règlement d'une facture client (option \emph{imputation sur une avance}). Les actions \bouton{Détails}, \bouton{Modifier} et \bouton{Supprimer} (uniquement si l'avance n'a pas encore été utilisée) sont disponibles.
+
+\screenshot{images/liste_avance_clients.png}{Liste des avances clients et fenêtre de création d'une avance.}
+
+La création d'une avance enregistre un encaissement reçu \emph{avant} facturation~: société émettrice, n° de chèque, montant, n° de proforma éventuel et dépôt bancaire. Le solde de l'avance est ensuite consommé au fil des règlements du même client.
+\screenshot{images/nouvelle_avance_clients.png}{Formulaire de création d'une avance client.}
+
+\section{Tenir le plan comptable}
+
+Le module \menu{Autres > Plan Comptable} gère la nomenclature comptable OHADA (classes 1 à 8). Huit cartes répartissent les comptes par classe (Capitaux, Immobilisations, Stocks, Tiers, Trésorerie, Charges, Produits\ldots) et la liste affiche le numéro, le libellé, la classe et une marque \og Personnalisé \fg{} pour les comptes ajoutés manuellement. Vous pouvez rechercher par numéro ou libellé et filtrer par classe ou par source (OHADA standard / personnalisé).
+
+Le bouton \bouton{Nouveau Compte} ouvre un formulaire~: \champ{Compte parent} (facultatif), \champ{Numéro de compte} et \champ{Libellé}. Les comptes personnalisés peuvent être \bouton{Modifiés} et \bouton{Supprimés} (après confirmation)~; les comptes standard OHADA ne sont pas supprimables.
+
+\screenshot{images/plan_comptable_globale.png}{Plan comptable OHADA~: cartes par classe, liste des comptes et fenêtre d'ajout de compte.}
+
+\section{Gérer les banques et la trésorerie}
+
+Le module \menu{Autres > Banques} suit les comptes bancaires et les caisses de l'établissement. La page affiche le solde global, les entrées et sorties du mois, la liste des banques (en colonne de gauche) et les comptes de la banque sélectionnée (sous forme de cartes avec leur solde).
+
+\subsection{Créer une banque et un compte}
+
+Le menu \bouton{Nouveau} propose \bouton{Nouvelle Banque} (il suffit d'indiquer le \champ{Nom}) et \bouton{Nouveau Compte} (\champ{Banque}, \champ{Numéro de compte}, \champ{Compte OHADA} de trésorerie, \champ{Observations}).
+
+\subsection{Approvisionner un compte}
+
+Le bouton \bouton{Approvisionner} enregistre un dépôt~: \champ{Compte à approvisionner}, \champ{Date}, \champ{Montant}, \champ{Origine des fonds} (Recette journalière, Subvention, Donation, Virement interne, Remboursement, Autre), \champ{Référence}, \champ{Description} et \champ{Pièce jointe} facultative. Le nouveau solde est calculé et affiché avant validation.
+
+\subsection{Consulter les mouvements}
+
+Le bouton \bouton{Mouvements} d'un compte ouvre l'historique complet des entrées et sorties (date, type, référence, description, montant, solde après opération, auteur de la saisie), avec filtres par type et période et une fenêtre de \bouton{Détails} pour chaque mouvement.
+
+\screenshot{images/gestiion_banques.png}{Module Banques~: liste des comptes avec soldes, approvisionnement et historique des mouvements.}
+
+L'\textbf{approvisionnement} d'un compte enregistre une entrée de fonds (bordereau)~: référence, date, montant et origine des fonds. Il augmente immédiatement le solde du compte ; ce bordereau pourra ensuite être pointé par les règlements clients.
+\screenshot{images/approvisionnement_banques.png}{Approvisionnement d'un compte bancaire (saisie d'un bordereau d'entrée de fonds).}
+
+\section{Consulter et exporter les rapports}
+
+Le menu \menu{Rapports} donne accès à trois familles d'états, chacun assorti de filtres (période, fournisseur/client, compte, banque, exercice\ldots) et d'options d'export \bouton{PDF}, \bouton{Excel} et \bouton{Imprimer}.
+
+\subsection{Rapports fournisseurs}
+
+\begin{itemize}
+  \item \menu{Mouvement des factures} — le détail des factures d'un fournisseur (TTC, avoir, AIB, règlements, solde).
+  \item \menu{Situation des fournisseurs} — la synthèse des dettes (tous, par compte ou par fournisseur).
+  \item \menu{Factures réglées} — les factures payées sur la période (résumé et détail par fournisseur).
+  \item \menu{Factures et soldes} — les factures avec leur solde restant (export Excel).
+  \item \menu{Déclaration AIB} — la déclaration des retenues AIB, le bordereau de versement et le point avec la TFU.
+  \item \menu{Point périodique des PC} — les pièces comptables enregistrées, regroupées par date.
+  \item \menu{Bordereau de transmission} — la sélection de règlements à transmettre (mandats et bordereaux).
+  \item \menu{Récapitulatif des charges} et \menu{Récapitulatif des investissements} — les dépenses et immobilisations par compte.
+  \item \menu{Déclaration de la TVA} — les factures assujetties et la TVA due.
+  \item \menu{Banques par compte} — la synthèse des soldes bancaires (approvisionnements, débits, solde).
+\end{itemize}
+
+\subsection{Rapports clients}
+
+\begin{itemize}
+  \item \menu{État des règlements} — le suivi des règlements, pertes et rejets.
+  \item \menu{État des créances} — les factures non soldées par client.
+  \item \menu{Brouillard de chèques} — la conciliation et les imputations comptables côté client.
+  \item \menu{Chiffre d'affaires} — le chiffre d'affaires global (théorique / physique) ou par client.
+  \item \menu{Pertes \& rejets} — la liste des pertes et des rejets de paiement.
+\end{itemize}
+
+\subsection{Rapports banques}
+
+\begin{itemize}
+  \item \menu{Situation des banques} — la synthèse des soldes et mouvements (toutes les banques ou une banque, avec solde initial, mouvements et solde final).
+\end{itemize}
+
+\screenshot{images/rapports_founisseurs.png}{Écran de rapports~: choix de l'onglet, filtres de période et boutons d'export PDF / Excel.}
+
+Les rapports clients (état des règlements, créances, brouillard de chèques, chiffre d'affaires, pertes \& rejets) et le rapport de \textbf{situation des banques} se consultent de la même manière, avec les mêmes options d'export.
+\screenshot{images/rapport_clients.png}{Rapports Clients~: choix du rapport, filtres et exports.}
+\screenshot{images/reapport_situation_banques.png}{Rapport — Situation des banques (trésorerie par compte sur une période).}
+
+\section{Paramétrer l'application}
+
+\subsection{Taux fiscaux}
+
+Le module \menu{Paramètres > Taux Fiscaux} centralise les taux de TVA et d'AIB. Trois cartes indiquent le nombre de taux de chaque type et le nombre de taux actifs. Pour les AIB, le bouton \bouton{Ajouter AIB} ouvre un formulaire (\champ{Libellé}, \champ{Taux (\%)}, \champ{Actif}, \champ{Par défaut}). Chaque taux peut être modifié, activé/désactivé via un interrupteur, marqué par défaut, et les taux AIB supprimés.
+
+\screenshot{images/configuration_taux_fiscaux.png}{Paramètres des taux fiscaux~: tableaux TVA et AIB avec interrupteurs d'activation.}
+
+\subsection{Informations de l'établissement}
+
+Le module \menu{Paramètres > Établissement} définit les informations reprises en en-tête des documents et rapports~: \champ{Nom de l'établissement}, \champ{Pays / Entité}, \champ{Adresse}, \champ{Téléphone}, \champ{E-mail} et \champ{Nom du Directeur} (affiché au bas des bordereaux de règlement). Cliquez sur \bouton{Enregistrer les paramètres}.
+
+\screenshot{images/config_etablissement.png}{Écran des paramètres de l'établissement.}
+
+\section{Administrer les utilisateurs}
+
+Le module \menu{Paramètres > Utilisateurs} permet de gérer les comptes. La liste affiche le nom, l'e-mail, le poste, le téléphone, les rôles, le statut (interrupteur actif/inactif) et les actions.
+
+Le bouton \bouton{Nouvel Utilisateur} ouvre un formulaire~: \champ{Nom complet}, \champ{E-mail}, \champ{Mot de passe} (au moins huit caractères mêlant minuscules, majuscules, chiffres et caractère spécial), \champ{Téléphone}, \champ{Poste}, \champ{Rôles} (un ou plusieurs) et \champ{Statut}. En modification, laissez le mot de passe vide pour le conserver. L'interrupteur de statut active ou désactive instantanément un compte~; la suppression demande confirmation (vous ne pouvez pas supprimer votre propre compte).
+
+\screenshot{images/gestion_utilisateurs.png}{Gestion des utilisateurs~: liste, interrupteur de statut et formulaire de création.}
+
+\section{Gérer les rôles et permissions}
+
+Le module \menu{Paramètres > Rôles \& Permissions} présente une \emph{matrice} croisant les permissions (en lignes, regroupées par module) et les rôles (en colonnes). Cliquer sur une cellule accorde ou retire une permission à un rôle. Des boutons permettent d'appliquer en masse toutes les permissions d'un module à un rôle, ou de tout activer / tout désactiver pour un rôle donné.
+
+Le bouton \bouton{Nouveau Rôle} crée un rôle (il suffit d'indiquer son \champ{Nom}, puis de cocher ses permissions dans la matrice). Chaque rôle peut être \bouton{Modifié} ou \bouton{Supprimé} (impossible s'il est encore attribué à des utilisateurs).
+
+\note{Quatre rôles existent par défaut~: Administrateur, Comptable, Gestionnaire et Utilisateur. Vous pouvez les ajuster ou en créer d'autres selon les besoins de l'établissement.}
+
+\screenshot{images/roles_permission.png}{Matrice des rôles et permissions~: lignes par module, colonnes par rôle, cellules à cocher.}
+
+\section{Consulter le journal d'activité}
+
+Le module \menu{Journal d'Activité} trace les opérations sensibles réalisées dans l'application~: créations, modifications et suppressions d'utilisateurs et de rôles, attributions de permissions, mises à jour de profil, connexions et déconnexions, etc. Le tableau affiche la date et l'heure, l'utilisateur, l'action, le module, la description et l'adresse IP. Des filtres permettent de cibler par utilisateur, module, type d'action et plage de dates.
+
+\screenshot{images/journale_activite.png}{Journal d'activité~: filtres et tableau des opérations tracées.}
+
+% =====================================================================

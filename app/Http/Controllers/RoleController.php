@@ -74,7 +74,9 @@ class RoleController extends Controller
             'reglements-clients' => 'Règlements Clients',
             'plan-comptable' => 'Plan Comptable',
             'banques' => 'Banques',
-            'rapports' => 'Rapports',
+            'rapports-clients' => 'Rapports Clients',
+            'rapports-fournisseurs' => 'Rapports Fournisseurs',
+            'rapports-banques' => 'Rapports Banques',
             'utilisateurs' => 'Utilisateurs',
             'roles' => 'Rôles & Permissions',
             'parametres' => 'Paramètres',
@@ -107,6 +109,43 @@ class RoleController extends Controller
     }
 
     /**
+     * Le rôle Super Administrateur est protégé : seul un super administrateur
+     * peut le modifier / lui retirer ou ajouter des permissions / le supprimer.
+     */
+    private function denyIfProtected(Role $role): ?JsonResponse
+    {
+        if (strcasecmp($role->name, User::ROLE_SUPER_ADMIN_NAME) === 0 && ! auth()->user()?->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le rôle Super Administrateur est protégé et ne peut être modifié.',
+            ], 403);
+        }
+        return null;
+    }
+
+    /**
+     * Anti-escalade : un utilisateur non super-admin ne peut accorder que des
+     * permissions qu'il détient lui-même (il ne peut donc pas se hisser au niveau
+     * super administrateur).
+     */
+    private function denyUngrantable(array $permissions): ?JsonResponse
+    {
+        $u = auth()->user();
+        if ($u && $u->isSuperAdmin()) {
+            return null;
+        }
+        foreach ($permissions as $perm) {
+            if (! $u || ! $u->can($perm)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez accorder que des permissions que vous détenez vous-même.',
+                ], 403);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Toggle (activer/désactiver) une permission pour un rôle (API).
      */
     public function togglePermission(Request $request, int $id): JsonResponse
@@ -117,6 +156,13 @@ class RoleController extends Controller
             'permission' => ['required', 'string', 'exists:permissions,name'],
             'value' => ['required', 'boolean'],
         ]);
+
+        if ($resp = $this->denyIfProtected($role)) {
+            return $resp;
+        }
+        if ($validated['value'] && ($resp = $this->denyUngrantable([$validated['permission']]))) {
+            return $resp;
+        }
 
         if ($validated['value']) {
             $role->givePermissionTo($validated['permission']);
@@ -145,6 +191,13 @@ class RoleController extends Controller
             'permissions.*' => ['string', 'exists:permissions,name'],
             'value' => ['required', 'boolean'],
         ]);
+
+        if ($resp = $this->denyIfProtected($role)) {
+            return $resp;
+        }
+        if ($validated['value'] && ($resp = $this->denyUngrantable($validated['permissions']))) {
+            return $resp;
+        }
 
         if ($validated['value']) {
             foreach ($validated['permissions'] as $perm) {
@@ -175,6 +228,10 @@ class RoleController extends Controller
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
+        if ($resp = $this->denyUngrantable($validated['permissions'] ?? [])) {
+            return $resp;
+        }
+
         $role = Role::create(['name' => $validated['name'], 'guard_name' => 'web']);
 
         if (!empty($validated['permissions'])) {
@@ -199,6 +256,13 @@ class RoleController extends Controller
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
+        if ($resp = $this->denyIfProtected($role)) {
+            return $resp;
+        }
+        if ($resp = $this->denyUngrantable($validated['permissions'] ?? [])) {
+            return $resp;
+        }
+
         $role->update(['name' => $validated['name']]);
         $role->syncPermissions($validated['permissions'] ?? []);
 
@@ -213,6 +277,10 @@ class RoleController extends Controller
     public function destroyRole(int $id): JsonResponse
     {
         $role = Role::findOrFail($id);
+
+        if ($resp = $this->denyIfProtected($role)) {
+            return $resp;
+        }
 
         if (User::role($role->name)->count() > 0) {
             return response()->json([

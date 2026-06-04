@@ -63,8 +63,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'banques.modifier',
             'banques.supprimer',
 
-            // Rapports
-            'rapports.voir',
+            // Rapports (permissions découpées par type de rapport)
+            'rapports-clients.voir',
+            'rapports-fournisseurs.voir',
+            'rapports-banques.voir',
 
             // Administration
             'utilisateurs.voir',
@@ -86,9 +88,27 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        // Rôles
-        $admin = Role::firstOrCreate(['name' => 'Administrateur', 'guard_name' => 'web']);
-        $admin->syncPermissions(Permission::all());
+        // Nettoyage : l'ancienne permission globale « rapports.voir » est remplacée
+        // par les trois permissions découpées (clients / fournisseurs / banques).
+        Permission::where('name', 'rapports.voir')->delete();
+
+        // ----- Rôles -----
+
+        // SUPER ADMINISTRATEUR : accès total (toutes les permissions).
+        $superAdmin = Role::firstOrCreate(['name' => User::ROLE_SUPER_ADMIN_NAME, 'guard_name' => 'web']);
+        $superAdmin->syncPermissions(Permission::all());
+
+        // ADMINISTRATEUR : uniquement les éléments du module « Paramètres »
+        // (utilisateurs, rôles & permissions, paramètres/établissement, taux fiscaux,
+        // journal d'activité). N'a AUCUN accès aux modules métier ni aux rapports,
+        // et ne peut PAS créer/attribuer le rôle Super Administrateur (cf. contrôleurs).
+        $admin = Role::firstOrCreate(['name' => User::ROLE_ADMIN_NAME, 'guard_name' => 'web']);
+        $admin->syncPermissions([
+            'utilisateurs.voir', 'utilisateurs.creer', 'utilisateurs.modifier', 'utilisateurs.supprimer',
+            'roles.voir', 'roles.creer', 'roles.modifier', 'roles.supprimer',
+            'parametres.voir', 'parametres.modifier',
+            'journal.voir',
+        ]);
 
         $comptable = Role::firstOrCreate(['name' => 'Comptable', 'guard_name' => 'web']);
         $comptable->syncPermissions([
@@ -100,7 +120,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'reglements-clients.voir', 'reglements-clients.creer', 'reglements-clients.modifier',
             'plan-comptable.voir',
             'banques.voir',
-            'rapports.voir',
+            // Rapports : clients, fournisseurs et banques
+            'rapports-clients.voir', 'rapports-fournisseurs.voir', 'rapports-banques.voir',
         ]);
 
         $gestionnaire = Role::firstOrCreate(['name' => 'Gestionnaire', 'guard_name' => 'web']);
@@ -111,7 +132,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'clients.voir',
             'factures-clients.voir',
             'reglements-clients.voir',
-            'rapports.voir',
+            // Rapports : clients, fournisseurs et banques
+            'rapports-clients.voir', 'rapports-fournisseurs.voir', 'rapports-banques.voir',
         ]);
 
         $utilisateur = Role::firstOrCreate(['name' => 'Utilisateur', 'guard_name' => 'web']);
@@ -124,16 +146,30 @@ class RolesAndPermissionsSeeder extends Seeder
             'reglements-clients.voir',
         ]);
 
-        // Admin par défaut
-        $adminUser = User::firstOrCreate(
+        // Compte super administrateur par défaut (le compte admin historique devient super admin)
+        $superAdminUser = User::firstOrCreate(
             ['email' => 'admin@hospital.bj'],
+            [
+                'name' => 'Super Administrateur',
+                'password' => 'password',
+                'is_active' => true,
+                'poste' => 'Super Administrateur',
+            ]
+        );
+        $superAdminUser->update(['role' => User::ROLE_SUPER_ADMIN, 'name' => 'Super Administrateur']);
+        $superAdminUser->syncRoles([User::ROLE_SUPER_ADMIN_NAME]);
+
+        // Compte administrateur (paramètres uniquement) — exemple
+        $adminUser = User::firstOrCreate(
+            ['email' => 'administrateur@hospital.bj'],
             [
                 'name' => 'Administrateur',
                 'password' => 'password',
                 'is_active' => true,
-                'poste' => 'Administrateur Système',
+                'poste' => 'Administrateur (Paramètres)',
             ]
         );
-        $adminUser->assignRole('Administrateur');
+        $adminUser->update(['role' => User::ROLE_ADMIN]);
+        $adminUser->syncRoles([User::ROLE_ADMIN_NAME]);
     }
 }

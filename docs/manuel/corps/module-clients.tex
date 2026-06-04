@@ -1,0 +1,94 @@
+% =====================================================================
+%  MODULE CLIENTS — corps (chapitres)
+%  Périmètre strict : groupe « Factures Clients » de la barre latérale
+%  (Clients, Factures, Règlements, Avances) + le tableau de bord.
+%  Captures : dossier images_clients/.
+% =====================================================================
+\chapter{Présentation du module Clients}
+
+Le module \textbf{Clients} prend en charge la facturation des prestations de l'établissement et le suivi des encaissements. Dans la barre latérale, il correspond au groupe \menu{Factures Clients}, qui réunit quatre écrans complémentaires~: \menu{Clients}, \menu{Factures}, \menu{Règlements} et \menu{Avances}. Le présent guide décrit ces quatre écrans ainsi que le tableau de bord d'accueil.
+
+\section{Accès et connexion}
+L'application s'ouvre dans un navigateur web à l'adresse fournie par l'établissement. Après avoir saisi votre adresse e-mail et votre mot de passe sur l'écran de connexion, vous arrivez sur le tableau de bord. La barre latérale, à gauche, donne accès au groupe \menu{Factures Clients} dès lors que votre profil vous y autorise.
+
+\section{Le circuit d'une recette}
+Le traitement d'une prestation facturée suit un enchaînement régulier, d'un écran à l'autre du module~:
+
+\begin{enumerate}
+  \item \textbf{Client} --- on crée, ou l'on retrouve, la fiche du client concerné.
+  \item \textbf{Facture} --- on saisit la facture de prestation~; son net à payer tient compte d'une éventuelle ristourne.
+  \item \textbf{Règlement} --- on enregistre l'encaissement, ou on l'impute sur une avance déjà reçue du client.
+\end{enumerate}
+
+\section{Qui utilise ce module}
+Les profils \textbf{Administrateur} et \textbf{Comptable} disposent de la saisie complète~: ils créent et modifient les clients, les factures, les règlements et les avances. Les profils \textbf{Gestionnaire} et \textbf{Utilisateur} accèdent aux mêmes écrans en consultation seule. La barre latérale n'affiche que les rubriques autorisées pour le profil connecté.
+
+% =====================================================================
+\chapter{Le tableau de bord}
+
+À l'ouverture d'une session, le \menu{Tableau de bord} offre une vue d'ensemble immédiate de l'activité. En haut, une série de cartes met en avant les indicateurs clés, parmi lesquels le \textbf{chiffre d'affaires} du mois et le montant total des \textbf{créances clients} restant à encaisser. La colonne de droite présente la \textbf{situation des banques}, c'est-à-dire le solde de chaque compte et le solde total disponible.
+
+Deux graphiques complètent la page~: l'\textbf{évolution mensuelle} des montants sur les douze derniers mois et une \textbf{répartition} synthétique sur l'année en cours. L'ensemble donne, dès la connexion, une lecture rapide du niveau d'encaissement et des sommes encore dues par les clients.
+
+\screenshot{images_clients/dashboard_clients.png}{Tableau de bord~: cartes d'indicateurs, situation des banques et graphiques d'évolution.}
+
+% =====================================================================
+\chapter{Les clients}
+
+\section{La liste des clients}
+L'écran \menu{Clients} affiche la liste de tous les clients enregistrés. Une barre permet de \textbf{rechercher} un client (par raison sociale, téléphone, numéro IFU ou numéro de compte) et de \textbf{trier} les colonnes. Le tableau présente, pour chaque client, son numéro de compte, sa raison sociale, son téléphone et son adresse. La colonne \menu{Actions} regroupe les opérations disponibles (consulter, modifier, et selon le profil, supprimer), tandis qu'un bouton ouvre le formulaire de création d'un nouveau client.
+
+\section{Créer ou modifier un client}
+Le formulaire demande la \champ{Raison sociale} (obligatoire), le \champ{Téléphone}, le numéro \champ{IFU} (treize chiffres lorsqu'il est renseigné), le \champ{Type} de client (société, divers, personnel ou autre), l'\champ{Adresse} et une zone d'\champ{Observation}. Chaque client est rattaché à un \textbf{compte comptable}~; on peut choisir un compte existant ou en créer un directement depuis le formulaire. La modification reprend le même formulaire, pré-rempli avec les valeurs en cours.
+
+\section{La fiche d'un client}
+En ouvrant un client, on accède à sa fiche détaillée. Quatre cartes y résument sa situation~: le nombre de factures, le total facturé, le montant déjà encaissé et le solde de créance. La fiche se parcourt ensuite par onglets~: \menu{Informations} (coordonnées et données fiscales), \menu{Factures} (toutes les factures du client) et \menu{Règlements} (l'historique de ses encaissements, regroupé par facture).
+
+\note{Un client ne peut pas être supprimé tant qu'il possède au moins une facture~: il faut d'abord traiter ou retirer les factures concernées.}
+
+% =====================================================================
+\chapter{Les factures}
+
+\section{La liste des factures}
+L'écran \menu{Factures} présente toutes les factures de prestation. Quatre cartes de synthèse en résument l'encours~: le nombre \textbf{total de factures}, le \textbf{total facturé}, le \textbf{total payé} et le montant des \textbf{créances}. La barre de filtres permet de rechercher une facture et de restreindre l'affichage par client, par statut et par période.
+
+Le tableau détaille, pour chaque facture~: la référence, la date, le client, le \textbf{montant}, le montant déjà \textbf{payé}, le \textbf{reste} à payer et le \textbf{statut} (non payée, partielle ou payée). Le bouton \bouton{Nouvelle Facture} ouvre le formulaire de saisie.
+
+\screenshot{images_clients/factures_clients.png}{Écran « Factures Clients »~: cartes de synthèse, filtres et tableau des factures.}
+
+\section{Saisir une facture}
+Le formulaire propose une \textbf{référence} au format \code{NNNN/MM/AA} (par exemple \code{0007/06/26}), modifiable, puis demande la date, le client, le \textbf{montant} et une éventuelle \textbf{ristourne} (remise accordée). Le \textbf{net à payer} est calculé automatiquement~: il correspond au montant diminué de la ristourne. Une facture nouvellement créée est «~non payée~», puis devient «~partielle~» ou «~payée~» au fil des encaissements.
+
+\section{Le détail d'une facture}
+Depuis le détail d'une facture, on retrouve le récapitulatif (montant, ristourne, net à payer), la progression du paiement et l'historique des règlements. On peut également éditer l'\textbf{état de règlement} de la facture, un document qui reprend l'en-tête de l'établissement, l'identification du client, le détail de la facture et la liste de ses règlements.
+
+% =====================================================================
+\chapter{Les règlements}
+
+\section{La liste des règlements}
+L'écran \menu{Règlements} retrace tous les encaissements. Quatre cartes en donnent la mesure~: le \textbf{total réglé}, le montant réglé \textbf{ce mois}, le \textbf{nombre de règlements} et le \textbf{montant moyen}. Les encaissements sont regroupés par facture~: pour chaque pièce, on lit le client, la date de la facture, son montant, le total réglé, le reste à payer et le nombre de règlements. En dépliant une facture, on visualise chaque règlement avec sa date, son type, son numéro de ligne, l'institution, la référence du chèque, l'éventuelle banque de dépôt et le montant. Une barre de filtres permet de cibler un client, un type d'opération ou une période.
+
+\screenshot{images_clients/reglements_clients.png}{Écran « Règlements Clients »~: cartes de synthèse et règlements regroupés par facture, lignes dépliées.}
+
+\section{Enregistrer un règlement}
+La saisie demande la facture concernée, la date et le \textbf{montant} (qui ne peut dépasser le reste à payer). Le \textbf{type} distingue un règlement ordinaire d'une perte, et un montant rejeté peut être indiqué lorsqu'un chèque est rejeté. Trois \textbf{sources de paiement} sont possibles~:
+\begin{itemize}
+  \item un \textbf{paiement direct} par chèque ou espèces, avec l'institution et la référence du chèque, et un dépôt bancaire facultatif (banque et bordereau, justificatif joignable)~;
+  \item un \textbf{virement bancaire}, avec la banque et la référence~;
+  \item l'\textbf{imputation sur une avance} déjà reçue du client (voir le chapitre suivant).
+\end{itemize}
+À l'enregistrement, le règlement réduit d'autant le reste à payer de la facture, qui passe à «~payée~» une fois son solde annulé.
+
+% =====================================================================
+\chapter{Les avances}
+
+\section{Le principe d'une avance}
+Une \textbf{avance} est une somme reçue d'un client \emph{avant} l'émission d'une facture~: il s'agit le plus souvent d'un chèque versé par une société émettrice, parfois rattaché à une proforma. Elle constitue un crédit disponible que le client pourra imputer ultérieurement sur ses factures.
+
+\section{La liste des avances}
+L'écran \menu{Avances} affiche les avances enregistrées avec, pour chacune, son \textbf{solde restant}. Une avance est \emph{disponible} tant qu'elle n'a pas servi, \emph{partiellement utilisée} dès qu'une partie a été imputée, puis \emph{épuisée} une fois consommée. Des statistiques globales indiquent le total des avances, le montant déjà utilisé et le montant encore disponible. Une barre de filtres permet de cibler un client ou un statut.
+
+\section{Créer et utiliser une avance}
+Le formulaire de création demande le client, la société émettrice, le numéro et la date du chèque, le montant, un éventuel numéro de proforma, et permet de rattacher un dépôt bancaire avec justificatif. Par la suite, lors de la saisie d'un règlement, le choix «~imputer sur une avance~» ne propose que les avances du \textbf{même client} disposant d'un solde suffisant~; le montant imputé vient alors diminuer le solde restant de l'avance.
+
+\note{Une avance ne peut pas être ramenée en dessous du montant déjà utilisé, ni supprimée si des règlements y sont rattachés.}

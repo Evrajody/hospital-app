@@ -40,6 +40,21 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Empêche un utilisateur non super-admin d'attribuer le rôle Super Administrateur.
+     */
+    private function denyAssignSuperAdmin(array $roles): ?JsonResponse
+    {
+        $wantsSuperAdmin = collect($roles)->contains(fn ($r) => strcasecmp($r, User::ROLE_SUPER_ADMIN_NAME) === 0);
+        if ($wantsSuperAdmin && ! auth()->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Seul un super administrateur peut attribuer le rôle Super Administrateur.",
+            ], 403);
+        }
+        return null;
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -60,6 +75,10 @@ class UserController extends Controller
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
+
+        if ($resp = $this->denyAssignSuperAdmin($validated['roles'] ?? [])) {
+            return $resp;
+        }
 
         $user = User::create([
             'name' => $validated['name'],
@@ -86,6 +105,14 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
+        // Un non super-admin ne peut pas modifier un compte super administrateur.
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Seul un super administrateur peut modifier un compte super administrateur.",
+            ], 403);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
@@ -104,6 +131,10 @@ class UserController extends Controller
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
+
+        if ($resp = $this->denyAssignSuperAdmin($validated['roles'] ?? [])) {
+            return $resp;
+        }
 
         $user->update([
             'name' => $validated['name'],
@@ -138,6 +169,13 @@ class UserController extends Controller
             ], 422);
         }
 
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Seul un super administrateur peut supprimer un compte super administrateur.",
+            ], 403);
+        }
+
         $nom = $user->name;
         $user->delete();
 
@@ -158,6 +196,13 @@ class UserController extends Controller
                 'success' => false,
                 'message' => 'Vous ne pouvez pas désactiver votre propre compte',
             ], 422);
+        }
+
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Seul un super administrateur peut désactiver un compte super administrateur.",
+            ], 403);
         }
 
         $user->update(['is_active' => !$user->is_active]);

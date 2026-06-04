@@ -1,0 +1,151 @@
+% =====================================================================
+%  FICHE DES CODES D'ACCÈS — document confidentiel
+%  Hôpital de Zone de Ménontin / EYRAM Technologies & Services
+%  Compilation : tectonic fiche-codes-acces.tex
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+% Police principale : Arial (substitut métrique libre « Liberation Sans »).
+\setmainfont{Liberation Sans}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\geometry{margin=2.2cm}
+
+% ----- Palette -----
+\definecolor{primary}{HTML}{1C6FB8}
+\definecolor{darknavy}{HTML}{001529}
+\definecolor{danger}{HTML}{C0392B}
+\definecolor{greytext}{HTML}{5A6675}
+\definecolor{headbg}{HTML}{1C6FB8}
+\definecolor{zebra}{HTML}{EEF2F7}
+\definecolor{rulegrey}{HTML}{9AA7B4}
+
+% ----- Titres -----
+\titleformat{\section}
+  {\normalfont\large\bfseries\color{primary}}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+
+% ----- En-têtes / pieds -----
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+\fancyhead[L]{\small\color{danger}\bfseries CONFIDENTIEL}
+\fancyhead[R]{\small\color{greytext}Fiche des codes d'accès}
+\fancyfoot[L]{\small\color{greytext}Hôpital de Zone de Ménontin — EYRAM Technologies \& Services}
+\fancyfoot[R]{\small\color{greytext}Page \thepage}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4em}
+\setlength{\emergencystretch}{3em}
+\renewcommand{\arraystretch}{1.45}
+\arrayrulecolor{rulegrey}
+\setlength{\arrayrulewidth}{0.4pt}
+
+% ----- Tableau « clé / valeur » à grille complète (bordures internes + externes) -----
+% \fiche{Titre}{ lignes : Élément & Valeur \\ ... }
+\newcommand{\fiche}[2]{%
+  \par\smallskip
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{5.4cm}|>{\raggedright\arraybackslash}X|}
+  \hline
+  \rowcolor{headbg}\multicolumn{2}{|l|}{\textbf{\textcolor{white}{#1}}}\\\hline
+  #2
+  \hline
+  \end{tabularx}\par\smallskip
+}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\hypersetup{pdftitle={Fiche des codes d'accès — Hôpital de Zone de Ménontin}}
+
+% =====================================================================
+\begin{document}
+
+% ---------------------------- EN-TÊTE ----------------------------
+\begin{center}
+{\color{primary}\rule{\textwidth}{1.6pt}}\\[0.5cm]
+{\Huge\bfseries\color{darknavy} Fiche des codes d'accès\par}
+\vspace{0.25cm}
+{\large\color{greytext} Système de Gestion Financière — Hôpital de Zone de Ménontin\par}
+\vspace{0.15cm}
+{\small\color{greytext} Document remis à l'administrateur système désigné par l'hôpital\par}
+{\color{primary}\rule{\textwidth}{1.6pt}}
+\end{center}
+
+\vspace{0.2cm}
+\noindent\colorbox{zebra}{\parbox{\dimexpr\linewidth-2\fboxsep}{%
+\small\textbf{\textcolor{danger}{Confidentiel.}} Ce document regroupe l'ensemble des identifiants permettant l'exploitation et la reprise en main du système. Il doit être conservé en lieu sûr, transmis uniquement par un canal sécurisé, et les mots de passe par défaut doivent être changés après la réception.}}
+
+% =====================================================================
+\section{Accès au serveur / à la machine virtuelle}
+\fiche{Système d'exploitation (hôte / VM)}{
+  \textbf{Adresse IP (LAN)} & \code{192.168.1.253} \\\hline
+  \textbf{Nom d'utilisateur} & \code{appli} \\\hline
+  \textbf{Mot de passe} & \code{appli2026} \\\hline
+  \textbf{Hyperviseur} & VMware Workstation (sur le serveur physique de l'hôpital) \\\hline
+  \textbf{Accès distant (SSH)} & Port \code{2203} — à ouvrir ponctuellement sur le routeur, puis à refermer après intervention \\
+}
+
+% =====================================================================
+\section{Archives du code source}
+\fiche{Fichiers archives (code \& configuration)}{
+  \textbf{Mot de passe des archives} & \code{hwJ!gNj2} \\\hline
+  \textbf{Emplacement} & Drive d'EYRAM Technologies \& Services, partagé avec \code{hopitaldemenontin@gmail.com} \\\hline
+  \textbf{Contenu} & Code source de l'application (Laravel + VueJS / Inertia) et fichiers d'infrastructure (Docker Compose, scripts de déploiement) \\
+}
+
+% =====================================================================
+\section{Base de données PostgreSQL}
+Paramètres issus de la configuration Docker (\code{docker-compose.prod.yml} et \code{.env.production}).
+\fiche{Moteur PostgreSQL 16 — conteneur \texttt{hospital-db}}{
+  \textbf{Nom de la base} & \code{hospital\_db} \\\hline
+  \textbf{Utilisateur} & \code{hospital\_user} \\\hline
+  \textbf{Mot de passe} & \code{password} \newline {\small\color{greytext}(valeur de \code{DB\_PASSWORD} dans \code{.env.production} — à remplacer par le secret réel du serveur)} \\\hline
+  \textbf{Hôte (réseau Docker)} & \code{db} \\\hline
+  \textbf{Port} & \code{5432} \\\hline
+  \textbf{Exposition réseau} & \textbf{Production~:} port \emph{non} exposé publiquement (accès uniquement via le réseau interne \code{hospital-network}). \newline \textbf{Développement~:} port \code{5432} publié sur l'hôte. \\\hline
+  \textbf{Connexion en production} & \code{docker exec -it hospital-db psql -U hospital\_user -d hospital\_db} \newline (ou via un tunnel SSH si un accès externe est requis) \\
+}
+
+% =====================================================================
+\section{Application web et comptes applicatifs}
+\fiche{Accès à l'application}{
+  \textbf{URL production (LAN)} & \url{http://192.168.1.253:9090/login} \\\hline
+  \textbf{URL pré-production (cloud)} & \url{https://hospital.nexox.me/login} \\\hline
+  \textbf{Compte administrateur par défaut} & \code{admin@hospital.bj} / \code{password} \newline {\small\color{greytext}(compte initial — à personnaliser et sécuriser dès la mise en service)} \\\hline
+  \textbf{Conteneur web} & \code{hospital-nginx} (Nginx — reverse proxy) \\\hline
+  \textbf{Conteneur applicatif} & \code{hospital-app} (PHP-FPM / Laravel + VueJS) \\
+}
+
+% =====================================================================
+\section{Réseau, ports et reprise en main}
+\fiche{Ports \& réseau Docker}{
+  \textbf{Interface web (Nginx)} & Port hôte \code{9090} (production LAN) $\rightarrow$ \code{80} dans le conteneur. \newline {\small\color{greytext}Réglable via \code{APP\_PORT} (\code{.env.production}, défaut \code{8080}).}\\\hline
+  \textbf{Base de données} & Port \code{5432} — fermé en production (à ouvrir uniquement via tunnel SSH pour une intervention). \\\hline
+  \textbf{Administration serveur} & Port SSH \code{2203} — à ouvrir ponctuellement sur le routeur, puis refermer. \\\hline
+  \textbf{Réseaux Docker} & \code{hospital-network} (interne, privé) ; \code{nexox} (réseau externe partagé, en développement). \\\hline
+  \textbf{IP publique} & Dynamique~: communiquer l'IP courante avant chaque session d'intervention distante. \\
+}
+
+\fiche{Emplacements \& volumes utiles}{
+  \textbf{Compose production} & \code{docker-compose.prod.yml} \\\hline
+  \textbf{Variables d'environnement} & \code{.env.production} (monté en lecture seule dans \code{hospital-app}) \\\hline
+  \textbf{Volume base de données} & \code{dbdata} — \textbf{\textcolor{danger}{contient les données~: ne jamais supprimer}} (\code{down -v}, \code{volume rm} interdits) \\\hline
+  \textbf{Sauvegardes} & Volume \code{db-backups} ($\rightarrow$ \code{/backups} dans le conteneur) \\\hline
+  \textbf{Storage applicatif} & Volume \code{app-storage} (uploads, logs, sessions, cache) \\
+}
+
+\vfill
+\begin{center}\small\color{greytext}
+Fiche établie par EYRAM Technologies \& Services — à conserver en lieu sûr.
+\end{center}
+
+\end{document}

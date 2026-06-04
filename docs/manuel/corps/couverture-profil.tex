@@ -1,0 +1,56 @@
+% =====================================================================
+%  Page de garde paramétrée par profil
+%  \couverture{<Nom du profil>}{<Périmètre en une ligne>}
+%  Reprend l'identité visuelle de la couverture combinée.
+% =====================================================================
+\newcommand{\couverture}[2]{%
+  \begin{titlepage}
+  \centering
+  \vspace*{2.2cm}
+  {\color{primary}\rule{\textwidth}{2pt}}\\[1.2cm]
+  {\Huge\bfseries\color{darknavy} Guide de l'utilisateur\par}
+  \vspace{0.6cm}
+  {\LARGE Système de Gestion Financière\par}
+  \vspace{1.8cm}
+  {\large\color{greytext}\MakeUppercase{Manuel du profil}\par}
+  \vspace{0.35cm}
+  {\Huge\bfseries\color{primary} #1\par}
+  \vspace{0.7cm}
+  {\large #2\par}
+  \vspace{2.0cm}
+  {\Large\bfseries Hôpital de zone de Ménontin\par}
+  \vspace{0.3cm}
+  {\large\color{greytext} République du Bénin\par}
+  \vfill
+  {\color{primary}\rule{\textwidth}{2pt}}\\[0.5cm]
+  {\color{greytext} Document de référence — à compléter avec les captures d'écran de l'application\par}
+  \end{titlepage}%
+}
+
+% =====================================================================
+%  Page de garde paramétrée par MODULE
+%  \couverturemodule{<Nom du module>}{<Périmètre en une ligne>}
+% =====================================================================
+\newcommand{\couverturemodule}[2]{%
+  \begin{titlepage}
+  \centering
+  \vspace*{2.2cm}
+  {\color{primary}\rule{\textwidth}{2pt}}\\[1.2cm]
+  {\Huge\bfseries\color{darknavy} Guide de l'utilisateur\par}
+  \vspace{0.6cm}
+  {\LARGE Système de Gestion Financière\par}
+  \vspace{1.8cm}
+  {\large\color{greytext}\MakeUppercase{Manuel du module}\par}
+  \vspace{0.35cm}
+  {\Huge\bfseries\color{primary} #1\par}
+  \vspace{0.7cm}
+  {\large #2\par}
+  \vspace{2.0cm}
+  {\Large\bfseries Hôpital de zone de Ménontin\par}
+  \vspace{0.3cm}
+  {\large\color{greytext} République du Bénin\par}
+  \vfill
+  {\color{primary}\rule{\textwidth}{2pt}}\\[0.5cm]
+  {\color{greytext} Document de référence\par}
+  \end{titlepage}%
+}

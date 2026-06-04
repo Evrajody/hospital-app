@@ -1,0 +1,154 @@
+\chapter{Profil Comptable}
+% =====================================================================
+
+Le \textbf{Comptable} est le profil opérationnel central de l'application. Il assure la saisie et le suivi complets des opérations~: il crée et modifie les fournisseurs, les clients, les factures, les règlements et les avances, valide les factures fournisseurs et consulte l'ensemble des rapports. Il consulte également le plan comptable et la trésorerie. En revanche, il ne supprime aucune donnée et n'accède pas à l'administration (utilisateurs, rôles, paramètres, journal).
+
+\section{Périmètre du profil}
+
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.4cm} >{\raggedright\arraybackslash}p{9.2cm}}
+\toprule
+\textbf{Module} & \textbf{Droits du Comptable} \\
+\midrule
+\endhead
+Fournisseurs & Consulter, créer, modifier \\
+Factures fournisseurs & Consulter, créer, modifier, valider, solder \\
+Règlements fournisseurs & Consulter, créer, modifier \\
+Clients & Consulter, créer, modifier \\
+Factures clients & Consulter, créer, modifier, solder \\
+Règlements clients & Consulter, créer, modifier \\
+Avances clients & Consulter, créer, modifier \\
+Plan comptable & Consulter \\
+Banques \& trésorerie & Consulter \\
+Rapports & Consulter et exporter (PDF / Excel) \\
+Paramètres, Utilisateurs, Rôles, Journal & Non accessibles \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1}
+
+\note{Le Comptable ne dispose pas de l'action \og Supprimer \fg{} sur les fournisseurs, clients, factures, règlements et avances. Pour solder une facture sans paiement intégral, utilisez \bouton{Marquer comme soldée}~; pour annuler un règlement erroné, rapprochez-vous d'un administrateur.}
+
+\section{Le tableau de bord}
+
+À la connexion, le Comptable arrive sur le \menu{Tableau de bord}, qui présente quatre indicateurs clés (chiffre d'affaires du mois, factures en attente, dettes fournisseurs, créances clients), le tableau des dernières factures fournisseurs, la situation des banques et deux graphiques (évolution mensuelle des recettes et dépenses, répartition des charges).
+
+\screenshot{images/dashboard_accueil.png}{Tableau de bord du Comptable~: indicateurs, dernières factures, situation des banques et graphiques.}
+
+\section{Gérer les fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Fournisseurs} liste les fournisseurs (raison sociale, type, compte comptable, contact, téléphone, e-mail). Recherchez par code, nom, compte, e-mail ou téléphone, ou filtrez par compte comptable.
+
+\subsection{Créer ou modifier un fournisseur}
+
+Le bouton \bouton{Nouveau Fournisseur} ouvre le formulaire en onglets~: \menu{Informations générales} (raison sociale, type), \menu{Coordonnées} (contact, téléphones, e-mail, adresse, ville, pays), \menu{Compte comptable} (sélection d'un compte existant ou création d'un nouveau compte auxiliaire avec génération automatique du numéro), \menu{Informations fiscales} (IFU, RCCM) et \menu{Complémentaires} (observations). Cliquez sur \bouton{Enregistrer}. L'action \bouton{Modifier} rouvre ce formulaire, et \bouton{Voir} ouvre la fiche détaillée du fournisseur (informations, factures, règlements).
+
+\screenshot{images/nouveau_founisseur_form.png}{Création / modification d'un fournisseur par le Comptable.}
+
+\section{Gérer les factures fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Factures} liste les factures d'achat avec leurs montants et statuts, et propose des filtres par fournisseur, statut et période.
+
+\subsection{Créer une facture}
+
+Le bouton \bouton{Nouvelle Facture} ouvre le formulaire en quatre onglets~:
+
+\begin{enumerate}
+  \item \menu{Informations} — \champ{N° de pièce} (bouton \bouton{Auto} pour le générer et vérifier les doublons), \champ{Date d'enregistrement}, \champ{Référence / N° de bon de commande}, \champ{Fournisseur}, \champ{Libellé}.
+  \item \menu{Montants} — assujettissement et taux de TVA, \champ{Montant HT}, \champ{Avoir}, \champ{Main-d'œuvre}, compte et \champ{taux d'AIB}, avec calcul automatique du HT, de la TVA, de l'AIB, du TTC et du net à payer.
+  \item \menu{Imputations comptables} — répartition des débits (= montant HT) et des crédits fournisseurs (= montant TTC), avec contrôle de cohérence.
+  \item \menu{Observations}.
+\end{enumerate}
+
+Cliquez sur \bouton{Enregistrer}.
+
+\screenshot{images/nouvelle_facture_fournisseur_form.png}{Formulaire de facture fournisseur~: calcul automatique des montants et imputations comptables.}
+
+\subsection{Consulter, valider, solder, modifier}
+
+L'action \bouton{Voir} ouvre la fiche détaillée (récapitulatif financier, barre de progression, historique des règlements). Le Comptable peut~:
+
+\begin{itemize}
+  \item générer les écritures d'\bouton{Imputation comptable} et les consulter / télécharger en PDF~;
+  \item ouvrir l'\bouton{État de règlement} de la facture (PDF)~;
+  \item \bouton{Marquer comme soldée} une facture (après confirmation)~;
+  \item \bouton{Modifier} la facture.
+\end{itemize}
+
+\note{La suppression d'une facture n'est pas disponible pour le Comptable.}
+
+\screenshot{images/detail_facture_forunisseur.png}{Détail d'une facture fournisseur et génération de l'imputation comptable.}
+
+\subsection{Régler une facture fournisseur}
+
+L'action \bouton{Régler} ouvre la page de règlement~: choix de l'\champ{exercice} et de la \champ{date}, répartition du montant par compte fournisseur (ou saisie directe du \champ{montant payé}), \champ{mode de paiement} (Espèces, Chèque, Virement) avec, pour les chèques et virements, la \champ{banque}, le \champ{compte bancaire}, la \champ{référence} et sa date. Indiquez le \champ{bénéficiaire}, déclarez le cas échéant l'\champ{AIB}, ajoutez vos \champ{notes} et validez avec \bouton{Enregistrer le règlement}. Un récapitulatif détaille le décaissement réel~; si le solde du compte est insuffisant, une confirmation explicite est demandée.
+
+\screenshot{images/Nouveau_reglement_facture.png}{Règlement d'une facture fournisseur par le Comptable.}
+
+\subsection{Suivre les règlements fournisseurs}
+
+Le module \menu{Factures Fournisseurs > Règlements} regroupe les règlements par facture (détail dépliable), avec filtres par fournisseur, mode de paiement et période. Le Comptable peut générer le \bouton{Bordereau} et la fiche d'\bouton{Imputation} en PDF, \bouton{Modifier} un règlement et démarrer un \bouton{Nouveau Règlement} en sélectionnant une facture impayée.
+
+\screenshot{images/factures_founisseurs_av_reglements.png}{Liste des règlements fournisseurs regroupés par facture.}
+
+Le bouton \bouton{Bordereau} de chaque règlement édite le \textbf{mandat / bordereau de règlement} en PDF (montant en lettres, signature du Comptable connecté et du Directeur).
+\screenshot{images/bordereau_reglement_facture_founisseur.png}{Bordereau / mandat de règlement fournisseur généré en PDF.}
+
+\section{Gérer les clients}
+
+Le module \menu{Factures Clients > Clients} liste les clients. Le bouton \bouton{Nouveau Client} ouvre une fenêtre à deux onglets~: \menu{Informations} (raison sociale, téléphone, IFU, type, adresse, observation) et \menu{Compte comptable} (sélection ou création d'un compte client). Les actions \bouton{Modifier} et \bouton{Voir les factures} sont disponibles.
+
+\screenshot{images/gestion_clients_list.png}{Liste des clients gérés par le Comptable (création et modification des fiches).}
+
+\section{Gérer les factures clients}
+
+Le module \menu{Factures Clients > Factures} liste les factures de prestations (filtres par client, statut, période). Le bouton \bouton{Nouvelle Facture} ouvre une fenêtre où vous saisissez la \champ{référence} (bouton \bouton{Auto}), la \champ{date}, le \champ{client}, le \champ{montant} et une éventuelle \champ{ristourne} (le net à payer est calculé). Depuis la fiche (\bouton{Voir}), vous pouvez \bouton{Enregistrer un règlement}, \bouton{Marquer comme soldée} et \bouton{Modifier} la facture.
+
+\screenshot{images/nouvelle_facture_clients.png}{Création d'une facture client et fiche détaillée.}
+
+\subsection{Régler une facture client}
+
+L'action \bouton{Régler} ouvre la page de règlement~: \champ{type} (Règlement ou Perte), \champ{montant} et éventuel \champ{montant rejeté}, puis \emph{source du paiement}~: paiement direct (institution, référence de chèque, banque de dépôt, référence de bordereau et téléversement du bordereau) ou imputation sur une avance disponible du client. Ajoutez vos \champ{notes} et validez avec \bouton{Enregistrer le règlement}.
+
+\screenshot{images/facture_clients_reglement.png}{Règlement d'une facture client par le Comptable~: type, source du paiement, dépôt bancaire.}
+
+\subsection{Suivre les règlements clients}
+
+Le module \menu{Factures Clients > Règlements} regroupe les règlements clients par facture (détail dépliable), avec filtres par client, type et période. Le Comptable peut consulter le détail, modifier un règlement et démarrer un \bouton{Nouveau Règlement}.
+
+\screenshot{images/reglement_client_list.png}{Liste des règlements clients regroupés par facture.}
+
+\section{Gérer les avances clients}
+
+Le module \menu{Factures Clients > Avances} gère les chèques d'avance reçus de tiers et leur consommation. Le bouton \bouton{Nouvelle avance} ouvre un formulaire (client bénéficiaire, société émettrice, n° de chèque, date, montant, proforma, institution, banque de dépôt, référence de bordereau, bordereau de dépôt). Une avance se consomme ensuite lors du règlement d'une facture client. Le Comptable peut \bouton{Consulter} et \bouton{Modifier} les avances.
+
+\screenshot{images/liste_avance_clients.png}{Gestion des avances clients par le Comptable.}
+
+\section{Consulter le plan comptable}
+
+Le module \menu{Autres > Plan Comptable} permet au Comptable de \emph{consulter} la nomenclature OHADA~: cartes par classe, recherche par numéro ou libellé, filtres par classe et par source. La création, la modification et la suppression de comptes sont réservées à l'administrateur.
+
+\screenshot{images/plan_comptable_globale.png}{Consultation du plan comptable OHADA.}
+
+\section{Consulter la trésorerie}
+
+Le module \menu{Autres > Banques} permet au Comptable de \emph{consulter} les comptes bancaires et caisses, leurs soldes et leurs mouvements (le bouton \bouton{Mouvements} ouvre l'historique des entrées et sorties). La création de banques et de comptes ainsi que les approvisionnements sont réservés à l'administrateur.
+
+\screenshot{images/gestiion_banques.png}{Consultation des banques et des mouvements de trésorerie.}
+
+\section{Consulter et exporter les rapports}
+
+Le menu \menu{Rapports} donne au Comptable accès aux trois familles d'états, avec filtres et export \bouton{PDF}, \bouton{Excel} et \bouton{Imprimer}~:
+
+\begin{itemize}
+  \item \textbf{Rapports fournisseurs} — mouvement des factures, situation des fournisseurs, factures réglées, factures et soldes, déclaration AIB (et bordereau de versement, point TFU), point périodique des PC, bordereau de transmission, récapitulatifs des charges et des investissements, déclaration de la TVA, banques par compte.
+  \item \textbf{Rapports clients} — état des règlements, état des créances, brouillard de chèques (et imputations comptables), chiffre d'affaires, pertes \& rejets.
+  \item \textbf{Rapports banques} — situation des banques.
+\end{itemize}
+
+\screenshot{images/rapports_founisseurs.png}{Génération et export d'un rapport par le Comptable.}
+
+\section{Gérer son compte}
+
+Comme tous les profils, le Comptable accède à \menu{Mon Profil} (informations personnelles, mot de passe, signature) et peut se déconnecter manuellement~; la déconnexion automatique pour inactivité s'applique (voir le chapitre \og Prise en main \fg{}).
+
+% =====================================================================

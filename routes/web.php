@@ -229,9 +229,9 @@ Route::prefix('api')->group(function () {
 });
 
 // Rapports Routes
-Route::prefix('rapports')->middleware('permission:rapports.voir')->group(function () {
+Route::prefix('rapports')->group(function () {
     // Rapports Fournisseurs
-    Route::prefix('fournisseurs')->group(function () {
+    Route::prefix('fournisseurs')->middleware('permission:rapports-fournisseurs.voir')->group(function () {
         Route::get('/', [RapportFournisseurController::class, 'index'])->name('rapports.fournisseurs');
 
         // Mouvement périodique
@@ -299,14 +299,14 @@ Route::prefix('rapports')->middleware('permission:rapports.voir')->group(functio
     });
 
     // Rapports Banques
-    Route::prefix('banques')->group(function () {
+    Route::prefix('banques')->middleware('permission:rapports-banques.voir')->group(function () {
         Route::get('/', [RapportFournisseurController::class, 'indexBanques'])->name('rapports.banques');
         Route::get('/api/situation-banques', [RapportFournisseurController::class, 'situationBanques']);
         Route::get('/pdf/situation-banques', [RapportFournisseurController::class, 'situationBanquesPdf']);
     });
 
     // Rapports Clients
-    Route::prefix('clients')->group(function () {
+    Route::prefix('clients')->middleware('permission:rapports-clients.voir')->group(function () {
         // Page index (dashboard avec onglets)
         Route::get('/', [RapportClientController::class, 'index'])->name('rapports.clients');
 

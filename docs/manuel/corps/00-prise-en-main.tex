@@ -1,0 +1,131 @@
+\chapter{Prise en main}
+% =====================================================================
+
+Ce chapitre s'adresse à \emph{tous} les utilisateurs, quel que soit leur profil. Il décrit comment accéder à l'application, s'y connecter, se repérer dans l'interface, gérer son compte personnel et se déconnecter. Les chapitres suivants détaillent ensuite, profil par profil, l'ensemble des actions disponibles.
+
+\section{À propos de ce guide}
+
+L'application de gestion financière de l'Hôpital de zone de Ménontin permet de suivre l'ensemble des opérations comptables et financières de l'établissement~: fournisseurs et factures d'achat, clients et factures de prestations, règlements, avances, trésorerie (banques et caisses), plan comptable et états de synthèse (rapports).
+
+Chaque personne se connecte avec un \textbf{profil} qui détermine précisément ce qu'elle a le droit de voir et de faire. Ce guide consacre un chapitre complet et autonome à chacun des quatre profils~:
+
+\begin{itemize}
+  \item \textbf{Administrateur} — accès total, y compris l'administration (utilisateurs, rôles, paramètres, journal).
+  \item \textbf{Comptable} — saisie et suivi complets des opérations (création et modification), validation des factures, consultation des rapports.
+  \item \textbf{Gestionnaire} — consultation des données et des rapports, sans saisie.
+  \item \textbf{Utilisateur} — consultation des données opérationnelles, sans rapports ni administration.
+\end{itemize}
+
+\note{Vous pouvez lire directement le chapitre correspondant à votre profil~: il est complet et se suffit à lui-même. Reportez-vous au présent chapitre pour tout ce qui concerne la connexion, la navigation générale et la gestion de votre compte.}
+
+\subsection*{Conventions de lecture}
+
+\begin{itemize}
+  \item \bouton{Libellé} désigne un bouton sur lequel cliquer.
+  \item \menu{Libellé} désigne un élément de menu ou un titre d'écran.
+  \item \champ{Libellé} désigne un champ de formulaire à renseigner.
+  \item Les montants sont exprimés en francs CFA (XOF), sans décimale, avec séparateur de milliers (par exemple \og 1\,250\,000 F\fg{}).
+  \item Les dates sont affichées et saisies au format jour/mois/année (JJ/MM/AAAA).
+  \item Chaque processus important est accompagné d'un \emph{emplacement réservé à une capture d'écran}~: la légende indique l'illustration à insérer.
+\end{itemize}
+
+\section{Accès et connexion}
+
+L'application s'utilise depuis un navigateur web (Google Chrome, Mozilla Firefox, Microsoft Edge\ldots), à l'adresse fournie par l'administrateur de l'établissement. À l'ouverture, vous êtes automatiquement dirigé vers l'écran de connexion tant que vous n'êtes pas authentifié.
+
+\subsection{Se connecter}
+
+L'écran de connexion présente, à gauche, le formulaire de connexion et, à droite, une présentation de l'application.
+
+Pour vous connecter~:
+
+\begin{enumerate}
+  \item Saisissez votre \champ{Adresse e-mail} dans le premier champ.
+  \item Saisissez votre \champ{Mot de passe}. Le bouton en forme d'œil situé dans le champ permet d'\emph{afficher} ou de \emph{masquer} les caractères saisis, afin de vérifier votre saisie.
+  \item Cochez éventuellement \champ{Se souvenir de moi} pour rester connecté plus longtemps sur cet ordinateur.
+  \item Cliquez sur \bouton{Se connecter}. Pendant la vérification, le bouton affiche un indicateur de chargement.
+\end{enumerate}
+
+Si l'adresse e-mail ou le mot de passe est incorrect, un message d'erreur s'affiche et vous pouvez corriger votre saisie. Le mot de passe doit comporter au moins six caractères. Une fois connecté, vous arrivez sur le \menu{Tableau de bord}.
+
+\attention{Si votre compte a été désactivé par un administrateur, la connexion est refusée même avec le bon mot de passe. Rapprochez-vous de l'administrateur de l'établissement.}
+
+\screenshot{images/login_app.png}{Écran de connexion~: champs Adresse e-mail et Mot de passe, case \og Se souvenir de moi \fg{} et bouton \og Se connecter \fg{}.}
+
+\section{Découvrir l'interface}
+
+Une fois connecté, l'écran se compose de trois zones permanentes~: le \textbf{menu latéral} (à gauche), la \textbf{barre supérieure} (en haut) et la \textbf{zone de travail} (au centre).
+
+\subsection{Le menu latéral}
+
+Le menu latéral, sur fond bleu nuit, donne accès aux différents modules. Son contenu s'adapte automatiquement à votre profil~: vous ne voyez que les rubriques auxquelles vous avez droit. Les rubriques sont regroupées par thème~:
+
+\begin{itemize}
+  \item \menu{Tableau de bord} — la page d'accueil avec les indicateurs clés.
+  \item \menu{Factures Fournisseurs} — Fournisseurs, Factures, Règlements.
+  \item \menu{Factures Clients} — Clients, Factures, Règlements, Avances.
+  \item \menu{Autres} — Plan Comptable, Banques.
+  \item \menu{Rapports} — Rapports Fournisseurs, Rapports Clients, Rapports Banques.
+  \item \menu{Paramètres} — Utilisateurs, Rôles \& Permissions, Taux Fiscaux, Établissement.
+  \item \menu{Journal d'Activité} — l'historique des opérations.
+\end{itemize}
+
+Le bouton situé en bas du menu permet de \emph{réduire} ou \emph{déplier} la barre latérale afin d'agrandir la zone de travail.
+
+\screenshot{images/menu_lateral_sidebar.png}{Menu latéral déplié montrant les groupes de rubriques (le contenu varie selon le profil connecté).}
+
+\subsection{La barre supérieure}
+
+La barre supérieure affiche, à gauche, un \emph{fil d'Ariane} (breadcrumb) qui rappelle votre position dans l'application. À droite, votre nom et votre avatar ouvrent un menu déroulant proposant~:
+
+\begin{itemize}
+  \item \bouton{Mon Profil} — pour consulter et modifier vos informations personnelles~;
+  \item \bouton{Déconnexion} — pour quitter l'application en toute sécurité.
+\end{itemize}
+
+\subsection{Repères communs à tous les écrans}
+
+La plupart des listes de l'application partagent les mêmes repères, qu'il est utile de connaître une fois pour toutes~:
+
+\begin{itemize}
+  \item Des \textbf{cartes de statistiques} en haut de page résument les chiffres importants (totaux, montants payés, restes à payer\ldots).
+  \item Un \textbf{champ de recherche} filtre la liste en temps réel à mesure que vous tapez.
+  \item Des \textbf{filtres} complémentaires (par exemple par fournisseur, par statut ou par période) affinent l'affichage~; un bouton \bouton{Réinitialiser} efface tous les filtres.
+  \item Les tableaux se \textbf{trient} en cliquant sur l'en-tête d'une colonne et se \textbf{paginent} (10, 20, 50 ou 100 lignes par page).
+  \item Les actions sur une ligne sont regroupées dans un menu \bouton{\ldots} (\og plus d'actions \fg{}) en bout de ligne.
+  \item Toute suppression demande une \textbf{confirmation} avant d'être exécutée.
+\end{itemize}
+
+\section{Gérer son compte~: Mon Profil}
+
+L'écran \menu{Mon Profil}, accessible depuis le menu de votre nom en haut à droite, est disponible pour tous les profils. Il se compose d'une carte de présentation à gauche et de deux formulaires à droite.
+
+\subsection{Modifier ses informations personnelles}
+
+Dans le formulaire \menu{Informations personnelles}, vous pouvez mettre à jour votre \champ{Nom complet}, votre \champ{Adresse e-mail}, votre \champ{Téléphone} et votre \champ{Poste}. Cliquez sur \bouton{Enregistrer les modifications} pour valider.
+
+\screenshot{images/mon_profil.png}{Écran Mon Profil~: carte de présentation, informations personnelles et changement de mot de passe.}
+
+\subsection{Changer son mot de passe}
+
+Dans le formulaire \menu{Changer le mot de passe}, renseignez votre \champ{Mot de passe actuel}, votre \champ{Nouveau mot de passe} puis sa \champ{Confirmation}, et cliquez sur \bouton{Changer le mot de passe}. Pour des raisons de sécurité, le nouveau mot de passe doit contenir au moins huit caractères mêlant minuscules, majuscules, chiffres et caractère spécial. Un message vous prévient si le mot de passe actuel est incorrect ou si la confirmation ne correspond pas.
+
+\subsection{Gérer sa signature}
+
+La carte \menu{Ma signature} permet de téléverser une image de votre signature manuscrite (au format PNG ou JPG, jusqu'à 2~Mo). Cette signature pourra être reprise sur certains documents officiels. Utilisez \bouton{Ajouter une signature} (ou \bouton{Changer la signature} si une signature existe déjà), et \bouton{Supprimer} pour la retirer.
+
+\screenshot{images/mon_profil.png}{Carte Ma signature~: aperçu de la signature téléversée et boutons d'ajout / suppression.}
+
+\section{Se déconnecter}
+
+\subsection{Déconnexion manuelle}
+
+Pour quitter l'application, ouvrez le menu de votre nom en haut à droite et cliquez sur \bouton{Déconnexion}. Vous êtes alors ramené à l'écran de connexion.
+
+\subsection{Déconnexion automatique en cas d'inactivité}
+
+Par sécurité, l'application vous déconnecte automatiquement après une période d'inactivité. Au bout d'environ quatorze minutes sans action (ni clic, ni frappe au clavier, ni déplacement de la souris), une fenêtre \menu{Session bientôt expirée} vous prévient que la déconnexion interviendra dans une minute. Vous pouvez alors cliquer sur \bouton{Rester connecté} pour prolonger votre session, ou sur \bouton{Se déconnecter} pour quitter immédiatement. Sans réponse de votre part, la déconnexion est automatique.
+
+\attention{Pensez à enregistrer régulièrement votre travail (validation des formulaires) pour ne rien perdre en cas de déconnexion automatique.}
+
+% =====================================================================

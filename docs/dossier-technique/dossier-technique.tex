@@ -1,0 +1,245 @@
+% =====================================================================
+%  DOSSIER TECHNIQUE DE MISE EN ŒUVRE
+%  Projet de refonte et de mise à jour des applications métiers
+%  Client : Hôpital de Zone de Ménontin
+%  Prestataire : EYRAM TECHNOLOGIES & SERVICES
+%  Compilation : tectonic dossier-technique.tex
+%  (Version sans logo, fidèle au document source .docx)
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+% Police principale : Arial. Arial étant propriétaire et absente sous Linux,
+% on utilise « Liberation Sans », métriquement identique à Arial.
+\setmainfont{Liberation Sans}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\geometry{margin=2.4cm}
+
+% ----- Palette (alignée sur l'identité visuelle des autres documents) -----
+\definecolor{primary}{HTML}{1C6FB8}
+\definecolor{accent}{HTML}{409EFF}
+\definecolor{darknavy}{HTML}{001529}
+\definecolor{success}{HTML}{2E9E5B}
+\definecolor{danger}{HTML}{C0392B}
+\definecolor{lightbg}{HTML}{EEF2F7}
+\definecolor{greytext}{HTML}{5A6675}
+\definecolor{rulegrey}{HTML}{C9D2DD}
+
+% ----- Mise en forme des titres -----
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{primary}}{\thesection.}{0.6em}{}
+\titlespacing*{\section}{0pt}{18pt}{8pt}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{darknavy}}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{12pt}{4pt}
+
+% ----- En-têtes / pieds de page -----
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+\fancyhead[L]{\small\color{greytext}Dossier technique de mise en œuvre}
+\fancyhead[R]{\small\color{greytext}Hôpital de Zone de Ménontin}
+\fancyfoot[L]{\small\color{greytext}EYRAM Technologies \& Services}
+\fancyfoot[R]{\small\color{greytext}Page \thepage}
+
+% ----- Listes plus aérées -----
+\setlist[itemize]{leftmargin=1.4em,itemsep=3pt,topsep=4pt}
+\setlist[enumerate]{leftmargin=1.8em,itemsep=4pt,topsep=4pt}
+
+% ----- Encarts -----
+\newcommand{\note}[1]{\par\smallskip\noindent
+  \colorbox{lightbg}{\parbox{\dimexpr\linewidth-2\fboxsep}{\small #1}}\par\smallskip}
+
+% ----- Trait de signature / champ à compléter -----
+\newcommand{\champvide}[1]{\underline{\hspace{#1}}}
+
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{2.5em}  % évite les débordements (URLs, e-mails longs)
+
+\hypersetup{
+  pdftitle={Dossier technique de mise en œuvre — Hôpital de Zone de Ménontin},
+  pdfauthor={EYRAM Technologies \& Services},
+}
+
+% =====================================================================
+\begin{document}
+
+% ---------------------------- PAGE DE TITRE ----------------------------
+\begin{titlepage}
+\centering
+\vspace*{2.4cm}
+{\color{primary}\rule{\textwidth}{2pt}}\\[1.4cm]
+{\Huge\bfseries\color{darknavy} Dossier technique\\[0.2em] de mise en œuvre\par}
+\vspace{1.0cm}
+{\large\color{greytext} Projet de refonte et de mise à jour\\ des applications métiers\par}
+\vspace{2.6cm}
+
+{\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{r l}
+  {\bfseries\color{primary} Client} & Hôpital de Zone de Ménontin \\
+  {\bfseries\color{primary} Prestataire} & EYRAM Technologies \& Services \\
+  {\bfseries\color{primary} Date de réception} & \champvide{1.2cm}\,/\,\champvide{1.2cm}\,/\,\champvide{1.8cm} \\
+  {\bfseries\color{primary} Version du document} & 1.0 \\
+\end{tabular}}
+
+\vfill
+{\color{primary}\rule{\textwidth}{2pt}}\\[0.5cm]
+{\color{greytext} Document confidentiel — usage interne à l'établissement\par}
+\end{titlepage}
+
+% =====================================================================
+\section{Introduction et contexte}
+
+\subsection{Historique}
+Le présent document décrit les spécificités techniques de la nouvelle version du système d'information financier de l'Hôpital de Zone de Ménontin. Initialement, la gestion des factures fournisseurs et clients s'effectuait via deux applications bureautiques autonomes développées en VBA sous Microsoft Access.
+
+\subsection{Objectif de la refonte}
+L'objectif principal était de moderniser l'infrastructure logicielle en migrant vers une architecture web client-serveur sécurisée, pérenne et centralisée. Cette refonte permet un accès multi-utilisateur, une maintenance facilitée et une meilleure intégration des données.
+
+\subsection{Périmètre de la solution}
+La nouvelle solution, intitulée \og~Système de Gestion Financière~\fg{}, intègre désormais les deux fonctionnalités (Factures Fournisseurs et Factures Clients) au sein de modules unifiés d'une seule et même application web.
+
+% =====================================================================
+\section{Architecture technique logicielle}
+
+\subsection{Stack technologique}
+L'application a été développée en utilisant une stack moderne et performante garantissant réactivité et stabilité~:
+
+\begin{itemize}
+  \item \textbf{Framework Backend~: Laravel (PHP)} --- gestion des règles métiers, sécurité et API.
+  \item \textbf{Framework Frontend~: VueJS (JavaScript)} --- interface utilisateur interactive et réactive.
+  \item \textbf{Moteur de liaison~: InertiaJS} --- permet de construire des applications monopages (SPA) sans construire d'API JSON distincte, assurant une fluidité de navigation.
+  \item \textbf{Système de base de données (SGBD)~: PostgreSQL} --- choisi pour sa robustesse, sa conformité aux standards SQL et sa gestion avancée des transactions.
+\end{itemize}
+
+\subsection{Architecture fonctionnelle}
+Le système est découpé en modules métiers distincts mais partageant une base de données unique~:
+
+\begin{enumerate}
+  \item Module de Gestion des Factures Fournisseurs.
+  \item Module de Gestion des Factures Clients.
+\end{enumerate}
+
+% =====================================================================
+\section{Infrastructure et déploiement}
+
+L'infrastructure repose sur la virtualisation pour garantir l'isolement des services et la scalabilité.
+
+\subsection{Hypervision}
+\begin{itemize}
+  \item \textbf{Hôte physique~:} serveur physique de l'Hôpital de Zone de Ménontin.
+  \item \textbf{Hyperviseur~:} VMware Workstation (version professionnelle et authentique).
+  \begin{itemize}
+    \item[\textcolor{primary}{\textbf{$\rightarrow$}}] \textbf{Rôle~:} il permet d'exécuter la machine virtuelle hébergeant l'application de manière isolée sur le serveur existant.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Architecture conteneurisée}
+L'application est déployée au sein d'une machine virtuelle (VM) qui utilise une technologie de conteneurisation pour séparer les différents services. La VM héberge trois~(03) conteneurs distincts~:
+
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{} l l X @{}}
+\toprule
+\textbf{Nom du conteneur} & \textbf{Rôle} & \textbf{Détails} \\
+\midrule
+\texttt{hospital-nginx} & Serveur Web & Serveur HTTP inverse (\emph{reverse proxy}). Il gère les requêtes entrantes, la sécurité SSL/TLS (si configuré) et redirige le trafic vers le conteneur applicatif. \\
+\addlinespace
+\texttt{hospital-app} & Application métier & Conteneur hébergeant le code source (Laravel + VueJS via Inertia). C'est le cœur du traitement logique de l'application. \\
+\addlinespace
+\texttt{hospital-db} & Base de données & Conteneur hébergeant le moteur PostgreSQL. Il stocke l'ensemble des données financières et de configuration. \\
+\bottomrule
+\end{tabularx}
+\renewcommand{\arraystretch}{1}
+
+% =====================================================================
+\section{Configuration réseau et accès}
+
+\subsection{Environnement de production (local)}
+L'instance de production est hébergée sur le réseau local (LAN) de l'hôpital.
+\begin{itemize}
+  \item \textbf{URL d'accès~:} \url{http://192.168.1.253:9090/login}
+  \item \textbf{Localisation~:} serveur physique interne de l'Hôpital de Zone de Ménontin.
+\end{itemize}
+
+\subsection{Environnement de pré-production (cloud)}
+Une instance miroir est maintenue dans le cloud pour assurer la continuité des tests, la formation des utilisateurs et servir de secours potentiel pendant la période de garantie.
+\begin{itemize}
+  \item \textbf{URL d'accès~:} \url{https://hospital.nexox.me/login}
+  \item \textbf{Durée de disponibilité~:} 06 mois à compter de la date officielle de réception du projet.
+\end{itemize}
+
+\subsection{Accès administration (local)}
+Pour les opérations de maintenance sur le serveur (niveau OS / hyperviseur), les identifiants suivants sont fournis à l'administrateur système désigné par l'hôpital.
+\begin{itemize}
+  \item \textbf{Adresse IP (LAN)~:} 192.168.1.253
+  \item \textbf{Nom d'utilisateur~:} \texttt{appli}
+  \item \textbf{Mot de passe~:} \emph{voir la fiche de transmission des codes d'accès (communiquée via un canal sécurisé séparé).}
+\end{itemize}
+
+% =====================================================================
+\section{Procédure d'intervention à distance}
+
+Conformément aux clauses de support et de maintenance, des accès distants peuvent être sollicités par EYRAM Technologies \& Services.
+
+\subsection{Principe de moindre privilège}
+Tout accès à distance est strictement limité aux ressources nécessaires pour l'opération effectuée (déploiement, dépannage, mise à jour). L'accès \emph{root} ou administrateur total n'est pas maintenu en permanence.
+
+\subsection{Processus de connexion}
+\begin{enumerate}
+  \item \textbf{Autorisation~:} toute intervention distante doit être préalablement validée par la direction ou le responsable informatique de l'Hôpital de Zone de Ménontin.
+  \item \textbf{Configuration routeur~:} le responsable informatique de l'hôpital doit ouvrir les ports requis sur le routeur d'accès à Internet (pare-feu).
+  \item \textbf{Gestion de l'IP dynamique~:} l'IP publique de l'hôpital étant dynamique, le responsable informatique doit communiquer l'adresse IP actuelle à l'équipe technique d'EYRAM Technologies \& Services avant chaque session.
+  \item \textbf{Révocation~:} à l'issue des opérations de maintenance, le responsable informatique de l'hôpital s'engage à fermer les ports ouverts et à révoquer les accès temporaires au niveau du routeur, afin de garantir la sécurité du système d'information.
+\end{enumerate}
+
+% =====================================================================
+\section{Livrables et garanties}
+
+\subsection{Livrables fournis}
+\begin{itemize}
+  \item Le code source de l'application (archive), stocké sur le drive d'\textbf{EYRAM Technologies \& Services} et partagé avec l'adresse \nolinkurl{hopitaldemenontin@gmail.com} fournie par la comptabilité.
+  \item Le fichier de configuration de l'infrastructure (Docker Compose ou scripts de déploiement), stocké sur le drive d'\textbf{EYRAM Technologies \& Services} et partagé avec l'adresse \nolinkurl{hopitaldemenontin@gmail.com} fournie par la comptabilité.
+  \item La documentation utilisateur (guide de prise en main).
+  \item Le présent document technique d'installation.
+\end{itemize}
+
+\subsection{Période de support}
+L'instance cloud (\url{https://hospital.nexox.me/login}) restera active et les mises à jour correctives seront appliquées pendant une durée de six~(06) mois suite à la réception.
+
+% =====================================================================
+\section{Acceptation et signature}
+
+Le soussigné, représentant l'Hôpital de Zone de Ménontin, déclare avoir reçu l'ensemble de la documentation technique, les codes d'accès, et confirme que l'installation est conforme aux spécifications définies.
+
+\vspace{0.6cm}
+\noindent Date~: \champvide{1.6cm}\,/\,\champvide{1.6cm}\,/\,\champvide{2.4cm}
+
+\vspace{4.2cm}
+\noindent
+\begin{minipage}[t]{0.46\textwidth}
+\centering
+\rule{0.9\linewidth}{0.4pt}\\[0.3em]
+{\small Représentant\\ de l'Hôpital de Zone de Ménontin}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.46\textwidth}
+\centering
+\rule{0.9\linewidth}{0.4pt}\\[0.3em]
+{\small Représentant\\ d'EYRAM Technologies \& Services}
+\end{minipage}
+
+\end{document}
