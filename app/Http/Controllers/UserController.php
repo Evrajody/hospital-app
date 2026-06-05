@@ -59,7 +59,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->withoutTrashed()],
             'password' => [
                 'required',
                 'string',
@@ -80,14 +80,33 @@ class UserController extends Controller
             return $resp;
         }
 
-        $user = User::create([
+        $attributes = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
             'telephone' => $validated['telephone'] ?? null,
             'poste' => $validated['poste'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
-        ]);
+        ];
+
+        // Si un utilisateur précédemment supprimé (soft delete) possède cet email,
+        // on le restaure et on remet à jour ses informations plutôt que d'échouer
+        // sur la contrainte d'unicité — ce qui préserve sa traçabilité (created_by/validated_by).
+        $trashed = User::onlyTrashed()->where('email', $validated['email'])->first();
+        if ($trashed) {
+            $trashed->restore();
+            $trashed->fill($attributes)->save();
+            $user = $trashed;
+            $user->syncRoles($validated['roles'] ?? []);
+            ActivityLog::log('update', 'utilisateur', "Restauration de l'utilisateur {$user->name}", $user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Utilisateur créé avec succès',
+            ]);
+        }
+
+        $user = User::create($attributes);
 
         if (!empty($validated['roles'])) {
             $user->syncRoles($validated['roles']);
@@ -115,7 +134,7 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)->withoutTrashed()],
             'password' => [
                 'nullable',
                 'string',

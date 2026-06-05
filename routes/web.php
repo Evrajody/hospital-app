@@ -33,12 +33,12 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'active'])->name('dashboard');
 
 // ==========================================
 // TOUTES LES ROUTES PROTÉGÉES PAR AUTH
 // ==========================================
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active'])->group(function () {
 
 // ==========================================
 // FOURNISSEURS ROUTES (CRUD FONCTIONNEL)
