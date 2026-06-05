@@ -23,7 +23,7 @@ NC     = \033[0m
 ##@ Aide
 
 help: ## Afficher cette aide
-	@echo "$(BOLD)$(GREEN)Hospital App - Commandes disponibles:$(NC)"
+	@echo "$(BOLD)$(GREEN)Sysgef - Commandes disponibles:$(NC)"
 	@echo ""
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  $(YELLOW)%-22s$(NC) %s\n", $$1, $$2 } /^##@/ { printf "\n$(BOLD)$(GREEN)%s$(NC)\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	@echo ""
@@ -36,7 +36,7 @@ help: ## Afficher cette aide
 deploy: ## Déploiement complet en UNE commande (backup + build + migrate + cache)
 	@echo ""
 	@echo "$(BOLD)$(GREEN)╔══════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(BOLD)$(GREEN)║          DEPLOIEMENT HOSPITAL APP                   ║$(NC)"
+	@echo "$(BOLD)$(GREEN)║          DEPLOIEMENT SYSGEF                         ║$(NC)"
 	@echo "$(BOLD)$(GREEN)╚══════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@# --- Étape 1 : Vérification .env.production ---
