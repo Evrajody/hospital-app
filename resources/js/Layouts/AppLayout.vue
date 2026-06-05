@@ -17,7 +17,7 @@
         <!-- <div class="gov-liserai"></div> -->
       </div>
       <div v-if="!isCollapse" class="sidebar-header">
-        <h2>Sysgef</h2>
+        <h2>Hôpital de zone de Ménontin</h2>
       </div>
 
       <el-menu
