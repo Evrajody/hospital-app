@@ -7,7 +7,7 @@ import 'element-plus/dist/index.css';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import fr from 'element-plus/es/locale/lang/fr';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Hôpital de Ménontin';
+const appName = import.meta.env.VITE_APP_NAME || 'Sysgef';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
