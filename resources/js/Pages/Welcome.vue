@@ -5,7 +5,7 @@
       <div class="nav-content">
         <div class="logo">
           <el-icon :size="32" color="var(--el-color-primary)"><OfficeBuilding /></el-icon>
-          <span>Hôpital de zone de Ménontin</span>
+          <span>Sysgef</span>
         </div>
         <el-button type="primary" @click="navigateToLogin">
           <el-icon><User /></el-icon>
@@ -96,7 +96,7 @@
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-content">
-        <p>&copy; 2025 Hôpital de zone de Ménontin. Tous droits réservés.</p>
+        <p>&copy; 2025 Sysgef. Tous droits réservés.</p>
       </div>
     </footer>
   </div>

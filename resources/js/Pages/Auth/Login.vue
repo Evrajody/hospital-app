@@ -11,7 +11,7 @@
             class="login-logo"
           />
           <!-- <div class="gov-liserai login-liserai"></div> -->
-          <h1>Hôpital de zone de Ménontin</h1>
+          <h1>Sysgef</h1>
           <p class="welcome-text">Bienvenue ! Connectez-vous à votre compte</p>
         </div>
 
@@ -67,7 +67,7 @@
 
         <!-- Footer -->
         <div class="login-footer">
-          <p>&copy; 2025 Hôpital de zone de Ménontin</p>
+          <p>&copy; 2025 Sysgef</p>
         </div>
       </div>
     </div>
