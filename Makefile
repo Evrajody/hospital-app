@@ -1,10 +1,12 @@
-.PHONY: help deploy deploy-init deploy-quick rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-coverage clear-cache clear-logs clean perm down destroy
+.PHONY: help deploy deploy-init deploy-quick prod-init-dirs rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-coverage clear-cache clear-logs clean perm down destroy
 
 # =============================================================================
 # Variables
 # =============================================================================
 DOCKER_COMPOSE     = docker compose
-DOCKER_COMPOSE_PROD = docker compose -f docker-compose.prod.yml
+# --env-file .env.production : compose lit ce fichier pour l'interpolation (DB_PASSWORD, APP_PORT…)
+# au lieu du .env par défaut. Toutes les cibles prod en héritent.
+DOCKER_COMPOSE_PROD = docker compose --env-file .env.production -f docker-compose.prod.yml
 EXEC_APP           = $(DOCKER_COMPOSE) exec app
 EXEC_APP_PROD      = $(DOCKER_COMPOSE_PROD) exec app
 EXEC_DB            = $(DOCKER_COMPOSE) exec db
@@ -87,6 +89,8 @@ deploy: ## Déploiement complet en UNE commande (backup + build + migrate + cach
 	@echo ""
 	@# --- Étape 5 : Démarrage des conteneurs ---
 	@echo "$(BLUE)[5/7]$(NC) Démarrage des conteneurs..."
+	@echo "  $(BLUE)→ Préparation des dossiers de données (bind mounts voisins)...$(NC)"
+	@sh docker/prod-init-dirs.sh
 	$(DOCKER_COMPOSE_PROD) up -d
 	@echo "  $(GREEN)✓ Conteneurs démarrés$(NC)"
 	@echo ""
@@ -131,6 +135,7 @@ deploy-init: ## Premier déploiement (génère APP_KEY + deploy)
 deploy-quick: ## Redéploiement rapide (rebuild + restart, sans backup)
 	@echo "$(GREEN)Redéploiement rapide...$(NC)"
 	$(DOCKER_COMPOSE_PROD) build
+	@sh docker/prod-init-dirs.sh
 	$(DOCKER_COMPOSE_PROD) up -d
 	@sleep 5
 	$(EXEC_APP_PROD) php artisan migrate --force
@@ -176,6 +181,9 @@ shell-prod: ## Shell dans le conteneur app de production
 
 down-prod: ## Arrêter la production
 	$(DOCKER_COMPOSE_PROD) down
+
+prod-init-dirs: ## Créer les dossiers de données bind-mount (voisins du projet) avec les bons droits
+	@sh docker/prod-init-dirs.sh
 
 # =============================================================================
 ##@ DEVELOPPEMENT — Docker

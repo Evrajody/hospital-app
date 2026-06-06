@@ -12,9 +12,14 @@ RUN npm ci --no-audit --no-fund
 # Copier le reste du code source pour le build
 COPY resources ./resources
 COPY vite.config.js ./
-COPY postcss.config.js* tailwind.config.js* ./
+# package.json garantit au moins une correspondance : les configs postcss/tailwind
+# restent optionnelles (le COPY échoue si AUCUN glob ne correspond).
+COPY package.json postcss.config.js* tailwind.config.js* ./
 
 RUN npm run build
+
+# Garde-fou : échouer explicitement si le build n'a pas produit le manifest.
+RUN test -f public/build/manifest.json || (echo "ERREUR: build front absent (public/build/manifest.json manquant)" && exit 1)
 
 
 # =============================================================================
@@ -34,7 +39,7 @@ RUN composer dump-autoload --optimize --no-dev
 # =============================================================================
 # Stage 3: Image de production
 # =============================================================================
-FROM php:8.2-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 ARG user=hospital
 ARG uid=1000
@@ -107,5 +112,5 @@ RUN mkdir -p \
 
 USER $user
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
