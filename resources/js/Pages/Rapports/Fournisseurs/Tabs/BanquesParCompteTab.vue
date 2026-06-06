@@ -25,7 +25,7 @@
         <el-empty description="Aucun compte bancaire trouvé" />
       </div>
       <template v-else>
-        <el-table :data="data" border size="small" stripe>
+        <PaginatedTable :data="data" border size="small" stripe>
           <el-table-column prop="banque" label="Banque" min-width="180" />
           <el-table-column prop="numero_compte" label="N° Compte" min-width="160" />
           <el-table-column label="Approvisionnements" min-width="170" align="right">
@@ -39,7 +39,7 @@
               <strong :style="{ color: row.solde < 0 ? '#f56c6c' : '#67c23a' }">{{ formatMontant(row.solde) }}</strong>
             </template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
 
         <div class="actions-bar">
           <el-button type="primary" @click="exportPdf">Exporter PDF</el-button>
@@ -56,6 +56,7 @@ const { openPdf } = usePdfViewer();
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useMontant } from '@/Composables/useMontant';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const { formatMontant } = useMontant();
 

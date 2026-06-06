@@ -67,21 +67,25 @@
           </div>
 
           <template v-if="imputations.length > 0">
-            <div v-for="groupe in imputations" :key="groupe.reference_bordereau + groupe.date_raw" class="imputation-block">
-              <div class="imputation-date">Date d'imputation : <strong>{{ groupe.date }}</strong></div>
-              <el-table :data="groupe.lignes" border size="small" style="width: 100%">
-                <el-table-column label="Compte" prop="compte" width="140" align="center">
-                  <template #default="{ row }"><code>{{ row.compte }}</code></template>
-                </el-table-column>
-                <el-table-column label="Débit" width="160" align="right">
-                  <template #default="{ row }">{{ row.debit ? formatMontant(row.debit) : '' }}</template>
-                </el-table-column>
-                <el-table-column label="Crédit" width="160" align="right">
-                  <template #default="{ row }">{{ row.credit ? formatMontant(row.credit) : '' }}</template>
-                </el-table-column>
-                <el-table-column label="Libellé" prop="libelle" />
-              </el-table>
-            </div>
+            <GroupNavigator :groups="imputations">
+              <template #label="{ group }">
+                Date d'imputation : <strong>{{ group.date }}</strong>
+              </template>
+              <template #default="{ group }">
+                <PaginatedTable :data="group.lignes" border size="small" style="width: 100%">
+                  <el-table-column label="Compte" prop="compte" width="140" align="center">
+                    <template #default="{ row }"><code>{{ row.compte }}</code></template>
+                  </el-table-column>
+                  <el-table-column label="Débit" width="160" align="right">
+                    <template #default="{ row }">{{ row.debit ? formatMontant(row.debit) : '' }}</template>
+                  </el-table-column>
+                  <el-table-column label="Crédit" width="160" align="right">
+                    <template #default="{ row }">{{ row.credit ? formatMontant(row.credit) : '' }}</template>
+                  </el-table-column>
+                  <el-table-column label="Libellé" prop="libelle" />
+                </PaginatedTable>
+              </template>
+            </GroupNavigator>
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportImputationsPdf">Exporter PDF</el-button>
@@ -100,6 +104,8 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
+import GroupNavigator from '@/Components/GroupNavigator.vue';
 
 const dateRange = ref([]);
 const loading = ref(false);

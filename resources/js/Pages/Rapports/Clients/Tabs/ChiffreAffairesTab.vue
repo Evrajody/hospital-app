@@ -79,14 +79,14 @@
         <div class="client-header-box">
           <strong>{{ data.numero_compte }}</strong> — {{ data.raison_sociale }}
         </div>
-        <el-table style="width: 100%" :data="data.lignes" border size="small" stripe show-summary :summary-method="getClientSummary">
+        <PaginatedTable style="width: 100%" :data="data.lignes" border size="small" stripe show-summary :summary-method="getClientSummary">
           <el-table-column prop="numero" label="N°" min-width="50" align="center" />
           <el-table-column prop="reference" label="Réf. Facture" />
           <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
           <el-table-column label="Montant CA" min-width="140" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
       </template>
 
       <!-- Pas de données -->
@@ -109,6 +109,7 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const props = defineProps({
   clients: { type: Array, default: () => [] },

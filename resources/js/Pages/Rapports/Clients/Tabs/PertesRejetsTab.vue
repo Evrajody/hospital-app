@@ -67,7 +67,7 @@
 
       <template v-if="data.length > 0">
         <!-- Tableau -->
-        <el-table style="width: 100%" :data="data" border size="small" stripe>
+        <PaginatedTable style="width: 100%" :data="data" border size="small" stripe>
           <el-table-column prop="id" label="N°" min-width="50" align="center">
             <template #default="{ $index }">{{ $index + 1 }}</template>
           </el-table-column>
@@ -87,7 +87,7 @@
               <span style="font-size: 12px; color: #666">{{ row.observations || '-' }}</span>
             </template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
       </template>
 
       <!-- Actions Export -->
@@ -105,6 +105,7 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const props = defineProps({
   clients: { type: Array, default: () => [] },

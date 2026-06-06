@@ -44,7 +44,7 @@
           </div>
         </div>
 
-        <el-table :data="lignes" border size="small" stripe show-summary :summary-method="summaryMethod">
+        <PaginatedTable :data="lignes" border size="small" stripe show-summary :summary-method="summaryMethod">
           <el-table-column prop="date" label="Date" min-width="100" />
           <el-table-column prop="numero_piece" label="N° PC" min-width="110" />
           <el-table-column prop="fournisseur" label="Fournisseur" min-width="180" show-overflow-tooltip />
@@ -59,7 +59,7 @@
           <el-table-column label="Montant TVA" min-width="130" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_tva) }}</template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
 
         <div class="actions-bar">
           <el-button type="primary" @click="exportPdf">Exporter PDF</el-button>
@@ -76,6 +76,7 @@ const { openPdf } = usePdfViewer();
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useMontant } from '@/Composables/useMontant';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const { formatMontant } = useMontant();
 

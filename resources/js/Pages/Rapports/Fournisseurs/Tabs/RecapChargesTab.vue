@@ -51,13 +51,13 @@
       <template v-else>
         <div class="report-title">{{ titre }}</div>
 
-        <el-table style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummary">
+        <PaginatedTable style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummary">
           <el-table-column prop="numero_compte" label="N° Compte" min-width="120" />
           <el-table-column prop="libelle" label="Intitulé" min-width="350" />
           <el-table-column label="Montant TTC" min-width="150" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
 
         <!-- Actions Export -->
         <div class="actions-bar">
@@ -76,6 +76,7 @@ const { openPdf } = usePdfViewer();
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useMontant } from '@/Composables/useMontant';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const { formatMontant } = useMontant();
 

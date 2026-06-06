@@ -98,7 +98,7 @@
           <el-empty description="Aucune dette fournisseur trouvée" />
         </div>
         <template v-else>
-          <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
+          <PaginatedTable style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
             <el-table-column prop="numero" label="N°" min-width="50" align="center" />
             <el-table-column prop="raison_sociale" label="Raison sociale" />
             <el-table-column label="Montant total dû" min-width="150" align="right">
@@ -112,7 +112,7 @@
                 <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.restant_du) }}</span>
               </template>
             </el-table-column>
-          </el-table>
+          </PaginatedTable>
         </template>
       </template>
 
@@ -126,7 +126,7 @@
             <strong>Compte :</strong> <em>{{ compteInfo.numero_compte }} {{ compteInfo.libelle }}</em>
           </div>
 
-          <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
+          <PaginatedTable style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
             <el-table-column prop="numero" label="N°" min-width="50" align="center" />
             <el-table-column label="Raison sociale">
               <template #default="{ row }">[{{ row.numero_compte }}] {{ row.raison_sociale }}</template>
@@ -142,7 +142,7 @@
                 <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.restant_du) }}</span>
               </template>
             </el-table-column>
-          </el-table>
+          </PaginatedTable>
         </template>
       </template>
 
@@ -152,11 +152,12 @@
           <el-empty description="Aucune facture non réglée trouvée" />
         </div>
         <template v-else>
-          <div v-for="(fData, fi) in data" :key="fi" class="fournisseur-block">
-            <div class="fournisseur-header-box">
-              <strong>Fournisseur :</strong> {{ fData.fournisseur }}
-            </div>
-            <el-table style="width: 100%" :data="fData.lignes" border size="small" stripe>
+          <GroupNavigator :groups="data">
+            <template #label="{ group }">
+              <strong>Fournisseur :</strong> {{ group.fournisseur }}
+            </template>
+            <template #default="{ group }">
+            <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe>
               <el-table-column prop="numero_piece" label="N°Pièce" min-width="90" />
               <el-table-column prop="date" label="Date PC" min-width="85" />
               <el-table-column prop="reference_facture" label="Réf. Fact." min-width="100" />
@@ -186,14 +187,15 @@
                   <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.solde) }}</span>
                 </template>
               </el-table-column>
-            </el-table>
+            </PaginatedTable>
             <div class="fournisseur-totals">
-              Total : Mt TTC <strong>{{ formatMontant(fData.totaux.montant_facture) }}</strong>
-              &nbsp;|&nbsp; Mt Dû <strong>{{ formatMontant(fData.totaux.montant_du) }}</strong>
-              &nbsp;|&nbsp; Règ. <strong>{{ formatMontant(fData.totaux.total_reglement) }}</strong>
-              &nbsp;|&nbsp; <span style="color: #cc0000">Solde <strong>{{ formatMontant(fData.totaux.solde) }}</strong></span>
+              Total : Mt TTC <strong>{{ formatMontant(group.totaux.montant_facture) }}</strong>
+              &nbsp;|&nbsp; Mt Dû <strong>{{ formatMontant(group.totaux.montant_du) }}</strong>
+              &nbsp;|&nbsp; Règ. <strong>{{ formatMontant(group.totaux.total_reglement) }}</strong>
+              &nbsp;|&nbsp; <span style="color: #cc0000">Solde <strong>{{ formatMontant(group.totaux.solde) }}</strong></span>
             </div>
-          </div>
+            </template>
+          </GroupNavigator>
 
           <div class="grand-total">
             <span>TOTAL GÉNÉRAL — Mt TTC : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
@@ -220,6 +222,8 @@ const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { InfoFilled } from '@element-plus/icons-vue';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
+import GroupNavigator from '@/Components/GroupNavigator.vue';
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },

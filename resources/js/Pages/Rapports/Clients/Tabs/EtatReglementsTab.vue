@@ -70,13 +70,13 @@
       <template v-if="(selectedMode === 'par_client' || selectedMode === 'un_client') && data.length > 0">
         <!-- par_client + pas de type filtré : groupement par type -->
         <template v-if="groupesParType && groupesParType.length > 0">
-          <div v-for="groupe in groupesParType" :key="groupe.type" class="type-group">
-            <div class="type-header">{{ groupe.label }}</div>
-            <div v-for="clientData in groupe.clients" :key="clientData.client_id" class="client-block">
-              <div class="client-header-box">
-                <strong>{{ clientData.numero_compte }}</strong> — {{ clientData.raison_sociale }}
-              </div>
-              <el-table style="width: 100%" :data="clientData.lignes" border size="small" stripe>
+          <GroupNavigator :groups="groupedClients">
+            <template #label="{ group }">
+              <span class="type-inline"><em>{{ group._typeLabel }}</em> · </span>
+              <strong>{{ group.numero_compte }}</strong> — {{ group.raison_sociale }}
+            </template>
+            <template #default="{ group }">
+              <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe>
                 <el-table-column prop="numero" label="N°" min-width="50" align="center" />
                 <el-table-column prop="reference" label="Réf. Facture" />
                 <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
@@ -102,48 +102,50 @@
                     <strong>{{ formatMontant(row.solde) }}</strong>
                   </template>
                 </el-table-column>
-              </el-table>
+              </PaginatedTable>
               <div class="client-totals">
-                <span>Total Factures: <strong>{{ formatMontant(clientData.total_facture) }}</strong></span>
-                <span>Total Payé: <strong>{{ formatMontant(clientData.total_paye) }}</strong></span>
-                <span style="color: #cc0000">Total rejet: <strong>{{ formatMontant(clientData.total_rejet) }}</strong></span>
-                <span style="color: #cc0000">Total pertes: <strong>{{ formatMontant(clientData.total_perte) }}</strong></span>
-                <span>Solde: <strong>{{ formatMontant(clientData.total_solde) }}</strong></span>
+                <span>Total Factures: <strong>{{ formatMontant(group.total_facture) }}</strong></span>
+                <span>Total Payé: <strong>{{ formatMontant(group.total_paye) }}</strong></span>
+                <span style="color: #cc0000">Total rejet: <strong>{{ formatMontant(group.total_rejet) }}</strong></span>
+                <span style="color: #cc0000">Total pertes: <strong>{{ formatMontant(group.total_perte) }}</strong></span>
+                <span>Solde: <strong>{{ formatMontant(group.total_solde) }}</strong></span>
               </div>
-            </div>
-          </div>
+            </template>
+          </GroupNavigator>
         </template>
 
         <!-- par_client + type filtré, OU un_client : pas de groupement -->
         <template v-else>
-          <div v-for="clientData in data" :key="clientData.client_id" class="client-block">
-            <div class="client-header-box">
-              <strong>{{ clientData.numero_compte }}</strong> — {{ clientData.raison_sociale }}
-              <span v-if="selectedMode === 'un_client'" class="type-inline">&nbsp;- <em>{{ clientData.type_client_label || 'Non défini' }}</em></span>
-            </div>
-            <el-table style="width: 100%" :data="clientData.lignes" border size="small" stripe>
-              <el-table-column prop="numero" label="N°" min-width="50" align="center" />
-              <el-table-column prop="reference" label="Réf. Facture" />
-              <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
-              <el-table-column prop="date_reglement" label="Date Règlement" min-width="120" />
-              <el-table-column label="Montant Facture" min-width="130" align="right">
-                <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
-              </el-table-column>
-              <el-table-column label="Montant Payé" min-width="120" align="right">
-                <template #default="{ row }">{{ formatMontant(row.montant_paye) }}</template>
-              </el-table-column>
-              <el-table-column label="Rejet" min-width="100" align="right">
-                <template #default="{ row }">
-                  <span :style="{ color: row.rejet > 0 ? '#cc0000' : 'inherit' }">{{ formatMontant(row.rejet) }}</span>
-                </template>
-              </el-table-column>
-            </el-table>
-            <div class="client-totals">
-              <span>Total Factures: <strong>{{ formatMontant(clientData.total_facture) }}</strong></span>
-              <span>Total Payé: <strong>{{ formatMontant(clientData.total_paye) }}</strong></span>
-              <span style="color: #cc0000">Rejet: <strong>{{ formatMontant(clientData.total_rejet) }}</strong></span>
-            </div>
-          </div>
+          <GroupNavigator :groups="data">
+            <template #label="{ group }">
+              <strong>{{ group.numero_compte }}</strong> — {{ group.raison_sociale }}
+              <span v-if="selectedMode === 'un_client'" class="type-inline">&nbsp;- <em>{{ group.type_client_label || 'Non défini' }}</em></span>
+            </template>
+            <template #default="{ group }">
+              <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe>
+                <el-table-column prop="numero" label="N°" min-width="50" align="center" />
+                <el-table-column prop="reference" label="Réf. Facture" />
+                <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
+                <el-table-column prop="date_reglement" label="Date Règlement" min-width="120" />
+                <el-table-column label="Montant Facture" min-width="130" align="right">
+                  <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
+                </el-table-column>
+                <el-table-column label="Montant Payé" min-width="120" align="right">
+                  <template #default="{ row }">{{ formatMontant(row.montant_paye) }}</template>
+                </el-table-column>
+                <el-table-column label="Rejet" min-width="100" align="right">
+                  <template #default="{ row }">
+                    <span :style="{ color: row.rejet > 0 ? '#cc0000' : 'inherit' }">{{ formatMontant(row.rejet) }}</span>
+                  </template>
+                </el-table-column>
+              </PaginatedTable>
+              <div class="client-totals">
+                <span>Total Factures: <strong>{{ formatMontant(group.total_facture) }}</strong></span>
+                <span>Total Payé: <strong>{{ formatMontant(group.total_paye) }}</strong></span>
+                <span style="color: #cc0000">Rejet: <strong>{{ formatMontant(group.total_rejet) }}</strong></span>
+              </div>
+            </template>
+          </GroupNavigator>
         </template>
 
         <div v-if="data.length > 1" class="grand-total">
@@ -157,7 +159,7 @@
 
       <!-- Mode tous_clients -->
       <template v-if="selectedMode === 'tous_clients' && data.length > 0">
-        <el-table
+        <PaginatedTable
           style="width: 100%"
           :data="tousClientsRows"
           border
@@ -197,7 +199,7 @@
               <strong>{{ formatMontant(row.total_solde) }}</strong>
             </template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
       </template>
 
       <!-- Actions Export -->
@@ -215,9 +217,18 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
+import GroupNavigator from '@/Components/GroupNavigator.vue';
 
 const props = defineProps({
   clients: { type: Array, default: () => [] },
+});
+
+// Aplatit le groupement type → clients en une liste de clients (un par « page »
+// du GroupNavigator), chacun gardant le libellé de son type pour l'affichage.
+const groupedClients = computed(() => {
+  if (!groupesParType.value) return [];
+  return groupesParType.value.flatMap((g) => g.clients.map((c) => ({ ...c, _typeLabel: g.label })));
 });
 
 const selectedMode = ref('par_client');

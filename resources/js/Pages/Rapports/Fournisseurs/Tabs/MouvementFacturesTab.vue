@@ -62,7 +62,7 @@
           <el-empty description="Aucune facture trouvée pour ce fournisseur" />
         </div>
 
-        <el-table style="width: 100%" v-else :data="lignes"  border size="small" stripe show-summary :summary-method="getSummary">
+        <PaginatedTable style="width: 100%" v-else :data="lignes" border size="small" stripe show-summary :summary-method="getSummary">
           <el-table-column prop="numero_piece" label="N°Pièce" min-width="90" />
           <el-table-column prop="date" label="Date PC" min-width="85" />
           <el-table-column prop="reference_facture" label="Réf. Fact." min-width="100" />
@@ -94,7 +94,7 @@
               </span>
             </template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
 
         <!-- Actions Export -->
         <div v-if="lignes.length > 0" class="actions-bar">
@@ -112,6 +112,7 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },

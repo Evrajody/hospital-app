@@ -56,7 +56,7 @@
 
             <div class="report-title">{{ titreDeclaration }}</div>
 
-            <el-table style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryDeclaration">
+            <PaginatedTable style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryDeclaration">
               <el-table-column prop="numero_piece" label="N°Pièce" min-width="100" />
               <el-table-column prop="date" label="Date AIB" min-width="90" />
               <el-table-column prop="ifu" label="IFU" min-width="120" />
@@ -74,7 +74,7 @@
               <el-table-column label="Montant AIB" min-width="100" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
               </el-table-column>
-            </el-table>
+            </PaginatedTable>
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('declaration')">Exporter PDF</el-button>
@@ -129,6 +129,7 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const selectedMode = ref('mois_annee');
 const selectedMois = ref(new Date().getMonth() + 1);

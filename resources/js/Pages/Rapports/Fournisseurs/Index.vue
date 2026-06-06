@@ -101,6 +101,9 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
 .rapports-container {
   max-width: 1400px;
   margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-header {
@@ -108,6 +111,7 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  flex-shrink: 0;
 }
 
 .page-header h1 {
@@ -129,7 +133,10 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
   align-items: stretch;
   border: 1px solid #ddd;
   background: #fff;
-  min-height: 620px;
+  flex: 1;
+  min-height: 480px;
+  /* La hauteur est bornée par le conteneur : seul le contenu défile. */
+  overflow: hidden;
 }
 
 .rapports-rail {
@@ -182,8 +189,9 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
 .rapports-content {
   flex: 1;
   min-width: 0;
-  padding: 20px;
-  overflow-x: auto;
+  padding: 20px 20px 0;
+  /* Seule zone défilante de la page. */
+  overflow: auto;
 }
 
 /* Animation de transition entre rapports */
@@ -207,6 +215,11 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
   .rapports-layout {
     flex-direction: column;
     min-height: 0;
+    overflow: visible;
+  }
+
+  .rapports-content {
+    overflow: visible;
   }
 
   .rapports-rail {
@@ -227,6 +240,26 @@ const activeReport = computed(() => reports.find((r) => r.name === activeTab.val
 
   .rail-item {
     border-bottom: none;
+  }
+}
+</style>
+
+<!-- Non-scoped : la barre d'actions des onglets enfants reste fixe en bas de la zone défilante -->
+<style>
+.rapports-content .actions-bar {
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  z-index: 6;
+  margin-top: 16px;
+  padding-bottom: 14px;
+  box-shadow: 0 -6px 10px -8px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 900px) {
+  .rapports-content .actions-bar {
+    position: static;
+    box-shadow: none;
   }
 }
 </style>

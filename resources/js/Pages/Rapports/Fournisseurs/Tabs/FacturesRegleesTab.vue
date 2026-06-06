@@ -69,7 +69,7 @@
               <span class="sub-tab-label">Résumé par fournisseur</span>
             </template>
 
-            <el-table style="width: 100%" :data="resume" border size="small" stripe>
+            <PaginatedTable style="width: 100%" :data="resume" border size="small" stripe>
               <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" />
               <el-table-column label="Total Mt TTC" min-width="130" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_facture) }}</template>
@@ -91,7 +91,7 @@
                   <span style="font-weight: bold;">{{ formatMontant(row.total_mt_reg) }}</span>
                 </template>
               </el-table-column>
-            </el-table>
+            </PaginatedTable>
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('resume')">Exporter PDF</el-button>
@@ -121,11 +121,12 @@
               Lignes en orange = factures <strong>marquées comme soldées</strong> (clôturées sans règlement) ; le « Mt Total Rég. » en rouge signale le déficit.
             </div>
 
-            <div v-for="(fData, fi) in detail" :key="fi" class="fournisseur-block">
-              <div class="fournisseur-header-box">
-                <strong>Fournisseur :</strong> {{ fData.fournisseur }}
-              </div>
-              <el-table style="width: 100%" :data="fData.lignes" border size="small" stripe :row-class-name="rowClassSoldee">
+            <GroupNavigator :groups="detail">
+              <template #label="{ group }">
+                <strong>Fournisseur :</strong> {{ group.fournisseur }}
+              </template>
+              <template #default="{ group }">
+              <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe :row-class-name="rowClassSoldee">
                 <el-table-column label="N°PC" min-width="120">
                   <template #default="{ row }">
                     {{ row.numero_piece }}
@@ -158,8 +159,9 @@
                     <span style="font-weight: bold;" :style="{ color: row.marquee_soldee ? '#b91c1c' : 'inherit' }">{{ formatMontant(row.mt_total_reg) }}</span>
                   </template>
                 </el-table-column>
-              </el-table>
-            </div>
+              </PaginatedTable>
+              </template>
+            </GroupNavigator>
 
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('detail')">Exporter PDF</el-button>
@@ -189,6 +191,8 @@ const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ArrowDown } from '@element-plus/icons-vue';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
+import GroupNavigator from '@/Components/GroupNavigator.vue';
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },

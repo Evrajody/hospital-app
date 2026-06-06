@@ -70,7 +70,7 @@
         <el-empty description="Aucune facture trouvée" />
       </div>
       <template v-else>
-        <el-table
+        <PaginatedTable
           style="width: 100%"
           :data="factures"
           border
@@ -99,7 +99,7 @@
               </span>
             </template>
           </el-table-column>
-        </el-table>
+        </PaginatedTable>
 
         <!-- Actions Export -->
         <div class="actions-bar">
@@ -115,6 +115,7 @@ import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { InfoFilled } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },

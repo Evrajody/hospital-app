@@ -29,21 +29,23 @@
       <template v-else>
         <div class="report-title">{{ titre }}</div>
 
-        <div v-for="(groupe, gi) in groupes" :key="gi" class="date-block">
-          <div class="date-header-box">
-            <strong>Date d'enregistrement :</strong> <em>{{ groupe.date_longue }}</em>
-          </div>
-          <el-table style="width: 100%" :data="groupe.lignes" border size="small" stripe>
-            <el-table-column prop="numero_piece" label="N° Pièce" min-width="130" />
-            <el-table-column prop="libelle" label="Objet PC" min-width="300" />
-            <el-table-column label="Montant TTC" min-width="140" align="right">
-              <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
-            </el-table-column>
-          </el-table>
-          <div class="date-total">
-            TOTAL : <strong>{{ formatMontant(groupe.total) }}</strong>
-          </div>
-        </div>
+        <GroupNavigator :groups="groupes">
+          <template #label="{ group }">
+            <strong>Date d'enregistrement :</strong> <em>{{ group.date_longue }}</em>
+          </template>
+          <template #default="{ group }">
+            <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe>
+              <el-table-column prop="numero_piece" label="N° Pièce" min-width="130" />
+              <el-table-column prop="libelle" label="Objet PC" min-width="300" />
+              <el-table-column label="Montant TTC" min-width="140" align="right">
+                <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
+              </el-table-column>
+            </PaginatedTable>
+            <div class="date-total">
+              TOTAL : <strong>{{ formatMontant(group.total) }}</strong>
+            </div>
+          </template>
+        </GroupNavigator>
 
         <!-- Actions Export -->
         <div class="actions-bar">
@@ -61,6 +63,8 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
+import GroupNavigator from '@/Components/GroupNavigator.vue';
 
 const dateRange = ref([]);
 const loading = ref(false);

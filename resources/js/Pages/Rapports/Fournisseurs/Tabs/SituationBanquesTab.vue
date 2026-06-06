@@ -47,7 +47,7 @@
         <template v-else>
           <div class="report-title">{{ titre }}</div>
 
-          <el-table style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryResume">
+          <PaginatedTable style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummaryResume">
             <el-table-column prop="numero_compte" label="N° Compte" min-width="130" />
             <el-table-column prop="intitule" label="Intitulé" min-width="250" />
             <el-table-column label="Total Débit" min-width="170" align="right">
@@ -61,7 +61,7 @@
                 <span :class="{ 'negatif': row.solde < 0 }">{{ fmt(row.solde) }}</span>
               </template>
             </el-table-column>
-          </el-table>
+          </PaginatedTable>
         </template>
       </template>
 
@@ -73,12 +73,12 @@
         <template v-else>
           <div class="report-title">{{ titre }}</div>
 
-          <div v-for="(section, si) in sections" :key="si" class="bank-section">
-            <div class="bank-header">
-              <strong>Banque :</strong> <em>{{ section.numero_compte }} {{ section.intitule }}</em>
-            </div>
-
-            <el-table style="width: 100%" :data="section.displayRows" border size="small" :show-header="true" class="detail-table">
+          <GroupNavigator :groups="sections">
+            <template #label="{ group }">
+              <strong>Banque :</strong> <em>{{ group.numero_compte }} {{ group.intitule }}</em>
+            </template>
+            <template #default="{ group }">
+            <el-table style="width: 100%" :data="group.displayRows" border size="small" :show-header="true" class="detail-table">
               <el-table-column label="DATE" min-width="110">
                 <template #default="{ row }">
                   <span :class="{ 'row-special': row._special }">{{ row.date_fmt }}</span>
@@ -105,7 +105,8 @@
                 </template>
               </el-table-column>
             </el-table>
-          </div>
+            </template>
+          </GroupNavigator>
         </template>
       </template>
 
@@ -124,6 +125,8 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
+import PaginatedTable from '@/Components/PaginatedTable.vue';
+import GroupNavigator from '@/Components/GroupNavigator.vue';
 
 const props = defineProps({
   banques: { type: Array, default: () => [] },
