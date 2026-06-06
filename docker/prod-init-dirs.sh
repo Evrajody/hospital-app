@@ -1,13 +1,13 @@
 #!/bin/sh
 # =============================================================================
 # Prépare les dossiers de données bind-mountés (voisins du projet) avec les bons
-# propriétaires. À lancer UNE FOIS sur le serveur de prod, depuis le dossier du
-# projet, AVANT `docker compose -f docker-compose.prod.yml up -d`.
+# propriétaires. Idempotent : le chown n'est appliqué qu'à la PREMIÈRE création
+# (dossier vide), donc sûr à relancer à chaque déploiement.
 #
-#   sh docker/prod-init-dirs.sh
+#   sh docker/prod-init-dirs.sh        (ou : make prod-init-dirs)
 #
 # Permissions :
-#   - PostgreSQL (image alpine) tourne en uid 70  -> ../hospital-db, ../hospital-db-backups
+#   - PostgreSQL (image alpine) tourne en uid 70   -> ../hospital-db, ../hospital-db-backups
 #   - L'app Laravel tourne en uid 1000 (user "hospital") -> ../hospital-storage, ../hospital-public
 # =============================================================================
 set -e
@@ -15,24 +15,27 @@ set -e
 PG_UID=70
 APP_UID=1000
 
-# Dossiers voisins du projet (le script est lancé depuis la racine du projet)
-DB_DIR="../hospital-db"
-DB_BACKUPS_DIR="../hospital-db-backups"
-STORAGE_DIR="../hospital-storage"
-PUBLIC_DIR="../hospital-public"
-
 SUDO=""
 [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 
-echo "==> Création des dossiers de données voisins du projet..."
-mkdir -p "$DB_DIR" "$DB_BACKUPS_DIR" "$STORAGE_DIR" "$PUBLIC_DIR"
+# prepare_dir <dossier> <owner uid:gid> [mode]
+prepare_dir() {
+    dir="$1"
+    owner="$2"
+    mode="$3"
+    mkdir -p "$dir"
+    if [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+        $SUDO chown "$owner" "$dir"
+        [ -n "$mode" ] && $SUDO chmod "$mode" "$dir"
+        echo "  ✓ $dir initialisé (chown $owner${mode:+, chmod $mode})"
+    else
+        echo "  • $dir déjà peuplé — droits inchangés"
+    fi
+}
 
-echo "==> Attribution des droits PostgreSQL (uid $PG_UID)..."
-$SUDO chown -R "$PG_UID:$PG_UID" "$DB_DIR" "$DB_BACKUPS_DIR"
-$SUDO chmod 700 "$DB_DIR"
-
-echo "==> Attribution des droits application Laravel (uid $APP_UID)..."
-$SUDO chown -R "$APP_UID:$APP_UID" "$STORAGE_DIR" "$PUBLIC_DIR"
-
-echo "==> Terminé. Dossiers prêts :"
-ls -lad "$DB_DIR" "$DB_BACKUPS_DIR" "$STORAGE_DIR" "$PUBLIC_DIR"
+echo "==> Préparation des dossiers de données (bind mounts voisins du projet)..."
+prepare_dir "../hospital-db"         "$PG_UID:$PG_UID"   "700"
+prepare_dir "../hospital-db-backups" "$PG_UID:$PG_UID"
+prepare_dir "../hospital-storage"    "$APP_UID:$APP_UID"
+prepare_dir "../hospital-public"     "$APP_UID:$APP_UID"
+echo "==> Terminé."

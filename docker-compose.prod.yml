@@ -57,9 +57,11 @@ services:
     container_name: hospital-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: hospital_db
-      POSTGRES_USER: hospital_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-hospital_db}
+      POSTGRES_USER: ${DB_USERNAME:-hospital_user}
+      # Échoue explicitement si non défini (évite une base initialisée avec un mot de passe vide).
+      # Lancer compose avec :  --env-file .env.production
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD non défini — lancez compose avec --env-file .env.production}
     volumes:
       # Données PostgreSQL et sauvegardes — bind mounts voisins du projet
       - ../hospital-db:/var/lib/postgresql/data
