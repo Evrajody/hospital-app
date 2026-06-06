@@ -4,6 +4,8 @@
 /.fleet
 /node_modules
 /vendor
+/public/hot
+/public/build
 /backups
 /tests
 .env
