@@ -34,7 +34,7 @@ RUN composer dump-autoload --optimize --no-dev
 # =============================================================================
 # Stage 3: Image de production
 # =============================================================================
-FROM php:8.2-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 ARG user=hospital
 ARG uid=1000
@@ -107,5 +107,5 @@ RUN mkdir -p \
 
 USER $user
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]

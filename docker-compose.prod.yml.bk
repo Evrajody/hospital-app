@@ -14,7 +14,6 @@ services:
       - app-storage:/var/www/storage
       # Volume partagé avec nginx pour les fichiers statiques
       - app-public:/var/www/public-shared
-      - ./docker/entrypoint.prod.sh:/usr/local/bin/entrypoint.sh:ro
     networks:
       - hospital-network
     depends_on:
@@ -33,13 +32,10 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:80"
-      - "443:443"
     volumes:
       # Dossier public synchronisé depuis le conteneur app
       - app-public:/var/www/public:ro
       - ./docker/nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./docker/nginx/certs/production-cert.pem:/etc/nginx/certs/production-cert.pem
-      - ./docker/nginx/certs/production-key.pem:/etc/nginx/certs/production-key.pem
     networks:
       - hospital-network
     depends_on:

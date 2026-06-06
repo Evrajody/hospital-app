@@ -218,7 +218,7 @@
               </el-button>
             </div>
 
-            <el-table v-if="factures.length > 0" :data="pagedFactures" stripe border style="width: 100%" class="factures-table">
+            <el-table v-if="factures.length > 0" :data="factures" stripe border style="width: 100%" class="factures-table">
               <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
                 <template #default="{ row }">
                   <el-dropdown trigger="click" @command="(cmd) => handleFactureAction(cmd, row)">
@@ -272,16 +272,6 @@
                 </template>
               </el-table-column>
             </el-table>
-            <div v-if="factures.length > 0" class="pagination-bar">
-              <el-pagination
-                v-model:current-page="facturesPage"
-                v-model:page-size="facturesPageSize"
-                :page-sizes="[10, 20, 50, 100]"
-                :total="factures.length"
-                layout="total, sizes, prev, pager, next, jumper"
-                background
-              />
-            </div>
             <el-empty v-else description="Aucune facture pour ce client" :image-size="100" />
           </el-tab-pane>
 
@@ -302,7 +292,7 @@
               </div>
             </div>
 
-            <el-table v-if="reglements.length > 0" :data="pagedReglements" stripe border style="width: 100%" row-key="key" class="reglements-table">
+            <el-table v-if="reglements.length > 0" :data="groupedReglements" stripe border style="width: 100%" row-key="key" class="reglements-table">
               <el-table-column type="expand" width="50">
                 <template #default="{ row }">
                   <div class="expand-reglements">
@@ -400,16 +390,6 @@
                 </template>
               </el-table-column>
             </el-table>
-            <div v-if="reglements.length > 0" class="pagination-bar">
-              <el-pagination
-                v-model:current-page="reglementsPage"
-                v-model:page-size="reglementsPageSize"
-                :page-sizes="[10, 20, 50, 100]"
-                :total="groupedReglements.length"
-                layout="total, sizes, prev, pager, next, jumper"
-                background
-              />
-            </div>
             <el-empty v-else description="Aucun règlement pour ce client" :image-size="100" />
           </el-tab-pane>
         </el-tabs>
@@ -419,7 +399,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -534,29 +514,6 @@ const groupedReglements = computed(() => {
     grp.count += 1;
   }
   return Array.from(map.values());
-});
-
-// Pagination côté client (sans impact sur les données chargées / la génération)
-const facturesPage = ref(1);
-const facturesPageSize = ref(20);
-const pagedFactures = computed(() =>
-  props.factures.slice((facturesPage.value - 1) * facturesPageSize.value, facturesPage.value * facturesPageSize.value)
-);
-
-const reglementsPage = ref(1);
-const reglementsPageSize = ref(20);
-const pagedReglements = computed(() =>
-  groupedReglements.value.slice((reglementsPage.value - 1) * reglementsPageSize.value, reglementsPage.value * reglementsPageSize.value)
-);
-
-// Si la liste rétrécit (suppression, changement de taille de page), on borne la page courante
-watch(() => props.factures.length, () => {
-  const maxPage = Math.max(1, Math.ceil(props.factures.length / facturesPageSize.value));
-  if (facturesPage.value > maxPage) facturesPage.value = maxPage;
-});
-watch(() => groupedReglements.value.length, () => {
-  const maxPage = Math.max(1, Math.ceil(groupedReglements.value.length / reglementsPageSize.value));
-  if (reglementsPage.value > maxPage) reglementsPage.value = maxPage;
 });
 
 const handleBack = () => {
@@ -716,12 +673,6 @@ const handleReglementActions = (command, reglement) => {
 .header-actions {
   display: flex;
   gap: 12px;
-}
-
-/* Espace entre l'icône et le libellé des boutons d'action (icône trop collée au texte) */
-.header-actions :deep(.el-button .el-icon),
-.factures-header :deep(.el-button .el-icon) {
-  margin-right: 6px;
 }
 
 /* Stats Row */
@@ -887,12 +838,6 @@ const handleReglementActions = (command, reglement) => {
 .expand-reglements {
   padding: 12px 16px;
   background: #fafafa;
-}
-
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 
 :deep(.el-tabs--border-card) {

@@ -49,36 +49,25 @@ class RapportFournisseurController extends Controller
 
     private function getComptesList(): array
     {
-        // Grands comptes fournisseurs = comptes de regroupement de la classe 40 issus du plan
-        // comptable (ex. 40, 401, 4011, 40111, 401111…), c.-à-d. tout compte qui possède au moins
-        // un sous-compte. La hiérarchie n'étant pas portée par parent_id (NULL en base) mais par le
-        // numéro de compte, on détecte un regroupement quand un autre numéro le contient comme préfixe.
-        // Le filtrage des fournisseurs se fait ensuite par préfixe (cf. buildSituationFournisseursData).
-        $comptes = CompteComptable::commencePar('40')
+        // Regroupements de fournisseurs = comptes parents (ex. 401111, 401112…) sous lesquels
+        // les fournisseurs sont rattachés. On ne liste que ceux ayant au moins un fournisseur.
+        $compteIds = Fournisseur::whereNotNull('compte_comptable_id')
+            ->distinct()
+            ->pluck('compte_comptable_id');
+
+        $parentIds = CompteComptable::whereIn('id', $compteIds)
+            ->whereNotNull('parent_id')
+            ->distinct()
+            ->pluck('parent_id');
+
+        return CompteComptable::whereIn('id', $parentIds)
             ->orderBy('numero_compte')
-            ->get(['id', 'numero_compte', 'libelle']);
-
-        $numeros = $comptes->pluck('numero_compte')->filter()->all();
-
-        return $comptes
-            ->filter(function ($c) use ($numeros) {
-                $prefixe = $c->numero_compte;
-                if (! $prefixe) {
-                    return false;
-                }
-                foreach ($numeros as $n) {
-                    if ($n !== $prefixe && str_starts_with($n, $prefixe)) {
-                        return true; // possède au moins un sous-compte → c'est un regroupement
-                    }
-                }
-                return false;
-            })
+            ->get()
             ->map(fn($c) => [
                 'id' => $c->id,
                 'numero_compte' => $c->numero_compte,
                 'libelle' => $c->libelle,
             ])
-            ->values()
             ->toArray();
     }
 

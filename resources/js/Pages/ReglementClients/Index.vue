@@ -74,23 +74,21 @@
         <el-form :inline="true" :model="filters" class="filter-form">
           <el-form-item label="Recherche">
             <el-input
-              v-model="localFilters.search"
+              v-model="filters.search"
               placeholder="N° ligne, référence, institution..."
               :prefix-icon="Search"
               clearable
               style="width: 250px"
-              @input="debouncedSearch"
             />
           </el-form-item>
 
           <el-form-item label="Client">
             <el-select
-              v-model="localFilters.client_id"
+              v-model="filters.client_id"
               placeholder="Tous"
               clearable
               filterable
               style="width: 200px"
-              @change="handleSearch"
             >
               <el-option
                 v-for="client in clients"
@@ -103,11 +101,10 @@
 
           <el-form-item label="Type">
             <el-select
-              v-model="localFilters.type_reglement"
+              v-model="filters.type_reglement"
               placeholder="Tous"
               clearable
               style="width: 160px"
-              @change="handleSearch"
             >
               <el-option label="Règlement" value="reglement" />
               <el-option label="Perte" value="perte" />
@@ -116,15 +113,13 @@
 
           <el-form-item label="Période">
             <el-date-picker
-              v-model="localFilters.date_range"
+              v-model="filters.date_range"
               type="daterange"
               range-separator="à"
               start-placeholder="Date début"
               end-placeholder="Date fin"
               format="DD/MM/YYYY"
-              value-format="YYYY-MM-DD"
               style="width: 280px"
-              @change="handleSearch"
             />
           </el-form-item>
 
@@ -142,18 +137,17 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">
-              {{ pagination.total }} facture(s) &mdash; {{ totalReglements }} r&egrave;glement(s)
+              {{ groupedReglements.length }} facture(s) &mdash; {{ filteredReglements.length }} r&egrave;glement(s)
             </span>
           </div>
         </template>
 
         <el-table
-          :data="reglements"
+          :data="pagedGroups"
           stripe
           border
           style="width: 100%"
           row-key="key"
-          v-loading="loading"
         >
           <el-table-column type="expand" width="50">
             <template #default="{ row }">
@@ -285,14 +279,12 @@
 
         <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
           <el-pagination
-            v-model:current-page="localPagination.current_page"
-            v-model:page-size="localPagination.per_page"
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
             :page-sizes="[10, 20, 50, 100]"
-            :total="pagination.total"
+            :total="groupedReglements.length"
             layout="total, sizes, prev, pager, next, jumper"
             background
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
           />
         </div>
       </el-card>
@@ -506,7 +498,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
@@ -532,12 +524,6 @@ const props = defineProps({
       montant_moyen: 0
     })
   },
-  pagination: {
-    type: Object,
-    default: () => ({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
-  },
-  totalReglements: { type: Number, default: 0 },
-  filters: { type: Object, default: () => ({}) },
   user: { type: Object, default: () => null }
 });
 
@@ -546,70 +532,12 @@ const breadcrumbs = [
   { title: 'R\u00e8glements Clients', path: '/reglements-clients' }
 ];
 
-const loading = ref(false);
-
-// Debounce simple (évite une dépendance externe)
-const debounce = (fn, delay) => {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(null, args), delay);
-  };
-};
-
-const localFilters = reactive({
-  search: props.filters?.search || '',
-  client_id: props.filters?.client_id || null,
-  type_reglement: props.filters?.type_reglement || '',
-  date_range: (props.filters?.date_debut && props.filters?.date_fin)
-    ? [props.filters.date_debut, props.filters.date_fin]
-    : null,
+const filters = ref({
+  search: '',
+  client_id: null,
+  type_reglement: '',
+  date_range: null,
 });
-
-const localPagination = reactive({
-  current_page: props.pagination.current_page,
-  per_page: props.pagination.per_page,
-});
-
-const buildSearchParams = (page = 1) => {
-  const params = { per_page: localPagination.per_page, page };
-  if (localFilters.search) params.search = localFilters.search;
-  if (localFilters.client_id) params.client_id = localFilters.client_id;
-  if (localFilters.type_reglement) params.type_reglement = localFilters.type_reglement;
-  if (localFilters.date_range && localFilters.date_range.length === 2) {
-    params.date_debut = localFilters.date_range[0];
-    params.date_fin = localFilters.date_range[1];
-  }
-  return params;
-};
-
-const handleSearch = () => {
-  loading.value = true;
-  localPagination.current_page = 1;
-  router.get('/reglements-clients', buildSearchParams(1), {
-    preserveState: true,
-    preserveScroll: true,
-    onFinish: () => { loading.value = false; },
-  });
-};
-
-const debouncedSearch = debounce(handleSearch, 300);
-
-const handleSizeChange = (size) => {
-  localPagination.per_page = size;
-  localPagination.current_page = 1;
-  handleSearch();
-};
-
-const handlePageChange = (page) => {
-  loading.value = true;
-  router.get('/reglements-clients', buildSearchParams(page), {
-    preserveState: true,
-    preserveScroll: true,
-    onFinish: () => { loading.value = false; },
-  });
-};
-
 const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
 const showNewReglementModal = ref(false);
@@ -619,12 +547,77 @@ const editForm = ref(null);
 const editLoading = ref(false);
 const editingReglementId = ref(null);
 
+const filteredReglements = computed(() => {
+  let result = props.reglements;
+
+  if (filters.value.search) {
+    const q = filters.value.search.toLowerCase();
+    result = result.filter(r =>
+      r.facture?.reference?.toLowerCase().includes(q) ||
+      r.client?.nom?.toLowerCase().includes(q) ||
+      r.institution?.toLowerCase().includes(q) ||
+      r.reference_cheque?.toLowerCase().includes(q) ||
+      r.numero_ligne?.toLowerCase().includes(q)
+    );
+  }
+
+  if (filters.value.client_id) {
+    result = result.filter(r => r.client_id === filters.value.client_id);
+  }
+
+  if (filters.value.type_reglement) {
+    result = result.filter(r => r.type_reglement === filters.value.type_reglement);
+  }
+
+  if (filters.value.date_range && filters.value.date_range.length === 2) {
+    const [start, end] = filters.value.date_range;
+    const startDate = new Date(start).setHours(0, 0, 0, 0);
+    const endDate = new Date(end).setHours(23, 59, 59, 999);
+    result = result.filter(r => {
+      const d = new Date(r.date_reglement).getTime();
+      return d >= startDate && d <= endDate;
+    });
+  }
+
+  return result;
+});
+
+// Regrouper les règlements par facture (pour expandable rows)
+const groupedReglements = computed(() => {
+  const map = new Map();
+  for (const r of filteredReglements.value || []) {
+    const factureId = r.facture?.id ?? `${r.facture?.reference || 'unknown'}-${r.client?.id || 0}`;
+    if (!map.has(factureId)) {
+      map.set(factureId, {
+        key: `f-${factureId}`,
+        facture: r.facture || { reference: '-' },
+        client: r.client || { nom: '-' },
+        reglements: [],
+        total_montant_regle: 0,
+        count: 0,
+      });
+    }
+    const grp = map.get(factureId);
+    grp.reglements.push(r);
+    grp.total_montant_regle += parseFloat(r.montant) || 0;
+    grp.count += 1;
+  }
+  return Array.from(map.values());
+});
+
+// Pagination (client-side) — par facture
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedGroups = computed(() =>
+  groupedReglements.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
+);
+watch(() => groupedReglements.value.length, () => {
+  const maxPage = Math.max(1, Math.ceil(groupedReglements.value.length / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
+});
+
 const handleReset = () => {
-  localFilters.search = '';
-  localFilters.client_id = null;
-  localFilters.type_reglement = '';
-  localFilters.date_range = null;
-  handleSearch();
+  filters.value = { search: '', client_id: null, type_reglement: '', date_range: null };
 };
 
 const handleView = (reglement) => {

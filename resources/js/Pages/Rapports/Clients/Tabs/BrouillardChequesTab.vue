@@ -33,19 +33,19 @@
 
           <template v-if="brouillard.length > 0">
             <el-table style="width: 100%" :data="brouillard" border size="small" :span-method="brouillardSpanMethod">
-              <el-table-column label="Date" width="90">
+              <el-table-column label="Date" min-width="100">
                 <template #default="{ row }">
                   <strong>{{ row.date }}</strong>
                 </template>
               </el-table-column>
-              <el-table-column prop="libelle" label="Libellés" min-width="340" class-name="libelle-col" show-overflow-tooltip />
-              <el-table-column label="Débit" width="110" align="right">
+              <el-table-column prop="libelle" label="Libellés" />
+              <el-table-column label="Débit" min-width="130" align="right">
                 <template #default="{ row }">{{ row.debit ? formatMontant(row.debit) : '' }}</template>
               </el-table-column>
-              <el-table-column label="Crédit" width="110" align="right">
+              <el-table-column label="Crédit" min-width="130" align="right">
                 <template #default="{ row }">{{ row.credit ? formatMontant(row.credit) : '' }}</template>
               </el-table-column>
-              <el-table-column label="Solde" width="110" align="right">
+              <el-table-column label="Solde" min-width="130" align="right">
                 <template #default="{ row }">
                   <strong>{{ formatMontant(row.solde) }}</strong>
                 </template>
@@ -70,16 +70,16 @@
             <div v-for="groupe in imputations" :key="groupe.reference_bordereau + groupe.date_raw" class="imputation-block">
               <div class="imputation-date">Date d'imputation : <strong>{{ groupe.date }}</strong></div>
               <el-table :data="groupe.lignes" border size="small" style="width: 100%">
-                <el-table-column label="Compte" prop="compte" width="110" align="center">
+                <el-table-column label="Compte" prop="compte" width="140" align="center">
                   <template #default="{ row }"><code>{{ row.compte }}</code></template>
                 </el-table-column>
-                <el-table-column label="Débit" width="120" align="right">
+                <el-table-column label="Débit" width="160" align="right">
                   <template #default="{ row }">{{ row.debit ? formatMontant(row.debit) : '' }}</template>
                 </el-table-column>
-                <el-table-column label="Crédit" width="120" align="right">
+                <el-table-column label="Crédit" width="160" align="right">
                   <template #default="{ row }">{{ row.credit ? formatMontant(row.credit) : '' }}</template>
                 </el-table-column>
-                <el-table-column label="Libellé" prop="libelle" min-width="340" show-overflow-tooltip />
+                <el-table-column label="Libellé" prop="libelle" />
               </el-table>
             </div>
 

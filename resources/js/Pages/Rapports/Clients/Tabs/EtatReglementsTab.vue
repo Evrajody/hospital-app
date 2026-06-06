@@ -70,7 +70,7 @@
       <template v-if="(selectedMode === 'par_client' || selectedMode === 'un_client') && data.length > 0">
         <!-- par_client + pas de type filtré : groupement par type -->
         <template v-if="groupesParType && groupesParType.length > 0">
-          <div v-for="groupe in pagedGroupes" :key="groupe.type" class="type-group">
+          <div v-for="groupe in groupesParType" :key="groupe.type" class="type-group">
             <div class="type-header">{{ groupe.label }}</div>
             <div v-for="clientData in groupe.clients" :key="clientData.client_id" class="client-block">
               <div class="client-header-box">
@@ -116,7 +116,7 @@
 
         <!-- par_client + type filtré, OU un_client : pas de groupement -->
         <template v-else>
-          <div v-for="clientData in pagedData" :key="clientData.client_id" class="client-block">
+          <div v-for="clientData in data" :key="clientData.client_id" class="client-block">
             <div class="client-header-box">
               <strong>{{ clientData.numero_compte }}</strong> — {{ clientData.raison_sociale }}
               <span v-if="selectedMode === 'un_client'" class="type-inline">&nbsp;- <em>{{ clientData.type_client_label || 'Non défini' }}</em></span>
@@ -145,17 +145,6 @@
             </div>
           </div>
         </template>
-
-        <div v-if="data.length > pageSize" class="pagination-bar">
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            :page-sizes="[10, 25, 50, 100]"
-            :total="data.length"
-            layout="total, sizes, prev, pager, next, jumper"
-            background
-          />
-        </div>
 
         <div v-if="data.length > 1" class="grand-total">
           <span>TOTAL GÉNÉRAL — Factures: <strong>{{ formatMontant(grandTotalFacture) }}</strong></span>
@@ -209,16 +198,6 @@
             </template>
           </el-table-column>
         </el-table>
-        <div v-if="data.length > pageSize" class="pagination-bar">
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            :page-sizes="[10, 25, 50, 100]"
-            :total="data.length"
-            layout="total, sizes, prev, pager, next, jumper"
-            background
-          />
-        </div>
       </template>
 
       <!-- Actions Export -->
@@ -252,41 +231,12 @@ const data = ref([]);
 const groupesParType = ref(null);
 const typeClientLabel = ref(null);
 
-// Pagination côté client (sans impact sur l'export PDF/Excel qui regénère tout côté serveur)
-const currentPage = ref(1);
-const pageSize = ref(25);
-
-// Tranche de la page courante pour la liste à plat (par_client type filtré / un_client)
-const pagedData = computed(() =>
-  data.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
-);
-
-// Tranche de la page courante pour la vue groupée par type : on pagine les clients à travers
-// les groupes, puis on ne conserve que les groupes ayant des clients sur la page.
-const pagedGroupes = computed(() => {
-  if (!groupesParType.value) return [];
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  const out = [];
-  let idx = 0;
-  for (const g of groupesParType.value) {
-    const clientsPage = [];
-    for (const c of g.clients) {
-      if (idx >= start && idx < end) clientsPage.push(c);
-      idx++;
-    }
-    if (clientsPage.length) out.push({ ...g, clients: clientsPage });
-  }
-  return out;
-});
-
 const periodeVisible = computed(() => selectedMode.value === 'tous_clients' || usePeriode.value);
 
 watch(selectedMode, () => {
   // Au changement de mode, on vide le rendu précédent pour éviter d'afficher les
   // résultats du mode précédent à côté du formulaire du nouveau mode.
   data.value = [];
-  currentPage.value = 1;
   groupesParType.value = null;
   typeClientLabel.value = null;
   fetched.value = false;
@@ -309,27 +259,18 @@ const grandTotalSolde = computed(() => data.value.reduce((s, d) => s + (d.total_
 
 // Mode tous_clients sans filtre type : on injecte des lignes-séparateurs (isTypeHeader)
 // avant chaque changement de type. Sinon on retourne data brute.
-// Clients triés (par type puis raison sociale) — base de la pagination du mode "tous_clients".
-const sortedTousClients = computed(() => {
+const tousClientsRows = computed(() => {
   if (selectedMode.value !== 'tous_clients') return [];
   if (typeClientLabel.value) return data.value;
-  return [...data.value].sort((a, b) => {
+  const sorted = [...data.value].sort((a, b) => {
     const ta = a.type_client_label || 'zzz';
     const tb = b.type_client_label || 'zzz';
     if (ta === tb) return (a.raison_sociale || '').localeCompare(b.raison_sociale || '');
     return ta.localeCompare(tb);
   });
-});
-
-// Lignes affichées (page courante) avec injection des en-têtes de type recalculés par page.
-const tousClientsRows = computed(() => {
-  if (selectedMode.value !== 'tous_clients') return [];
-  const start = (currentPage.value - 1) * pageSize.value;
-  const pageClients = sortedTousClients.value.slice(start, start + pageSize.value);
-  if (typeClientLabel.value) return pageClients;
   const rows = [];
   let lastType = null;
-  for (const client of pageClients) {
+  for (const client of sorted) {
     const label = client.type_client_label || 'Non défini';
     if (label !== lastType) {
       rows.push({ isTypeHeader: true, type_label: label });
@@ -371,7 +312,6 @@ const fetchData = async () => {
     const res = await fetch(`/rapports/clients/api/etat-reglements?${params}`);
     const json = await res.json();
     data.value = json.data || [];
-    currentPage.value = 1;
     groupesParType.value = json.groupes_par_type || null;
     typeClientLabel.value = json.type_client_label || null;
     fetched.value = true;
@@ -382,14 +322,13 @@ const fetchData = async () => {
   }
 };
 
-const getSummary = ({ columns }) => {
-  // Le total porte sur l'ensemble des clients (toutes pages), pas seulement la page affichée.
+const getSummary = ({ columns, data: tableData }) => {
   const keys = { 3: 'total_facture', 4: 'total_paye', 5: 'total_rejet', 6: 'total_perte', 7: 'total_solde' };
   return columns.map((_, i) => {
     if (i === 0) return 'TOTAL';
     if (i === 1 || i === 2) return '';
     const key = keys[i];
-    return key ? formatMontant(data.value.reduce((s, r) => s + (r[key] || 0), 0)) : '';
+    return key ? formatMontant(tableData.reduce((s, r) => s + (r[key] || 0), 0)) : '';
   });
 };
 
@@ -435,5 +374,4 @@ const printReport = () => {
 .client-totals { display: flex; gap: 24px; padding: 10px 14px; background: #fafafa; border: 1px solid #eee; font-size: 13px; }
 .grand-total { display: flex; gap: 24px; padding: 14px; background: #f0f0f0; border: 2px solid #333; font-size: 14px; margin-top: 16px; }
 .actions-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
-.pagination-bar { display: flex; justify-content: flex-end; margin-top: 16px; }
 </style>

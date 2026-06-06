@@ -402,27 +402,6 @@ class LegacyMigrate extends Command
             $montant = $this->num($r->mtch ?? 0);
             $date = $this->date($r->datreg ?? null);
             $refch = $this->cut($r->refch ?? null, 100);
-
-            // Rattachement au bordereau (approvisionnement) : la table legacy `reglement` porte
-            // le couple (cptbanqdep, refbordep) qui correspond à la clé du bordereau. On retrouve
-            // l'approvisionnement déjà importé pour poser approvisionnement_id + banque_depot_id.
-            $approId = null;
-            $banqueDepotId = null;
-            $cptBanqDep = $this->clean($r->cptbanqdep ?? null);
-            $refBordep = $this->clean($r->refbordep ?? null);
-            if ($cptBanqDep && $refBordep && ! in_array($refBordep, ['0', ''], true)) {
-                $cbId = $this->compteBancaireByNum[$this->key($cptBanqDep)] ?? null;
-                if ($cbId) {
-                    $appro = ApprovisionnementBanque::where('compte_bancaire_id', $cbId)
-                        ->where('reference_bordereau', $refBordep)
-                        ->first();
-                    if ($appro) {
-                        $approId = $appro->id;
-                    }
-                    $banqueDepotId = CompteBancaire::find($cbId)?->banque_id;
-                }
-            }
-
             ReglementClient::updateOrCreate(
                 [
                     'facture_id' => $factureId,
@@ -437,8 +416,6 @@ class LegacyMigrate extends Command
                     'client_nom' => $facture?->client_nom,
                     'facture_reference' => $facture?->reference,
                     'institution' => $this->cut($r->insreg ?? null, 255),
-                    'approvisionnement_id' => $approId,
-                    'banque_depot_id' => $banqueDepotId,
                     'created_by_name' => $this->clean($r->user ?? null),
                 ]
             );
