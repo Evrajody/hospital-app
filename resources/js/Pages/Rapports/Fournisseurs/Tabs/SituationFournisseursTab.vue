@@ -98,7 +98,7 @@
           <el-empty description="Aucune dette fournisseur trouvée" />
         </div>
         <template v-else>
-          <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
+          <el-table style="width: 100%" :data="pagedData" border size="small" stripe show-summary :summary-method="getSummaryTous">
             <el-table-column prop="numero" label="N°" min-width="50" align="center" />
             <el-table-column prop="raison_sociale" label="Raison sociale" />
             <el-table-column label="Montant total dû" min-width="150" align="right">
@@ -113,6 +113,16 @@
               </template>
             </el-table-column>
           </el-table>
+          <div class="pagination-bar">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[20, 50, 100, 200]"
+              :total="data.length"
+              layout="total, sizes, prev, pager, next, jumper"
+              background
+            />
+          </div>
         </template>
       </template>
 
@@ -126,7 +136,7 @@
             <strong>Compte :</strong> <em>{{ compteInfo.numero_compte }} {{ compteInfo.libelle }}</em>
           </div>
 
-          <el-table style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
+          <el-table style="width: 100%" :data="pagedData" border size="small" stripe show-summary :summary-method="getSummaryTous">
             <el-table-column prop="numero" label="N°" min-width="50" align="center" />
             <el-table-column label="Raison sociale">
               <template #default="{ row }">[{{ row.numero_compte }}] {{ row.raison_sociale }}</template>
@@ -143,6 +153,16 @@
               </template>
             </el-table-column>
           </el-table>
+          <div class="pagination-bar">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[20, 50, 100, 200]"
+              :total="data.length"
+              layout="total, sizes, prev, pager, next, jumper"
+              background
+            />
+          </div>
         </template>
       </template>
 
@@ -250,6 +270,13 @@ const compteInfo = ref(null);
 
 const hasData = computed(() => data.value.length > 0);
 
+// Pagination côté client des modes "tous" / "par compte" (sans impact sur l'export PDF/Excel)
+const currentPage = ref(1);
+const pageSize = ref(50);
+const pagedData = computed(() =>
+  data.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
+);
+
 const formatMontant = (v) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
 
 const fetchData = async () => {
@@ -259,6 +286,11 @@ const fetchData = async () => {
   }
   if (selectedMode.value === 'par_fournisseur' && !selectedFournisseurId.value) {
     ElMessage.warning('Veuillez sélectionner un fournisseur');
+    return;
+  }
+  // Un « point » exige obligatoirement une date avant d'afficher les résultats.
+  if (filtreDate.value === 'point' && !datePoint.value) {
+    ElMessage.warning('Veuillez fournir une date pour le point');
     return;
   }
 
@@ -282,6 +314,7 @@ const fetchData = async () => {
     const res = await fetch(`/rapports/fournisseurs/api/situation-fournisseurs?${params}`);
     const json = await res.json();
     data.value = json.data || [];
+    currentPage.value = 1;
     grandTotal.value = json.grandTotal || {};
     grandTotaux.value = json.grandTotaux || {};
     compteInfo.value = json.compte || null;
@@ -293,13 +326,14 @@ const fetchData = async () => {
   }
 };
 
-const getSummaryTous = ({ columns, data: tableData }) => {
+const getSummaryTous = ({ columns }) => {
+  // Le total porte sur l'ensemble des données (toutes pages), pas seulement la page affichée.
   const sums = [];
   columns.forEach((col, i) => {
     if (i === 0) { sums[i] = 'TOTAL'; return; }
     if (i === 1) { sums[i] = ''; return; }
     const key = { 2: 'montant_du', 3: 'montant_reglements', 4: 'restant_du' }[i];
-    sums[i] = key ? formatMontant(tableData.reduce((s, r) => s + (r[key] || 0), 0)) : '';
+    sums[i] = key ? formatMontant(data.value.reduce((s, r) => s + (r[key] || 0), 0)) : '';
   });
   return sums;
 };
@@ -352,4 +386,5 @@ const printReport = () => {
 .fournisseur-totals { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; background: #fafafa; border: 1px solid #eee; font-size: 12px; }
 .grand-total { display: flex; gap: 24px; flex-wrap: wrap; padding: 14px; background: #f0f0f0; border: 2px solid #333; font-size: 14px; margin-top: 16px; }
 .actions-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
+.pagination-bar { display: flex; justify-content: flex-end; margin-top: 16px; }
 </style>

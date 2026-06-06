@@ -249,7 +249,7 @@
             <!-- Table des factures -->
             <el-table
               v-if="factures.length > 0"
-              :data="factures"
+              :data="pagedFactures"
               stripe
               border
               style="width: 100%"
@@ -357,6 +357,16 @@
                 </template>
               </el-table-column>
             </el-table>
+            <div v-if="factures.length > 0" class="pagination-bar">
+              <el-pagination
+                v-model:current-page="facturesPage"
+                v-model:page-size="facturesPageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="factures.length"
+                layout="total, sizes, prev, pager, next, jumper"
+                background
+              />
+            </div>
 
             <!-- État vide -->
             <el-empty v-else description="Aucune facture pour ce fournisseur" :image-size="120" />
@@ -382,7 +392,7 @@
             <!-- Table des règlements (groupés par facture, comme le tableau principal) -->
             <el-table
               v-if="reglements.length > 0"
-              :data="groupedReglements"
+              :data="pagedReglements"
               stripe
               border
               style="width: 100%"
@@ -523,6 +533,16 @@
                 </template>
               </el-table-column>
             </el-table>
+            <div v-if="reglements.length > 0" class="pagination-bar">
+              <el-pagination
+                v-model:current-page="reglementsPage"
+                v-model:page-size="reglementsPageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="groupedReglements.length"
+                layout="total, sizes, prev, pager, next, jumper"
+                background
+              />
+            </div>
 
             <!-- État vide -->
             <el-empty v-else description="Aucun règlement pour ce fournisseur" :image-size="120" />
@@ -557,7 +577,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -923,6 +943,29 @@ const groupedReglements = computed(() => {
   return Array.from(map.values());
 });
 
+// Pagination côté client (sans impact sur les données chargées / la génération)
+const facturesPage = ref(1);
+const facturesPageSize = ref(20);
+const pagedFactures = computed(() =>
+  props.factures.slice((facturesPage.value - 1) * facturesPageSize.value, facturesPage.value * facturesPageSize.value)
+);
+
+const reglementsPage = ref(1);
+const reglementsPageSize = ref(20);
+const pagedReglements = computed(() =>
+  groupedReglements.value.slice((reglementsPage.value - 1) * reglementsPageSize.value, reglementsPage.value * reglementsPageSize.value)
+);
+
+// Si la liste rétrécit (suppression, changement de taille de page), on borne la page courante
+watch(() => props.factures.length, () => {
+  const maxPage = Math.max(1, Math.ceil(props.factures.length / facturesPageSize.value));
+  if (facturesPage.value > maxPage) facturesPage.value = maxPage;
+});
+watch(() => groupedReglements.value.length, () => {
+  const maxPage = Math.max(1, Math.ceil(groupedReglements.value.length / reglementsPageSize.value));
+  if (reglementsPage.value > maxPage) reglementsPage.value = maxPage;
+});
+
 const handleViewReglement = (reglement) => {
   if (reglement.facture?.id) {
     router.visit(`/factures-fournisseurs/${reglement.facture.id}`);
@@ -1070,6 +1113,11 @@ const handleFactureSuccess = async (factureData) => {
   gap: 12px;
 }
 
+/* Espace entre l'icône et le libellé des boutons d'action (icône trop collée au texte) */
+.header-actions :deep(.el-button .el-icon) {
+  margin-right: 6px;
+}
+
 /* Stats Row */
 .stats-row {
   margin-bottom: 0;
@@ -1208,6 +1256,12 @@ const handleFactureSuccess = async (factureData) => {
 .expand-reglements {
   padding: 12px 16px;
   background: #fafafa;
+}
+
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .compte-cell,

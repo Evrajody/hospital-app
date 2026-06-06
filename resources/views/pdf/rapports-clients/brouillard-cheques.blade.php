@@ -12,6 +12,8 @@
 @section('extra-styles')
     .solde { font-weight: bold; }
     .date-cell { vertical-align: top; }
+    /* Colonne Libellés élargie : le contenu reste sur une seule ligne pour une lecture aisée. */
+    .libelle-cell { white-space: nowrap; }
     /* Ligne de bordereau (SB) : clôture et délimite chaque groupe « bordereau de versement ». */
     .sb-row td { background: #f4f4f4; border-bottom: 2px solid #000; }
 @endsection
@@ -38,11 +40,11 @@
         <table class="report-table">
             <thead>
                 <tr>
-                    <th style="width: 80px">Date</th>
+                    <th style="width: 62px">Date</th>
                     <th>Libellés</th>
-                    <th class="montant" style="width: 100px">Débit</th>
-                    <th class="montant" style="width: 100px">Crédit</th>
-                    <th class="montant" style="width: 100px">Solde</th>
+                    <th class="montant" style="width: 78px">Débit</th>
+                    <th class="montant" style="width: 78px">Crédit</th>
+                    <th class="montant" style="width: 78px">Solde</th>
                 </tr>
             </thead>
             <tbody>
@@ -52,7 +54,7 @@
                             @if($i === 0)
                                 <td class="date-cell" rowspan="{{ count($group['entries']) }}"><strong>{{ $group['date'] }}</strong></td>
                             @endif
-                            <td>{{ $entry['libelle'] }}</td>
+                            <td class="libelle-cell">{{ $entry['libelle'] }}</td>
                             <td class="montant">{{ $entry['debit'] ? number_format($entry['debit'], 0, ',', ' ') : '' }}</td>
                             <td class="montant">{{ $entry['credit'] ? number_format($entry['credit'], 0, ',', ' ') : '' }}</td>
                             <td class="montant solde">{{ number_format($entry['solde'], 0, ',', ' ') }}</td>

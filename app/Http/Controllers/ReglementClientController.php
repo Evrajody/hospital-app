@@ -21,25 +21,85 @@ class ReglementClientController extends Controller
      */
     public function indexView(Request $request): InertiaResponse
     {
-        $query = ReglementClient::with(['facture', 'client', 'banqueDepot', 'approvisionnement'])
-            ->orderBy('date_reglement', 'desc');
+        $perPage = (int) $request->input('per_page', 20);
 
-        if ($request->filled('client_id')) {
-            $query->where('client_id', $request->client_id);
+        // Filtres communs (appliqués au niveau du règlement), partagés par les 3 requêtes
+        // ci-dessous : pagination par facture, comptage total et chargement de la page.
+        $applyFilters = function ($q) use ($request) {
+            if ($request->filled('client_id')) {
+                $q->where('client_id', $request->client_id);
+            }
+            if ($request->filled('type_reglement')) {
+                $q->where('type_reglement', $request->type_reglement);
+            }
+            if ($request->filled('date_debut')) {
+                $q->whereDate('date_reglement', '>=', $request->date_debut);
+            }
+            if ($request->filled('date_fin')) {
+                $q->whereDate('date_reglement', '<=', $request->date_fin);
+            }
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('numero_ligne', 'LIKE', "%{$search}%")
+                       ->orWhere('reference_cheque', 'LIKE', "%{$search}%")
+                       ->orWhere('institution', 'LIKE', "%{$search}%")
+                       ->orWhereHas('facture', fn($fq) => $fq->where('reference', 'LIKE', "%{$search}%"))
+                       ->orWhereHas('client', fn($cq) => $cq->where('nom', 'LIKE', "%{$search}%"));
+                });
+            }
+        };
+
+        // Pagination côté serveur, au niveau facture (même modèle que Factures Clients) :
+        // une page = un ensemble de factures, ordonnées par règlement le plus récent.
+        $facturesQuery = ReglementClient::query();
+        $applyFilters($facturesQuery);
+        $facturesQuery->select('facture_id')
+            ->selectRaw('MAX(date_reglement) as last_date')
+            ->selectRaw('MAX(id) as last_id')
+            ->groupBy('facture_id')
+            ->orderByDesc('last_date')
+            ->orderByDesc('last_id');
+        $facturesPage = $facturesQuery->paginate($perPage);
+        $factureIds = collect($facturesPage->items())->pluck('facture_id');
+
+        // Nombre total de règlements (entête), tous filtres appliqués
+        $countQuery = ReglementClient::query();
+        $applyFilters($countQuery);
+        $totalReglements = $countQuery->count();
+
+        // Règlements des factures de la page, regroupés par facture (même structure qu'avant)
+        $detailQuery = ReglementClient::with(['facture', 'client', 'banqueDepot', 'approvisionnement']);
+        $applyFilters($detailQuery);
+        $apiReglements = $detailQuery->whereIn('facture_id', $factureIds)
+            ->orderBy('date_reglement', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(fn($r) => $r->toApiArray());
+
+        $groupesParFacture = [];
+        foreach ($apiReglements as $r) {
+            $fid = $r['facture']['id'] ?? ('x-' . ($r['facture']['reference'] ?? 'unknown'));
+            if (! isset($groupesParFacture[$fid])) {
+                $groupesParFacture[$fid] = [
+                    'key' => 'f-' . $fid,
+                    'facture' => $r['facture'] ?? ['reference' => '-'],
+                    'client' => $r['client'] ?? ['nom' => '-'],
+                    'reglements' => [],
+                    'total_montant_regle' => 0,
+                    'count' => 0,
+                ];
+            }
+            $groupesParFacture[$fid]['reglements'][] = $r;
+            $groupesParFacture[$fid]['total_montant_regle'] += (float) $r['montant'];
+            $groupesParFacture[$fid]['count']++;
         }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('numero_ligne', 'LIKE', "%{$search}%")
-                  ->orWhere('reference_cheque', 'LIKE', "%{$search}%")
-                  ->orWhere('institution', 'LIKE', "%{$search}%")
-                  ->orWhereHas('facture', fn($fq) => $fq->where('reference', 'LIKE', "%{$search}%"))
-                  ->orWhereHas('client', fn($cq) => $cq->where('nom', 'LIKE', "%{$search}%"));
-            });
-        }
-
-        $reglements = $query->get()->map(fn($r) => $r->toApiArray());
+        // Conserver l'ordre de pagination des factures
+        $reglements = $factureIds
+            ->map(fn($fid) => $groupesParFacture[$fid] ?? null)
+            ->filter()
+            ->values()
+            ->all();
 
         $clients = Client::orderBy('nom')->get()->map(fn($c) => [
             'id' => $c->id,
@@ -97,6 +157,20 @@ class ReglementClientController extends Controller
             'facturesImpayees' => $facturesImpayees,
             'banques' => $banques,
             'stats' => $stats,
+            'pagination' => [
+                'current_page' => $facturesPage->currentPage(),
+                'per_page' => $facturesPage->perPage(),
+                'total' => $facturesPage->total(),
+                'last_page' => $facturesPage->lastPage(),
+            ],
+            'totalReglements' => $totalReglements,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'client_id' => $request->input('client_id'),
+                'type_reglement' => $request->input('type_reglement', ''),
+                'date_debut' => $request->input('date_debut'),
+                'date_fin' => $request->input('date_fin'),
+            ],
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',

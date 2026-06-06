@@ -62,11 +62,11 @@
         <table class="data-table brouillard-table">
           <thead>
             <tr>
-              <th style="width: 100px">Date</th>
+              <th style="width: 80px">Date</th>
               <th>Libellés</th>
-              <th class="montant-col" style="width: 130px">Débit</th>
-              <th class="montant-col" style="width: 130px">Crédit</th>
-              <th class="montant-col" style="width: 130px">Solde</th>
+              <th class="montant-col" style="width: 100px">Débit</th>
+              <th class="montant-col" style="width: 100px">Crédit</th>
+              <th class="montant-col" style="width: 100px">Solde</th>
             </tr>
           </thead>
           <tbody>
@@ -79,7 +79,7 @@
               <!-- Entry rows -->
               <tr v-for="(entry, idx) in group.entries" :key="idx">
                 <td></td>
-                <td>{{ entry.libelle }}</td>
+                <td style="white-space: nowrap;">{{ entry.libelle }}</td>
                 <td class="montant-col">{{ entry.debit ? formatMontant(entry.debit) : '' }}</td>
                 <td class="montant-col">{{ entry.credit ? formatMontant(entry.credit) : '' }}</td>
                 <td class="montant-col solde-col">{{ formatMontant(entry.solde) }}</td>
