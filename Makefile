@@ -419,8 +419,8 @@ rebuild: ## Reconstruire et redémarrer l'application
 ##@ Migration des données héritées (ancien système Access)
 
 LEGACY_DIR          = olds/migrations
-LEGACY_CLIENTS_DB   = $(LEGACY_DIR)/Base Factures Clients.accdb
-LEGACY_FSR_DB       = $(LEGACY_DIR)/Base Factures des Fournisseurs.accdb
+LEGACY_CLIENTS_DB   = $(LEGACY_DIR)/Base Factures Clients_06-06-26.accdb
+LEGACY_FSR_DB       = $(LEGACY_DIR)/Base Factures des Fournisseurs_06-06-26.accdb
 
 migrate-legacy-export: ## 1) Exporter les .accdb (olds/migrations) en SQL (nécessite mdbtools)
 	@command -v mdb-export >/dev/null 2>&1 || { echo "$(RED)mdbtools requis : sudo pacman -S mdbtools$(NC)"; exit 1; }
