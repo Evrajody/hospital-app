@@ -203,7 +203,7 @@ Route::prefix('api/plan-comptable')->group(function () {
     Route::post('/', [PlanComptableController::class, 'store'])->middleware('permission:plan-comptable.modifier')->name('api.plan-comptable.store');
     Route::get('/{compte}', [PlanComptableController::class, 'show'])->middleware('permission:plan-comptable.voir')->name('api.plan-comptable.show');
     Route::put('/{compte}', [PlanComptableController::class, 'update'])->middleware('permission:plan-comptable.modifier')->name('api.plan-comptable.update');
-    Route::delete('/{compte}', [PlanComptableController::class, 'destroy'])->middleware('permission:plan-comptable.modifier')->name('api.plan-comptable.destroy');
+    Route::delete('/{compte}', [PlanComptableController::class, 'destroy'])->middleware('permission:plan-comptable.supprimer')->name('api.plan-comptable.destroy');
 });
 
 // Banques Routes

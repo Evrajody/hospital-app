@@ -56,6 +56,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Plan comptable
             'plan-comptable.voir',
             'plan-comptable.modifier',
+            'plan-comptable.supprimer',
 
             // Banques
             'banques.voir',
@@ -121,7 +122,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'clients.voir', 'clients.creer', 'clients.modifier', 'clients.supprimer',
             'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier', 'factures-clients.supprimer',
             'reglements-clients.voir', 'reglements-clients.creer', 'reglements-clients.modifier', 'reglements-clients.supprimer',
-            'plan-comptable.voir', 'plan-comptable.modifier',
+            'plan-comptable.voir', 'plan-comptable.modifier', 'plan-comptable.supprimer',
             'banques.voir', 'banques.creer', 'banques.modifier', 'banques.supprimer',
             'rapports-clients.voir', 'rapports-fournisseurs.voir', 'rapports-banques.voir',
         ]);
