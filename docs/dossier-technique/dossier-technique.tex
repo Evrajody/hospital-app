@@ -165,13 +165,24 @@ L'application est déployée au sein d'une machine virtuelle (VM) qui utilise un
 \end{tabularx}
 \renewcommand{\arraystretch}{1}
 
+\subsection{Stratégie de sauvegarde et sécurité des données (\emph{off-site backup})}
+Afin de garantir la reprise d'activité en cas de défaillance matérielle ou de sinistre sur site, une politique de sauvegarde externalisée a été mise en œuvre.
+\begin{itemize}
+  \item \textbf{Fréquence~:} sauvegarde automatique journalière.
+  \item \textbf{Mécanisme~:} un script exécuté sur la VM effectue un \emph{dump} de la base de données PostgreSQL (conteneur \texttt{hospital-db}).
+  \item \textbf{Chiffrement~:} les fichiers de sauvegarde sont systématiquement chiffrés avant tout transfert.
+  \item \textbf{Stockage hors site~:} l'archive chiffrée est transférée automatiquement vers un espace de stockage Cloud sécurisé (Drive).
+  \item \textbf{Gestion des clés~:} la clé de déchiffrement est unique et fournie indépendamment. Les identifiants d'accès au Drive ainsi que la clé de déchiffrement figurent dans la \og~Fiche de Transmission des Codes d'Accès~\fg{}, remise séparément pour des raisons de sécurité.
+\end{itemize}
+
 % =====================================================================
 \section{Configuration réseau et accès}
 
 \subsection{Environnement de production (local)}
 L'instance de production est hébergée sur le réseau local (LAN) de l'hôpital.
 \begin{itemize}
-  \item \textbf{URL d'accès~:} \url{http://192.168.1.253:9090/login}
+  \item \textbf{URL d'accès sécurisé~:} \url{https://192.168.1.253}
+  \item \textbf{Accès distant (Internet)~:} \url{https://137.255.53.114/login}
   \item \textbf{Localisation~:} serveur physique interne de l'Hôpital de Zone de Ménontin.
 \end{itemize}
 
@@ -197,7 +208,7 @@ Pour les opérations de maintenance sur le serveur (niveau OS / hyperviseur), le
 \begin{itemize}
   \item \textbf{Adresse IP (LAN)~:} 192.168.1.253
   \item \textbf{Nom d'utilisateur~:} \texttt{appli}
-  \item \textbf{Mot de passe~:} \emph{voir la fiche de transmission des codes d'accès (communiquée via un canal sécurisé séparé).}
+  \item \textbf{Mot de passe~:} \emph{voir la fiche de transmission des codes d'accès.}
 \end{itemize}
 
 % =====================================================================
@@ -224,14 +235,15 @@ Tout accès à distance est strictement limité aux ressources nécessaires pour
   \item Le code source de l'application (archive), stocké sur le drive d'\textbf{EYRAM Technologies \& Services} et partagé avec l'adresse \nolinkurl{hopitaldemenontin@gmail.com} fournie par la comptabilité.
   \item Le fichier de configuration de l'infrastructure (Docker Compose ou scripts de déploiement), stocké sur le drive d'\textbf{EYRAM Technologies \& Services} et partagé avec l'adresse \nolinkurl{hopitaldemenontin@gmail.com} fournie par la comptabilité.
   \item La documentation utilisateur (guide de prise en main).
+  \item La Fiche de Transmission des Codes d'Accès (contenant~: mot de passe serveur, accès Drive Cloud, clé de déchiffrement des sauvegardes).
   \item Le présent document technique d'installation.
-  \item La Fiche de Transmission des Codes d'Accès (contenant~: mot de passe serveur, accès Drive Cloud, clé de déchiffrement des sauvegardes), communiquée via un canal sécurisé séparé.
 \end{itemize}
 
 \subsection{Période de support}
 L'instance cloud (\url{https://hospital.nexox.me/login}) restera active et les mises à jour correctives seront appliquées pendant une durée de six~(06) mois suite à la réception.
 
 % =====================================================================
+\newpage
 \section{Acceptation et signature}
 
 Le soussigné, représentant l'Hôpital de Zone de Ménontin, déclare avoir reçu l'ensemble de la documentation technique, les codes d'accès, et confirme que l'installation est conforme aux spécifications définies.

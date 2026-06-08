@@ -89,13 +89,9 @@
 \fiche{Système d'exploitation (hôte / VM)}{
   \textbf{Adresse IP (LAN)} & \code{192.168.1.253} \\\hline
   \textbf{Nom d'utilisateur} & \code{appli} \\\hline
-
-  \textbf{Mail du compte google Backup} & \code{hzmdbk@gmail.com} \\\hline
-  \textbf{Mot de passe compte Backup} & \code{KdV0E4F1\&QzXpW} \\\hline
-
   \textbf{Mot de passe} & \code{appli2026} \\\hline
   \textbf{Hyperviseur} & VMware Workstation (sur le serveur physique de l'hôpital) \\\hline
-  \textbf{Accès distant (SSH)} & Port \code{2203} — à ouvrir ponctuellement sur le routeur, puis à refermer après intervention \\
+  \textbf{Accès distant (SSH)} & Port \code{2213} — à ouvrir ponctuellement sur le routeur, puis à refermer après intervention \\
 }
 
 % =====================================================================
@@ -112,7 +108,7 @@ Paramètres issus de la configuration Docker (\code{docker-compose.prod.yml} et 
 \fiche{Moteur PostgreSQL 16 — conteneur \texttt{hospital-db}}{
   \textbf{Nom de la base} & \code{hospital\_db} \\\hline
   \textbf{Utilisateur} & \code{hospital\_user} \\\hline
-  \textbf{Mot de passe} & \code{password} \newline {\small\color{greytext}(valeur de \code{DB\_PASSWORD} dans \code{.env.production} — à remplacer par le secret réel du serveur)} \\\hline
+  \textbf{Mot de passe} & \code{nWYH64hZPotxHiXVmbepVOKogi04} \\\hline
   \textbf{Hôte (réseau Docker)} & \code{db} \\\hline
   \textbf{Port} & \code{5432} \\\hline
   \textbf{Exposition réseau} & \textbf{Production~:} port \emph{non} exposé publiquement (accès uniquement via le réseau interne \code{hospital-network}). \newline \textbf{Développement~:} port \code{5432} publié sur l'hôte. \\\hline
@@ -120,9 +116,19 @@ Paramètres issus de la configuration Docker (\code{docker-compose.prod.yml} et 
 }
 
 % =====================================================================
+\section{Sauvegarde externalisée (Drive Cloud)}
+Les sauvegardes chiffrées de la base de données sont transférées automatiquement vers un espace Drive sécurisé (sauvegarde hors site). Les accès au compte de sauvegarde et la clé de déchiffrement sont regroupés ci-dessous, séparément des autres identifiants.
+\fiche{Compte de sauvegarde \& clé de déchiffrement}{
+  \textbf{Compte Drive (sauvegarde)} & \code{hzmdbk@gmail.com} \\\hline
+  \textbf{Mot de passe du compte} & \code{KdV0E4F1\&QzXpW} \\\hline
+  \textbf{Clé de déchiffrement des sauvegardes} & {\small\code{4d7fe4d7-\allowbreak{}5624-\allowbreak{}4767-\allowbreak{}acc3-\allowbreak{}fe4d2e2d83576476aeb6-\allowbreak{}f8bf-\allowbreak{}47b0-\allowbreak{}89ae-\allowbreak{}806816d6805c}} \\
+}
+
+% =====================================================================
 \section{Application web et comptes applicatifs}
 \fiche{Accès à l'application}{
-  \textbf{URL production (LAN)} & \url{http://192.168.1.253:9090/login} \\\hline
+  \textbf{URL production (LAN)} & \url{https://192.168.1.253} \\\hline
+  \textbf{URL accès distant (Internet)} & \url{https://137.255.53.114/login} \\\hline
   \textbf{URL pré-production (cloud)} & \url{https://hospital.nexox.me/login} \\\hline
   \textbf{Compte administrateur par défaut} & \code{admin@hospital.bj} / \code{password} \newline {\small\color{greytext}(compte initial — à personnaliser et sécuriser dès la mise en service)} \\\hline
   \textbf{Conteneur web} & \code{hospital-nginx} (Nginx — reverse proxy) \\\hline
@@ -134,7 +140,7 @@ Paramètres issus de la configuration Docker (\code{docker-compose.prod.yml} et 
 \fiche{Ports \& réseau Docker}{
   \textbf{Interface web (Nginx)} & Port hôte \code{9090} (production LAN) $\rightarrow$ \code{80} dans le conteneur. \newline {\small\color{greytext}Réglable via \code{APP\_PORT} (\code{.env.production}, défaut \code{8080}).}\\\hline
   \textbf{Base de données} & Port \code{5432} — fermé en production (à ouvrir uniquement via tunnel SSH pour une intervention). \\\hline
-  \textbf{Administration serveur} & Port SSH \code{2203} — à ouvrir ponctuellement sur le routeur, puis refermer. \\\hline
+  \textbf{Administration serveur} & Port SSH \code{2213} — à ouvrir ponctuellement sur le routeur, puis refermer. \\\hline
   \textbf{Réseaux Docker} & \code{hospital-network} (interne, privé) ; \code{nexox} (réseau externe partagé, en développement). \\\hline
   \textbf{IP publique} & Dynamique~: communiquer l'IP courante avant chaque session d'intervention distante. \\
 }

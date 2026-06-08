@@ -1,4 +1,4 @@
-.PHONY: help deploy deploy-init deploy-quick prod-init-dirs rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-coverage clear-cache clear-logs clean perm down destroy
+.PHONY: help deploy deploy-init deploy-quick prod-init-dirs prod-backup rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-coverage clear-cache clear-logs clean perm down destroy
 
 # =============================================================================
 # Variables
@@ -71,6 +71,8 @@ deploy: ## Déploiement complet en UNE commande (backup + build + migrate + cach
 	else \
 		echo "  $(YELLOW)⚠ Pas de conteneur DB actif — backup ignoré$(NC)"; \
 	fi
+	@# Rotation : ne conserver que les 2 sauvegardes pré-déploiement les plus récentes
+	@ls -t $(BACKUP_DIR)/pre-deploy_*.sql 2>/dev/null | tail -n +3 | xargs -r rm -f || true
 	@echo ""
 	@# --- Étape 3 : Mode maintenance (si app déjà active) ---
 	@echo "$(BLUE)[3/7]$(NC) Activation du mode maintenance..."
@@ -327,7 +329,15 @@ db-backup: ## Sauvegarder la base de données
 	@echo "$(GREEN)Sauvegarde de la base de données...$(NC)"
 	@mkdir -p $(BACKUP_DIR)
 	$(EXEC_DB) pg_dump -U hospital_user hospital_db > $(BACKUP_DIR)/backup_$(TIMESTAMP).sql
-	@echo "$(GREEN)✓ Sauvegarde créée : $(BACKUP_DIR)/backup_$(TIMESTAMP).sql$(NC)"
+	@# Rotation : ne conserver que les 2 sauvegardes les plus récentes
+	@ls -t $(BACKUP_DIR)/backup_*.sql 2>/dev/null | tail -n +3 | xargs -r rm -f || true
+	@echo "$(GREEN)✓ Sauvegarde créée : $(BACKUP_DIR)/backup_$(TIMESTAMP).sql (rotation : 2 conservées)$(NC)"
+
+prod-backup: ## Sauvegarde locale de la base en production (rotation : 2 dernières conservées)
+	@mkdir -p $(BACKUP_DIR)
+	@$(EXEC_DB_PROD) pg_dump -U hospital_user hospital_db > $(BACKUP_DIR)/prod_$(TIMESTAMP).sql
+	@ls -t $(BACKUP_DIR)/prod_*.sql 2>/dev/null | tail -n +3 | xargs -r rm -f || true
+	@echo "$(GREEN)✓ Sauvegarde prod : $(BACKUP_DIR)/prod_$(TIMESTAMP).sql (rotation : 2 conservées)$(NC)"
 
 db-restore: ## Restaurer un backup (ex: make db-restore file=backups/backup.sql)
 	@echo "$(GREEN)Restauration de $(file)...$(NC)"
