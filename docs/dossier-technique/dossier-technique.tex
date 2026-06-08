@@ -93,7 +93,7 @@
   {\bfseries\color{primary} Client} & Hôpital de Zone de Ménontin \\
   {\bfseries\color{primary} Prestataire} & EYRAM Technologies \& Services \\
   {\bfseries\color{primary} Date de réception} & \champvide{1.2cm}\,/\,\champvide{1.2cm}\,/\,\champvide{1.8cm} \\
-  {\bfseries\color{primary} Version du document} & 1.0 \\
+  {\bfseries\color{primary} Version du document} & 1.1 \\
 \end{tabular}}
 
 \vfill
@@ -175,6 +175,16 @@ L'instance de production est hébergée sur le réseau local (LAN) de l'hôpital
   \item \textbf{Localisation~:} serveur physique interne de l'Hôpital de Zone de Ménontin.
 \end{itemize}
 
+\subsection{Sécurisation des échanges (certificat SSL/TLS)}
+Afin de garantir la confidentialité des données lors de la navigation des utilisateurs et lors de la transmission des données vers la base de données, un certificat numérique a été déployé.
+\begin{itemize}
+  \item \textbf{Type de certificat~:} certificat auto-signé (\emph{Self-Signed Certificate}).
+  \item \textbf{Autorité de certification~:} interne (générée pour le serveur \texttt{hospital-nginx}).
+  \item \textbf{Durée de validité~:} 10 ans.
+  \item \textbf{Fonction~:} il active le chiffrement SSL/TLS sur le serveur web NGINX, assurant que toutes les données échangées entre le poste client et le serveur sont illisibles pour un tiers non autorisé.
+\end{itemize}
+\textbf{Note technique~:} étant donné qu'il s'agit d'un certificat auto-signé, les navigateurs web (Chrome, Firefox, Edge) afficheront un message d'avertissement de sécurité (\og~Votre connexion n'est pas privée~\fg{}). L'utilisateur devra cliquer sur \og~Avancé~\fg{} puis \og~Continuer vers le site (non sécurisé)~\fg{} pour accéder à l'application. Ce comportement est normal et n'impacte pas la sécurité réelle du chiffrement.
+
 \subsection{Environnement de pré-production (cloud)}
 Une instance miroir est maintenue dans le cloud pour assurer la continuité des tests, la formation des utilisateurs et servir de secours potentiel pendant la période de garantie.
 \begin{itemize}
@@ -215,6 +225,7 @@ Tout accès à distance est strictement limité aux ressources nécessaires pour
   \item Le fichier de configuration de l'infrastructure (Docker Compose ou scripts de déploiement), stocké sur le drive d'\textbf{EYRAM Technologies \& Services} et partagé avec l'adresse \nolinkurl{hopitaldemenontin@gmail.com} fournie par la comptabilité.
   \item La documentation utilisateur (guide de prise en main).
   \item Le présent document technique d'installation.
+  \item La Fiche de Transmission des Codes d'Accès (contenant~: mot de passe serveur, accès Drive Cloud, clé de déchiffrement des sauvegardes), communiquée via un canal sécurisé séparé.
 \end{itemize}
 
 \subsection{Période de support}
