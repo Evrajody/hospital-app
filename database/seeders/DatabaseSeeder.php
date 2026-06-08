@@ -17,7 +17,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        // Créer les utilisateurs en premier (référencés par d'autres tables)
+        // Rôles & permissions d'abord (les utilisateurs s'y rattachent)
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        // Utilisateurs (super admins + comptes issus du fichier SYSGEF)
         $this->call(UserSeeder::class);
 
         // Plan comptable OHADA
@@ -25,8 +28,6 @@ class DatabaseSeeder extends Seeder
 
         // Taux fiscaux (TVA, AIB)
         $this->call(TauxFiscalSeeder::class);
-
-        $this->call(RolesAndPermissionsSeeder::class);
 
         // Fournisseurs et factures de test
         // $this->call(FournisseurFactureSeeder::class);

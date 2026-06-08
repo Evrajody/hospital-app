@@ -15,9 +15,14 @@ class UserController extends Controller
 {
     public function index(): \Inertia\Response
     {
+        // Les non super-admins ne doivent rien savoir des super administrateurs :
+        // ni les comptes, ni l'existence du rôle. On les masque totalement.
+        $viewerIsSuperAdmin = auth()->user()->isSuperAdmin();
+
         $users = User::with('roles')
             ->orderBy('name')
             ->get()
+            ->when(! $viewerIsSuperAdmin, fn ($c) => $c->reject(fn ($u) => $u->isSuperAdmin()))
             ->map(fn($user) => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -27,12 +32,16 @@ class UserController extends Controller
                 'is_active' => $user->is_active,
                 'roles' => $user->roles->pluck('name')->toArray(),
                 'created_at' => $user->created_at?->format('d/m/Y'),
-            ]);
+            ])
+            ->values();
 
-        $roles = Role::orderBy('name')->get()->map(fn($r) => [
-            'id' => $r->id,
-            'name' => $r->name,
-        ]);
+        $roles = Role::orderBy('name')
+            ->when(! $viewerIsSuperAdmin, fn ($q) => $q->where('name', '!=', User::ROLE_SUPER_ADMIN_NAME))
+            ->get()
+            ->map(fn($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+            ]);
 
         return Inertia::render('Admin/Users', [
             'users' => $users,
@@ -47,10 +56,11 @@ class UserController extends Controller
     {
         $wantsSuperAdmin = collect($roles)->contains(fn ($r) => strcasecmp($r, User::ROLE_SUPER_ADMIN_NAME) === 0);
         if ($wantsSuperAdmin && ! auth()->user()->isSuperAdmin()) {
+            // Réponse générique : un non super-admin ne doit pas savoir que ce rôle existe.
             return response()->json([
                 'success' => false,
-                'message' => "Seul un super administrateur peut attribuer le rôle Super Administrateur.",
-            ], 403);
+                'message' => 'Rôle invalide.',
+            ], 422);
         }
         return null;
     }

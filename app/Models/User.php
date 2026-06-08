@@ -26,6 +26,9 @@ class User extends Authenticatable
      */
     const ROLE_SUPER_ADMIN_NAME = 'SuperAdministrateur';
     const ROLE_ADMIN_NAME = 'Administrateur';
+    const ROLE_CHEF_COMPTA_NAME = 'Chef service comptabilité';
+    const ROLE_GEST_FOURNISSEURS_NAME = 'Gestionnaire Fournisseurs';
+    const ROLE_GEST_CLIENTS_NAME = 'Gestionnaire Clients';
 
     /**
      * The attributes that are mass assignable.

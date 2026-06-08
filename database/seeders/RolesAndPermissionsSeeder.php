@@ -92,7 +92,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // par les trois permissions découpées (clients / fournisseurs / banques).
         Permission::where('name', 'rapports.voir')->delete();
 
-        // ----- Rôles -----
+        // ----- Rôles (rigoureusement les 5 rôles métier) -----
 
         // SUPER ADMINISTRATEUR : accès total (toutes les permissions).
         $superAdmin = Role::firstOrCreate(['name' => User::ROLE_SUPER_ADMIN_NAME, 'guard_name' => 'web']);
@@ -101,7 +101,8 @@ class RolesAndPermissionsSeeder extends Seeder
         // ADMINISTRATEUR : uniquement les éléments du module « Paramètres »
         // (utilisateurs, rôles & permissions, paramètres/établissement, taux fiscaux,
         // journal d'activité). N'a AUCUN accès aux modules métier ni aux rapports,
-        // et ne peut PAS créer/attribuer le rôle Super Administrateur (cf. contrôleurs).
+        // et ne doit RIEN savoir du rôle Super Administrateur (cf. contrôleurs : le
+        // rôle et les comptes super admin lui sont masqués).
         $admin = Role::firstOrCreate(['name' => User::ROLE_ADMIN_NAME, 'guard_name' => 'web']);
         $admin->syncPermissions([
             'utilisateurs.voir', 'utilisateurs.creer', 'utilisateurs.modifier', 'utilisateurs.supprimer',
@@ -110,66 +111,46 @@ class RolesAndPermissionsSeeder extends Seeder
             'journal.voir',
         ]);
 
-        $comptable = Role::firstOrCreate(['name' => 'Comptable', 'guard_name' => 'web']);
-        $comptable->syncPermissions([
+        // CHEF SERVICE COMPTABILITÉ : supervise toute la comptabilité (clients +
+        // fournisseurs + banques), peut valider. Aucun accès au module Administration.
+        $chefCompta = Role::firstOrCreate(['name' => User::ROLE_CHEF_COMPTA_NAME, 'guard_name' => 'web']);
+        $chefCompta->syncPermissions([
+            'fournisseurs.voir', 'fournisseurs.creer', 'fournisseurs.modifier', 'fournisseurs.supprimer',
+            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.supprimer', 'factures-fournisseurs.valider',
+            'reglements-fournisseurs.voir', 'reglements-fournisseurs.creer', 'reglements-fournisseurs.modifier', 'reglements-fournisseurs.supprimer',
+            'clients.voir', 'clients.creer', 'clients.modifier', 'clients.supprimer',
+            'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier', 'factures-clients.supprimer',
+            'reglements-clients.voir', 'reglements-clients.creer', 'reglements-clients.modifier', 'reglements-clients.supprimer',
+            'plan-comptable.voir', 'plan-comptable.modifier',
+            'banques.voir', 'banques.creer', 'banques.modifier', 'banques.supprimer',
+            'rapports-clients.voir', 'rapports-fournisseurs.voir', 'rapports-banques.voir',
+        ]);
+
+        // GESTIONNAIRE FOURNISSEURS : opère sur le module Fournisseurs uniquement.
+        $gestFournisseurs = Role::firstOrCreate(['name' => User::ROLE_GEST_FOURNISSEURS_NAME, 'guard_name' => 'web']);
+        $gestFournisseurs->syncPermissions([
             'fournisseurs.voir', 'fournisseurs.creer', 'fournisseurs.modifier',
-            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.valider',
+            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier',
             'reglements-fournisseurs.voir', 'reglements-fournisseurs.creer', 'reglements-fournisseurs.modifier',
+            'plan-comptable.voir',
+            'banques.voir',
+            'rapports-fournisseurs.voir', 'rapports-banques.voir',
+        ]);
+
+        // GESTIONNAIRE CLIENTS : opère sur le module Clients uniquement.
+        $gestClients = Role::firstOrCreate(['name' => User::ROLE_GEST_CLIENTS_NAME, 'guard_name' => 'web']);
+        $gestClients->syncPermissions([
             'clients.voir', 'clients.creer', 'clients.modifier',
             'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier',
             'reglements-clients.voir', 'reglements-clients.creer', 'reglements-clients.modifier',
-            'plan-comptable.voir',
-            'banques.voir',
-            // Rapports : clients, fournisseurs et banques
-            'rapports-clients.voir', 'rapports-fournisseurs.voir', 'rapports-banques.voir',
+            'rapports-clients.voir',
         ]);
 
-        $gestionnaire = Role::firstOrCreate(['name' => 'Gestionnaire', 'guard_name' => 'web']);
-        $gestionnaire->syncPermissions([
-            'fournisseurs.voir',
-            'factures-fournisseurs.voir',
-            'reglements-fournisseurs.voir',
-            'clients.voir',
-            'factures-clients.voir',
-            'reglements-clients.voir',
-            // Rapports : clients, fournisseurs et banques
-            'rapports-clients.voir', 'rapports-fournisseurs.voir', 'rapports-banques.voir',
-        ]);
-
-        $utilisateur = Role::firstOrCreate(['name' => 'Utilisateur', 'guard_name' => 'web']);
-        $utilisateur->syncPermissions([
-            'fournisseurs.voir',
-            'factures-fournisseurs.voir',
-            'reglements-fournisseurs.voir',
-            'clients.voir',
-            'factures-clients.voir',
-            'reglements-clients.voir',
-        ]);
-
-        // Compte super administrateur par défaut (le compte admin historique devient super admin)
-        $superAdminUser = User::firstOrCreate(
-            ['email' => 'admin@hospital.bj'],
-            [
-                'name' => 'Super Administrateur',
-                'password' => 'password',
-                'is_active' => true,
-                'poste' => 'Super Administrateur',
-            ]
-        );
-        $superAdminUser->update(['role' => User::ROLE_SUPER_ADMIN, 'name' => 'Super Administrateur']);
-        $superAdminUser->syncRoles([User::ROLE_SUPER_ADMIN_NAME]);
-
-        // Compte administrateur (paramètres uniquement) — exemple
-        $adminUser = User::firstOrCreate(
-            ['email' => 'administrateur@hospital.bj'],
-            [
-                'name' => 'Administrateur',
-                'password' => 'password',
-                'is_active' => true,
-                'poste' => 'Administrateur (Paramètres)',
-            ]
-        );
-        $adminUser->update(['role' => User::ROLE_ADMIN]);
-        $adminUser->syncRoles([User::ROLE_ADMIN_NAME]);
+        // ----- Nettoyage : supprimer les anciens rôles désormais remplacés -----
+        // (Comptable → Chef service comptabilité, Gestionnaire → Gestionnaire
+        //  Fournisseurs/Clients, Utilisateur supprimé). Les pivots model_has_roles
+        //  sont retirés automatiquement à la suppression du rôle.
+        Role::whereIn('name', ['Comptable', 'Gestionnaire', 'Utilisateur'])->get()
+            ->each(fn (Role $r) => $r->delete());
     }
 }
