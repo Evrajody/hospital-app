@@ -62,9 +62,9 @@
         .intro-text {
             font-size: 12px;
             font-style: italic;
+            font-weight: bold;
             line-height: 1.7;
             margin-bottom: 25px;
-            
         }
 
         .details-table {
