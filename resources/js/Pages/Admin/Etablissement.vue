@@ -62,6 +62,34 @@
             </el-col>
           </el-row>
 
+          <el-divider content-position="left">En-tête officiel (coin haut-droit des PDF)</el-divider>
+
+          <el-row :gutter="20">
+            <el-col :xs="24" :sm="12">
+              <el-form-item label="Boîte postale (BP)" prop="entete_bp">
+                <el-input v-model="form.entete_bp" placeholder="Ex: BP 01-882 BENIN" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12">
+              <el-form-item label="Téléphone (en-tête)" prop="entete_tel">
+                <el-input v-model="form.entete_tel" placeholder="Ex: +229 21 33 21 78 / 21 33 21 63" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :xs="24" :sm="12">
+              <el-form-item label="Email (en-tête)" prop="entete_email">
+                <el-input v-model="form.entete_email" placeholder="Ex: info@sante.gouv.bj" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12">
+              <el-form-item label="Site web (en-tête)" prop="entete_site">
+                <el-input v-model="form.entete_site" placeholder="Ex: www.sante.gouv.bj" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
           <div class="form-actions">
             <el-button type="primary" @click="submitForm" :loading="loading">
               Enregistrer les paramètres
@@ -100,6 +128,10 @@ const form = reactive({
   email: props.etablissement?.email || '',
   directeur: props.etablissement?.directeur || '',
   ifu: props.etablissement?.ifu || '',
+  entete_bp: props.etablissement?.entete_bp || '',
+  entete_tel: props.etablissement?.entete_tel || '',
+  entete_email: props.etablissement?.entete_email || '',
+  entete_site: props.etablissement?.entete_site || '',
 });
 
 const rules = {

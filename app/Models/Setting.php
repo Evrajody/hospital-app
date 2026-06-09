@@ -47,6 +47,11 @@ class Setting extends Model
                 'directeur' => $settings['etablissement_directeur'] ?? '',
                 // IFU : valeur par défaut (IFU de l'hôpital) si non renseignée dans Admin > Établissement.
                 'ifu' => ($settings['etablissement_ifu'] ?? '') ?: '6201200887407',
+                // Bloc d'en-tête officiel (coin haut-droit des PDF) — paramétrable.
+                'entete_bp' => ($settings['etablissement_entete_bp'] ?? '') ?: 'BP 01-882 BENIN',
+                'entete_tel' => ($settings['etablissement_entete_tel'] ?? '') ?: '+229 21 33 21 78 / 21 33 21 63',
+                'entete_email' => ($settings['etablissement_entete_email'] ?? '') ?: 'info@sante.gouv.bj',
+                'entete_site' => ($settings['etablissement_entete_site'] ?? '') ?: 'www.sante.gouv.bj',
             ];
         });
     }

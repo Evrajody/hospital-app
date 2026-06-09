@@ -9,10 +9,10 @@
                      style="height: 48px; width: auto;" />
             </td>
             <td style="vertical-align: top; width: 38%; padding: 0; text-align: right; font-size: 10.5px; line-height: 1.5; font-weight: bold;">
-                BP 01-882 BENIN<br>
-                <span style="text-decoration: underline;">Tél.</span> +229 21 33 21 78 / 21 33 21 63<br>
-                <span style="color: #1a5fb4; text-decoration: underline;">info@sante.gouv.bj</span><br>
-                <span style="color: #1a5fb4; text-decoration: underline;">www.sante.gouv.bj</span>
+                {{ $etablissement['entete_bp'] ?? 'BP 01-882 BENIN' }}<br>
+                <span style="text-decoration: underline;">Tél.</span> {{ $etablissement['entete_tel'] ?? '+229 21 33 21 78 / 21 33 21 63' }}<br>
+                <span style="color: #1a5fb4; text-decoration: underline;">{{ $etablissement['entete_email'] ?? 'info@sante.gouv.bj' }}</span><br>
+                <span style="color: #1a5fb4; text-decoration: underline;">{{ $etablissement['entete_site'] ?? 'www.sante.gouv.bj' }}</span>
             </td>
         </tr>
     </table>

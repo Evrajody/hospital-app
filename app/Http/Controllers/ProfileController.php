@@ -156,6 +156,11 @@ class ProfileController extends Controller
             'email' => 'nullable|email|max:255',
             'directeur' => 'required|string|max:255',
             'ifu' => 'nullable|string|max:50',
+            // Bloc d'en-tête officiel (coin haut-droit des PDF)
+            'entete_bp' => 'nullable|string|max:100',
+            'entete_tel' => 'nullable|string|max:100',
+            'entete_email' => 'nullable|string|max:150',
+            'entete_site' => 'nullable|string|max:150',
         ]);
 
         foreach ($validated as $key => $value) {

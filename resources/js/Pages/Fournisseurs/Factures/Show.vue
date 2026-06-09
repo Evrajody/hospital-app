@@ -525,120 +525,6 @@
       <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune donnée trouvée.</div>
     </el-drawer>
 
-    <!-- Drawer Bordereau de Règlement -->
-    <el-drawer v-model="showMandatDrawer" title="Bordereau de Règlement" direction="rtl" size="55%" :destroy-on-close="true">
-      <div v-if="mandatLoading" style="text-align: center; padding: 40px;">
-        <el-icon class="is-loading" :size="30"><Clock /></el-icon>
-        <p style="margin-top: 10px; color: #909399;">Chargement...</p>
-      </div>
-      <div v-else-if="mandatData" class="mandat-content">
-        <!-- En-tête centré comme imputation -->
-        <div class="mandat-header">
-          <div class="imputation-hospital-name">{{ mandatData.etablissement.nom }}</div>
-          <div class="imputation-hospital-info">
-            {{ mandatData.etablissement.adresse }}<br>
-            {{ mandatData.etablissement.telephone ? 'Tél.: ' + mandatData.etablissement.telephone : '' }}
-            {{ mandatData.etablissement.email ? ' - E-mail: ' + mandatData.etablissement.email : '' }}
-          </div>
-          <div class="imputation-title-box"><span>BORDEREAU DE RÈGLEMENT</span></div>
-          <p class="imputation-numero-piece"><em>N° {{ mandatData.facture.numero_piece }}/DAF/H.M.</em></p>
-        </div>
-
-        <div class="mandat-exercice"><strong>EXERCICE {{ new Date().getFullYear() }}</strong></div>
-
-        <p class="mandat-intro">
-          <em>En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital
-          ordonne le règlement par la caisse du Centre, de la créance détaillée ci-après :</em>
-        </p>
-
-        <!-- Détails -->
-        <table class="mandat-details-table">
-          <tr>
-            <td class="mandat-label">OBJET :</td>
-            <td>{{ mandatData.facture.libelle }}</td>
-          </tr>
-          <tr><td colspan="2" style="height: 10px;"></td></tr>
-          <tr>
-            <td class="mandat-label">PRESTATAIRE :</td>
-            <td>{{ mandatData.fournisseur.nom }}</td>
-          </tr>
-          <tr><td colspan="2" style="height: 10px;"></td></tr>
-          <tr>
-            <td class="mandat-label">MONTANT FACTURE HT :</td>
-            <td>{{ mandatData.facture.montant_facture }}</td>
-          </tr>
-          <tr v-if="mandatData.facture.montant_tva > 0">
-            <td class="mandat-label">MONTANT TVA ({{ mandatData.facture.taux_tva }}%) :</td>
-            <td>{{ mandatData.facture.montant_tva }}</td>
-          </tr>
-          <tr>
-            <td class="mandat-label">MONTANT TTC :</td>
-            <td>{{ mandatData.facture.montant_ttc }}</td>
-          </tr>
-          <tr>
-            <td class="mandat-label">MONTANT AVOIR :</td>
-            <td>{{ mandatData.facture.montant_avoir }}</td>
-          </tr>
-          <tr v-if="mandatData.facture.taux_aib > 0">
-            <td class="mandat-label">IMPÔT / AIB {{ mandatData.facture.taux_aib }}% :</td>
-            <td>{{ mandatData.facture.montant_aib }}</td>
-          </tr>
-          <tr><td colspan="2" style="height: 10px;"></td></tr>
-          <tr>
-            <td class="mandat-label">MONTANT PAYE :</td>
-            <td>
-              {{ mandatData.facture.montant_paye }}
-              <span class="mandat-lettres">{{ mandatData.facture.montant_paye_lettres }}</span>
-            </td>
-          </tr>
-          <tr>
-            <td class="mandat-label">RESTE A PAYER :</td>
-            <td>
-              {{ mandatData.facture.reste_a_payer }}
-              <span class="mandat-lettres">{{ mandatData.facture.reste_a_payer_lettres }}</span>
-            </td>
-          </tr>
-          <tr><td colspan="2" style="height: 10px;"></td></tr>
-          <tr v-if="mandatData.facture.reference_facture">
-            <td class="mandat-label">PIECES JUSTIFICATIVES :</td>
-            <td>{{ mandatData.facture.reference_facture }}</td>
-          </tr>
-          <tr><td colspan="2" style="height: 10px;"></td></tr>
-          <tr>
-            <td class="mandat-label">MODE PAIEMENT :</td>
-            <td>
-              {{ mandatData.reglement.mode_paiement }}
-              <span v-if="mandatData.reglement.banque" style="margin-left: 30px;">{{ mandatData.reglement.banque }}</span>
-              <br v-if="mandatData.reglement.reference">
-              <span v-if="mandatData.reglement.reference">N°{{ mandatData.reglement.reference }}</span>
-              <span v-if="mandatData.reglement.date_reglement" style="margin-left: 30px;">du {{ mandatData.reglement.date_reglement }}</span>
-            </td>
-          </tr>
-        </table>
-
-        <!-- Signatures -->
-        <p class="mandat-fait"><em><strong>Fait à Cotonou, le {{ mandatData.reglement.date_reglement }}</strong></em></p>
-
-        <table class="mandat-signatures">
-          <tr>
-            <td>
-              <strong>Le Bénéficiaire,</strong>
-              <div class="mandat-signature-name">{{ (mandatData.reglement.beneficiaire || mandatData.fournisseur.nom || '').toUpperCase() }}</div>
-            </td>
-            <td style="text-align: right;">
-              <strong>Le Directeur,</strong>
-              <div class="mandat-signature-name">{{ mandatData.etablissement.directeur || '' }}</div>
-            </td>
-          </tr>
-        </table>
-
-        <!-- Télécharger -->
-        <div style="text-align: right; margin-top: 30px;">
-          <el-button type="primary" :icon="Printer" @click="downloadMandatPdf">Télécharger PDF</el-button>
-        </div>
-      </div>
-      <div v-else style="text-align: center; padding: 40px; color: #909399;">Aucune donnée trouvée.</div>
-    </el-drawer>
   </AppLayout>
 </template>
 
@@ -667,6 +553,9 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePdfViewer } from '@/Composables/usePdfViewer';
+
+const { openPdf } = usePdfViewer();
 
 // Props
 const props = defineProps({
@@ -708,12 +597,6 @@ const selectedFacture = ref(null);
 const showImputationDrawer = ref(false);
 const imputationLoading = ref(false);
 const imputationData = ref(null);
-
-// Drawer Bordereau de Règlement
-const showMandatDrawer = ref(false);
-const mandatLoading = ref(false);
-const mandatData = ref(null);
-const mandatReglementId = ref(null);
 
 // Drawer État de Règlement
 const showEtatReglementDrawer = ref(false);
@@ -996,31 +879,10 @@ const handleFactureSuccess = async (factureData) => {
   }
 };
 
-const openMandatDrawer = async (reglementId) => {
-  mandatReglementId.value = reglementId;
-  mandatData.value = null;
-  mandatLoading.value = true;
-  showMandatDrawer.value = true;
-
-  try {
-    const response = await fetchApi(`/api/reglements-fournisseurs/${reglementId}/mandat-data`);
-    const result = await response.json();
-    if (result.success) {
-      mandatData.value = result;
-    } else {
-      ElMessage.warning(result.message || 'Données non trouvées');
-    }
-  } catch (err) {
-    ElMessage.error('Erreur lors du chargement du bordereau');
-  } finally {
-    mandatLoading.value = false;
-  }
-};
-
-const downloadMandatPdf = () => {
-  if (mandatReglementId.value) {
-    window.open(`/reglements-fournisseurs/${mandatReglementId.value}/mandat`, '_blank');
-  }
+// Affiche le bordereau de règlement (le vrai PDF) dans l'offcanvas global,
+// comme la table des règlements — affichage harmonisé.
+const openMandatDrawer = (reglementId) => {
+  openPdf(`/reglements-fournisseurs/${reglementId}/mandat`, 'Bordereau de règlement');
 };
 
 const openImputationDrawer = async () => {
@@ -1391,20 +1253,6 @@ onMounted(() => {
 .imputation-table tbody td.cell-libelle { border-bottom: none; }
 .imputation-table tbody tr:last-child td.cell-libelle { border-bottom: 1px solid #000; }
 .imputation-table tbody tr.block-separator td.cell-libelle { border-top: 2px solid #000; }
-
-/* Bordereau de Règlement Drawer */
-.mandat-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }
-.mandat-header { margin-bottom: 15px; text-align: center; }
-.mandat-exercice { margin: 10px 0 15px; font-size: 14px; }
-.mandat-intro { margin: 0 0 20px; font-size: 13px; line-height: 1.6; }
-.mandat-details-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.mandat-details-table td { padding: 3px 0; vertical-align: top; }
-.mandat-label { width: 240px; font-weight: bold; white-space: nowrap; }
-.mandat-lettres { display: inline-block; margin-left: 10px; font-size: 11px; color: #c00; text-transform: uppercase; }
-.mandat-fait { margin: 30px 0 20px; text-align: center; }
-.mandat-signatures { width: 100%; margin-top: 10px; }
-.mandat-signatures td { width: 50%; vertical-align: top; padding: 0 10px; }
-.mandat-signature-name { margin-top: 50px; font-size: 13px; }
 
 /* État de Règlement Drawer */
 .etat-reglement-content { padding: 0 15px; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; }

@@ -290,6 +290,10 @@ class ReglementFournisseurController extends Controller
                 'created_by_name' => auth()->user()->name,
                 'etablissement_nom' => $etablissement['nom'],
                 'etablissement_directeur' => $etablissement['directeur'],
+                'etablissement_entete_bp' => $etablissement['entete_bp'],
+                'etablissement_entete_tel' => $etablissement['entete_tel'],
+                'etablissement_entete_email' => $etablissement['entete_email'],
+                'etablissement_entete_site' => $etablissement['entete_site'],
             ]);
 
             // Synchroniser les lignes (multi-fournisseur)
@@ -911,7 +915,7 @@ class ReglementFournisseurController extends Controller
         };
 
         $montantFormate = number_format($montant, 0, ',', ' ');
-        $montantEnLettres = $this->convertirMontantEnLettres($montant) . ' francs CFA';
+        $montantEnLettres = $this->convertirMontantEnLettres($montant) . ' francs';
 
         $etablissementLive = \App\Models\Setting::getEtablissement();
 
@@ -926,6 +930,11 @@ class ReglementFournisseurController extends Controller
                 'pays' => $etablissementLive['pays'],
                 'adresse' => $etablissementLive['adresse'],
                 'telephone' => $etablissementLive['telephone'],
+                // Bloc d'en-tête officiel : figé sur le règlement (snapshot), fallback live.
+                'entete_bp' => $reglement->etablissement_entete_bp ?: $etablissementLive['entete_bp'],
+                'entete_tel' => $reglement->etablissement_entete_tel ?: $etablissementLive['entete_tel'],
+                'entete_email' => $reglement->etablissement_entete_email ?: $etablissementLive['entete_email'],
+                'entete_site' => $reglement->etablissement_entete_site ?: $etablissementLive['entete_site'],
             ],
         ];
     }

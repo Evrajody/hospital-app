@@ -39,22 +39,17 @@
         }
 
         .document-title {
-            text-align: center;
-            margin: 25px 0 10px;
+            text-align: left;
+            margin: 20px 0 8px;
         }
 
-        .document-title h1 {
-            font-size: 18px;
+        .document-title .title-main {
+            font-size: 16px;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            border: 2px solid #000;
-            display: inline-block;
-            padding: 8px 30px;
+            text-decoration: underline;
         }
 
-        .numero-piece {
-            margin: 12px 0 5px;
+        .document-title .title-numero {
             font-size: 14px;
         }
 
@@ -69,6 +64,7 @@
             font-style: italic;
             line-height: 1.7;
             margin-bottom: 25px;
+            
         }
 
         .details-table {
@@ -90,16 +86,31 @@
         }
 
         .montant-lettres {
-            display: block;
+            display: inline-block;
             font-size: 10px;
             color: #000;
             font-weight: bold;
             text-transform: uppercase;
-            margin-top: 2px;
+            margin-left: 10px;
         }
 
         .spacer td {
             height: 12px;
+        }
+
+        /* Mode de paiement : 2 colonnes alignées (mode / N° à gauche, banque / date à droite) */
+        .mode-paiement-table {
+            border-collapse: collapse;
+        }
+
+        .mode-paiement-table td {
+            padding: 0 0 2px 0;
+            vertical-align: top;
+        }
+
+        .mode-paiement-table .mp-col1 {
+            white-space: nowrap;
+            padding-right: 30px;
         }
 
         .montants-section {
@@ -166,20 +177,17 @@
     <!-- Entête officielle (Ministère / Direction / Zone / Hôpital) -->
     @include('pdf._entete-officiel')
 
-    <!-- Titre encadré -->
+    <!-- Titre : à gauche, gras + souligné, N° sur la même ligne -->
     <div class="document-title">
-        <h1>Bordereau de Règlement</h1>
-    </div>
-
-    <div class="numero-piece">
-        <em>N° {{ $reglement->facture->numero_piece }}/DAF/H.M.</em>
+        <span class="title-main">Bordereau de règlement :</span>
+        <em class="title-numero">N° {{ $reglement->facture->numero_piece }}/DAF/H.M.</em>
     </div>
 
     <div class="exercice">EXERCICE {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('Y') }}</div>
 
     <div class="intro-text">
         En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital
-        ordonne le règlement par la caisse du Centre, de la créance détaillée ci-après :
+        de Mènontin mandate sur la caisse du Centre, la créance détaillée ci-après :
     </div>
 
     <!-- Infos facture -->
@@ -199,44 +207,38 @@
     <div class="montants-section">
         <table>
             <tr>
-                <td class="details-label">MONTANT FACTURE HT :</td>
-                <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
+                <td class="details-label">MONTANT FACTURE :</td>
+                <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }} FCFA</td>
             </tr>
             @if($facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0)
             <tr>
                 <td class="details-label">MONTANT TVA ({{ $facture->taux_tva }}%) :</td>
-                <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
+                <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }} FCFA</td>
             </tr>
             @endif
             <tr>
-                <td class="details-label">MONTANT TTC :</td>
-                <td>{{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }}</td>
-            </tr>
-            <tr>
-                <td class="details-label">MONTANT AVOIR:</td>
-                <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }}</td>
+                <td class="details-label">MONTANT AVOIR / ESCOMPT :</td>
+                <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }} FCFA</td>
             </tr>
             @if($facture->taux && (float) $facture->taux > 0)
             <tr>
-                <td class="details-label">IMPÔT / AIB {{ $facture->taux }}% :</td>
-                <td>{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }}</td>
+                <td class="details-label">IMPÔT / AIB : {{ $facture->taux }}%</td>
+                <td>{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }} FCFA</td>
             </tr>
             @endif
             <tr>
-                <td class="details-label">MONTANT PAYE :</td>
+                <td class="details-label">MONTANT PAYE (FCFA):</td>
                 <td>
-                    {{ number_format((float) $facture->montant_paye, 0, ',', ' ') }}
+                    {{ number_format((float) $facture->montant_paye, 0, ',', ' ') }} FCFA
                     <span class="montant-lettres">{{ strtoupper($montantEnLettres) }}</span>
                 </td>
             </tr>
             <tr>
                 @php $resteAPayer = (float) $facture->reste_a_payer; @endphp
-                <td class="details-label">RESTE A PAYER :</td>
+                <td class="details-label">RESTE A PAYER (FCFA):</td>
                 <td>
-                    {{ number_format($resteAPayer, 0, ',', ' ') }}
-                    @if($resteAPayer > 0)
+                    {{ number_format($resteAPayer, 0, ',', ' ') }} FCFA
                     <span class="montant-lettres">{{ $resteAPayerLettres }}</span>
-                    @endif
                 </td>
             </tr>
         </table>
@@ -254,16 +256,18 @@
         <tr>
             <td class="details-label">MODE PAIEMENT :</td>
             <td>
-                {{ $modeLabel }}
-                @if($reglement->banque)
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $reglement->banque }}
-                @endif
-                @if($reglement->reference)
-                <br>N°{{ $reglement->reference }}
-                    @if($reglement->date_reglement)
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;du {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}
+                <table class="mode-paiement-table">
+                    <tr>
+                        <td class="mp-col1">{{ $modeLabel }}</td>
+                        <td class="mp-col2">{{ $reglement->banque }}</td>
+                    </tr>
+                    @if($reglement->reference)
+                    <tr>
+                        <td class="mp-col1">N°{{ $reglement->reference }}</td>
+                        <td class="mp-col2">@if($reglement->date_reglement)du {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}@endif</td>
+                    </tr>
                     @endif
-                @endif
+                </table>
             </td>
         </tr>
     </table>
@@ -280,7 +284,7 @@
                 <div class="signature-name">{{ strtoupper($reglement->beneficiaire ?: ($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '')) }}</div>
             </td>
             <td style="text-align: right;">
-                <div class="signature-title">Le Directeur,</div>
+                <div class="signature-title">L'Administrateur,</div>
                 <div class="signature-name">{{ $etablissement['directeur'] ?? '' }}</div>
             </td>
         </tr>

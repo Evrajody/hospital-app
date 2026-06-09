@@ -52,6 +52,10 @@ class ReglementFournisseur extends Model
         'validated_at',
         'etablissement_nom',
         'etablissement_directeur',
+        'etablissement_entete_bp',
+        'etablissement_entete_tel',
+        'etablissement_entete_email',
+        'etablissement_entete_site',
     ];
 
     /**

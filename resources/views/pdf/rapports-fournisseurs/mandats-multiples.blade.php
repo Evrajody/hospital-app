@@ -102,6 +102,11 @@
 
         .spacer td { height: 12px; }
 
+        /* Mode de paiement : 2 colonnes alignées (mode / N° à gauche, banque / date à droite) */
+        .mode-paiement-table { border-collapse: collapse; }
+        .mode-paiement-table td { padding: 0 0 2px 0; vertical-align: top; }
+        .mode-paiement-table .mp-col1 { white-space: nowrap; padding-right: 30px; }
+
         .montants-section { margin: 15px 0; }
         .montants-section table { width: 100%; border-collapse: collapse; }
         .montants-section td { padding: 5px 0; vertical-align: top; }
@@ -147,7 +152,7 @@
 
         <div class="exercice">EXERCICE {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('Y') }}</div>
 
-        <div class="intro-text">
+        <div class="intro-text" style="font-weight: bold;">
             En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital
             ordonne le règlement par la caisse du Centre, de la créance détaillée ci-après :
         </div>
@@ -221,16 +226,18 @@
             <tr>
                 <td class="details-label">MODE PAIEMENT :</td>
                 <td>
-                    {{ $modeLabel }}
-                    @if($reglement->banque)
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $reglement->banque }}
-                    @endif
-                    @if($reglement->reference)
-                    <br>N°{{ $reglement->reference }}
-                        @if($reglement->date_reglement)
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;du {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}
+                    <table class="mode-paiement-table">
+                        <tr>
+                            <td class="mp-col1">{{ $modeLabel }}</td>
+                            <td class="mp-col2">{{ $reglement->banque }}</td>
+                        </tr>
+                        @if($reglement->reference)
+                        <tr>
+                            <td class="mp-col1">N°{{ $reglement->reference }}</td>
+                            <td class="mp-col2">@if($reglement->date_reglement)du {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}@endif</td>
+                        </tr>
                         @endif
-                    @endif
+                    </table>
                 </td>
             </tr>
         </table>
