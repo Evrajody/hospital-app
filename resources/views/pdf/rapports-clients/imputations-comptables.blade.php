@@ -10,10 +10,10 @@
 @endif
 
 @section('extra-styles')
-    .imputation-block { margin-bottom: 20px; page-break-inside: avoid; }
+    .imputation-block { margin-bottom: 20px; }
     /* Une imputation (un bordereau) par page. */
     .imputation-block + .imputation-block { page-break-before: always; }
-    .imputation-date { font-size: 12px; font-weight: bold; text-decoration: underline; margin: 0 0 6px 0; }
+    .imputation-date { font-size: 12px; font-weight: bold; text-decoration: underline; margin: 0 0 6px 0; page-break-after: avoid; }
     .imputation-table { width: 100%; border-collapse: collapse; }
     .imputation-table th, .imputation-table td { border: 1px solid #000; padding: 6px 8px; font-size: 10px; }
     .imputation-table th { text-align: center; font-weight: bold; text-transform: uppercase; background: #f8f8f8; }

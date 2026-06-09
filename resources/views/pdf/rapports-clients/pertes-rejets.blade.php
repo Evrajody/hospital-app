@@ -27,8 +27,8 @@
 @section('report-subtitle', implode(' - ', $subtitleParts))
 
 @section('extra-styles')
-    .client-block { margin-bottom: 25px; page-break-inside: avoid; }
-    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
+    .client-block { margin-bottom: 25px; }
+    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; page-break-after: avoid; }
 @endsection
 
 @section('content')

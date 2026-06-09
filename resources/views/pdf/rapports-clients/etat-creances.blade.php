@@ -11,8 +11,8 @@
 @section('report-subtitle', 'Factures non soldées' . (!empty($periode['debut']) && !empty($periode['fin']) ? ' - Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : (!empty($periode['fin']) ? ' - Au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : '')))
 
 @section('extra-styles')
-    .client-block { margin-bottom: 25px; page-break-inside: avoid; }
-    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
+    .client-block { margin-bottom: 25px; }
+    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; page-break-after: avoid; }
     .reste { color: #cc0000; font-weight: bold; }
     .type-group + .type-group { page-break-before: always; }
     .type-header { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; background: #e5e7eb; border-left: 4px solid #1f2937; margin: 0 0 12px; page-break-after: avoid; }

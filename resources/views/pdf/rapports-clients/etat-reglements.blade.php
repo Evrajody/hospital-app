@@ -18,8 +18,8 @@
 @endif
 
 @section('extra-styles')
-    .client-block { margin-bottom: 25px; page-break-inside: avoid; }
-    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; }
+    .client-block { margin-bottom: 25px; }
+    .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; page-break-after: avoid; }
     .type-group { }
     .type-group + .type-group { page-break-before: always; }
     .type-header { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; background: #e5e7eb; border-left: 4px solid #1f2937; margin: 0 0 12px; page-break-after: avoid; }

@@ -26,6 +26,7 @@ class RapportClientController extends Controller
                 'id' => $c->id,
                 'code' => $c->compteComptable?->numero_compte ?? '-',
                 'nom' => $c->nom,
+                'type_client' => $c->type_client,
             ])
             ->toArray();
     }

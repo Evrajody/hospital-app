@@ -28,7 +28,7 @@
             style="width: 280px"
           >
             <el-option
-              v-for="c in clients"
+              v-for="c in filteredClients"
               :key="c.id"
               :label="`${c.code} - ${c.nom}`"
               :value="c.id"
@@ -103,7 +103,7 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
 
@@ -120,10 +120,25 @@ const loading = ref(false);
 const fetched = ref(false);
 const data = ref([]);
 
+// Liste des clients du dropdown : filtrée par le type sélectionné.
+// Aucun type → tous les clients ; un type → seulement ceux de ce type.
+const filteredClients = computed(() =>
+  selectedTypeClient.value
+    ? props.clients.filter((c) => c.type_client === selectedTypeClient.value)
+    : props.clients
+);
+
 const formatMontant = (v) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
 
 watch(usePeriode, (v) => {
   if (!v) dateRange.value = [];
+});
+
+// Si le type change et que le client choisi n'en fait plus partie, on le réinitialise.
+watch(selectedTypeClient, () => {
+  if (selectedClientId.value && !filteredClients.value.some((c) => c.id === selectedClientId.value)) {
+    selectedClientId.value = null;
+  }
 });
 
 const buildParams = () => {
