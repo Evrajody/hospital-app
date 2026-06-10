@@ -1,20 +1,23 @@
 /**
- * Export asynchrone de rapports volumineux.
+ * Export asynchrone de rapports.
  *
- * Au lieu de générer le PDF/Excel dans la requête (risque de crash/timeout sur
- * de gros volumes), on met la génération en file d'attente côté serveur, puis on
- * suit l'avancement par polling. Quand le fichier est prêt, l'utilisateur est
- * notifié et déclenche le téléchargement en cliquant sur le lien.
+ * Met la génération en file d'attente côté serveur, puis suit l'avancement par
+ * polling. L'export apparaît dans le bandeau « Exports » (ExportsTray.vue),
+ * toujours visible, avec une barre de progression en temps réel. Quand le
+ * fichier est prêt, l'utilisateur le télécharge depuis le bandeau.
  */
 import { api } from '@/Composables/useFetch';
-import { ElNotification, ElMessage } from 'element-plus';
+import { ElMessage } from 'element-plus';
+import { useExportsStore } from '@/Composables/useExportsStore';
 
 export function useAsyncExport() {
+  const store = useExportsStore();
+
   /**
    * @param {string} report  clé de rapport (cf. ReportExportService::REPORTS)
    * @param {'pdf'|'excel'} format
-   * @param {object} params  filtres du rapport (mêmes clés que l'URL de l'export synchrone)
-   * @param {string} [label] libellé affiché dans les notifications
+   * @param {object} params  filtres du rapport
+   * @param {string} [label] libellé affiché dans le bandeau
    */
   const startExport = async (report, format, params = {}, label = '') => {
     let json;
@@ -31,21 +34,21 @@ export function useAsyncExport() {
     }
 
     const exp = json.export;
-    const name = label || exp.label;
-
-    ElNotification({
-      title: 'Génération en cours',
-      message: `${name} : le fichier est en cours de génération. Vous serez notifié dès qu'il est prêt à télécharger.`,
-      type: 'info',
-      duration: 4500,
+    store.add({
+      id: exp.id,
+      label: label || exp.label,
+      format,
+      status: exp.status,
+      progress: exp.progress || 0,
+      step: exp.step || 'En file d\'attente…',
     });
 
-    pollStatus(exp.id, name);
+    pollStatus(exp.id);
   };
 
-  const pollStatus = (id, name) => {
+  const pollStatus = (id) => {
     let attempts = 0;
-    const maxAttempts = 150; // ~5 min à 2 s
+    const maxAttempts = 300; // ~10 min à 2 s
 
     const tick = async () => {
       attempts += 1;
@@ -53,18 +56,16 @@ export function useAsyncExport() {
         const res = await api.get(`/rapports/exports/${id}/status`);
         const { export: exp } = await res.json();
 
-        if (exp.status === 'completed') {
-          notifyReady(exp, name);
-          return;
-        }
-        if (exp.status === 'failed') {
-          ElNotification({
-            title: 'Export échoué',
-            message: `${name} : ${exp.error || 'erreur lors de la génération.'}`,
-            type: 'error',
-            duration: 0,
-          });
-          return;
+        store.patch(id, {
+          status: exp.status,
+          progress: exp.progress,
+          step: exp.step,
+          error: exp.error,
+          download_url: exp.download_url,
+        });
+
+        if (exp.status === 'completed' || exp.status === 'failed') {
+          return; // terminé : le bandeau gère l'affichage / le téléchargement
         }
       } catch (e) {
         // erreur transitoire : on retente
@@ -73,29 +74,11 @@ export function useAsyncExport() {
       if (attempts < maxAttempts) {
         setTimeout(tick, 2000);
       } else {
-        ElNotification({
-          title: 'Génération longue',
-          message: `${name} : la génération prend plus de temps que prévu. Réessayez dans quelques minutes.`,
-          type: 'warning',
-          duration: 0,
-        });
+        store.patch(id, { status: 'failed', step: 'Délai dépassé', error: 'La génération prend trop de temps.' });
       }
     };
 
-    setTimeout(tick, 1500);
-  };
-
-  const notifyReady = (exp, name) => {
-    ElNotification({
-      title: 'Export prêt',
-      dangerouslyUseHTMLString: true,
-      message:
-        `${name} est prêt.<br>` +
-        `<a href="${exp.download_url}" style="color:#1C6FB8;font-weight:600;text-decoration:underline">` +
-        `Télécharger le fichier</a>`,
-      type: 'success',
-      duration: 0,
-    });
+    setTimeout(tick, 1200);
   };
 
   return { startExport };

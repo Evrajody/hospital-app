@@ -73,6 +73,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-fournisseurs.declaration-tva';
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useMontant } from '@/Composables/useMontant';
@@ -123,11 +126,11 @@ const summaryMethod = ({ columns }) => {
 };
 
 const exportPdf = () => {
-  openPdf(`/rapports/fournisseurs/pdf/declaration-tva?${buildParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildParams()));
 };
 
 const exportExcel = () => {
-  window.open(`/rapports/fournisseurs/excel/declaration-tva?${buildParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildParams()));
 };
 </script>
 

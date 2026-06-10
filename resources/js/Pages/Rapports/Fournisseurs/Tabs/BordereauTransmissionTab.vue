@@ -76,6 +76,8 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Document, List } from '@element-plus/icons-vue';
@@ -117,17 +119,17 @@ const fetchData = async () => {
 
 const exportMandats = () => {
   const ids = selectedIds.value.join(',');
-  openPdf(`/rapports/fournisseurs/pdf/mandats?ids=${ids}`, 'Aperçu du rapport');
+  startExport('rapports-fournisseurs.mandats', 'pdf', { ids });
 };
 
 const exportBordereau = () => {
   const ids = selectedIds.value.join(',');
-  openPdf(`/rapports/fournisseurs/pdf/bordereau-transmission?ids=${ids}`, 'Aperçu du rapport');
+  startExport('rapports-fournisseurs.bordereau-transmission', 'pdf', { ids });
 };
 
 const exportExcel = () => {
   const ids = selectedIds.value.join(',');
-  window.open(`/rapports/fournisseurs/excel/bordereau-transmission?ids=${ids}`, '_blank');
+  startExport('rapports-fournisseurs.bordereau-transmission', 'excel', { ids });
 };
 </script>
 

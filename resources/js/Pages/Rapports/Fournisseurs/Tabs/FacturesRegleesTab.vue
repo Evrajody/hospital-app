@@ -188,6 +188,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-fournisseurs.factures-reglees';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ArrowDown } from '@element-plus/icons-vue';
@@ -270,13 +273,13 @@ const buildPdfParams = (type) => {
 };
 
 const exportPdf = (type) => {
-  openPdf(`/rapports/fournisseurs/pdf/factures-reglees?${buildPdfParams(type)}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams(type)));
 };
 
 const exportExcel = (format = '1') => {
   const params = buildPdfParams('detail');
   if (format === '2') params.append('format', '2');
-  window.open(`/rapports/fournisseurs/excel/factures-reglees?${params}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(params));
 };
 
 const printReport = (type) => {

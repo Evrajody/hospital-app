@@ -107,6 +107,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-clients.chiffre-affaires';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -184,11 +187,11 @@ const buildPdfParams = () => {
 };
 
 const exportPdf = () => {
-  openPdf(`/rapports/clients/pdf/chiffre-affaires?${buildPdfParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()));
 };
 
 const exportExcel = () => {
-  window.open(`/rapports/clients/excel/chiffre-affaires?${buildPdfParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildPdfParams()));
 };
 
 const printReport = () => {

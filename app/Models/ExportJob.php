@@ -17,7 +17,7 @@ class ExportJob extends Model
 
     protected $fillable = [
         'user_id', 'report', 'format', 'label', 'params',
-        'status', 'file_path', 'file_name', 'error', 'completed_at',
+        'status', 'progress', 'step', 'file_path', 'file_name', 'error', 'completed_at',
     ];
 
     protected $casts = [
@@ -43,6 +43,8 @@ class ExportJob extends Model
             'format' => $this->format,
             'label' => $this->label,
             'status' => $this->status,
+            'progress' => (int) $this->progress,
+            'step' => $this->step,
             'file_name' => $this->file_name,
             'error' => $this->error,
             'download_url' => $this->isReady() ? url("/rapports/exports/{$this->id}/download") : null,

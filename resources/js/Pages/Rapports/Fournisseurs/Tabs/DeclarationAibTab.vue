@@ -127,6 +127,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-fournisseurs.declaration-aib';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -231,7 +234,7 @@ const buildPdfParams = (type) => {
 };
 
 const exportPdf = (type) => {
-  openPdf(`/rapports/fournisseurs/pdf/declaration-aib?${buildPdfParams(type)}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams(type)));
 };
 
 const printReport = (type) => {

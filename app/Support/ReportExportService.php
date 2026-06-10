@@ -26,40 +26,109 @@ class ReportExportService
      * Registre : clé de rapport => contrôleur + méthodes (pdf/excel) + libellé.
      */
     public const REPORTS = [
+        // ----- Rapports fournisseurs -----
         'rapports-fournisseurs.situation-fournisseurs' => [
             'controller' => RapportFournisseurController::class,
-            'pdf' => 'situationFournisseursPdf',
-            'excel' => 'situationFournisseursExcel',
+            'pdf' => 'situationFournisseursPdf', 'excel' => 'situationFournisseursExcel',
             'label' => 'Situation des fournisseurs',
         ],
+        'rapports-fournisseurs.mouvement-factures' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'mouvementFacturesPdf', 'excel' => 'mouvementFacturesExcel',
+            'label' => 'Mouvement des factures fournisseurs',
+        ],
+        'rapports-fournisseurs.factures-reglees' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'facturesRegleesPdf', 'excel' => 'facturesRegleesExcel',
+            'label' => 'Factures réglées',
+        ],
+        'rapports-fournisseurs.factures-soldes' => [
+            'controller' => RapportFournisseurController::class,
+            'excel' => 'facturesSoldesExcel',
+            'label' => 'Factures soldées',
+        ],
+        'rapports-fournisseurs.declaration-aib' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'declarationAibPdf', 'excel' => 'declarationAibExcel',
+            'label' => 'Déclaration AIB',
+        ],
+        'rapports-fournisseurs.declaration-tva' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'declarationTvaPdf', 'excel' => 'declarationTvaExcel',
+            'label' => 'Déclaration TVA',
+        ],
+        'rapports-fournisseurs.point-periodique' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'pointPeriodiquePdf', 'excel' => 'pointPeriodiqueExcel',
+            'label' => 'Point périodique',
+        ],
+        'rapports-fournisseurs.situation-banques' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'situationBanquesPdf', 'excel' => 'situationBanquesExcel',
+            'label' => 'Situation des banques',
+        ],
+        'rapports-fournisseurs.banques-par-compte' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'etatBanquesParComptePdf', 'excel' => 'banquesParCompteExcel',
+            'label' => 'Banques par compte',
+        ],
+        'rapports-fournisseurs.bordereau-transmission' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'bordereauTransmissionPdf', 'excel' => 'bordereauTransmissionExcel',
+            'label' => 'Bordereau de transmission',
+        ],
+        'rapports-fournisseurs.mandats' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'mandatsMultiplesPdf',
+            'label' => 'Mandats',
+        ],
+        'rapports-fournisseurs.recap-charges' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'recapChargesPdf', 'excel' => 'recapChargesExcel',
+            'label' => 'Récapitulatif des charges',
+        ],
+        'rapports-fournisseurs.recap-investissements' => [
+            'controller' => RapportFournisseurController::class,
+            'pdf' => 'recapInvestissementsPdf', 'excel' => 'recapInvestissementsExcel',
+            'label' => 'Récapitulatif des investissements',
+        ],
+
+        // ----- Rapports clients -----
         'rapports-clients.etat-reglements' => [
             'controller' => RapportClientController::class,
-            'pdf' => 'etatReglementsPdf',
-            'excel' => 'etatReglementsExcel',
+            'pdf' => 'etatReglementsPdf', 'excel' => 'etatReglementsExcel',
             'label' => 'État des règlements clients',
         ],
         'rapports-clients.etat-creances' => [
             'controller' => RapportClientController::class,
-            'pdf' => 'etatCreancesPdf',
-            'excel' => 'etatCreancesExcel',
+            'pdf' => 'etatCreancesPdf', 'excel' => 'etatCreancesExcel',
             'label' => 'État des créances clients',
         ],
         'rapports-clients.brouillard-cheques' => [
             'controller' => RapportClientController::class,
-            'pdf' => 'brouillardChequesPdf',
-            'excel' => 'brouillardChequesExcel',
+            'pdf' => 'brouillardChequesPdf', 'excel' => 'brouillardChequesExcel',
             'label' => 'Brouillard des chèques',
         ],
         'rapports-clients.pertes-rejets' => [
             'controller' => RapportClientController::class,
-            'pdf' => 'pertesRejetsPdf',
-            'excel' => 'pertesRejetsExcel',
+            'pdf' => 'pertesRejetsPdf', 'excel' => 'pertesRejetsExcel',
             'label' => 'Pertes et rejets',
         ],
+        'rapports-clients.imputations-comptables' => [
+            'controller' => RapportClientController::class,
+            'pdf' => 'imputationsComptablesPdf', 'excel' => 'imputationsComptablesExcel',
+            'label' => 'Imputations comptables',
+        ],
+        'rapports-clients.chiffre-affaires' => [
+            'controller' => RapportClientController::class,
+            'pdf' => 'chiffreAffairesPdf', 'excel' => 'chiffreAffairesExcel',
+            'label' => "Chiffre d'affaires",
+        ],
+
+        // ----- Plan comptable -----
         'plan-comptable' => [
             'controller' => PlanComptableController::class,
-            'pdf' => 'exportPdf',
-            'excel' => 'exportExcel',
+            'pdf' => 'exportPdf', 'excel' => 'exportExcel',
             'label' => 'Plan comptable OHADA',
         ],
     ];
@@ -99,6 +168,9 @@ class ReportExportService
             Auth::setUser($job->user);
         }
 
+        $job->update(['progress' => 25, 'step' => 'Préparation des données']);
+
+        $job->update(['progress' => 40, 'step' => 'Génération du fichier']);
         $controller = app($def['controller']);
         $response = app()->call([$controller, $method], ['request' => $request]);
 
@@ -106,6 +178,8 @@ class ReportExportService
         if ($content === '') {
             throw new \RuntimeException('Contenu de l\'export vide.');
         }
+
+        $job->update(['progress' => 90, 'step' => 'Enregistrement du fichier']);
 
         $ext = $job->format === 'excel' ? 'xlsx' : 'pdf';
         $slug = str_replace(['/', '.'], '-', $job->report);
@@ -116,6 +190,8 @@ class ReportExportService
 
         $job->update([
             'status' => ExportJob::STATUT_COMPLETED,
+            'progress' => 100,
+            'step' => 'Terminé',
             'file_path' => $path,
             'file_name' => $fileName,
             'completed_at' => now(),

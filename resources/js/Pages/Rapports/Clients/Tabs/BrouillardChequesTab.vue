@@ -105,6 +105,7 @@ const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
 const { startExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-clients.brouillard-cheques';
+const IMPUTATIONS_KEY = 'rapports-clients.imputations-comptables';
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -177,10 +178,10 @@ const printBrouillard = () => {
 };
 
 const exportImputationsPdf = () => {
-  openPdf(`/rapports/clients/pdf/imputations-comptables?${buildParams()}`, 'Aperçu du rapport');
+  startExport(IMPUTATIONS_KEY, 'pdf', Object.fromEntries(buildParams()));
 };
 const exportImputationsExcel = () => {
-  window.open(`/rapports/clients/excel/imputations-comptables?${buildParams()}`, '_blank');
+  startExport(IMPUTATIONS_KEY, 'excel', Object.fromEntries(buildParams()));
 };
 const printImputations = () => {
   const p = buildParams();

@@ -29,7 +29,7 @@ class GenerateReportExport implements ShouldQueue
             return;
         }
 
-        $job->update(['status' => ExportJob::STATUT_PROCESSING]);
+        $job->update(['status' => ExportJob::STATUT_PROCESSING, 'progress' => 10, 'step' => 'Initialisation']);
 
         // Marge mémoire pour les gros rapports (ex. plan comptable ~3300 comptes ≈ 1,3 Go).
         // Le worker absorbe la charge sans impacter la requête web.

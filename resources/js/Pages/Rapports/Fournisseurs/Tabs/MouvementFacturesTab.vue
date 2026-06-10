@@ -110,6 +110,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-fournisseurs.mouvement-factures';
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -185,11 +188,11 @@ const buildPdfParams = () => {
 };
 
 const exportPdf = () => {
-  openPdf(`/rapports/fournisseurs/pdf/mouvement-factures?${buildPdfParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()));
 };
 
 const exportExcel = () => {
-  window.open(`/rapports/fournisseurs/excel/mouvement-factures?${buildPdfParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildPdfParams()));
 };
 
 const printReport = () => {

@@ -192,8 +192,12 @@ const getSummary = ({ columns }) => {
   return sums;
 };
 
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-fournisseurs.factures-soldes';
+
 const exportExcel = () => {
-  window.open(`/rapports/fournisseurs/excel/factures-soldes?${buildParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildParams()));
 };
 </script>
 

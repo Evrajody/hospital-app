@@ -191,6 +191,9 @@
 
     <!-- Visualiseur PDF global (aperçu + téléchargement explicite) -->
     <PdfViewerDrawer />
+
+    <!-- Bandeau global des exports asynchrones (toujours visible, suivi temps réel) -->
+    <ExportsTray />
   </el-container>
 </template>
 
@@ -200,6 +203,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { usePermissions } from '@/Composables/usePermissions';
 import { useInactivityLogout } from '@/Composables/useInactivityLogout';
 import PdfViewerDrawer from '@/Components/PdfViewerDrawer.vue';
+import ExportsTray from '@/Components/ExportsTray.vue';
 import {
   OfficeBuilding,
   HomeFilled,

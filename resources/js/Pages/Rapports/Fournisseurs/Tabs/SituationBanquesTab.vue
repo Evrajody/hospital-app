@@ -123,6 +123,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-fournisseurs.situation-banques';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -265,12 +268,12 @@ const buildPdfParams = () => {
 const getBasePath = () => window.location.pathname.includes('/rapports/banques') ? '/rapports/banques' : '/rapports/fournisseurs';
 
 const exportPdf = () => {
-  openPdf(`${getBasePath()}/pdf/situation-banques?${buildPdfParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()));
 };
 
 const exportExcel = () => {
   // Excel export uniquement disponible sur le contrôleur fournisseurs
-  window.open(`/rapports/fournisseurs/excel/situation-banques?${buildPdfParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildPdfParams()));
 };
 
 const printReport = () => {

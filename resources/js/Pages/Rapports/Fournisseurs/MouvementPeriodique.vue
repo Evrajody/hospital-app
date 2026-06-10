@@ -161,6 +161,8 @@ import { Printer } from '@element-plus/icons-vue';
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
 
 const props = defineProps({
   fournisseurs: { type: Array, default: () => [] },
@@ -223,7 +225,7 @@ const handleExportPdf = () => {
     params.set('date_fin', fin);
   }
 
-  openPdf(`/rapports/fournisseurs/pdf/mouvement-factures?${params.toString()}`, 'Aperçu du rapport');
+  startExport('rapports-fournisseurs.mouvement-factures', 'pdf', Object.fromEntries(params));
   exportLoading.value = false;
 };
 
