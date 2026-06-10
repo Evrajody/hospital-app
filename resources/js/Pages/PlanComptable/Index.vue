@@ -307,6 +307,8 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CompteComptableModal from '@/Components/Modals/CompteComptableModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
 
 // Props
 const props = defineProps({
@@ -440,13 +442,17 @@ const buildExportQuery = (extra = {}) => {
   return qs ? `?${qs}` : '';
 };
 
+const exportParams = () => {
+  const p = {};
+  if (filters.search) p.search = filters.search;
+  if (filters.classe) p.classe = filters.classe;
+  if (filters.source) p.source = filters.source;
+  return p;
+};
+
 const handleExport = (command) => {
-  if (command === 'excel') {
-    window.location.href = '/plan-comptable/export/excel' + buildExportQuery();
-  } else {
-    // PDF : téléchargement direct
-    window.location.href = '/plan-comptable/export/pdf' + buildExportQuery({ download: 1 });
-  }
+  // Génération asynchrone (file d'attente) puis notification + téléchargement.
+  startExport('plan-comptable', command === 'excel' ? 'excel' : 'pdf', exportParams(), 'Plan comptable OHADA');
 };
 
 const handlePrint = () => {

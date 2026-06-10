@@ -239,6 +239,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-clients.etat-creances';
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -383,11 +386,11 @@ const getSummary = ({ columns, data: tableData }) => {
 };
 
 const exportPdf = () => {
-  openPdf(`/rapports/clients/pdf/etat-creances?${buildBaseParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildBaseParams()), 'État des créances clients');
 };
 
 const exportExcel = () => {
-  window.open(`/rapports/clients/excel/etat-creances?${buildBaseParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildBaseParams()), 'État des créances clients');
 };
 
 const printReport = () => {

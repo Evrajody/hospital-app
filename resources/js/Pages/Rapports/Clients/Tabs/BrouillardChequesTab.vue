@@ -102,6 +102,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-clients.brouillard-cheques';
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -161,10 +164,10 @@ const buildParams = () => {
 };
 
 const exportBrouillardPdf = () => {
-  openPdf(`/rapports/clients/pdf/brouillard-cheques?${buildParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildParams()), 'Brouillard des chèques');
 };
 const exportBrouillardExcel = () => {
-  window.open(`/rapports/clients/excel/brouillard-cheques?${buildParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildParams()), 'Brouillard des chèques');
 };
 const printBrouillard = () => {
   const p = buildParams();

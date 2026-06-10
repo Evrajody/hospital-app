@@ -103,6 +103,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-clients.pertes-rejets';
 import { ref, watch, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -177,11 +180,11 @@ const fetchData = async () => {
 };
 
 const exportPdf = () => {
-  openPdf(`/rapports/clients/pdf/pertes-rejets?${buildParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildParams()), 'Pertes et rejets');
 };
 
 const exportExcel = () => {
-  window.open(`/rapports/clients/excel/pertes-rejets?${buildParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildParams()), 'Pertes et rejets');
 };
 
 const printReport = () => {

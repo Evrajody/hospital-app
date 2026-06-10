@@ -215,6 +215,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-clients.etat-reglements';
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import PaginatedTable from '@/Components/PaginatedTable.vue';
@@ -354,11 +357,11 @@ const buildPdfParams = () => {
 };
 
 const exportPdf = () => {
-  openPdf(`/rapports/clients/pdf/etat-reglements?${buildPdfParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()), 'État des règlements clients');
 };
 
 const exportExcel = () => {
-  window.open(`/rapports/clients/excel/etat-reglements?${buildPdfParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildPdfParams()), 'État des règlements clients');
 };
 
 const printReport = () => {

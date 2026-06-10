@@ -27,6 +27,26 @@ services:
       retries: 3
       start_period: 15s
 
+  # Worker de file d'attente (exports de rapports asynchrones, jobs en base)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      network: host
+    container_name: hospital-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    # On contourne l'entrypoint php-fpm de l'image pour lancer le worker.
+    entrypoint: ["sh", "-c", "mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && exec php artisan queue:work --sleep=3 --tries=1 --max-time=3600 --memory=2048"]
+    volumes:
+      - ./.env.production:/var/www/.env:ro
+      - ../hospital-storage:/var/www/storage
+    networks:
+      - hospital-network
+    depends_on:
+      db:
+        condition: service_healthy
+
   nginx:
     image: nginx:alpine
     container_name: hospital-nginx

@@ -15,6 +15,24 @@ services:
     depends_on:
       - db
 
+  # Worker de file d'attente (exports de rapports asynchrones, jobs en base)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hospital-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    entrypoint: ["sh", "-c", "mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && exec php artisan queue:work --sleep=3 --tries=1 --max-time=3600 --memory=2048"]
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - hospital-network
+      - nexox
+    depends_on:
+      - db
+
   nginx:
     image: nginx:alpine
     container_name: hospital-nginx

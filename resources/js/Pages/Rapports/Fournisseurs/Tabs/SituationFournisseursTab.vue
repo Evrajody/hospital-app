@@ -219,6 +219,9 @@
 <script setup>
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
+import { useAsyncExport } from '@/Composables/useAsyncExport';
+const { startExport } = useAsyncExport();
+const REPORT_KEY = 'rapports-fournisseurs.situation-fournisseurs';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { InfoFilled } from '@element-plus/icons-vue';
@@ -327,11 +330,11 @@ const buildPdfParams = () => {
 };
 
 const exportPdf = () => {
-  openPdf(`/rapports/fournisseurs/pdf/situation-fournisseurs?${buildPdfParams()}`, 'Aperçu du rapport');
+  startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()), 'Situation des fournisseurs');
 };
 
 const exportExcel = () => {
-  window.open(`/rapports/fournisseurs/excel/situation-fournisseurs?${buildPdfParams()}`, '_blank');
+  startExport(REPORT_KEY, 'excel', Object.fromEntries(buildPdfParams()), 'Situation des fournisseurs');
 };
 
 const printReport = () => {

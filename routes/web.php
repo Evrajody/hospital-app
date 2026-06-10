@@ -18,6 +18,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AvanceClientController;
+use App\Http\Controllers\ExportController;
 
 // Page d'accueil → redirect to login or dashboard
 Route::get('/', function () {
@@ -340,6 +341,13 @@ Route::prefix('rapports')->group(function () {
         Route::get('/brouillard-cheques', [RapportClientController::class, 'brouillardChequesPage'])->name('rapports.clients.brouillard-cheques');
         Route::get('/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesPage'])->name('rapports.clients.chiffre-affaires');
         Route::get('/pertes-rejets', [RapportClientController::class, 'pertesRejetsPage'])->name('rapports.clients.pertes-rejets');
+    });
+
+    // Exports de rapports asynchrones (file d'attente + téléchargement)
+    Route::prefix('exports')->group(function () {
+        Route::post('/', [ExportController::class, 'store']);
+        Route::get('/{id}/status', [ExportController::class, 'status']);
+        Route::get('/{id}/download', [ExportController::class, 'download']);
     });
 
 });
