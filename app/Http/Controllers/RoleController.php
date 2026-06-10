@@ -15,9 +15,7 @@ class RoleController extends Controller
 {
     public function index(): \Inertia\Response
     {
-        // Le rôle Super Administrateur est masqué aux non super-administrateurs.
         $roles = Role::with('permissions')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->where('name', '!=', User::ROLE_SUPER_ADMIN_NAME))
             ->orderBy('name')
             ->get()
             ->map(fn($role) => [
@@ -111,17 +109,17 @@ class RoleController extends Controller
     }
 
     /**
-     * Le rôle Super Administrateur est protégé ET totalement masqué aux non
-     * super-administrateurs : ils ne doivent pas même savoir qu'il existe. On
-     * répond donc « introuvable » (404) plutôt qu'un refus qui révélerait le rôle.
+     * Le rôle Administrateur est le rôle critique du système (accès total) :
+     * il est protégé contre toute modification / suppression pour éviter de
+     * verrouiller l'application.
      */
     private function denyIfProtected(Role $role): ?JsonResponse
     {
-        if (strcasecmp($role->name, User::ROLE_SUPER_ADMIN_NAME) === 0 && ! auth()->user()?->isSuperAdmin()) {
+        if (strcasecmp($role->name, User::ROLE_ADMIN_NAME) === 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Rôle introuvable.',
-            ], 404);
+                'message' => 'Le rôle Administrateur est protégé et ne peut être modifié ni supprimé.',
+            ], 403);
         }
         return null;
     }

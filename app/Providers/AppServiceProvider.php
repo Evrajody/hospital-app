@@ -26,10 +26,10 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Le super administrateur a un accès total : il passe toutes les vérifications de permission
+        // L'administrateur a un accès total : il passe toutes les vérifications de permission
         // (routes via le middleware Spatie `permission:` → canAny() → Gate, ainsi que @can / Gate::allows).
         Gate::before(function ($user, $ability) {
-            return method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin() ? true : null;
+            return method_exists($user, 'isAdmin') && $user->isAdmin() ? true : null;
         });
     }
 }

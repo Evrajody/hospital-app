@@ -28,7 +28,7 @@ class HandleInertiaRequests extends Middleware
                     'poste' => $request->user()->poste,
                     'roles' => $request->user()->getRoleNames()->toArray(),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name')->toArray(),
-                    'is_super_admin' => $request->user()->isSuperAdmin(),
+                    'is_admin' => $request->user()->isAdmin(),
                 ],
             ] : null,
             'tva' => fn () => $request->user() ? TauxFiscal::getTvaConfig() : null,

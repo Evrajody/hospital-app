@@ -15,7 +15,6 @@ class User extends Authenticatable
     /**
      * Constantes pour les rôles (valeurs de la colonne `role`)
      */
-    const ROLE_SUPER_ADMIN = 'superadmin';
     const ROLE_ADMIN = 'admin';
     const ROLE_COMPTABLE = 'comptable';
     const ROLE_GESTIONNAIRE = 'gestionnaire';
@@ -24,7 +23,6 @@ class User extends Authenticatable
     /**
      * Noms des rôles Spatie (autorisation réelle)
      */
-    const ROLE_SUPER_ADMIN_NAME = 'SuperAdministrateur';
     const ROLE_ADMIN_NAME = 'Administrateur';
     const ROLE_CHEF_COMPTA_NAME = 'Chef service comptabilité';
     const ROLE_GEST_FOURNISSEURS_NAME = 'Gestionnaire Fournisseurs';
@@ -71,19 +69,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Vérifier si l'utilisateur est super administrateur (accès total).
-     */
-    public function isSuperAdmin(): bool
-    {
-        return $this->hasRole(self::ROLE_SUPER_ADMIN_NAME) || $this->role === self::ROLE_SUPER_ADMIN;
-    }
-
-    /**
-     * Vérifier si l'utilisateur est admin
+     * Vérifier si l'utilisateur est administrateur (accès total).
      */
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN || $this->isSuperAdmin();
+        return $this->role === self::ROLE_ADMIN || $this->hasRole(self::ROLE_ADMIN_NAME);
     }
 
     /**
@@ -108,7 +98,6 @@ class User extends Authenticatable
     public function getRoleLibelleAttribute(): string
     {
         return match($this->role) {
-            self::ROLE_SUPER_ADMIN => 'Super Administrateur',
             self::ROLE_ADMIN => 'Administrateur',
             self::ROLE_COMPTABLE => 'Comptable',
             self::ROLE_GESTIONNAIRE => 'Gestionnaire',

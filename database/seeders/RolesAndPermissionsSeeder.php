@@ -93,24 +93,12 @@ class RolesAndPermissionsSeeder extends Seeder
         // par les trois permissions découpées (clients / fournisseurs / banques).
         Permission::where('name', 'rapports.voir')->delete();
 
-        // ----- Rôles (rigoureusement les 5 rôles métier) -----
+        // ----- Rôles -----
 
-        // SUPER ADMINISTRATEUR : accès total (toutes les permissions).
-        $superAdmin = Role::firstOrCreate(['name' => User::ROLE_SUPER_ADMIN_NAME, 'guard_name' => 'web']);
-        $superAdmin->syncPermissions(Permission::all());
-
-        // ADMINISTRATEUR : uniquement les éléments du module « Paramètres »
-        // (utilisateurs, rôles & permissions, paramètres/établissement, taux fiscaux,
-        // journal d'activité). N'a AUCUN accès aux modules métier ni aux rapports,
-        // et ne doit RIEN savoir du rôle Super Administrateur (cf. contrôleurs : le
-        // rôle et les comptes super admin lui sont masqués).
+        // ADMINISTRATEUR : accès TOTAL (toutes les permissions). Le rôle Super
+        // Administrateur a été supprimé ; l'admin a désormais le contrôle complet.
         $admin = Role::firstOrCreate(['name' => User::ROLE_ADMIN_NAME, 'guard_name' => 'web']);
-        $admin->syncPermissions([
-            'utilisateurs.voir', 'utilisateurs.creer', 'utilisateurs.modifier', 'utilisateurs.supprimer',
-            'roles.voir', 'roles.creer', 'roles.modifier', 'roles.supprimer',
-            'parametres.voir', 'parametres.modifier',
-            'journal.voir',
-        ]);
+        $admin->syncPermissions(Permission::all());
 
         // CHEF SERVICE COMPTABILITÉ : supervise toute la comptabilité (clients +
         // fournisseurs + banques), peut valider. Aucun accès au module Administration.
@@ -147,10 +135,22 @@ class RolesAndPermissionsSeeder extends Seeder
             'rapports-clients.voir',
         ]);
 
+        // ----- Suppression du rôle Super Administrateur -----
+        // On migre d'abord ses comptes vers Administrateur (accès total désormais),
+        // puis on supprime le rôle. La colonne legacy `role = 'superadmin'` est
+        // également repassée à 'admin'.
+        $superRole = Role::where('name', 'SuperAdministrateur')->first();
+        if ($superRole) {
+            User::role('SuperAdministrateur')->get()->each(function (User $u) {
+                $u->update(['role' => User::ROLE_ADMIN]);
+                $u->syncRoles([User::ROLE_ADMIN_NAME]);
+            });
+            $superRole->delete();
+        }
+        User::where('role', 'superadmin')->update(['role' => User::ROLE_ADMIN]);
+
         // ----- Nettoyage : supprimer les anciens rôles désormais remplacés -----
-        // (Comptable → Chef service comptabilité, Gestionnaire → Gestionnaire
-        //  Fournisseurs/Clients, Utilisateur supprimé). Les pivots model_has_roles
-        //  sont retirés automatiquement à la suppression du rôle.
+        // Les pivots model_has_roles sont retirés automatiquement à la suppression.
         Role::whereIn('name', ['Comptable', 'Gestionnaire', 'Utilisateur'])->get()
             ->each(fn (Role $r) => $r->delete());
     }
