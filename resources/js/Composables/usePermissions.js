@@ -7,8 +7,7 @@ export function usePermissions() {
   const isAdmin = computed(() => page.props.auth?.user?.is_admin === true);
 
   const can = (permission) => {
-    // L'administrateur a un accès total.
-    if (isAdmin.value) return true;
+    // Accès piloté par les permissions réellement accordées (aucun bypass).
     return userPermissions.value.includes(permission);
   };
 

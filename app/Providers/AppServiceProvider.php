@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,10 +25,8 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // L'administrateur a un accès total : il passe toutes les vérifications de permission
-        // (routes via le middleware Spatie `permission:` → canAny() → Gate, ainsi que @can / Gate::allows).
-        Gate::before(function ($user, $ability) {
-            return method_exists($user, 'isAdmin') && $user->isAdmin() ? true : null;
-        });
+        // Accès entièrement piloté par les permissions : aucun rôle ne bénéficie d'un
+        // bypass global. L'administrateur gère lui-même ses permissions (il peut
+        // s'accorder les modules métier via la matrice des rôles).
     }
 }

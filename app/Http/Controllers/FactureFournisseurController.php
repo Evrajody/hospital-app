@@ -624,7 +624,8 @@ class FactureFournisseurController extends Controller
                 'date_facture_bc' => $request->date_facture_bc,
                 'observations' => $request->observations,
                 'metadata' => $request->metadata,
-                'statut' => 'brouillon',
+                // Pas d'étape brouillon/validation : la facture est active dès sa création.
+                'statut' => FactureFournisseur::STATUT_VALIDEE,
                 'created_by' => auth()->id(),
                 'created_by_name' => auth()->user()->name,
             ]);
@@ -805,39 +806,6 @@ class FactureFournisseurController extends Controller
         }
     }
 
-    /**
-     * Valider une facture (API)
-     */
-    public function valider(int $id): JsonResponse
-    {
-        $facture = FactureFournisseur::findOrFail($id);
-
-        if (!$facture->peut_etre_validee) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette facture ne peut pas être validée',
-            ], 422);
-        }
-
-        try {
-            $facture->valider(auth()->id());
-
-            ActivityLog::log('validate', 'facture_fournisseur', "Validation de la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Facture validée avec succès',
-                'data' => $facture->fresh()->toApiArray(),
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la validation de la facture',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
 
     /**
      * Annuler une facture (API)

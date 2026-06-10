@@ -158,9 +158,6 @@ class RoleController extends Controller
             'value' => ['required', 'boolean'],
         ]);
 
-        if ($resp = $this->denyIfProtected($role)) {
-            return $resp;
-        }
         if ($validated['value'] && ($resp = $this->denyUngrantable([$validated['permission']]))) {
             return $resp;
         }
@@ -193,9 +190,6 @@ class RoleController extends Controller
             'value' => ['required', 'boolean'],
         ]);
 
-        if ($resp = $this->denyIfProtected($role)) {
-            return $resp;
-        }
         if ($validated['value'] && ($resp = $this->denyUngrantable($validated['permissions']))) {
             return $resp;
         }

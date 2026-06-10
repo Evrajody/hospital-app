@@ -292,19 +292,11 @@ class FactureFournisseur extends Model
     }
 
     /**
-     * Vérifier si la facture est modifiable
+     * Une facture est toujours modifiable (pas d'étape brouillon/validation).
      */
     public function getEstModifiableAttribute(): bool
     {
-        return in_array($this->statut, [self::STATUT_BROUILLON]);
-    }
-
-    /**
-     * Vérifier si la facture peut être validée
-     */
-    public function getPeutEtreValideeAttribute(): bool
-    {
-        return $this->statut === self::STATUT_BROUILLON;
+        return true;
     }
 
     /**
@@ -368,23 +360,6 @@ class FactureFournisseur extends Model
     // ==========================================
     // MÉTHODES D'INSTANCE
     // ==========================================
-
-    /**
-     * Valider la facture
-     */
-    public function valider(?int $userId = null): bool
-    {
-        if (!$this->peut_etre_validee) {
-            return false;
-        }
-
-        $this->statut = self::STATUT_VALIDEE;
-        $this->validated_by = $userId;
-        $this->validated_by_name = $userId ? User::find($userId)?->name : null;
-        $this->validated_at = now();
-
-        return $this->save();
-    }
 
     /**
      * Annuler la facture
@@ -566,7 +541,6 @@ class FactureFournisseur extends Model
             'observations' => $this->observations,
             'metadata' => $this->metadata,
             'est_modifiable' => $this->est_modifiable,
-            'peut_etre_validee' => $this->peut_etre_validee,
             'peut_etre_payee' => $this->peut_etre_payee,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),

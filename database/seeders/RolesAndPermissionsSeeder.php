@@ -27,7 +27,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'factures-fournisseurs.creer',
             'factures-fournisseurs.modifier',
             'factures-fournisseurs.supprimer',
-            'factures-fournisseurs.valider',
 
             // Règlements fournisseurs
             'reglements-fournisseurs.voir',
@@ -93,19 +92,30 @@ class RolesAndPermissionsSeeder extends Seeder
         // par les trois permissions découpées (clients / fournisseurs / banques).
         Permission::where('name', 'rapports.voir')->delete();
 
+        // Nettoyage : l'étape de validation des factures fournisseurs a été supprimée
+        // (plus de brouillon/validation), donc la permission associée n'existe plus.
+        Permission::where('name', 'factures-fournisseurs.valider')->delete();
+
         // ----- Rôles -----
 
-        // ADMINISTRATEUR : accès TOTAL (toutes les permissions). Le rôle Super
-        // Administrateur a été supprimé ; l'admin a désormais le contrôle complet.
+        // ADMINISTRATEUR : par défaut, uniquement l'administration (utilisateurs,
+        // rôles & permissions, paramètres, journal). Le métier (fournisseurs, clients,
+        // factures, règlements, banques, plan comptable, rapports) n'est PAS accordé
+        // par défaut — l'admin peut se l'accorder lui-même via la matrice des rôles.
         $admin = Role::firstOrCreate(['name' => User::ROLE_ADMIN_NAME, 'guard_name' => 'web']);
-        $admin->syncPermissions(Permission::all());
+        $admin->syncPermissions([
+            'utilisateurs.voir', 'utilisateurs.creer', 'utilisateurs.modifier', 'utilisateurs.supprimer',
+            'roles.voir', 'roles.creer', 'roles.modifier', 'roles.supprimer',
+            'parametres.voir', 'parametres.modifier',
+            'journal.voir',
+        ]);
 
         // CHEF SERVICE COMPTABILITÉ : supervise toute la comptabilité (clients +
         // fournisseurs + banques), peut valider. Aucun accès au module Administration.
         $chefCompta = Role::firstOrCreate(['name' => User::ROLE_CHEF_COMPTA_NAME, 'guard_name' => 'web']);
         $chefCompta->syncPermissions([
             'fournisseurs.voir', 'fournisseurs.creer', 'fournisseurs.modifier', 'fournisseurs.supprimer',
-            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.supprimer', 'factures-fournisseurs.valider',
+            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.supprimer',
             'reglements-fournisseurs.voir', 'reglements-fournisseurs.creer', 'reglements-fournisseurs.modifier', 'reglements-fournisseurs.supprimer',
             'clients.voir', 'clients.creer', 'clients.modifier', 'clients.supprimer',
             'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier', 'factures-clients.supprimer',

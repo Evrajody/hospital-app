@@ -76,8 +76,6 @@ Route::prefix('api/factures-fournisseurs')->group(function () {
         ->where('id', '[0-9]+')->name('api.factures-fournisseurs.update');
     Route::delete('/{id}', [FactureFournisseurController::class, 'destroy'])->middleware('permission:factures-fournisseurs.supprimer')
         ->where('id', '[0-9]+')->name('api.factures-fournisseurs.destroy');
-    Route::post('/{id}/valider', [FactureFournisseurController::class, 'valider'])->middleware('permission:factures-fournisseurs.valider')
-        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.valider');
     Route::post('/{id}/annuler', [FactureFournisseurController::class, 'annuler'])->middleware('permission:factures-fournisseurs.modifier')
         ->where('id', '[0-9]+')->name('api.factures-fournisseurs.annuler');
     Route::post('/{id}/solder', [FactureFournisseurController::class, 'solder'])->middleware('permission:factures-fournisseurs.modifier')
