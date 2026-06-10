@@ -8,106 +8,55 @@ use Illuminate\Database\Seeder;
 class UserSeeder extends Seeder
 {
     /**
-     * Mot de passe par défaut commun (respecte la politique : 8+, maj/min/chiffre/symbole).
-     * À faire changer par l'utilisateur à la première connexion.
+     * Comptes utilisateurs de référence (issus de l'environnement réel).
+     *
+     * - Idempotent : clé = email. Le mot de passe n'est posé qu'à la CRÉATION
+     *   (firstOrCreate) ; un mot de passe changé ensuite dans l'app n'est PAS écrasé.
+     * - Les mots de passe sont les hash bcrypt réels (le cast 'hashed' du modèle
+     *   détecte une valeur déjà hachée et ne la re-hache pas) → les utilisateurs
+     *   conservent leurs mots de passe.
+     * - Les rôles Spatie sont resynchronisés à chaque passage.
+     *
+     * ⚠️ Les hash sont en quotes SIMPLES (sinon PHP interpolerait les `$`).
+     * NB : seuls les comptes actifs (is_active=t, non supprimés) sont seedés.
+     * Les comptes « @legacy.local » sont des artefacts de l'import legacy
+     * (recréés par `legacy:migrate`) et ne sont donc pas inclus ici.
      */
-    private const DEFAULT_PASSWORD = 'Menontin@2026';
-
-    /**
-     * Domaine email par défaut (les comptes sont dérivés du pseudo).
-     */
-    private const EMAIL_DOMAIN = 'hospital.bj';
-
     public function run(): void
     {
-        // ⚠️ Les rôles Spatie doivent exister AVANT : DatabaseSeeder lance
-        // RolesAndPermissionsSeeder en premier.
-
-        // ----- Super administrateurs (hors fichier Excel) -----
-        $superAdmins = [
-            ['name' => 'GBEDEDJI Ulrich',   'email' => 'ugbededji@gmail.com'],
-            ['name' => 'GANDIGBE Gildas',   'email' => 'agandigbe@gmail.com'],
-            ['name' => 'HOUNTONDJI Brice',  'email' => 'brice@gmail.com'],
-        ];
-
-        foreach ($superAdmins as $sa) {
-            $this->upsertUser(
-                email: $sa['email'],
-                name: $sa['name'],
-                legacyRole: User::ROLE_SUPER_ADMIN,
-                roles: [User::ROLE_SUPER_ADMIN_NAME],
-                poste: 'Super Administrateur',
-            );
-        }
-
-        // ----- Utilisateurs issus du fichier « User SYSGEF.xlsx » -----
-        // Dédoublonnés par pseudo. Une personne présente dans les sections
-        // FOURNISSEURS et CLIENTS reçoit les DEUX rôles Gestionnaire.
-        $F = User::ROLE_GEST_FOURNISSEURS_NAME;
-        $C = User::ROLE_GEST_CLIENTS_NAME;
-
-        // [pseudo, nom complet, poste, rôles Spatie]
+        // [nom, email, hash bcrypt, rôle (colonne legacy), rôle Spatie, poste]
         $users = [
-            ['ADMIN',     'Administrateur',           'Administrateur',          [User::ROLE_ADMIN_NAME]],
-            ['OSEMEVO',   'SEMEVO Odette',            'Gestionnaire',            [$F, $C]],
-            ['CAISSEGBE', 'AÏSSEGBE Contant Jonas',   'Gestionnaire',            [$F, $C]],
-            ['NALLADAYE', 'Nazaire ALLADAYE',         'Gestionnaire',            [$F, $C]],
-            ['SGADO',     'GADO Samirath',            'Gestionnaire',            [$F]],
-            ['REUEL',     'JOHNSON SILVERE',          'Gestionnaire',            [$F]],
-            ['CASSEDE',   'HOUNSOU ASSEDE CLEMENCE',  'Gestionnaire',            [$F, $C]],
-            ['DTINHAN',   'TINHAN Diane',             'Gestionnaire',            [$F]],
-            ['FAKAKPO',   'AKAKPO Franck',            'Gestionnaire',            [$F]],
-            ['ATRIPHENE', 'ALLADAYE TRIPHENE',        'Gestionnaire',            [$F]],
-            ['BTONA',     'TONA Bérenger',            'Gestionnaire',            [$F]],
-            ['OGLELE',    'GLELE Ornelli',            'Gestionnaire',            [$F, $C]],
-            ['SJOHNSON',  'JOHNSON Silvère',          'Gestionnaire',            [$C]],
-            ['OAGUIAR',   'AGUIAR Odile',             'Gestionnaire',            [$C]],
+            ['GANDIGBE Gildas',           'agandigbe@gmail.com',         '$2y$12$Ls2hho9b45RKu.2BsM45A.g3seSUdMeEuwOBhTm63J0gIxXxMrVpy', User::ROLE_SUPER_ADMIN, User::ROLE_SUPER_ADMIN_NAME, 'Super Administrateur'],
+            ['Administrateur',            'admin@hospital.bj',           '$2y$12$paS808w/xb7EkPszcwY/GuS5kow4vwvzdlnG.612onYVrRxqBIWn6', User::ROLE_ADMIN,       User::ROLE_ADMIN_NAME,       'Administrateur'],
+            ['GADO Totomsokiwe Samirath', 'totomsokiwe@gmail.com',       '$2y$12$IfQo7qb8bzDzjSWCWrU2DutWXa0P1frfUzKfNO3V.khi45yyAG5DK', User::ROLE_GESTIONNAIRE, 'Gestionnaire',            'Assistante comptable'],
+            ['HOUNSOU ASSEDE Clémence',   'hopitaldemenontin@gmail.com', '$2y$12$jnI8kGxYjWC6Nm1BlfD3fux1ZOYfS/VKmeqcH4f7DP0xKVu3VP1te', User::ROLE_GESTIONNAIRE, 'Gestionnaire',            'Comptable'],
+            ['ALLADAYE Triphène',         'natdetri@gmail.com',          '$2y$12$6oZFJ3M8BTXVf6Wn867tMuib5fgzF43LinKCzMcq3dvPmy0nOtzZe', User::ROLE_GESTIONNAIRE, 'Gestionnaire',            'Assistante comptable'],
+            ['TONA Bérenger',             'berengertona22@gmail.com',    '$2y$12$monrlsPE9DpvDzWLbdP43OwEnS4M2BbKTTPdWPXKmdOiOguzoiW4y', User::ROLE_GESTIONNAIRE, 'Gestionnaire',            'Assistant Comptable'],
+            ['OUSSOU Gilles',             'oussougil@yahoo.fr',          '$2y$12$NNUVIuGu8NV21NKzlGGqru27qH6E8RIAsQXjPyjOz3C4X0og0PD62', User::ROLE_USER,        'Utilisateur',              'RSI'],
         ];
 
-        foreach ($users as [$pseudo, $name, $poste, $roles]) {
-            $email = strtolower($pseudo) . '@' . self::EMAIL_DOMAIN;
-
-            $legacyRole = match (true) {
-                in_array(User::ROLE_ADMIN_NAME, $roles, true) => User::ROLE_ADMIN,
-                default => User::ROLE_GESTIONNAIRE,
-            };
-
-            $this->upsertUser(
-                email: $email,
-                name: $name,
-                legacyRole: $legacyRole,
-                roles: $roles,
-                poste: $poste,
+        foreach ($users as [$name, $email, $hash, $legacyRole, $spatieRole, $poste]) {
+            $user = User::firstOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $name,
+                    'password' => $hash,            // hash bcrypt déjà calculé (non re-haché)
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]
             );
+
+            // Aligne nom / rôle legacy / poste (idempotent) sans toucher au mot de passe.
+            $user->update([
+                'name' => $name,
+                'role' => $legacyRole,
+                'poste' => $poste,
+                'is_active' => true,
+            ]);
+
+            $user->syncRoles([$spatieRole]);
         }
 
-        $this->command->info('Utilisateurs SYSGEF créés : ' . (count($superAdmins) + count($users)) . ' comptes.');
-        $this->command->info('Mot de passe par défaut : ' . self::DEFAULT_PASSWORD);
-    }
-
-    /**
-     * Crée l'utilisateur s'il n'existe pas (sans écraser un mot de passe déjà changé),
-     * puis (re)synchronise systématiquement ses rôles — le seeder reste idempotent.
-     */
-    private function upsertUser(string $email, string $name, string $legacyRole, array $roles, string $poste): void
-    {
-        $user = User::firstOrCreate(
-            ['email' => $email],
-            [
-                'name' => $name,
-                // Le cast 'hashed' du modèle hache automatiquement.
-                'password' => self::DEFAULT_PASSWORD,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        // Toujours aligner nom / poste / rôle legacy + rôles Spatie (idempotent).
-        $user->update([
-            'name' => $name,
-            'role' => $legacyRole,
-            'poste' => $poste,
-        ]);
-        $user->syncRoles($roles);
+        $this->command->info('Utilisateurs de référence : ' . count($users) . ' comptes (mots de passe réels conservés).');
     }
 }
