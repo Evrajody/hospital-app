@@ -127,14 +127,14 @@ class RoleController extends Controller
     }
 
     /**
-     * Anti-escalade : un utilisateur non super-admin ne peut accorder que des
-     * permissions qu'il détient lui-même (il ne peut donc pas se hisser au niveau
-     * super administrateur).
+     * Les administrateurs (et super-admins) — nos représentants sur site — peuvent
+     * accorder n'importe quelle permission. Pour les éventuels autres rôles ayant
+     * accès à la gestion des rôles, on limite aux permissions qu'ils détiennent.
      */
     private function denyUngrantable(array $permissions): ?JsonResponse
     {
         $u = auth()->user();
-        if ($u && $u->isSuperAdmin()) {
+        if ($u && $u->isAdmin()) { // isAdmin() couvre admin + super-admin
             return null;
         }
         foreach ($permissions as $perm) {
