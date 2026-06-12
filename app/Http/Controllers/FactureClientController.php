@@ -41,6 +41,14 @@ class FactureClientController extends Controller
             $query->where('statut', $statut);
         }
 
+        // Filtre par période (date facture)
+        if ($dateDebut = $request->input('date_debut')) {
+            $query->whereDate('date_facture', '>=', $dateDebut);
+        }
+        if ($dateFin = $request->input('date_fin')) {
+            $query->whereDate('date_facture', '<=', $dateFin);
+        }
+
         // Tri
         $sort = $request->input('sort', 'date_facture');
         $order = $request->input('order', 'desc');
@@ -82,6 +90,7 @@ class FactureClientController extends Controller
             ],
             'filters' => [
                 'search' => $request->input('search', ''),
+                'client_id' => $request->input('client_id') ? (int) $request->input('client_id') : null,
                 'statut' => $request->input('statut', ''),
             ],
             'stats' => $stats,
