@@ -26,6 +26,7 @@ class ReglementFournisseur extends Model
      */
     protected $fillable = [
         'numero_reglement',
+        'numero_ligne',
         'date_reglement',
         'facture_id',
         'fournisseur_id',
@@ -34,6 +35,7 @@ class ReglementFournisseur extends Model
         'montant',
         'mode_paiement',
         'reference',
+        'date_reference',
         'beneficiaire',
         'banque',
         'numero_compte_bancaire',
@@ -63,6 +65,7 @@ class ReglementFournisseur extends Model
      */
     protected $casts = [
         'date_reglement' => 'date',
+        'date_reference' => 'date',
         'validated_at' => 'datetime',
         'montant' => 'decimal:2',
         'montant_aib_deduit' => 'decimal:2',
@@ -426,6 +429,9 @@ class ReglementFournisseur extends Model
         return [
             'id' => $this->id,
             'numero_reglement' => $this->numero_reglement,
+            'numero_ligne' => $this->numero_ligne,
+            // Numéro du règlement = n° pièce facture + n° ligne (ex. PC/026/0017 + 3 → PC/026/00173)
+            'numero_complet' => ($this->facture_numero ?: $this->facture?->numero_piece) . $this->numero_ligne,
             'date_reglement' => $this->date_reglement?->format('Y-m-d'),
             'facture_id' => $this->facture_id,
             'facture' => [
@@ -450,6 +456,7 @@ class ReglementFournisseur extends Model
             'mode_paiement' => $this->mode_paiement,
             'mode_paiement_libelle' => $this->mode_paiement_libelle,
             'reference' => $this->reference,
+            'date_reference' => $this->date_reference?->format('Y-m-d'),
             'beneficiaire' => $this->beneficiaire,
             'banque' => $this->banque,
             'numero_compte_bancaire' => $this->numero_compte_bancaire,

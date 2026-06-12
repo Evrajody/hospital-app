@@ -253,6 +253,8 @@ class FactureFournisseurController extends Controller
             ->get()
             ->map(fn($r) => [
                 'id' => $r->id,
+                'numero_ligne' => $r->numero_ligne,
+                'numero_complet' => ($r->facture_numero ?: $r->facture?->numero_piece) . $r->numero_ligne,
                 'date_reglement' => $r->date_reglement?->format('Y-m-d'),
                 'montant' => (float) $r->montant,
                 'mode_paiement' => $r->mode_paiement,
@@ -311,9 +313,17 @@ class FactureFournisseurController extends Controller
         $facture = FactureFournisseur::with(['fournisseur', 'imputation', 'compte', 'imputations.compte'])
             ->findOrFail($id);
 
-        // Imputations crédit (fournisseurs 401/481) saisies sur la facture
+        // Imputations crédit FOURNISSEURS uniquement : nature = credit ET compte 401/481.
+        // (On exclut ainsi toute ligne charge/investissement qui aurait été saisie côté
+        //  crédit par erreur — un règlement ne solde que des comptes fournisseurs.)
         $imputationsCredits = $facture->imputations
-            ->filter(fn($i) => ($i->nature ?? 'debit') === 'credit')
+            ->filter(function ($i) {
+                if (($i->nature ?? 'debit') !== 'credit') {
+                    return false;
+                }
+                $num = (string) ($i->compte?->numero_compte ?? '');
+                return str_starts_with($num, '401') || str_starts_with($num, '481');
+            })
             ->values();
 
         // Solde par compte crédit : montant facture - somme des règlements ciblant ce compte
@@ -395,6 +405,8 @@ class FactureFournisseurController extends Controller
             ->get()
             ->map(fn($r) => [
                 'id' => $r->id,
+                'numero_ligne' => $r->numero_ligne,
+                'numero_complet' => ($r->facture_numero ?: $r->facture?->numero_piece) . $r->numero_ligne,
                 'date_reglement' => $r->date_reglement?->format('Y-m-d'),
                 'montant' => (float) $r->montant,
                 'mode_paiement' => $r->mode_paiement,

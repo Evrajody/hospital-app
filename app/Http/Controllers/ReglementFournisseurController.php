@@ -265,6 +265,7 @@ class ReglementFournisseurController extends Controller
             // Créer le règlement (utiliser le montant converti en float)
             $reglement = ReglementFournisseur::create([
                 'numero_reglement' => $numeroReglement,
+                'numero_ligne' => $request->numero_ligne,
                 'date_reglement' => $request->date_reglement,
                 'facture_id' => $request->facture_id,
                 'fournisseur_id' => $facture->fournisseur_id,
@@ -273,6 +274,7 @@ class ReglementFournisseurController extends Controller
                 'montant' => $montantReglement,
                 'mode_paiement' => $request->mode_paiement,
                 'reference' => $request->reference,
+                'date_reference' => $request->date_reference,
                 'beneficiaire' => $request->beneficiaire,
                 'banque' => $banqueNom,
                 'numero_compte_bancaire' => $numeroCompteBancaire,
@@ -475,10 +477,12 @@ class ReglementFournisseurController extends Controller
             // 4. APPLIQUER LES NOUVELLES VALEURS
             // ==========================================
             $reglement->update([
+                'numero_ligne' => $request->numero_ligne ?? $reglement->numero_ligne,
                 'date_reglement' => $request->date_reglement ?? $reglement->date_reglement,
                 'montant' => $nouveauMontant,
                 'mode_paiement' => $nouveauMode,
                 'reference' => $request->reference,
+                'date_reference' => $request->date_reference ?? $reglement->date_reference,
                 'beneficiaire' => $request->beneficiaire,
                 'banque' => $banqueNom,
                 'numero_compte_bancaire' => $numeroCompteBancaire,
@@ -1037,6 +1041,7 @@ class ReglementFournisseurController extends Controller
                 'max:50',
                 Rule::unique('reglements_fournisseurs')->ignore($id),
             ],
+            'numero_ligne' => ['nullable', 'string', 'max:50'],
             'date_reglement' => ['required', 'date'],
             'facture_id' => ['required', 'integer', 'exists:factures_fournisseurs,id'],
             'montant' => ['required', 'numeric', 'min:1'],
@@ -1044,6 +1049,7 @@ class ReglementFournisseurController extends Controller
                 'virement', 'cheque', 'especes', 'mobile_money', 'carte'
             ])],
             'reference' => ['nullable', 'string', 'max:100'],
+            'date_reference' => ['nullable', 'date'],
             'beneficiaire' => ['nullable', 'string', 'max:255'],
             'banque' => ['nullable', 'string', 'max:100'],
             'numero_compte_bancaire' => ['nullable', 'string', 'max:50'],

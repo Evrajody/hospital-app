@@ -170,6 +170,11 @@
             <template #default="{ row }">
               <div class="expand-reglements">
                 <el-table :data="row.reglements" border size="small" class="inner-reglements-table">
+                  <el-table-column label="N° Règlement" width="150">
+                    <template #default="{ row: reg }">
+                      <strong>{{ reg.numero_complet || '-' }}</strong>
+                    </template>
+                  </el-table-column>
                   <el-table-column label="Date" width="110">
                     <template #default="{ row: reg }">{{ formatDate(reg.date_reglement) }}</template>
                   </el-table-column>

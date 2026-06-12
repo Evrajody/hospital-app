@@ -348,6 +348,9 @@
                     <strong class="reglement-montant">{{ formatMontant(reglement.montant) }}</strong>
                   </div>
                   <div class="reglement-details">
+                    <div v-if="reglement.numero_complet" style="font-weight: 600; color: #374151;">
+                      N° {{ reglement.numero_complet }}
+                    </div>
                     <div v-if="reglement.reference">
                       <el-icon><DocumentCopy /></el-icon>
                       {{ reglement.reference }}

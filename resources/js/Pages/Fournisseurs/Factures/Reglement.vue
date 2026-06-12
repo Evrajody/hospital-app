@@ -130,6 +130,9 @@
                     <strong class="reglement-montant">{{ formatMontant(reglement.montant) }}</strong>
                   </div>
                   <div class="reglement-details">
+                    <div v-if="reglement.numero_complet" style="font-weight: 600; color: #374151;">
+                      N° {{ reglement.numero_complet }}
+                    </div>
                     <div v-if="reglement.beneficiaire">
                       <el-icon><User /></el-icon>
                       {{ reglement.beneficiaire }}
@@ -742,7 +745,7 @@ const insufficientData = reactive({ solde: 0, montant: 0 });
 
 const form = reactive({
   annee_exercice: new Date().getFullYear().toString(),
-  numero_ligne: String(props.reglements.length + 1).padStart(3, '0'),
+  numero_ligne: String(props.reglements.length + 1),
   date_reglement: new Date(),
   montant: 0, // calculé : totalLignes - AIB
   mode_paiement: '',
@@ -1029,12 +1032,13 @@ const loadReglementForEdit = async () => {
     // Mémoriser l'ancien montant pour calculer le plafond autorisé
     ancienMontantReglement.value = parseFloat(r.montant) || 0;
 
+    if (r.numero_ligne) form.numero_ligne = r.numero_ligne;
     form.date_reglement = r.date_reglement || form.date_reglement;
     form.montant = parseFloat(r.montant) || 0;
     form.mode_paiement = r.mode_paiement || '';
     form.reference = r.reference || '';
+    form.date_reference = r.date_reference || null;
     form.beneficiaire = r.beneficiaire || '';
-    form.compte_bancaire_id = r.compte_bancaire_id || r.compte_tresorerie_id || null;
     form.remarques = r.observations || '';
     form.deduire_aib = !!r.deduire_aib;
 
@@ -1054,13 +1058,14 @@ const loadReglementForEdit = async () => {
       }];
     }
 
-    // Trouver la banque parente du compte sélectionné
-    if (form.compte_bancaire_id) {
-      for (const banque of props.banques) {
-        if (banque.comptes.some(c => c.id === form.compte_bancaire_id)) {
-          form.banque_id = banque.id;
-          break;
-        }
+    // Restaurer la banque + le compte bancaire à partir du nom de banque et du
+    // numéro de compte stockés (l'id du compte bancaire n'est pas persisté tel quel).
+    if (r.banque) {
+      const banque = props.banques.find(b => b.nom === r.banque);
+      if (banque) {
+        form.banque_id = banque.id;
+        const compte = (banque.comptes || []).find(c => c.numero_compte === r.numero_compte_bancaire);
+        if (compte) form.compte_bancaire_id = compte.id;
       }
     }
   } catch (e) {

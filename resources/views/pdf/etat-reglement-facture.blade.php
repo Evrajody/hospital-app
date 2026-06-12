@@ -208,7 +208,7 @@
         <tbody>
             @forelse($reglements as $index => $reglement)
             <tr>
-                <td>{{ $reglement->date_reglement?->format('dmY') }}-{{ $reglement->created_at?->format('Hi') }}</td>
+                <td>{{ $facture->numero_piece }}{{ $reglement->numero_ligne }}</td>
                 <td>{{ $reglement->date_reglement?->format('d/m/Y') }}</td>
                 <td>
                     @php

@@ -13,9 +13,9 @@
 
         body {
             font-family: 'Times New Roman', serif;
-            font-size: 13px;
+            font-size: 14px;
             color: #000;
-            line-height: 1.5;
+            line-height: 1.6;
             padding: 20mm 18mm 18mm;
         }
 
@@ -60,21 +60,21 @@
         }
 
         .intro-text {
-            font-size: 12px;
+            font-size: 13px;
             font-style: italic;
             font-weight: bold;
             line-height: 1.7;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .details-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 14px;
         }
 
         .details-table td {
-            padding: 5px 0;
+            padding: 6px 0;
             vertical-align: top;
         }
 
@@ -86,10 +86,10 @@
         }
 
         .montant-lettres {
-            display: inline-block;
-            font-size: 10px;
+            font-size: 11px;
             color: #000;
-            font-weight: bold;
+            font-weight: normal;
+            font-style: normal;
             text-transform: uppercase;
             margin-left: 10px;
         }
@@ -123,7 +123,7 @@
         }
 
         .montants-section td {
-            padding: 5px 0;
+            padding: 6px 0;
             vertical-align: top;
         }
 
@@ -131,9 +131,37 @@
             width: 250px;
         }
 
+        /* Montant : nombre aligné à droite, unité « FCFA » en italique juste après */
+        .montant-val {
+            width: 120px;
+            text-align: right;
+            white-space: nowrap;
+            padding-right: 4px;
+        }
+
+        .montant-unit {
+            font-style: italic;
+            white-space: nowrap;
+            width: 62px;
+        }
+
+        /* Montant en lettres : colonne propre → le texte qui revient à la ligne
+           reste aligné sous les mots (et non sous le nombre). */
+        .montant-mots {
+            font-size: 9px;
+            text-transform: uppercase;
+            text-decoration: underline;
+            vertical-align: top;
+        }
+
+        /* Montant payé / reste à payer : en gras */
+        .montant-fort {
+            font-weight: bold;
+        }
+
         .fait-a {
             text-align: center;
-            margin: 40px 0 25px;
+            margin: 22px 0 14px;
             font-style: italic;
             font-weight: bold;
             font-size: 14px;
@@ -180,7 +208,7 @@
     <!-- Titre : à gauche, gras + souligné, N° sur la même ligne -->
     <div class="document-title">
         <span class="title-main">Bordereau de règlement :</span>
-        <em class="title-numero">N° {{ $reglement->facture->numero_piece }}/DAF/H.M.</em>
+        <em class="title-numero">N° {{ $reglement->facture->numero_piece }}{{ $reglement->numero_ligne }}/DAF/H.M.</em>
     </div>
 
     <div class="exercice">EXERCICE {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('Y') }}</div>
@@ -208,38 +236,44 @@
         <table>
             <tr>
                 <td class="details-label">MONTANT FACTURE :</td>
-                <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }} FCFA</td>
+                <td class="montant-val">{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
+                <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                <td class="montant-mots"></td>
             </tr>
             @if($facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0)
             <tr>
                 <td class="details-label">MONTANT TVA ({{ $facture->taux_tva }}%) :</td>
-                <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }} FCFA</td>
+                <td class="montant-val">{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
+                <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                <td class="montant-mots"></td>
             </tr>
             @endif
             <tr>
                 <td class="details-label">MONTANT AVOIR / ESCOMPT :</td>
-                <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }} FCFA</td>
+                <td class="montant-val">{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }}</td>
+                <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                <td class="montant-mots"></td>
             </tr>
             @if($facture->taux && (float) $facture->taux > 0)
             <tr>
                 <td class="details-label">IMPÔT / AIB : {{ $facture->taux }}%</td>
-                <td>{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }} FCFA</td>
+                <td class="montant-val">{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }}</td>
+                <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                <td class="montant-mots"></td>
             </tr>
             @endif
             <tr>
                 <td class="details-label">MONTANT PAYE (FCFA):</td>
-                <td>
-                    {{ number_format((float) $facture->montant_paye, 0, ',', ' ') }} FCFA
-                    <span class="montant-lettres">{{ strtoupper($montantEnLettres) }}</span>
-                </td>
+                <td class="montant-val montant-fort">{{ number_format((float) $facture->montant_paye, 0, ',', ' ') }}</td>
+                <td class="montant-unit montant-fort">&nbsp;&nbsp;FCFA</td>
+                <td class="montant-mots">{{ strtoupper($montantEnLettres) }}</td>
             </tr>
             <tr>
                 @php $resteAPayer = (float) $facture->reste_a_payer; @endphp
                 <td class="details-label">RESTE A PAYER (FCFA):</td>
-                <td>
-                    {{ number_format($resteAPayer, 0, ',', ' ') }} FCFA
-                    <span class="montant-lettres">{{ $resteAPayerLettres }}</span>
-                </td>
+                <td class="montant-val montant-fort">{{ number_format($resteAPayer, 0, ',', ' ') }}</td>
+                <td class="montant-unit montant-fort">&nbsp;&nbsp;FCFA</td>
+                <td class="montant-mots">{{ $resteAPayerLettres }}</td>
             </tr>
         </table>
     </div>
@@ -264,7 +298,8 @@
                     @if($reglement->reference)
                     <tr>
                         <td class="mp-col1">N°{{ $reglement->reference }}</td>
-                        <td class="mp-col2">@if($reglement->date_reglement)du {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}@endif</td>
+                        @php $dateRef = $reglement->date_reference ?: $reglement->date_reglement; @endphp
+                        <td class="mp-col2">@if($dateRef)du {{ \Carbon\Carbon::parse($dateRef)->format('d/m/Y') }}@endif</td>
                     </tr>
                     @endif
                 </table>

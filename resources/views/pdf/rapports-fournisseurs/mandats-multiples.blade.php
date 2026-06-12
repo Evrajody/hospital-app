@@ -13,50 +13,26 @@
 
         body {
             font-family: 'Times New Roman', serif;
-            font-size: 13px;
+            font-size: 14px;
             color: #000;
-            line-height: 1.5;
+            line-height: 1.6;
             padding: 20mm 18mm 18mm;
         }
 
         .page-break { page-break-after: always; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .hospital-name {
-            font-size: 18px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .hospital-info {
-            font-size: 11px;
-            color: #444;
-            line-height: 1.6;
-            margin-top: 3px;
-        }
-
         .document-title {
-            text-align: center;
-            margin: 25px 0 10px;
+            text-align: left;
+            margin: 20px 0 8px;
         }
 
-        .document-title h1 {
-            font-size: 18px;
+        .document-title .title-main {
+            font-size: 16px;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            border: 1px solid #000;
-            display: inline-block;
-            padding: 8px 30px;
+            text-decoration: underline;
         }
 
-        .numero-piece {
-            margin: 12px 0 5px;
+        .document-title .title-numero {
             font-size: 14px;
         }
 
@@ -67,21 +43,21 @@
         }
 
         .intro-text {
-            font-size: 12px;
+            font-size: 13px;
             font-style: italic;
             font-weight: bold;
             line-height: 1.7;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .details-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 14px;
         }
 
         .details-table td {
-            padding: 5px 0;
+            padding: 6px 0;
             vertical-align: top;
         }
 
@@ -93,12 +69,12 @@
         }
 
         .montant-lettres {
-            display: block;
-            font-size: 10px;
+            font-size: 11px;
             color: #000;
-            font-weight: bold;
+            font-weight: normal;
+            font-style: normal;
             text-transform: uppercase;
-            margin-top: 2px;
+            margin-left: 10px;
         }
 
         .spacer td { height: 12px; }
@@ -110,12 +86,37 @@
 
         .montants-section { margin: 15px 0; }
         .montants-section table { width: 100%; border-collapse: collapse; }
-        .montants-section td { padding: 5px 0; vertical-align: top; }
+        .montants-section td { padding: 6px 0; vertical-align: top; }
         .montants-section .details-label { width: 250px; }
+
+        /* Montant : nombre aligné à droite, unité « FCFA » en italique juste après */
+        .montant-val {
+            width: 120px;
+            text-align: right;
+            white-space: nowrap;
+            padding-right: 4px;
+        }
+
+        .montant-unit {
+            font-style: italic;
+            white-space: nowrap;
+            width: 62px;
+        }
+
+        /* Montant en lettres : colonne propre (le texte qui revient à la ligne reste aligné sous les mots). */
+        .montant-mots {
+            font-size: 9px;
+            text-transform: uppercase;
+            text-decoration: underline;
+            vertical-align: top;
+        }
+
+        /* Montant payé / reste à payer : en gras */
+        .montant-fort { font-weight: bold; }
 
         .fait-a {
             text-align: center;
-            margin: 40px 0 25px;
+            margin: 22px 0 14px;
             font-style: italic;
             font-weight: bold;
             font-size: 14px;
@@ -143,19 +144,17 @@
 
         @include('pdf._entete-officiel')
 
+        <!-- Titre : à gauche, gras + souligné, N° sur la même ligne -->
         <div class="document-title">
-            <h1>Bordereau de Règlement</h1>
-        </div>
-
-        <div class="numero-piece">
-            <em>N° {{ $facture->numero_piece }}/DAF/H.M.</em>
+            <span class="title-main">Bordereau de règlement :</span>
+            <em class="title-numero">N° {{ $facture->numero_piece }}{{ $reglement->numero_ligne }}/DAF/H.M.</em>
         </div>
 
         <div class="exercice">EXERCICE {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('Y') }}</div>
 
-        <div class="intro-text" style="font-weight: bold;">
+        <div class="intro-text">
             En vertu des crédits ouverts au titre du compte désigné ci-contre, le Directeur de l'hôpital
-            ordonne le règlement par la caisse du Centre, de la créance détaillée ci-après :
+            de Mènontin mandate sur la caisse du Centre, la créance détaillée ci-après :
         </div>
 
         <table class="details-table">
@@ -173,45 +172,45 @@
         <div class="montants-section">
             <table>
                 <tr>
-                    <td class="details-label">MONTANT FACTURE HT :</td>
-                    <td>{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
+                    <td class="details-label">MONTANT FACTURE :</td>
+                    <td class="montant-val">{{ number_format((float) $facture->montant_facture, 0, ',', ' ') }}</td>
+                    <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                    <td class="montant-mots"></td>
                 </tr>
                 @if($facture->assujetti_tva && (float) ($facture->montant_tva ?? 0) > 0)
                 <tr>
                     <td class="details-label">MONTANT TVA ({{ $facture->taux_tva }}%) :</td>
-                    <td>{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
+                    <td class="montant-val">{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
+                    <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                    <td class="montant-mots"></td>
                 </tr>
                 @endif
                 <tr>
-                    <td class="details-label">MONTANT TTC :</td>
-                    <td>{{ number_format((float) $facture->montant_ttc, 0, ',', ' ') }}</td>
-                </tr>
-                <tr>
-                    <td class="details-label">MONTANT AVOIR :</td>
-                    <td>{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }}</td>
+                    <td class="details-label">MONTANT AVOIR / ESCOMPT :</td>
+                    <td class="montant-val">{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }}</td>
+                    <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                    <td class="montant-mots"></td>
                 </tr>
                 @if($facture->taux && (float) $facture->taux > 0)
                 <tr>
-                    <td class="details-label">IMPÔT / AIB {{ $facture->taux }}% :</td>
-                    <td>{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }}</td>
+                    <td class="details-label">IMPÔT / AIB : {{ $facture->taux }}%</td>
+                    <td class="montant-val">{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }}</td>
+                    <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                    <td class="montant-mots"></td>
                 </tr>
                 @endif
                 <tr>
-                    <td class="details-label">MONTANT PAYE :</td>
-                    <td>
-                        {{ number_format((float) $facture->montant_paye, 0, ',', ' ') }}
-                        <span class="montant-lettres">{{ strtoupper($montantEnLettres) }}</span>
-                    </td>
+                    <td class="details-label">MONTANT PAYE (FCFA):</td>
+                    <td class="montant-val montant-fort">{{ number_format((float) $facture->montant_paye, 0, ',', ' ') }}</td>
+                    <td class="montant-unit montant-fort">&nbsp;&nbsp;FCFA</td>
+                    <td class="montant-mots">{{ strtoupper($montantEnLettres) }}</td>
                 </tr>
                 <tr>
                     @php $resteAPayer = (float) $facture->reste_a_payer; @endphp
-                    <td class="details-label">RESTE A PAYER :</td>
-                    <td>
-                        {{ number_format($resteAPayer, 0, ',', ' ') }}
-                        @if($resteAPayer > 0)
-                        <span class="montant-lettres">{{ $resteAPayerLettres }}</span>
-                        @endif
-                    </td>
+                    <td class="details-label">RESTE A PAYER (FCFA):</td>
+                    <td class="montant-val montant-fort">{{ number_format($resteAPayer, 0, ',', ' ') }}</td>
+                    <td class="montant-unit montant-fort">&nbsp;&nbsp;FCFA</td>
+                    <td class="montant-mots">{{ $resteAPayerLettres }}</td>
                 </tr>
             </table>
         </div>
@@ -235,7 +234,8 @@
                         @if($reglement->reference)
                         <tr>
                             <td class="mp-col1">N°{{ $reglement->reference }}</td>
-                            <td class="mp-col2">@if($reglement->date_reglement)du {{ \Carbon\Carbon::parse($reglement->date_reglement)->format('d/m/Y') }}@endif</td>
+                            @php $dateRef = $reglement->date_reference ?: $reglement->date_reglement; @endphp
+                            <td class="mp-col2">@if($dateRef)du {{ \Carbon\Carbon::parse($dateRef)->format('d/m/Y') }}@endif</td>
                         </tr>
                         @endif
                     </table>
@@ -251,10 +251,10 @@
             <tr>
                 <td>
                     <div class="signature-title">Le Bénéficiaire,</div>
-                    <div class="signature-name">{{ strtoupper($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '') }}</div>
+                    <div class="signature-name">{{ strtoupper($reglement->beneficiaire ?: ($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '')) }}</div>
                 </td>
                 <td style="text-align: right;">
-                    <div class="signature-title">Le Directeur,</div>
+                    <div class="signature-title">L'Administrateur,</div>
                     <div class="signature-name">{{ $etablissement['directeur'] ?? '' }}</div>
                 </td>
             </tr>
