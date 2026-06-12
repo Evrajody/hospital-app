@@ -423,7 +423,7 @@
               {{ imputationData.etablissement.adresse }}{{ imputationData.etablissement.telephone ? ' - Tel: ' + imputationData.etablissement.telephone : '' }}
             </div>
             <div class="imputation-title-box"><span>IMPUTATION COMPTABLE</span></div>
-            <p class="imputation-numero-piece"><strong><u>N° Règlement :</u></strong> {{ imputationData.reglement.numero_reglement }} - {{ imputationData.reglement.date_reglement }}</p>
+            <p class="imputation-numero-piece"><strong><u>N° Règlement :</u></strong> {{ imputationData.reglement.numero_complet || imputationData.reglement.numero_reglement }} - {{ imputationData.reglement.date_reglement }}</p>
             <p class="imputation-numero-piece"><strong><u>Facture :</u></strong> {{ imputationData.facture.numero_piece }}</p>
           </div>
           <table class="imputation-table">

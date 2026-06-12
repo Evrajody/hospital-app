@@ -756,6 +756,8 @@ class ReglementFournisseurController extends Controller
             'reglement' => [
                 'id' => $reglement->id,
                 'numero_reglement' => $reglement->numero_reglement,
+                // Numéro métier = n° pièce facture + n° ligne (ex. PC/026/0017 + 4 → PC/026/00174)
+                'numero_complet' => ($reglement->facture_numero ?: $facture->numero_piece) . $reglement->numero_ligne,
                 'date_reglement' => $reglement->date_reglement?->format('d/m/Y'),
                 'montant' => $montant,
                 'montant_formate' => number_format($montant, 0, ',', ' '),
@@ -887,6 +889,8 @@ class ReglementFournisseurController extends Controller
             'reglement' => [
                 'id' => $reglement->id,
                 'numero_reglement' => $reglement->numero_reglement,
+                // Numéro métier = n° pièce facture + n° ligne (ex. PC/026/0017 + 4 → PC/026/00174)
+                'numero_complet' => ($reglement->facture_numero ?: $facture->numero_piece) . $reglement->numero_ligne,
                 'date_reglement' => $reglement->date_reglement?->format('d/m/Y'),
                 'montant' => (float) $reglement->montant,
             ],

@@ -31,6 +31,11 @@ class FactureClientController extends Controller
             });
         }
 
+        // Filtre par client
+        if ($clientId = $request->input('client_id')) {
+            $query->where('client_id', $clientId);
+        }
+
         // Filtre par statut
         if ($statut = $request->input('statut')) {
             $query->where('statut', $statut);
