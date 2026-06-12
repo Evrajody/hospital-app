@@ -1,4 +1,4 @@
-.PHONY: help deploy deploy-init deploy-quick prod-init-dirs prod-backup rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-coverage clear-cache clear-logs clean perm down destroy
+.PHONY: help deploy deploy-init deploy-quick prod-init-dirs prod-backup rebuild rebuild-prod rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-coverage clear-cache clear-logs clean perm down destroy
 
 # =============================================================================
 # Variables
@@ -419,12 +419,21 @@ fresh: ## Redémarrage complet avec base de données fraîche
 	$(MAKE) migrate-fresh
 	@echo "$(GREEN)✓ Redémarrage terminé!$(NC)"
 
-rebuild: ## Reconstruire et redémarrer l'application
-	@echo "$(GREEN)Reconstruction de l'application...$(NC)"
+rebuild: ## Reconstruire et redémarrer l'application (DEV / pprod — docker-compose.yml)
+	@echo "$(GREEN)Reconstruction de l'application (dev)...$(NC)"
 	$(MAKE) down
 	$(MAKE) build
 	$(MAKE) up
 	@echo "$(GREEN)✓ Reconstruction terminée!$(NC)"
+
+rebuild-prod: ## Reconstruire et redémarrer la PRODUCTION (docker-compose.prod.yml)
+	@echo "$(GREEN)Reconstruction de l'application (PRODUCTION)...$(NC)"
+	$(DOCKER_COMPOSE_PROD) down
+	$(DOCKER_COMPOSE_PROD) build
+	@sh docker/prod-init-dirs.sh
+	$(DOCKER_COMPOSE_PROD) up -d
+	@echo "$(GREEN)✓ Reconstruction prod terminée!$(NC)"
+	@echo "$(YELLOW)→ Pensez aux migrations si nécessaire : make deploy (ou artisan migrate --force)$(NC)"
 
 ##@ Migration des données héritées (ancien système Access)
 

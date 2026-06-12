@@ -1,0 +1,1 @@
+import{a as o}from"./app-1QtQ6njo.js";const e=o({visible:!1,url:"",title:"Aperçu du document"});function l(){return{state:e,openPdf:(t,s="Aperçu du document")=>{e.url=t,e.title=s,e.visible=!0},close:()=>{e.visible=!1}}}export{l as u};
