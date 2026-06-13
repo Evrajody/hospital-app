@@ -205,6 +205,7 @@
                       placeholder="Sélectionner"
                       style="width: 100%"
                       format="DD/MM/YYYY"
+                      value-format="YYYY-MM-DD"
                     />
                   </el-form-item>
                 </el-col>
@@ -415,6 +416,7 @@
                       placeholder="Sélectionner"
                       style="width: 100%"
                       format="DD/MM/YYYY"
+                      value-format="YYYY-MM-DD"
                     />
                   </el-form-item>
                 </el-col>
@@ -584,6 +586,7 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
+import { toYmd, todayYmd } from '@/utils/date';
 
 // Props
 const props = defineProps({
@@ -746,7 +749,7 @@ const insufficientData = reactive({ solde: 0, montant: 0 });
 const form = reactive({
   annee_exercice: new Date().getFullYear().toString(),
   numero_ligne: String(props.reglements.length + 1),
-  date_reglement: new Date(),
+  date_reglement: todayYmd(),
   montant: 0, // calculé : totalLignes - AIB
   mode_paiement: '',
   banque_id: null,
@@ -903,10 +906,6 @@ const handleCancel = () => {
 };
 
 const buildPayload = (forceInsufficient = false) => {
-  const dateReglement = form.date_reglement instanceof Date
-    ? form.date_reglement.toISOString().split('T')[0]
-    : form.date_reglement;
-
   const selectedBanque = form.banque_id
     ? props.banques.find(b => b.id === form.banque_id)
     : null;
@@ -915,20 +914,18 @@ const buildPayload = (forceInsufficient = false) => {
     facture_id: props.facture.id,
     annee_exercice: form.annee_exercice,
     numero_ligne: form.numero_ligne || null,
-    date_reglement: dateReglement,
+    date_reglement: toYmd(form.date_reglement),
     montant: form.montant, // bank cash = totalLignes - AIB
     mode_paiement: form.mode_paiement,
     reference: form.reference || null,
-    date_reference: form.date_reference instanceof Date
-      ? form.date_reference.toISOString().split('T')[0]
-      : form.date_reference,
+    date_reference: toYmd(form.date_reference),
     beneficiaire: form.beneficiaire || null,
     banque: selectedBanque ? selectedBanque.nom : null,
     compte_bancaire_id: form.compte_bancaire_id || null,
     numero_compte_bancaire: selectedCompte.value ? selectedCompte.value.numero_compte : null,
     observations: form.remarques || null,
     deduire_aib: form.deduire_aib || false,
-    date_aib: form.deduire_aib ? new Date().toISOString().split('T')[0] : null,
+    date_aib: form.deduire_aib ? todayYmd() : null,
     force_insufficient_balance: forceInsufficient,
     lignes: form.lignes
       .filter(l => l.compte_id && parseFloat(l.montant) > 0)

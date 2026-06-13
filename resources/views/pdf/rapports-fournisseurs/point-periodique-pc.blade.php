@@ -37,6 +37,7 @@
 
         .footer-section { position: fixed; bottom: 8mm; left: 0; right: 0; font-size: 10px; padding: 0 20mm; color: #666; font-style: italic; }
         .footer-section td { border: none; padding: 4px 0; }
+        .page-num:after { content: counter(page); }
     </style>
 </head>
 <body>

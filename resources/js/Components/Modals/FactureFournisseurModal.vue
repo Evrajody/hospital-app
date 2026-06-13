@@ -648,6 +648,7 @@ import {
 } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
+import { todayYmd } from '@/utils/date';
 
 // Props
 const props = defineProps({
@@ -754,7 +755,7 @@ const fieldLabels = {
 // Form data
 const getInitialFormData = () => ({
   numero_piece: '',
-  date: new Date().toISOString().split('T')[0],
+  date: todayYmd(),
   reference_facture: '',
   fournisseur_id: null,
   imputation_id: null,

@@ -9,9 +9,12 @@
     <style>
         @page { size: A4 landscape; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 10px; color: #000; line-height: 1.4; }
+        /* La marge est portée par le BODY (conteneur racine du flux) : dompdf la
+           réapplique sur CHAQUE page, y compris les pages de continuation d'un
+           tableau qui déborde et les sauts de page entre fournisseurs.
+           (Une marge sur un bloc enfant ou sur @page n'est PAS reprise en continuation.) */
+        body { font-family: 'Times New Roman', serif; font-size: 10px; color: #000; line-height: 1.4; padding: 16mm 14mm 20mm; }
 
-        .fournisseur-page { padding: 16mm 14mm 20mm; }
         .fournisseur-page + .fournisseur-page { page-break-before: always; }
 
         .header-section { width: 100%; margin-bottom: 8px; }
@@ -40,6 +43,7 @@
 
         .footer-section { position: fixed; bottom: 8mm; left: 0; right: 0; font-size: 10px; padding: 0 14mm; color: #666; font-style: italic; }
         .footer-section td { border: none; padding: 4px 0; }
+        .page-num:after { content: counter(page); }
     </style>
 </head>
 <body>
@@ -158,7 +162,7 @@
         @endforeach
     @endif
 
-    {{-- Pied de page répété --}}
+    {{-- Pied de page répété sur chaque page --}}
     <table class="footer-section">
         <tr>
             <td>Édité par {{ $generatedBy ?? 'Utilisateur' }} - {{ $generatedAt ?? now()->format('d/m/Y à H:i') }}</td>

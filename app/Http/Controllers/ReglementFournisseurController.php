@@ -87,28 +87,15 @@ class ReglementFournisseurController extends Controller
         // Statistiques
         $stats = ReglementFournisseur::getStatistiques();
 
-        // Factures non soldées (validées ou partiellement payées) seulement
-        $facturesImpayees = FactureFournisseur::with('fournisseur')
-            ->nonPayee()
-            ->orderBy('date', 'desc')
-            ->get()
-            ->map(fn($f) => [
-                'id' => $f->id,
-                'numero' => $f->numero_piece ?? $f->numero,
-                'libelle' => $f->libelle,
-                'date' => $f->date,
-                'fournisseur' => $f->fournisseur ? ['id' => $f->fournisseur->id, 'nom' => $f->fournisseur->nom] : null,
-                'fournisseur_nom' => $f->fournisseur?->nom,
-                'montant_ttc' => $f->montant_ttc,
-                'montant_paye' => $f->montant_paye,
-                'reste_a_payer' => $f->reste_a_payer ?? ($f->montant_ttc - $f->montant_paye),
-                'statut' => $f->statut,
-            ]);
+        // NB : la liste des factures impayées n'est PLUS injectée ici. Sur les gros
+        // volumes (import legacy), elle gonflait les props Inertia stockées dans
+        // history.state → dépassement de la limite de history.pushState sous Firefox
+        // (NS_ERROR_ILLEGAL_VALUE). Le sélecteur de facture du formulaire « Nouveau
+        // règlement » interroge désormais l'API en recherche serveur (cf. front).
 
         return Inertia::render('ReglementsFournisseurs/Index', [
             'reglements' => $reglements,
             'fournisseurs' => $fournisseurs,
-            'facturesImpayees' => $facturesImpayees,
             'stats' => $stats,
             'pagination' => [
                 'current_page' => $reglementsPaginated->currentPage(),

@@ -144,6 +144,9 @@
         .footer-section .edite-par {
             font-style: italic;
         }
+        /* Numéro de page : dompdf remplit ce pseudo-élément via le compteur de page.
+           Sans cette règle, le <span class="page-num"> restait vide. */
+        .page-num:after { content: counter(page); }
 
         @yield('extra-styles')
     </style>

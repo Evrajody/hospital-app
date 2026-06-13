@@ -110,6 +110,7 @@ import { ElMessage } from 'element-plus';
 import { Check, Upload } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
+import { todayYmd } from '@/utils/date';
 
 const { formatInputMontant, parseInputMontant } = useMontant();
 
@@ -146,7 +147,7 @@ const dialogVisible = computed({
 const form = reactive({
   compte_bancaire_id: null,
   reference_bordereau: '',
-  date_depot: new Date().toISOString().split('T')[0],
+  date_depot: todayYmd(),
   montant: 0,
   observations: ''
 });
@@ -187,7 +188,7 @@ const handleClosed = () => {
   }
   form.compte_bancaire_id = null;
   form.reference_bordereau = '';
-  form.date_depot = new Date().toISOString().split('T')[0];
+  form.date_depot = todayYmd();
   form.montant = 0;
   form.observations = '';
   selectedFile.value = null;

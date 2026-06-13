@@ -134,6 +134,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { MagicStick, Check } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
+import { toYmd } from '@/utils/date';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -240,9 +241,7 @@ const handleClosed = () => {
 };
 
 const buildPayload = () => {
-  const dateFacture = form.date_facture instanceof Date
-    ? form.date_facture.toISOString().split('T')[0]
-    : form.date_facture;
+  const dateFacture = toYmd(form.date_facture);
 
   return {
     reference: form.reference,

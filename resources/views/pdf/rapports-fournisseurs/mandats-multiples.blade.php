@@ -123,7 +123,7 @@
         }
 
         .signatures-table { width: 100%; }
-        .signatures-table td { width: 50%; vertical-align: top; padding: 0 15px; }
+        .signatures-table td { width: 50%; vertical-align: top; padding: 0 15px; text-align: center; }
         .signature-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; }
         .signature-name { margin-top: 55px; font-size: 13px; font-weight: bold; }
 
@@ -253,7 +253,7 @@
                     <div class="signature-title">Le Bénéficiaire,</div>
                     <div class="signature-name">{{ strtoupper($reglement->beneficiaire ?: ($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '')) }}</div>
                 </td>
-                <td style="text-align: right;">
+                <td>
                     <div class="signature-title">L'Administrateur,</div>
                     <div class="signature-name">{{ $etablissement['directeur'] ?? '' }}</div>
                 </td>

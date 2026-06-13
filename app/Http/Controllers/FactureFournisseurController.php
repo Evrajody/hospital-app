@@ -520,6 +520,12 @@ class FactureFournisseurController extends Controller
             $query->where('statut', $request->statut);
         }
 
+        // Factures non soldées uniquement (validées ou partiellement payées) —
+        // utilisé par le sélecteur de facture du formulaire « Nouveau règlement ».
+        if ($request->boolean('non_payee')) {
+            $query->nonPayee();
+        }
+
         // Filtre par période
         if ($request->filled('date_debut') && $request->filled('date_fin')) {
             $query->periode($request->date_debut, $request->date_fin);

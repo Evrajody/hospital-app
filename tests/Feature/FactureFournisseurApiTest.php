@@ -79,4 +79,33 @@ class FactureFournisseurApiTest extends TestCase
         $this->deleteJson("/api/factures-fournisseurs/{$facture->id}")->assertSuccessful();
         $this->assertSoftDeleted('factures_fournisseurs', ['id' => $facture->id]);
     }
+
+    /** Le sélecteur "Nouveau règlement" interroge ce filtre en recherche serveur. */
+    public function test_filtre_non_payee_exclut_les_factures_payees(): void
+    {
+        $this->actingAsWithPermissions(['factures-fournisseurs.voir']);
+        FactureFournisseurFactory::new()->create(['statut' => FactureFournisseur::STATUT_VALIDEE, 'libelle' => 'NONPAYEE A']);
+        FactureFournisseurFactory::new()->create(['statut' => FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE, 'libelle' => 'NONPAYEE B']);
+        FactureFournisseurFactory::new()->payee()->create(['libelle' => 'PAYEE C']);
+
+        $libelles = collect($this->getJson('/api/factures-fournisseurs?non_payee=1')->assertOk()->json('data'))
+            ->pluck('libelle')->all();
+
+        $this->assertContains('NONPAYEE A', $libelles);
+        $this->assertContains('NONPAYEE B', $libelles);
+        $this->assertNotContains('PAYEE C', $libelles);
+    }
+
+    public function test_filtre_non_payee_avec_recherche(): void
+    {
+        $this->actingAsWithPermissions(['factures-fournisseurs.voir']);
+        FactureFournisseurFactory::new()->create(['statut' => FactureFournisseur::STATUT_VALIDEE, 'libelle' => 'Médicaments urgents']);
+        FactureFournisseurFactory::new()->create(['statut' => FactureFournisseur::STATUT_VALIDEE, 'libelle' => 'Carburant groupe']);
+
+        $libelles = collect($this->getJson('/api/factures-fournisseurs?non_payee=1&search=urgents')->assertOk()->json('data'))
+            ->pluck('libelle')->all();
+
+        $this->assertContains('Médicaments urgents', $libelles);
+        $this->assertNotContains('Carburant groupe', $libelles);
+    }
 }

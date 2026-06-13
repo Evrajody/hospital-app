@@ -258,6 +258,7 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
+import { todayYmd } from '@/utils/date';
 
 // Props
 const props = defineProps({
@@ -281,7 +282,7 @@ const submitting = ref(false);
 
 const form = reactive({
   banque_id: props.banque_preselection_id || null,
-  date: new Date().toISOString().split('T')[0],
+  date: todayYmd(),
   montant: 0,
   origine: '',
   reference: '',

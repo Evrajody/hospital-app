@@ -182,6 +182,7 @@
                       placeholder="S&eacute;lectionner"
                       style="width: 100%"
                       format="DD/MM/YYYY"
+                      value-format="YYYY-MM-DD"
                     />
                   </el-form-item>
                 </el-col>
@@ -623,6 +624,7 @@ import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
+import { toYmd, todayYmd } from '@/utils/date';
 
 // OfficeBuilding might not exist in all versions, use a fallback
 const OfficeBuilding = DocumentCopy;
@@ -662,7 +664,7 @@ const form = ref({
   type_reglement: 'reglement',
   source_paiement: 'direct', // 'direct' = chèque/espèces, 'avance' = imputation sur avance
   avance_id: null,
-  date_reglement: new Date(),
+  date_reglement: todayYmd(),
   montant: null,
   montant_rejet: 0,
   institution: '',
@@ -775,9 +777,7 @@ const handleSubmit = async () => {
 
   submitting.value = true;
 
-  const dateReglement = form.value.date_reglement instanceof Date
-    ? form.value.date_reglement.toISOString().split('T')[0]
-    : form.value.date_reglement;
+  const dateReglement = toYmd(form.value.date_reglement);
 
   try {
     const formData = new FormData();

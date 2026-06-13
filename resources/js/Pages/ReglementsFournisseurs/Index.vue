@@ -466,14 +466,17 @@
           <el-form-item label="Facture à régler (recherche par N° PC, libellé ou fournisseur)">
             <el-select
               v-model="selectedFactureId"
-              placeholder="Tapez le N° PC (ex: 0023) ou le libellé…"
+              placeholder="Tapez le N° PC (ex: 0023), le libellé ou le fournisseur…"
               filterable
-              :filter-method="filterFactureByPc"
+              remote
+              :remote-method="searchFactureImpayee"
+              :loading="facturesLoading"
+              remote-show-suffix
               style="width: 100%"
               size="large"
             >
               <el-option
-                v-for="facture in filteredFacturesImpayees"
+                v-for="facture in factureOptions"
                 :key="facture.id"
                 :label="`${facture.numero} - ${facture.libelle}`"
                 :value="facture.id"
@@ -530,6 +533,7 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePdfViewer } from '@/Composables/usePdfViewer';
+import { toYmd } from '@/utils/date';
 
 const { openPdf } = usePdfViewer();
 
@@ -549,10 +553,6 @@ const props = defineProps({
     default: () => []
   },
   fournisseurs: {
-    type: Array,
-    default: () => []
-  },
-  facturesImpayees: {
     type: Array,
     default: () => []
   },
@@ -585,7 +585,10 @@ const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
 const selectFactureDialogVisible = ref(false);
 const selectedFactureId = ref(null);
-const factureSearchQuery = ref('');
+// Recherche serveur des factures impayées (le sélecteur ne précharge plus toute
+// la liste : sur gros volume elle saturait l'historique Inertia → erreur Firefox).
+const factureOptions = ref([]);
+const facturesLoading = ref(false);
 
 // Drawer Imputation Comptable
 const showImputationDrawer = ref(false);
@@ -593,8 +596,25 @@ const imputationLoading = ref(false);
 const imputationData = ref(null);
 const imputationReglementId = ref(null);
 
-const filterFactureByPc = (query) => {
-  factureSearchQuery.value = (query || '').trim();
+// Recherche serveur (N° PC, libellé, fournisseur) — 50 résultats max.
+const searchFactureImpayee = async (query) => {
+  facturesLoading.value = true;
+  try {
+    const params = new URLSearchParams({ non_payee: '1', per_page: '50', sort: 'date', order: 'desc' });
+    if (query && query.trim()) params.set('search', query.trim());
+    const res = await fetchApi(`/api/factures-fournisseurs?${params.toString()}`);
+    const json = await res.json();
+    factureOptions.value = (json.data || []).map(f => ({
+      id: f.id,
+      numero: f.numero_piece ?? f.numero,
+      libelle: f.libelle,
+      fournisseur_nom: f.fournisseur?.nom ?? f.fournisseur_nom ?? '',
+    }));
+  } catch (e) {
+    factureOptions.value = [];
+  } finally {
+    facturesLoading.value = false;
+  }
 };
 
 // Regrouper les règlements par facture pour affichage en lignes expansibles
@@ -628,15 +648,6 @@ const groupedReglements = computed(() => {
   return Array.from(map.values());
 });
 
-const filteredFacturesImpayees = computed(() => {
-  const q = factureSearchQuery.value.toLowerCase();
-  if (!q) return props.facturesImpayees;
-  return props.facturesImpayees.filter(f =>
-    (f.numero || '').toLowerCase().includes(q) ||
-    (f.libelle || '').toLowerCase().includes(q) ||
-    (f.fournisseur_nom || '').toLowerCase().includes(q)
-  );
-});
 const filters = reactive({
   search: '',
   fournisseur_id: null,
@@ -698,8 +709,8 @@ const handleSearch = () => {
   if (filters.date_range && filters.date_range.length === 2) {
     const d0 = filters.date_range[0];
     const d1 = filters.date_range[1];
-    params.date_debut = d0 instanceof Date ? d0.toISOString().split('T')[0] : d0;
-    params.date_fin = d1 instanceof Date ? d1.toISOString().split('T')[0] : d1;
+    params.date_debut = toYmd(d0);
+    params.date_fin = toYmd(d1);
   }
 
   router.get('/reglements-fournisseurs', params, {
@@ -762,7 +773,10 @@ const handlePageChange = (page) => {
 
 const handleNewPayment = () => {
   selectedFactureId.value = null;
+  factureOptions.value = [];
   selectFactureDialogVisible.value = true;
+  // Précharge les 50 factures impayées les plus récentes (recherche serveur ensuite).
+  searchFactureImpayee('');
 };
 
 const confirmSelectFacture = () => {
