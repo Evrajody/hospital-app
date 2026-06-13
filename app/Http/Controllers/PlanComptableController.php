@@ -293,7 +293,7 @@ class PlanComptableController extends Controller
         };
 
         // Vérifier la cohérence avec le compte parent si fourni
-        if ($validated['parent_id']) {
+        if (! empty($validated['parent_id'])) {
             $parent = CompteComptable::find($validated['parent_id']);
             if ($parent && !str_starts_with($validated['numero_compte'], $parent->numero_compte)) {
                 return response()->json([
@@ -309,7 +309,7 @@ class PlanComptableController extends Controller
             'classe' => $classe,
             'niveau' => $niveau,
             'is_custom' => true,
-            'parent_id' => $validated['parent_id'],
+            'parent_id' => $validated['parent_id'] ?? null,
             'created_by' => auth()->id(),
         ]);
 
@@ -357,7 +357,7 @@ class PlanComptableController extends Controller
         };
 
         // Vérifier la cohérence avec le compte parent si fourni
-        if ($validated['parent_id']) {
+        if (! empty($validated['parent_id'])) {
             $parent = CompteComptable::find($validated['parent_id']);
             if ($parent && !str_starts_with($validated['numero_compte'], $parent->numero_compte)) {
                 return response()->json([
@@ -372,7 +372,7 @@ class PlanComptableController extends Controller
             'libelle' => $validated['libelle'],
             'classe' => $classe,
             'niveau' => $niveau,
-            'parent_id' => $validated['parent_id'],
+            'parent_id' => $validated['parent_id'] ?? null,
         ]);
 
         ActivityLog::log('update', 'plan_comptable', "Modification du compte {$compte->numero_compte} - {$compte->libelle}", $compte);

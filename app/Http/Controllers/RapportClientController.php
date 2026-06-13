@@ -81,7 +81,7 @@ class RapportClientController extends Controller
                 $query->whereBetween('date_facture', [$dateDebut, $dateFin]);
             }
 
-            $factures = $query->orderBy('client_id')->orderBy('date_facture')->get();
+            $factures = $query->orderBy('client_id')->orderByDesc('date_facture')->get();
 
             $grouped = $factures->groupBy('client_id');
             foreach ($grouped as $cId => $clientFactures) {
@@ -255,7 +255,7 @@ class RapportClientController extends Controller
                 $query->where('date_facture', '<=', $dateFin);
             }
 
-            $factures = $query->orderBy('client_id')->orderBy('date_facture')->get();
+            $factures = $query->orderBy('client_id')->orderByDesc('date_facture')->get();
 
             $grouped = $factures->groupBy('client_id');
             foreach ($grouped as $cId => $clientFactures) {
@@ -415,7 +415,7 @@ class RapportClientController extends Controller
                 ->where('reference_bordereau', '!=', '')
                 ->where('date_depot', '>=', $dateDebut)
                 ->where('date_depot', '<=', $dateFin)
-                ->orderBy('date_depot')
+                ->orderByDesc('date_depot')
                 ->orderBy('id')
                 ->get();
 
@@ -518,7 +518,7 @@ class RapportClientController extends Controller
                 ->where('reference_bordereau', '!=', '')
                 ->where('date_depot', '>=', $dateDebut)
                 ->where('date_depot', '<=', $dateFin)
-                ->orderBy('date_depot')
+                ->orderByDesc('date_depot')
                 ->orderBy('id')
                 ->get();
 
@@ -608,7 +608,7 @@ class RapportClientController extends Controller
             $client = Client::with('compteComptable')->find($clientId);
             if ($client) {
                 $facturesQuery = FactureClient::where('client_id', $clientId)
-                    ->orderBy('date_facture');
+                    ->orderByDesc('date_facture');
                 if ($dateDebut) $facturesQuery->where('date_facture', '>=', $dateDebut);
                 if ($dateFin) $facturesQuery->where('date_facture', '<=', $dateFin);
                 $factures = $facturesQuery->get();
@@ -682,7 +682,7 @@ class RapportClientController extends Controller
             $query->where('date_reglement', '<=', $dateFin);
         }
 
-        $reglements = $query->orderBy('date_reglement')->orderBy('id')->get();
+        $reglements = $query->orderByDesc('date_reglement')->orderBy('id')->get();
 
         // Chaque règlement peut générer 1 ou 2 lignes dans le rapport :
         //  - une ligne "perte"  si type_reglement = 'perte'

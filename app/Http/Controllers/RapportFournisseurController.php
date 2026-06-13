@@ -96,7 +96,7 @@ class RapportFournisseurController extends Controller
 
                 $query = FactureFournisseur::where('fournisseur_id', $fournisseurId)
                     ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-                    ->orderBy('date');
+                    ->orderByDesc('date');
 
                 if ($dateDebut && $dateFin) {
                     $query->whereBetween('date', [$dateDebut, $dateFin]);
@@ -305,7 +305,7 @@ class RapportFournisseurController extends Controller
                 ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
                 ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
                 ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
-                ->orderBy('date')
+                ->orderByDesc('date')
                 ->get();
 
             $code = $f->compteComptable?->numero_compte ?? '-';
@@ -463,7 +463,7 @@ class RapportFournisseurController extends Controller
             $totauxFournisseur = array_fill_keys(array_keys($grandTotaux), 0);
             $aSoldeeManuelle = false;
 
-            foreach ($fFactures->sortBy(fn($f) => $f->date?->getTimestamp() ?? 0) as $fact) {
+            foreach ($fFactures->sortByDesc(fn($f) => $f->date?->getTimestamp() ?? 0) as $fact) {
                 $factReglements = $reglementsByFacture[$fact->id] ?? collect();
                 $regPeriode = (float) $factReglements->sum('montant');
                 $marqueeSoldee = !is_null($fact->date_solde);
@@ -569,7 +569,7 @@ class RapportFournisseurController extends Controller
                   });
             })
             ->with('facture.fournisseur.compteComptable')
-            ->orderBy('date_aib')
+            ->orderByDesc('date_aib')
             ->get();
 
         // Grouper par facture (1 facture = 1 déclaration AIB)
@@ -658,7 +658,7 @@ class RapportFournisseurController extends Controller
 
         $factures = FactureFournisseur::whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
             ->whereBetween('date', [$dateDebut, $dateFin])
-            ->orderBy('date')
+            ->orderByDesc('date')
             ->orderBy('numero_piece')
             ->get();
 
@@ -928,7 +928,7 @@ class RapportFournisseurController extends Controller
             $query->where('date_facture_bc', '<=', $dateFin);
         }
 
-        $factures = $query->orderBy('date_facture_bc')->get();
+        $factures = $query->orderByDesc('date_facture_bc')->get();
 
         $data = $factures->map(function ($f) use ($datePoint) {
             $code = $f->fournisseur?->compteComptable?->numero_compte;
@@ -1370,7 +1370,7 @@ class RapportFournisseurController extends Controller
 
         $reglements = $query
             ->with(['facture.fournisseur.compteComptable'])
-            ->orderBy('date_reglement')
+            ->orderByDesc('date_reglement')
             ->get()
             ->map(function ($r) {
                 $fournisseur = $r->facture?->fournisseur;
@@ -1408,7 +1408,7 @@ class RapportFournisseurController extends Controller
 
         $reglements = ReglementFournisseur::whereIn('id', $ids)
             ->with(['facture.fournisseur.compteComptable'])
-            ->orderBy('date_reglement')
+            ->orderByDesc('date_reglement')
             ->get();
 
         $lignes = $reglements->map(function ($r) {
@@ -1455,7 +1455,7 @@ class RapportFournisseurController extends Controller
 
         $reglements = ReglementFournisseur::whereIn('id', $ids)
             ->with(['facture.fournisseur', 'fournisseur'])
-            ->orderBy('date_reglement')
+            ->orderByDesc('date_reglement')
             ->get();
 
         $etablissement = \App\Models\Setting::getEtablissement();
@@ -1826,7 +1826,7 @@ class RapportFournisseurController extends Controller
             $query->whereBetween('date_reglement', [$dateDebut, $dateFin]);
         }
 
-        $reglements = $query->with(['facture.fournisseur.compteComptable'])->orderBy('date_reglement')->get();
+        $reglements = $query->with(['facture.fournisseur.compteComptable'])->orderByDesc('date_reglement')->get();
         $rows = [];
         $total = 0;
 
@@ -1939,7 +1939,7 @@ class RapportFournisseurController extends Controller
             ->where('assujetti_tva', true)
             ->whereBetween('date', [$dateDebut, $dateFin])
             ->with('fournisseur')
-            ->orderBy('date')
+            ->orderByDesc('date')
             ->orderBy('numero_piece')
             ->get();
 

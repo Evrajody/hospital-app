@@ -1,4 +1,4 @@
-.PHONY: help deploy deploy-init deploy-quick prod-init-dirs prod-backup rebuild rebuild-prod rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-coverage clear-cache clear-logs clean perm down destroy
+.PHONY: help deploy deploy-init deploy-quick prod-init-dirs prod-backup rebuild rebuild-prod rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-db test-coverage test-filter clear-cache clear-logs clean perm down destroy
 
 # =============================================================================
 # Variables
@@ -363,13 +363,17 @@ db-import-ohada: ## Importer le plan comptable OHADA
 
 ##@ Tests
 
-test: ## Exécuter les tests
+test-db: ## Créer la base de test (hospital_test) si absente
+	@$(EXEC_DB) psql -U hospital_user -d hospital_db -tc "SELECT 1 FROM pg_database WHERE datname='hospital_test'" | grep -q 1 || \
+		$(EXEC_DB) psql -U hospital_user -d hospital_db -c "CREATE DATABASE hospital_test;"
+
+test: test-db ## Exécuter les tests (PostgreSQL : base hospital_test)
 	$(EXEC_APP) php artisan test
 
-test-coverage: ## Tests avec couverture
+test-coverage: test-db ## Tests avec couverture
 	$(EXEC_APP) php artisan test --coverage
 
-test-filter: ## Test spécifique (ex: make test-filter name="TestName")
+test-filter: test-db ## Test spécifique (ex: make test-filter name="TestName")
 	$(EXEC_APP) php artisan test --filter=$(name)
 
 ##@ Cache et nettoyage
