@@ -424,6 +424,10 @@ class RapportClientController extends Controller
 
             $lastDate = null;
             foreach ($approvisionnements as $appro) {
+                // Un bordereau SANS chèque n'a pas sa place dans un brouillard de CHÈQUES.
+                if ($appro->reglementsClients->isEmpty()) {
+                    continue;
+                }
                 $solde = 0;
                 $dateGroupe = $appro->date_depot->format('d/m/Y');
                 $dateRawGroupe = $appro->date_depot->format('Y-m-d');
@@ -526,6 +530,11 @@ class RapportClientController extends Controller
                 ->get();
 
             foreach ($approvisionnements as $appro) {
+                // Pas de chèque sur ce bordereau → aucune écriture d'imputation à générer
+                // (sinon on aurait un débit banque sans contrepartie crédit = écriture déséquilibrée).
+                if ($appro->reglementsClients->isEmpty()) {
+                    continue;
+                }
                 $banqueNom = $appro->compteBancaire?->banque?->nom ?? '-';
                 $compteBanque = $appro->compteBancaire?->compteOhada?->numero_compte ?? '52';
                 $montantSB = (float) $appro->montant;

@@ -20,12 +20,12 @@ class RapportBrouillardTest extends TestCase
         $this->seedPermissions();
     }
 
-    /** Un bordereau SANS chèque doit quand même être comptabilisé (ligne SB). */
-    public function test_bordereau_sans_cheque_apparait_dans_le_brouillard(): void
+    /** Un bordereau SANS chèque ne doit PAS apparaître dans le brouillard de chèques. */
+    public function test_bordereau_sans_cheque_est_exclu_du_brouillard(): void
     {
         $this->actingAsWithPermissions(['rapports-clients.voir']);
 
-        // Bordereau AVEC un chèque
+        // Bordereau AVEC un chèque → apparaît
         $approAvec = ApprovisionnementBanqueFactory::new()->create([
             'reference_bordereau' => 'BORD-AVEC', 'date_depot' => '2026-03-01', 'montant' => 50000,
         ]);
@@ -37,23 +37,43 @@ class RapportBrouillardTest extends TestCase
             'montant' => 50000,
         ]);
 
-        // Bordereau SANS chèque (aucun règlement rattaché)
-        $approSans = ApprovisionnementBanqueFactory::new()->create([
+        // Bordereau SANS chèque (aucun règlement rattaché) → exclu
+        ApprovisionnementBanqueFactory::new()->create([
             'reference_bordereau' => 'BORD-SANS', 'date_depot' => '2026-03-05', 'montant' => 30000,
         ]);
 
-        $data = $this->getJson('/rapports/clients/api/brouillard-cheques?date_debut=2026-01-01&date_fin=2026-12-31')
-            ->assertOk()->json('data');
+        $libelles = collect(
+            $this->getJson('/rapports/clients/api/brouillard-cheques?date_debut=2026-01-01&date_fin=2026-12-31')
+                ->assertOk()->json('data')
+        )->pluck('libelle')->all();
 
-        $libelles = collect($data)->pluck('libelle')->all();
-        // Les DEUX bordereaux ont leur ligne SB
-        $this->assertTrue(collect($libelles)->contains(fn ($l) => str_contains($l, 'BORD-AVEC')), 'Bordereau avec chèque manquant');
-        $this->assertTrue(collect($libelles)->contains(fn ($l) => str_contains($l, 'BORD-SANS')), 'Bordereau SANS chèque manquant');
+        $this->assertTrue(collect($libelles)->contains(fn ($l) => str_contains($l, 'BORD-AVEC')), 'Le bordereau avec chèque doit apparaître');
+        $this->assertFalse(collect($libelles)->contains(fn ($l) => str_contains($l, 'BORD-SANS')), 'Le bordereau SANS chèque ne doit PAS apparaître');
+    }
 
-        // Le bordereau sans chèque a une ligne SB (crédit = montant) et aucune ligne CH
-        $sbSans = collect($data)->first(fn ($r) => $r['nature'] === 'SB' && str_contains($r['libelle'], 'BORD-SANS'));
-        $this->assertNotNull($sbSans);
-        $this->assertEquals(30000, $sbSans['credit']);
+    /** Idem côté imputations comptables : pas de bordereau sans chèque. */
+    public function test_bordereau_sans_cheque_est_exclu_des_imputations(): void
+    {
+        $this->actingAsWithPermissions(['rapports-clients.voir']);
+
+        $approAvec = ApprovisionnementBanqueFactory::new()->create([
+            'reference_bordereau' => 'IMP-AVEC', 'date_depot' => '2026-03-01', 'montant' => 50000,
+        ]);
+        $facture = FactureClientFactory::new()->create();
+        ReglementClientFactory::new()->pourFacture($facture)->create([
+            'approvisionnement_id' => $approAvec->id, 'reference_cheque' => '222', 'date_reglement' => '2026-03-01', 'montant' => 50000,
+        ]);
+        ApprovisionnementBanqueFactory::new()->create([
+            'reference_bordereau' => 'IMP-SANS', 'date_depot' => '2026-03-05', 'montant' => 30000,
+        ]);
+
+        $refs = collect(
+            $this->getJson('/rapports/clients/api/imputations-comptables?date_debut=2026-01-01&date_fin=2026-12-31')
+                ->assertOk()->json('groupes')
+        )->pluck('reference_bordereau')->all();
+
+        $this->assertContains('IMP-AVEC', $refs);
+        $this->assertNotContains('IMP-SANS', $refs);
     }
 
     /** Le PDF stream du brouillard se génère sans 500 (mémoire/temps relevés). */
