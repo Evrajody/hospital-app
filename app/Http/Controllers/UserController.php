@@ -16,7 +16,7 @@ class UserController extends Controller
     public function index(): \Inertia\Response
     {
         $users = User::with('roles')
-            ->orderBy('name')
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(fn($user) => [
                 'id' => $user->id,

@@ -29,14 +29,17 @@ class AvanceClientController extends Controller
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
-                $q->where('societe_emettrice', 'LIKE', "%{$s}%")
-                  ->orWhere('numero_cheque', 'LIKE', "%{$s}%")
-                  ->orWhere('numero_proforma', 'LIKE', "%{$s}%")
-                  ->orWhereHas('client', fn($cq) => $cq->where('nom', 'LIKE', "%{$s}%"));
+                $q->where('societe_emettrice', 'ILIKE', "%{$s}%")
+                  ->orWhere('numero_cheque', 'ILIKE', "%{$s}%")
+                  ->orWhere('numero_proforma', 'ILIKE', "%{$s}%")
+                  ->orWhereHas('client', fn($cq) => $cq->where('nom', 'ILIKE', "%{$s}%"));
             });
         }
 
-        $avances = $query->get()->map(fn($a) => $a->toApiArray());
+        // Pagination serveur (au lieu d'un ->get() de toute la table).
+        $perPage = (int) $request->input('per_page', 20);
+        $avancesPaginated = $query->paginate($perPage);
+        $avances = $avancesPaginated->getCollection()->map(fn($a) => $a->toApiArray());
 
         $clients = Client::orderBy('nom')->get()->map(fn($c) => [
             'id' => $c->id,
@@ -63,11 +66,18 @@ class AvanceClientController extends Controller
             ];
         });
 
+        // total_disponible agrégé en SQL (au lieu de charger toutes les avances).
+        $agg = AvanceClient::selectRaw(
+            'COALESCE(SUM(montant),0) AS total_avances, '
+            .'COALESCE(SUM(montant_utilise),0) AS total_utilise, '
+            .'COALESCE(SUM(GREATEST(montant - montant_utilise, 0)),0) AS total_disponible, '
+            .'COUNT(*) AS nombre_avances'
+        )->first();
         $stats = [
-            'total_avances' => (float) AvanceClient::sum('montant'),
-            'total_utilise' => (float) AvanceClient::sum('montant_utilise'),
-            'total_disponible' => (float) AvanceClient::get()->sum(fn($a) => $a->montant_restant),
-            'nombre_avances' => AvanceClient::count(),
+            'total_avances' => (float) $agg->total_avances,
+            'total_utilise' => (float) $agg->total_utilise,
+            'total_disponible' => (float) $agg->total_disponible,
+            'nombre_avances' => (int) $agg->nombre_avances,
         ];
 
         return Inertia::render('Avances/Index', [
@@ -75,6 +85,17 @@ class AvanceClientController extends Controller
             'clients' => $clients,
             'banques' => $banques,
             'stats' => $stats,
+            'pagination' => [
+                'current_page' => $avancesPaginated->currentPage(),
+                'per_page' => $avancesPaginated->perPage(),
+                'total' => $avancesPaginated->total(),
+                'last_page' => $avancesPaginated->lastPage(),
+            ],
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'client_id' => $request->input('client_id') ? (int) $request->input('client_id') : null,
+                'statut' => $request->input('statut', ''),
+            ],
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',

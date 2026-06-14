@@ -28,35 +28,42 @@ class ReglementClientController extends Controller
             $query->where('client_id', $request->client_id);
         }
 
+        if ($request->filled('type_reglement')) {
+            $query->where('type_reglement', $request->type_reglement);
+        }
+
+        if ($request->filled('date_debut')) {
+            $query->whereDate('date_reglement', '>=', $request->date_debut);
+        }
+        if ($request->filled('date_fin')) {
+            $query->whereDate('date_reglement', '<=', $request->date_fin);
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('numero_ligne', 'LIKE', "%{$search}%")
-                  ->orWhere('reference_cheque', 'LIKE', "%{$search}%")
-                  ->orWhere('institution', 'LIKE', "%{$search}%")
-                  ->orWhereHas('facture', fn($fq) => $fq->where('reference', 'LIKE', "%{$search}%"))
-                  ->orWhereHas('client', fn($cq) => $cq->where('nom', 'LIKE', "%{$search}%"));
+                $q->where('numero_ligne', 'ILIKE', "%{$search}%")
+                  ->orWhere('reference_cheque', 'ILIKE', "%{$search}%")
+                  ->orWhere('institution', 'ILIKE', "%{$search}%")
+                  ->orWhereHas('facture', fn($fq) => $fq->where('reference', 'ILIKE', "%{$search}%"))
+                  ->orWhereHas('client', fn($cq) => $cq->where('nom', 'ILIKE', "%{$search}%"));
             });
         }
 
-        $reglements = $query->get()->map(fn($r) => $r->toApiArray());
+        // Pagination serveur (au lieu d'un ->get() de toute la table).
+        $perPage = (int) $request->input('per_page', 20);
+        $reglementsPaginated = $query->paginate($perPage);
+        $reglements = $reglementsPaginated->getCollection()->map(fn($r) => $r->toApiArray());
 
         $clients = Client::orderBy('nom')->get()->map(fn($c) => [
             'id' => $c->id,
             'nom' => $c->nom,
         ]);
 
-        $facturesImpayees = FactureClient::with('client')
-            ->whereIn('statut', [FactureClient::STATUT_NON_PAYEE, FactureClient::STATUT_PARTIELLEMENT_PAYEE])
-            ->orderBy('date_facture', 'desc')
-            ->get()
-            ->map(fn($f) => [
-                'id' => $f->id,
-                'reference' => $f->reference,
-                'client_nom' => $f->client?->nom,
-                'montant' => (float) $f->montant,
-                'reste_a_payer' => (float) $f->reste_a_payer,
-            ]);
+        // NB : la liste des factures impayées n'est PLUS injectée dans les props
+        // (elle saturait l'historique Inertia → erreur Firefox sur gros volume).
+        // Le sélecteur du formulaire « Nouveau règlement » la cherche via l'API
+        // /api/factures-clients/impayees (recherche serveur).
 
         $stats = [
             'total_reglements' => (float) ReglementClient::sum('montant'),
@@ -94,9 +101,19 @@ class ReglementClientController extends Controller
         return Inertia::render('ReglementClients/Index', [
             'reglements' => $reglements,
             'clients' => $clients,
-            'facturesImpayees' => $facturesImpayees,
             'banques' => $banques,
             'stats' => $stats,
+            'pagination' => [
+                'current_page' => $reglementsPaginated->currentPage(),
+                'per_page' => $reglementsPaginated->perPage(),
+                'total' => $reglementsPaginated->total(),
+                'last_page' => $reglementsPaginated->lastPage(),
+            ],
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'client_id' => $request->input('client_id') ? (int) $request->input('client_id') : null,
+                'type_reglement' => $request->input('type_reglement', ''),
+            ],
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',

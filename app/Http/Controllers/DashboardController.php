@@ -8,6 +8,7 @@ use App\Models\ReglementFournisseur;
 use App\Models\CompteBancaire;
 use App\Models\Fournisseur;
 use App\Models\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -15,6 +16,27 @@ use Inertia\Response as InertiaResponse;
 class DashboardController extends Controller
 {
     public function index(): InertiaResponse
+    {
+        // Les KPI / agrégats du tableau de bord sont identiques pour tous les
+        // utilisateurs et coûteux (~20 requêtes + une boucle sur 12 mois). On les
+        // met en cache 5 minutes. La clé inclut la date du jour pour basculer
+        // proprement au changement de mois.
+        $data = Cache::remember('dashboard:'.now()->format('Y-m-d'), now()->addMinutes(5), function () {
+            return $this->computeDashboard();
+        });
+
+        return Inertia::render('Dashboard', array_merge($data, [
+            'user' => [
+                'name' => auth()->user()?->name ?? 'Utilisateur',
+                'email' => auth()->user()?->email ?? '',
+            ],
+        ]));
+    }
+
+    /**
+     * Calcule l'ensemble des données du tableau de bord (sans le bloc utilisateur).
+     */
+    private function computeDashboard(): array
     {
         $now = now();
         $debutMois = $now->copy()->startOfMonth();
@@ -168,7 +190,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        return Inertia::render('Dashboard', [
+        return [
             'kpis' => [
                 'chiffre_affaires' => (float) $chiffreAffaires,
                 'trend_ca' => $trendCA,
@@ -186,10 +208,6 @@ class DashboardController extends Controller
             'stats' => $stats,
             'evolution_mensuelle' => $evolutionMensuelle,
             'repartition_charges' => $repartitionCharges,
-            'user' => [
-                'name' => auth()->user()?->name ?? 'Utilisateur',
-                'email' => auth()->user()?->email ?? '',
-            ],
-        ]);
+        ];
     }
 }

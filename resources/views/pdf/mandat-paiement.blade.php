@@ -171,11 +171,15 @@
             width: 100%;
         }
 
-        .signatures-table td {
-            width: 50%;
+        .signatures-table td.sig-cell {
+            width: 40%;
             vertical-align: top;
             padding: 0 15px;
             text-align: center;
+        }
+        /* Colonne d'espacement central : sépare nettement les deux blocs signataires. */
+        .signatures-table td.sig-gap {
+            width: 20%;
         }
 
         .signature-title {
@@ -315,11 +319,12 @@
 
     <table class="signatures-table">
         <tr>
-            <td>
+            <td class="sig-cell">
                 <div class="signature-title">Le Bénéficiaire,</div>
                 <div class="signature-name">{{ strtoupper($reglement->beneficiaire ?: ($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '')) }}</div>
             </td>
-            <td>
+            <td class="sig-gap"></td>
+            <td class="sig-cell">
                 <div class="signature-title">L'Administrateur,</div>
                 <div class="signature-name">{{ $etablissement['directeur'] ?? '' }}</div>
             </td>

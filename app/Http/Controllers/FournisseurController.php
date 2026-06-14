@@ -39,10 +39,10 @@ class FournisseurController extends Controller
             $query->where('type_fournisseur', $request->type);
         }
 
-        // Tri
-        $sortField = $request->input('sort', 'nom');
-        $sortOrder = $request->input('order', 'asc') === 'asc' ? 'asc' : 'desc';
-        $allowedSorts = ['nom', 'type_fournisseur', 'contact', 'telephone', 'email'];
+        // Tri — par défaut : du plus récent au plus ancien (created_at desc).
+        $sortField = $request->input('sort', 'created_at');
+        $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['nom', 'type_fournisseur', 'contact', 'telephone', 'email', 'created_at'];
 
         if ($sortField === 'compte_comptable') {
             $query->leftJoin('plan_comptable_ohada', 'fournisseurs.compte_comptable_id', '=', 'plan_comptable_ohada.id')
@@ -51,7 +51,7 @@ class FournisseurController extends Controller
         } elseif (in_array($sortField, $allowedSorts)) {
             $query->orderBy($sortField, $sortOrder);
         } else {
-            $query->orderBy('nom', $sortOrder);
+            $query->orderBy('created_at', 'desc');
         }
 
         // Pagination

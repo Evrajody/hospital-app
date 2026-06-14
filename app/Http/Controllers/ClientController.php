@@ -34,10 +34,10 @@ class ClientController extends Controller
             });
         }
 
-        // Tri
-        $sort = $request->input('sort', 'nom');
-        $order = $request->input('order', 'asc') === 'asc' ? 'asc' : 'desc';
-        $allowedSorts = ['nom', 'telephone', 'adresse'];
+        // Tri — par défaut : du plus récent au plus ancien (created_at desc).
+        $sort = $request->input('sort', 'created_at');
+        $order = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['nom', 'telephone', 'adresse', 'created_at'];
 
         if ($sort === 'code') {
             $query->leftJoin('plan_comptable_ohada', 'clients.compte_comptable_id', '=', 'plan_comptable_ohada.id')
@@ -46,7 +46,7 @@ class ClientController extends Controller
         } elseif (in_array($sort, $allowedSorts)) {
             $query->orderBy($sort, $order);
         } else {
-            $query->orderBy('nom', $order);
+            $query->orderBy('created_at', 'desc');
         }
 
         // Pagination

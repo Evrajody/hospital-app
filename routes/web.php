@@ -153,6 +153,7 @@ Route::prefix('factures-clients')->middleware('permission:factures-clients.voir'
 
 // API Factures Clients
 Route::prefix('api/factures-clients')->group(function () {
+    Route::get('/impayees', [FactureClientController::class, 'impayees'])->middleware('permission:factures-clients.voir')->name('api.factures-clients.impayees');
     Route::post('/', [FactureClientController::class, 'store'])->middleware('permission:factures-clients.creer')->name('api.factures-clients.store');
     Route::put('/{id}', [FactureClientController::class, 'update'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.update');
     Route::post('/{id}/solder', [FactureClientController::class, 'solder'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.solder');

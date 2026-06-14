@@ -62,3 +62,23 @@ h1, h2, h3, h4, h5, h6 {
         var(--gov-red) 66.66% 100%
     );
 }
+
+/* Ombre portée sur l'ensemble des boutons de l'application.
+   Exclut les boutons "texte"/"lien" (sans fond) où une ombre n'aurait pas de sens. */
+.el-button:not(.is-text):not(.is-link) {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.el-button:not(.is-text):not(.is-link):hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.el-button:not(.is-text):not(.is-link):active {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+}
+/* Dans un groupe de boutons, on garde une ombre d'ensemble plutôt qu'au cas par cas. */
+.el-button-group .el-button:not(.is-text):not(.is-link) {
+    box-shadow: none;
+}
+.el-button-group {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    border-radius: var(--el-border-radius-base);
+}

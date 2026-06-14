@@ -65,15 +65,15 @@
       <el-card class="filter-card" shadow="never">
         <el-form :inline="true" :model="filters" class="filter-form">
           <el-form-item label="Recherche">
-            <el-input v-model="filters.search" placeholder="Société, n° chèque, proforma…" clearable style="width: 280px" :prefix-icon="Search" />
+            <el-input v-model="filters.search" placeholder="Société, n° chèque, proforma…" clearable style="width: 280px" :prefix-icon="Search" @input="debouncedSearch" />
           </el-form-item>
           <el-form-item label="Client">
-            <el-select v-model="filters.client_id" placeholder="Tous" filterable clearable style="width: 220px">
+            <el-select v-model="filters.client_id" placeholder="Tous" filterable clearable style="width: 220px" @change="handleSearch">
               <el-option v-for="c in clients" :key="c.id" :label="c.nom" :value="c.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="Statut">
-            <el-select v-model="filters.statut" placeholder="Tous" clearable style="width: 200px">
+            <el-select v-model="filters.statut" placeholder="Tous" clearable style="width: 200px" @change="handleSearch">
               <el-option label="Disponible" value="disponible" />
               <el-option label="Partiellement utilisée" value="partiellement_utilisee" />
               <el-option label="Épuisée" value="epuisee" />
@@ -91,11 +91,11 @@
       <el-card shadow="never" class="table-card">
         <template #header>
           <div class="card-header">
-            <span class="card-title">Liste des avances ({{ filtered.length }})</span>
+            <span class="card-title">Liste des avances ({{ pagination.total }})</span>
           </div>
         </template>
 
-        <el-table :data="pagedAvances" border style="width: 100%" stripe>
+        <el-table :data="avances" border style="width: 100%" stripe>
           <el-table-column label="N° Ligne" min-width="90" prop="numero_ligne" />
           <el-table-column label="Date Chèque" min-width="110">
             <template #default="{ row }">{{ formatDate(row.date_cheque) }}</template>
@@ -148,12 +148,14 @@
 
         <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
           <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
+            :current-page="pagination.current_page"
+            :page-size="pagination.per_page"
             :page-sizes="[10, 20, 50, 100]"
-            :total="filtered.length"
+            :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
             background
+            @size-change="handleSizeChange"
+            @current-change="handlePageChange"
           />
         </div>
       </el-card>
@@ -299,13 +301,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search, Delete, Edit, View, RefreshLeft, Money, CircleCheck, Wallet, TrendCharts, ArrowDown } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
+import { debounce } from '@/utils/debounce';
 
 const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 
@@ -314,6 +317,8 @@ const props = defineProps({
   clients: { type: Array, default: () => [] },
   banques: { type: Array, default: () => [] },
   stats: { type: Object, default: () => ({ total_avances: 0, total_utilise: 0, total_disponible: 0, nombre_avances: 0 }) },
+  pagination: { type: Object, default: () => ({ current_page: 1, per_page: 20, total: 0, last_page: 1 }) },
+  filters: { type: Object, default: () => ({}) },
   user: { type: Object, default: () => null },
 });
 
@@ -322,36 +327,43 @@ const breadcrumbs = [
   { title: 'Avances Clients', path: '/avances-clients' },
 ];
 
-const filters = ref({ search: '', client_id: null, statut: '' });
-
-const filtered = computed(() => {
-  let r = props.avances;
-  if (filters.value.search) {
-    const q = filters.value.search.toLowerCase();
-    r = r.filter(a =>
-      a.societe_emettrice?.toLowerCase().includes(q) ||
-      a.numero_cheque?.toLowerCase().includes(q) ||
-      a.numero_proforma?.toLowerCase().includes(q) ||
-      a.client?.nom?.toLowerCase().includes(q)
-    );
-  }
-  if (filters.value.client_id) r = r.filter(a => a.client_id === filters.value.client_id);
-  if (filters.value.statut) r = r.filter(a => a.statut === filters.value.statut);
-  return r;
+const filters = ref({
+  search: props.filters?.search || '',
+  client_id: props.filters?.client_id || null,
+  statut: props.filters?.statut || '',
 });
 
-// Pagination (client-side)
-const currentPage = ref(1);
-const pageSize = ref(20);
-const pagedAvances = computed(() =>
-  filtered.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
-);
-watch(() => filtered.value.length, () => {
-  const maxPage = Math.max(1, Math.ceil(filtered.value.length / pageSize.value));
-  if (currentPage.value > maxPage) currentPage.value = maxPage;
-});
+// --- Filtres & pagination 100 % serveur ---
+const handleSearch = () => {
+  const params = {};
+  if (filters.value.search) params.search = filters.value.search;
+  if (filters.value.client_id) params.client_id = filters.value.client_id;
+  if (filters.value.statut) params.statut = filters.value.statut;
+  router.get('/avances-clients', params, {
+    preserveState: true,
+    preserveScroll: true,
+    only: ['avances', 'stats', 'pagination', 'filters'],
+  });
+};
+const debouncedSearch = debounce(handleSearch, 300);
 
-const resetFilters = () => { filters.value = { search: '', client_id: null, statut: '' }; };
+const handleSizeChange = (size) => {
+  const params = new URLSearchParams(window.location.search);
+  params.set('per_page', size);
+  params.set('page', '1');
+  router.visit(`/avances-clients?${params.toString()}`, { preserveState: true, only: ['avances', 'pagination'] });
+};
+
+const handlePageChange = (page) => {
+  const params = new URLSearchParams(window.location.search);
+  params.set('page', page);
+  router.visit(`/avances-clients?${params.toString()}`, { preserveState: true, preserveScroll: true, only: ['avances', 'pagination'] });
+};
+
+const resetFilters = () => {
+  filters.value = { search: '', client_id: null, statut: '' };
+  handleSearch();
+};
 
 const statutColor = (s) => ({
   disponible: 'success',

@@ -142,7 +142,13 @@ class RapportClientController extends Controller
         } elseif ($mode === 'tous_clients') {
             $deb = $dateDebut ?: now()->startOfYear()->format('Y-m-d');
             $fin = $dateFin ?: now()->format('Y-m-d');
-            $clientsAvecFactures = Client::with('compteComptable')
+            // Eager-load des factures de la période + de leurs règlements → évite le N+1
+            // (1 requête clients + 1 factures + 1 règlements au lieu d'une requête par client).
+            $clientsAvecFactures = Client::with([
+                    'compteComptable',
+                    'facturesClient' => fn($q) => $q->whereBetween('date_facture', [$deb, $fin]),
+                    'facturesClient.reglements',
+                ])
                 ->when($typeClient, fn($q) => $q->where('type_client', $typeClient))
                 ->whereHas('facturesClient', function ($q) use ($deb, $fin) {
                     $q->whereBetween('date_facture', [$deb, $fin]);
@@ -152,10 +158,7 @@ class RapportClientController extends Controller
 
             $numero = 0;
             foreach ($clientsAvecFactures as $client) {
-                $factures = $client->facturesClient()
-                    ->with('reglements')
-                    ->whereBetween('date_facture', [$deb, $fin])
-                    ->get();
+                $factures = $client->facturesClient; // déjà chargées et filtrées (eager-load)
 
                 $totalFacture = 0;
                 $totalPaye = 0;

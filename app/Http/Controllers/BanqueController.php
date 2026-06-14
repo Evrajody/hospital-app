@@ -21,15 +21,21 @@ class BanqueController extends Controller
      */
     public function index(): InertiaResponse
     {
+        // Pré-calcul des sorties (règlements fournisseurs non annulés) par numéro de compte,
+        // en UNE requête groupée — évite un COUNT par compte dans la boucle (N+1).
+        $sortiesParCompte = \App\Models\ReglementFournisseur::query()
+            ->where('statut', '!=', \App\Models\ReglementFournisseur::STATUT_ANNULE)
+            ->whereNotNull('numero_compte_bancaire')
+            ->selectRaw('numero_compte_bancaire, COUNT(*) as nb')
+            ->groupBy('numero_compte_bancaire')
+            ->pluck('nb', 'numero_compte_bancaire');
+
         $comptes = CompteBancaire::with(['banque', 'compteOhada'])
             ->withCount(['approvisionnements as nb_entrees'])
-            ->orderBy('banque_id')
+            ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($c) {
-                // Compter les sorties (règlements fournisseurs liés à ce compte par numéro)
-                $nbSorties = \App\Models\ReglementFournisseur::where('numero_compte_bancaire', $c->numero_compte)
-                    ->where('statut', '!=', \App\Models\ReglementFournisseur::STATUT_ANNULE)
-                    ->count();
+            ->map(function ($c) use ($sortiesParCompte) {
+                $nbSorties = (int) ($sortiesParCompte[$c->numero_compte] ?? 0);
 
                 return [
                     'id' => $c->id,

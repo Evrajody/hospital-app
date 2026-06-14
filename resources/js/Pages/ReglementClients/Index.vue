@@ -7,7 +7,7 @@
           <h1 class="page-title">R&egrave;glements Clients</h1>
           <p class="page-subtitle">Historique complet des paiements re&ccedil;us</p>
         </div>
-        <el-button type="primary" size="large" @click="showNewReglementModal = true">
+        <el-button type="primary" size="large" @click="openNewReglement">
           <el-icon><Plus /></el-icon>
           Nouveau R&egrave;glement
         </el-button>
@@ -79,6 +79,7 @@
               :prefix-icon="Search"
               clearable
               style="width: 250px"
+              @input="debouncedSearch"
             />
           </el-form-item>
 
@@ -89,6 +90,7 @@
               clearable
               filterable
               style="width: 200px"
+              @change="handleSearch"
             >
               <el-option
                 v-for="client in clients"
@@ -105,6 +107,7 @@
               placeholder="Tous"
               clearable
               style="width: 160px"
+              @change="handleSearch"
             >
               <el-option label="Règlement" value="reglement" />
               <el-option label="Perte" value="perte" />
@@ -119,7 +122,9 @@
               start-placeholder="Date début"
               end-placeholder="Date fin"
               format="DD/MM/YYYY"
+              value-format="YYYY-MM-DD"
               style="width: 280px"
+              @change="handleSearch"
             />
           </el-form-item>
 
@@ -137,13 +142,13 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">
-              {{ groupedReglements.length }} facture(s) &mdash; {{ filteredReglements.length }} r&egrave;glement(s)
+              {{ groupedReglements.length }} facture(s) sur cette page &mdash; {{ pagination.total }} r&egrave;glement(s)
             </span>
           </div>
         </template>
 
         <el-table
-          :data="pagedGroups"
+          :data="groupedReglements"
           stripe
           border
           style="width: 100%"
@@ -279,12 +284,14 @@
 
         <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
           <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
+            :current-page="pagination.current_page"
+            :page-size="pagination.per_page"
             :page-sizes="[10, 20, 50, 100]"
-            :total="groupedReglements.length"
+            :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
             background
+            @size-change="handleSizeChange"
+            @current-change="handlePageChange"
           />
         </div>
       </el-card>
@@ -463,12 +470,16 @@
             <el-select
               v-model="selectedFactureId"
               filterable
-              placeholder="S&eacute;lectionner une facture"
+              remote
+              :remote-method="searchFactureImpayee"
+              :loading="facturesLoading"
+              remote-show-suffix
+              placeholder="Tapez la r&eacute;f&eacute;rence ou le client&hellip;"
               style="width: 100%"
               size="large"
             >
               <el-option
-                v-for="f in facturesImpayees"
+                v-for="f in factureOptions"
                 :key="f.id"
                 :label="f.reference + ' - ' + f.client_nom"
                 :value="f.id"
@@ -498,7 +509,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
@@ -509,11 +520,12 @@ import {
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { debounce } from '@/utils/debounce';
+import { toYmd } from '@/utils/date';
 
 const props = defineProps({
   reglements: { type: Array, default: () => [] },
   clients: { type: Array, default: () => [] },
-  facturesImpayees: { type: Array, default: () => [] },
   banques: { type: Array, default: () => [] },
   stats: {
     type: Object,
@@ -524,6 +536,11 @@ const props = defineProps({
       montant_moyen: 0
     })
   },
+  pagination: {
+    type: Object,
+    default: () => ({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
+  },
+  filters: { type: Object, default: () => ({}) },
   user: { type: Object, default: () => null }
 });
 
@@ -533,59 +550,87 @@ const breadcrumbs = [
 ];
 
 const filters = ref({
-  search: '',
-  client_id: null,
-  type_reglement: '',
+  search: props.filters?.search || '',
+  client_id: props.filters?.client_id || null,
+  type_reglement: props.filters?.type_reglement || '',
   date_range: null,
 });
+
+// --- Filtres & pagination 100 % serveur (mêmes mécaniques que Règlements Fournisseurs) ---
+const handleSearch = () => {
+  const params = {};
+  if (filters.value.search) params.search = filters.value.search;
+  if (filters.value.client_id) params.client_id = filters.value.client_id;
+  if (filters.value.type_reglement) params.type_reglement = filters.value.type_reglement;
+  if (filters.value.date_range && filters.value.date_range.length === 2) {
+    params.date_debut = toYmd(filters.value.date_range[0]);
+    params.date_fin = toYmd(filters.value.date_range[1]);
+  }
+  router.get('/reglements-clients', params, {
+    preserveState: true,
+    preserveScroll: true,
+    only: ['reglements', 'stats', 'pagination', 'filters'],
+  });
+};
+const debouncedSearch = debounce(handleSearch, 300);
+
+const handleSizeChange = (size) => {
+  const params = new URLSearchParams(window.location.search);
+  params.set('per_page', size);
+  params.set('page', '1');
+  router.visit(`/reglements-clients?${params.toString()}`, {
+    preserveState: true,
+    only: ['reglements', 'pagination'],
+  });
+};
+
+const handlePageChange = (page) => {
+  const params = new URLSearchParams(window.location.search);
+  params.set('page', page);
+  router.visit(`/reglements-clients?${params.toString()}`, {
+    preserveState: true,
+    preserveScroll: true,
+    only: ['reglements', 'pagination'],
+  });
+};
 const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
 const showNewReglementModal = ref(false);
 const selectedFactureId = ref(null);
+// Recherche serveur des factures impayées (ne précharge plus toute la liste).
+const factureOptions = ref([]);
+const facturesLoading = ref(false);
+
+const searchFactureImpayee = async (query) => {
+  facturesLoading.value = true;
+  try {
+    const params = new URLSearchParams({ per_page: '50' });
+    if (query && query.trim()) params.set('search', query.trim());
+    const res = await fetchApi(`/api/factures-clients/impayees?${params.toString()}`);
+    const json = await res.json();
+    factureOptions.value = json.data || [];
+  } catch (e) {
+    factureOptions.value = [];
+  } finally {
+    facturesLoading.value = false;
+  }
+};
+
+const openNewReglement = () => {
+  selectedFactureId.value = null;
+  factureOptions.value = [];
+  showNewReglementModal.value = true;
+  searchFactureImpayee(''); // précharge les 50 factures impayées les plus récentes
+};
 const editDialogVisible = ref(false);
 const editForm = ref(null);
 const editLoading = ref(false);
 const editingReglementId = ref(null);
 
-const filteredReglements = computed(() => {
-  let result = props.reglements;
-
-  if (filters.value.search) {
-    const q = filters.value.search.toLowerCase();
-    result = result.filter(r =>
-      r.facture?.reference?.toLowerCase().includes(q) ||
-      r.client?.nom?.toLowerCase().includes(q) ||
-      r.institution?.toLowerCase().includes(q) ||
-      r.reference_cheque?.toLowerCase().includes(q) ||
-      r.numero_ligne?.toLowerCase().includes(q)
-    );
-  }
-
-  if (filters.value.client_id) {
-    result = result.filter(r => r.client_id === filters.value.client_id);
-  }
-
-  if (filters.value.type_reglement) {
-    result = result.filter(r => r.type_reglement === filters.value.type_reglement);
-  }
-
-  if (filters.value.date_range && filters.value.date_range.length === 2) {
-    const [start, end] = filters.value.date_range;
-    const startDate = new Date(start).setHours(0, 0, 0, 0);
-    const endDate = new Date(end).setHours(23, 59, 59, 999);
-    result = result.filter(r => {
-      const d = new Date(r.date_reglement).getTime();
-      return d >= startDate && d <= endDate;
-    });
-  }
-
-  return result;
-});
-
-// Regrouper les règlements par facture (pour expandable rows)
+// Regroupe par facture les règlements de la PAGE COURANTE (filtrage/pagination serveur).
 const groupedReglements = computed(() => {
   const map = new Map();
-  for (const r of filteredReglements.value || []) {
+  for (const r of props.reglements || []) {
     const factureId = r.facture?.id ?? `${r.facture?.reference || 'unknown'}-${r.client?.id || 0}`;
     if (!map.has(factureId)) {
       map.set(factureId, {
@@ -605,19 +650,9 @@ const groupedReglements = computed(() => {
   return Array.from(map.values());
 });
 
-// Pagination (client-side) — par facture
-const currentPage = ref(1);
-const pageSize = ref(20);
-const pagedGroups = computed(() =>
-  groupedReglements.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value)
-);
-watch(() => groupedReglements.value.length, () => {
-  const maxPage = Math.max(1, Math.ceil(groupedReglements.value.length / pageSize.value));
-  if (currentPage.value > maxPage) currentPage.value = maxPage;
-});
-
 const handleReset = () => {
   filters.value = { search: '', client_id: null, type_reglement: '', date_range: null };
+  handleSearch();
 };
 
 const handleView = (reglement) => {

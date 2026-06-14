@@ -292,7 +292,7 @@
                   @click="handleAction('pay')"
                 >
                   <el-icon><Money /></el-icon>
-                  Enregistrer un règlement
+                  <span>Enregistrer un règlement</span>
                 </el-button>
 
                 <el-button
@@ -303,7 +303,7 @@
                   @click="handleAction('marquer_soldee')"
                 >
                   <el-icon><CircleCheck /></el-icon>
-                  Marquer comme soldée
+                  <span>Marquer comme soldée</span>
                 </el-button>
               </div>
 
@@ -332,7 +332,7 @@
               </div>
             </template>
 
-            <el-timeline v-if="reglements.length > 0">
+            <el-timeline v-if="reglements.length > 0" class="reglements-timeline">
               <el-timeline-item
                 v-for="reglement in reglements"
                 :key="reglement.id"
@@ -341,6 +341,15 @@
                 color="#67c23a"
               >
                 <el-card class="reglement-item">
+                  <el-tooltip content="Modifier ce règlement" placement="top" :show-after="300">
+                    <el-button
+                      class="reglement-edit-hover"
+                      size="small"
+                      circle
+                      :icon="Edit"
+                      @click="editReglement(reglement)"
+                    />
+                  </el-tooltip>
                   <div class="reglement-header">
                     <el-tag :type="getModeTagType(reglement.mode_paiement)" size="small">
                       {{ getModeLabel(reglement.mode_paiement) }}
@@ -888,6 +897,11 @@ const openMandatDrawer = (reglementId) => {
   openPdf(`/reglements-fournisseurs/${reglementId}/mandat`, 'Bordereau de règlement');
 };
 
+// Raccourci (au survol) pour modifier un règlement depuis l'historique.
+const editReglement = (reglement) => {
+  router.visit(`/factures-fournisseurs/${props.facture.id}/regler?edit=${reglement.id}`);
+};
+
 const openImputationDrawer = async () => {
   imputationData.value = null;
   imputationLoading.value = true;
@@ -1166,9 +1180,30 @@ onMounted(() => {
   color: #059669;
 }
 
+/* Historique des règlements : hauteur bornée + défilement. */
+.reglements-timeline {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
 .reglement-item {
   box-shadow: none;
   border: 1px solid #e5e7eb;
+  position: relative;
+}
+
+/* Raccourci "Modifier" visible uniquement au survol du règlement. */
+.reglement-edit-hover {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.reglement-item:hover .reglement-edit-hover {
+  opacity: 1;
 }
 
 .reglement-header {

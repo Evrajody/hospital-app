@@ -100,11 +100,17 @@ deploy: ## Déploiement complet en UNE commande (backup + build + migrate + cach
 	@echo "$(BLUE)[6/7]$(NC) Migrations et optimisation Laravel..."
 	@sleep 5
 	$(EXEC_APP_PROD) php artisan migrate --force
+	@# On VIDE d'abord tous les caches (config/route/view/app/compiled) pour ne rien
+	@# garder de périmé du déploiement précédent, PUIS on reconstruit des caches neufs.
+	$(EXEC_APP_PROD) php artisan optimize:clear
 	$(EXEC_APP_PROD) php artisan config:cache
 	$(EXEC_APP_PROD) php artisan route:cache
 	$(EXEC_APP_PROD) php artisan view:cache
 	$(EXEC_APP_PROD) php artisan storage:link 2>/dev/null || true
-	@echo "  $(GREEN)✓ Laravel optimisé$(NC)"
+	@# Le worker est déjà recréé par `up -d` (nouvelle image) ; on force un redémarrage
+	@# explicite pour garantir qu'aucun ancien process queue:work ne tourne avec du code périmé.
+	$(DOCKER_COMPOSE_PROD) up -d --no-deps worker
+	@echo "  $(GREEN)✓ Laravel optimisé (caches reconstruits à neuf)$(NC)"
 	@echo ""
 	@# --- Étape 7 : Désactivation du mode maintenance ---
 	@echo "$(BLUE)[7/7]$(NC) Remise en ligne..."
@@ -141,7 +147,12 @@ deploy-quick: ## Redéploiement rapide (rebuild + restart, sans backup)
 	$(DOCKER_COMPOSE_PROD) up -d
 	@sleep 5
 	$(EXEC_APP_PROD) php artisan migrate --force
-	$(EXEC_APP_PROD) php artisan optimize
+	@# Clear puis re-cache (au lieu de `optimize` seul) → aucun cache périmé conservé.
+	$(EXEC_APP_PROD) php artisan optimize:clear
+	$(EXEC_APP_PROD) php artisan config:cache
+	$(EXEC_APP_PROD) php artisan route:cache
+	$(EXEC_APP_PROD) php artisan view:cache
+	$(DOCKER_COMPOSE_PROD) up -d --no-deps worker
 	@echo "$(GREEN)✓ Redéploiement rapide terminé$(NC)"
 
 rollback: ## Restaurer le dernier backup (après un deploy raté)

@@ -106,7 +106,7 @@
               </div>
             </template>
 
-            <el-timeline v-if="reglements.length > 0">
+            <el-timeline v-if="reglements.length > 0" class="reglements-timeline">
               <el-timeline-item
                 v-for="reglement in reglements"
                 :key="reglement.id"
@@ -118,6 +118,20 @@
                   class="reglement-item"
                   :class="{ 'reglement-item-editing': reglement.id === editingReglementId }"
                 >
+                  <el-tooltip
+                    v-if="reglement.id !== editingReglementId"
+                    content="Modifier ce règlement"
+                    placement="top"
+                    :show-after="300"
+                  >
+                    <el-button
+                      class="reglement-edit-hover"
+                      size="small"
+                      circle
+                      :icon="Edit"
+                      @click="editReglementFromHistory(reglement)"
+                    />
+                  </el-tooltip>
                   <div class="reglement-header">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <el-tag :type="getModeTagType(reglement.mode_paiement)" size="small">
@@ -580,6 +594,7 @@ import {
   DocumentCopy,
   User,
   Check,
+  Edit,
   SuccessFilled,
   WarningFilled
 } from '@element-plus/icons-vue';
@@ -1018,6 +1033,11 @@ const submitPayment = async (forceInsufficient = false) => {
 };
 
 // Pré-remplir le formulaire en mode édition
+// Raccourci (au survol) : basculer l'édition vers un autre règlement de l'historique.
+const editReglementFromHistory = (reglement) => {
+  router.visit(`/factures-fournisseurs/${props.facture.id}/regler?edit=${reglement.id}`);
+};
+
 const loadReglementForEdit = async () => {
   if (!editingReglementId.value) return;
   try {
@@ -1206,10 +1226,31 @@ const forceSubmit = async () => {
   color: #dc2626;
 }
 
+/* Historique des règlements : hauteur bornée + défilement. */
+.reglements-timeline {
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
 .reglement-item {
   box-shadow: none;
   border: 1px solid #e5e7eb;
   transition: all 0.2s ease;
+  position: relative;
+}
+
+/* Raccourci "Modifier" visible uniquement au survol du règlement. */
+.reglement-edit-hover {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.reglement-item:hover .reglement-edit-hover {
+  opacity: 1;
 }
 
 .reglement-item-editing {

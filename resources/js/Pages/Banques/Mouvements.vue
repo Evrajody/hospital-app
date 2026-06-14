@@ -658,7 +658,7 @@ const getRowClassName = ({ row }) => {
 };
 
 const handleSearch = () => {
-  console.log('Searching with filters:', filters);
+  // Le filtrage est appliqué côté client via les computeds réactifs sur `filters`.
 };
 
 const handleReset = () => {

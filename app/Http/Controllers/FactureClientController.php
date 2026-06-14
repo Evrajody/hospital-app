@@ -70,12 +70,17 @@ class FactureClientController extends Controller
 
         $prochaineReference = FactureClient::genererReference();
 
-        // Stats globales (non filtrées)
-        $allFactures = FactureClient::all();
+        // Stats globales (non filtrées) — agrégées en UNE requête SQL au lieu de
+        // charger toute la table en mémoire (FactureClient::all()).
+        $agg = FactureClient::selectRaw(
+            'COALESCE(SUM(montant),0) AS total_facture, '
+            .'COALESCE(SUM(montant_paye),0) AS total_paye, '
+            .'COALESCE(SUM(reste_a_payer),0) AS total_reste'
+        )->first();
         $stats = [
-            'total_facture' => $allFactures->sum('montant'),
-            'total_paye' => $allFactures->sum('montant_paye'),
-            'total_reste' => $allFactures->sum('reste_a_payer'),
+            'total_facture' => (float) $agg->total_facture,
+            'total_paye' => (float) $agg->total_paye,
+            'total_reste' => (float) $agg->total_reste,
         ];
 
         return Inertia::render('Clients/Factures/Index', [
@@ -99,6 +104,38 @@ class FactureClientController extends Controller
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
             ],
         ]);
+    }
+
+    /**
+     * Recherche serveur des factures clients impayées (sélecteur du formulaire
+     * « Nouveau règlement »). Évite de précharger toute la liste dans les props
+     * Inertia (saturation de l'historique → erreur Firefox sur gros volume).
+     */
+    public function impayees(Request $request): JsonResponse
+    {
+        $query = FactureClient::with('client')
+            ->whereIn('statut', [FactureClient::STATUT_NON_PAYEE, FactureClient::STATUT_PARTIELLEMENT_PAYEE])
+            ->orderBy('date_facture', 'desc');
+
+        if ($request->filled('search')) {
+            $s = $request->input('search');
+            $query->where(function ($q) use ($s) {
+                $q->where('reference', 'ILIKE', "%{$s}%")
+                  ->orWhereHas('client', fn ($cq) => $cq->where('nom', 'ILIKE', "%{$s}%"));
+            });
+        }
+
+        $factures = $query->limit((int) $request->input('per_page', 50))
+            ->get()
+            ->map(fn ($f) => [
+                'id' => $f->id,
+                'reference' => $f->reference,
+                'client_nom' => $f->client?->nom,
+                'montant' => (float) $f->montant,
+                'reste_a_payer' => (float) $f->reste_a_payer,
+            ]);
+
+        return response()->json(['data' => $factures]);
     }
 
     /**

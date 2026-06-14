@@ -174,17 +174,19 @@ class RapportFournisseurController extends Controller
         $dateFin = $datePoint ?: $request->input('date_fin');
         $compteId = $request->input('compte_id');
 
-        // Calculer le montant payé pour une facture à une date donnée
-        $getReglementsPeriode = function (FactureFournisseur $facture) use ($dateFin) {
-            $query = $facture->reglements()
-                ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
+        // Règlements pris en compte (non annulés, jusqu'à la date de fin).
+        $reglementConstraint = function ($q) use ($dateFin) {
+            $q->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
             if ($dateFin) {
-                $query->where('date_reglement', '<=', $dateFin);
+                $q->where('date_reglement', '<=', $dateFin);
             }
-            return (float) $query->sum('montant');
         };
 
-        // Filtre de base : factures émises dans la période
+        // Montant réglé d'une facture — calculé sur la relation DÉJÀ chargée (eager-load),
+        // donc sans requête supplémentaire (évite le N+1 par facture).
+        $getReglementsPeriode = fn (FactureFournisseur $facture) => (float) $facture->reglements->sum('montant');
+
+        // Filtre de base : factures émises dans la période.
         $baseFilter = function ($q) use ($dateDebut, $dateFin) {
             $q->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE]);
             if ($dateDebut) {
@@ -195,8 +197,19 @@ class RapportFournisseurController extends Controller
             }
         };
 
+        // Eager-load : factures de la période + leurs règlements filtrés. Une seule
+        // requête par relation (≈3 requêtes au total) au lieu d'un N+1 fournisseurs×factures.
+        $eager = [
+            'compteComptable',
+            'factures' => function ($q) use ($baseFilter) {
+                $baseFilter($q);
+                $q->orderByDesc('date');
+            },
+            'factures.reglements' => $reglementConstraint,
+        ];
+
         if ($mode === 'tous' || $mode === 'par_compte') {
-            $query = Fournisseur::with('compteComptable')
+            $query = Fournisseur::with($eager)
                 ->whereHas('factures', $baseFilter)
                 ->orderBy('nom');
 
@@ -219,11 +232,7 @@ class RapportFournisseurController extends Controller
             $numero = 1;
 
             foreach ($fournisseurs as $f) {
-                $factures = $f->factures()
-                    ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-                    ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
-                    ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
-                    ->get();
+                $factures = $f->factures; // déjà chargées et filtrées via eager-load
 
                 $montantDu = 0;
                 $montantReglements = 0;
@@ -284,7 +293,7 @@ class RapportFournisseurController extends Controller
 
         // mode === 'par_fournisseur'
         $fournisseurId = $request->input('fournisseur_id');
-        $query = Fournisseur::with('compteComptable')
+        $query = Fournisseur::with($eager)
             ->whereHas('factures', $baseFilter)
             ->orderBy('nom');
 
@@ -301,12 +310,7 @@ class RapportFournisseurController extends Controller
         ];
 
         foreach ($fournisseurs as $f) {
-            $factures = $f->factures()
-                ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-                ->when($dateDebut, fn($q) => $q->where('date', '>=', $dateDebut))
-                ->when($dateFin, fn($q) => $q->where('date', '<=', $dateFin))
-                ->orderByDesc('date')
-                ->get();
+            $factures = $f->factures; // déjà chargées, filtrées et triées (eager-load, date desc)
 
             $code = $f->compteComptable?->numero_compte ?? '-';
             $lignes = [];

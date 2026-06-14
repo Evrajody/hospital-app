@@ -131,7 +131,7 @@
               :prefix-icon="Search"
               clearable
               style="width: 300px"
-              @input="handleSearch"
+              @input="debouncedSearch"
             />
           </el-form-item>
 
@@ -308,6 +308,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import CompteComptableModal from '@/Components/Modals/CompteComptableModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { useAsyncExport } from '@/Composables/useAsyncExport';
+import { debounce } from '@/utils/debounce';
 const { startExport } = useAsyncExport();
 
 // Props
@@ -383,6 +384,7 @@ const handleSearch = () => {
     preserveScroll: true,
   });
 };
+const debouncedSearch = debounce(handleSearch, 300);
 
 const handleReset = () => {
   filters.search = '';
