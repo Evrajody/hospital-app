@@ -15,8 +15,9 @@ class GenerateReportExport implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** Temps max d'exécution du job (génération de gros PDF/Excel). */
-    public int $timeout = 600;
+    /** Temps max d'exécution du job (gros PDF/Excel : brouillard sur plusieurs années
+     *  → plusieurs milliers de lignes). 600 s était insuffisant → « attempted too many times ». */
+    public int $timeout = 1800;
 
     public int $tries = 1;
 

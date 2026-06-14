@@ -482,10 +482,10 @@ migrate-legacy-load: ## 2) Charger les exports SQL dans les schémas de staging 
 	@echo "$(GREEN)✓ Staging chargé.$(NC)"
 
 migrate-legacy-dry: migrate-legacy-load ## 3a) Simulation (aucune écriture) : compte ce qui serait importé
-	$(EXEC_APP) php artisan legacy:migrate --dry-run $(if $(only),--only=$(only),)
+	$(EXEC_APP) php artisan legacy:migrate --dry-run $(if $(only),--only=$(only),) $(if $(except),--except=$(except),)
 
-migrate-legacy: migrate-legacy-load ## 3b) Migration RÉELLE (idempotente, transactionnelle)
+migrate-legacy: migrate-legacy-load ## 3b) Migration RÉELLE (idempotente). Options : only=… ou except=… (ex. except=users)
 	@echo "$(YELLOW)Sauvegarde de la base avant migration...$(NC)"
 	$(MAKE) db-backup
-	$(EXEC_APP) php artisan legacy:migrate $(if $(only),--only=$(only),)
+	$(EXEC_APP) php artisan legacy:migrate $(if $(only),--only=$(only),) $(if $(except),--except=$(except),)
 	@echo "$(GREEN)✓ Migration héritée terminée.$(NC)"

@@ -39,6 +39,7 @@ class LegacyMigrate extends Command
     protected $signature = 'legacy:migrate
         {--dry-run : Simule sans rien écrire (transaction annulée à la fin)}
         {--only= : Sous-ensemble : plan,fournisseurs,clients,banques,factures-fournisseurs,factures-clients,reglements-fournisseurs,reglements-clients,imputations,users}
+        {--except= : Tout SAUF ces étapes (ex. --except=users). Ignoré si --only est fourni}
         {--clients-schema=legacy_clients : Schéma de staging côté Clients}
         {--fsr-schema=legacy_fsr : Schéma de staging côté Fournisseurs}';
 
@@ -62,9 +63,15 @@ class LegacyMigrate extends Command
         $this->schemaClients = (string) $this->option('clients-schema');
         $this->schemaFsr = (string) $this->option('fsr-schema');
         $dryRun = (bool) $this->option('dry-run');
+        $allSteps = ['plan', 'fournisseurs', 'clients', 'banques', 'factures-fournisseurs', 'factures-clients', 'reglements-fournisseurs', 'reglements-clients', 'imputations', 'users'];
         $this->only = $this->option('only')
             ? array_map('trim', explode(',', (string) $this->option('only')))
-            : ['plan', 'fournisseurs', 'clients', 'banques', 'factures-fournisseurs', 'factures-clients', 'reglements-fournisseurs', 'reglements-clients', 'imputations', 'users'];
+            : $allSteps;
+        // --except : retire des étapes de la liste (ex. --except=users). Sans effet si --only est passé.
+        if (! $this->option('only') && $this->option('except')) {
+            $except = array_map('trim', explode(',', (string) $this->option('except')));
+            $this->only = array_values(array_diff($this->only, $except));
+        }
 
         $this->info('=== Migration des données héritées (ancien système Access) ===');
         $this->line(($dryRun ? '<comment>MODE DRY-RUN</comment> (aucune écriture)' : '<info>MODE RÉEL</info> (écriture en base)'));
@@ -404,7 +411,9 @@ class LegacyMigrate extends Command
             ReglementFournisseur::updateOrCreate(
                 ['facture_id' => $factureId, 'date_reglement' => $date, 'montant' => $montant, 'reference' => $ref],
                 [
-                    'numero_reglement' => 'LEG/'.substr(md5(($r->nump ?? '').'|'.($r->lreg ?? '').'|'.$ref.'|'.$date.'|'.$montant), 0, 10),
+                    // Numéro déterministe (stable d'un run à l'autre) ET quasi sans risque
+                    // de collision : 16 hex = 64 bits sur la contrainte UNIQUE numero_reglement.
+                    'numero_reglement' => 'LEG/'.substr(md5(($r->nump ?? '').'|'.($r->lreg ?? '').'|'.$ref.'|'.$date.'|'.$montant), 0, 16),
                     'fournisseur_id' => $facture?->fournisseur_id,
                     'fournisseur_nom' => $facture?->fournisseur_nom,
                     'facture_numero' => $facture?->numero_piece,

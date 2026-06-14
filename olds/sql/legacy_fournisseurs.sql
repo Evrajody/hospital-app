@@ -11,11 +11,11 @@ SET client_encoding = 'UTF-8';
 
 CREATE TABLE IF NOT EXISTS "approvisionnement"
  (
-	"numdep"			SERIAL, 
-	"numcmptbanq"			VARCHAR (255), 
-	"datedep"			DATE, 
-	"mtdep"			INTEGER, 
-	"observ"			VARCHAR (255), 
+	"numdep"			SERIAL,
+	"numcmptbanq"			VARCHAR (255),
+	"datedep"			DATE,
+	"mtdep"			INTEGER,
+	"observ"			VARCHAR (255),
 	"user"			VARCHAR (255)
 );
 
@@ -25,7 +25,7 @@ CREATE INDEX "approvisionnement_numdep_idx" ON "approvisionnement" ("numdep");
 
 CREATE TABLE IF NOT EXISTS "classecompte"
  (
-	"numclass"			VARCHAR (255), 
+	"numclass"			VARCHAR (255),
 	"intitule"			VARCHAR (255)
 );
 COMMENT ON COLUMN "classecompte"."numclass" IS 'Numéro de classe';
@@ -37,8 +37,8 @@ ALTER TABLE "classecompte" ADD CONSTRAINT "classecompte_pkey" PRIMARY KEY ("numc
 
 CREATE TABLE IF NOT EXISTS "compteniv1"
  (
-	"numcmpt1"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt1"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numclass"			VARCHAR (255)
 );
 COMMENT ON COLUMN "compteniv1"."numcmpt1" IS 'Numéro de compte';
@@ -51,8 +51,8 @@ ALTER TABLE "compteniv1" ADD CONSTRAINT "compteniv1_pkey" PRIMARY KEY ("numcmpt1
 
 CREATE TABLE IF NOT EXISTS "compteniv2"
  (
-	"numcmpt2"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt2"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt1"			VARCHAR (255)
 );
 
@@ -63,8 +63,8 @@ ALTER TABLE "compteniv2" ADD CONSTRAINT "compteniv2_pkey" PRIMARY KEY ("numcmpt2
 
 CREATE TABLE IF NOT EXISTS "compteniv3"
  (
-	"numcmpt3"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt3"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt2"			VARCHAR (255)
 );
 
@@ -75,8 +75,8 @@ ALTER TABLE "compteniv3" ADD CONSTRAINT "compteniv3_pkey" PRIMARY KEY ("numcmpt3
 
 CREATE TABLE IF NOT EXISTS "compteniv5"
  (
-	"numcmpt5"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt5"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt4"			VARCHAR (255)
 );
 
@@ -87,8 +87,8 @@ ALTER TABLE "compteniv5" ADD CONSTRAINT "compteniv5_pkey" PRIMARY KEY ("numcmpt5
 
 CREATE TABLE IF NOT EXISTS "compteniv6"
  (
-	"numcmpt6"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt6"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt5"			VARCHAR (255)
 );
 
@@ -99,8 +99,8 @@ ALTER TABLE "compteniv6" ADD CONSTRAINT "compteniv6_pkey" PRIMARY KEY ("numcmpt6
 
 CREATE TABLE IF NOT EXISTS "compteniv7"
  (
-	"numcmpt7"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt7"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt6"			VARCHAR (255)
 );
 
@@ -111,8 +111,8 @@ ALTER TABLE "compteniv7" ADD CONSTRAINT "compteniv7_pkey" PRIMARY KEY ("numcmpt7
 
 CREATE TABLE IF NOT EXISTS "compteniv8"
  (
-	"numcmpt8"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt8"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt7"			VARCHAR (255)
 );
 
@@ -123,8 +123,8 @@ ALTER TABLE "compteniv8" ADD CONSTRAINT "compteniv8_pkey" PRIMARY KEY ("numcmpt8
 
 CREATE TABLE IF NOT EXISTS "compteniv9"
  (
-	"numcmpt9"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt9"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt8"			VARCHAR (255)
 );
 
@@ -135,14 +135,14 @@ ALTER TABLE "compteniv9" ADD CONSTRAINT "compteniv9_pkey" PRIMARY KEY ("numcmpt9
 
 CREATE TABLE IF NOT EXISTS "fournisseur"
  (
-	"comptfsr"			VARCHAR (255), 
-	"rsfsr"			VARCHAR (50), 
-	"numifu"			VARCHAR (255), 
-	"numtel"			VARCHAR (125), 
-	"pays"			VARCHAR (30), 
-	"ville"			VARCHAR (30), 
-	"contact"			VARCHAR (75), 
-	"info"			VARCHAR (100), 
+	"comptfsr"			VARCHAR (255),
+	"rsfsr"			VARCHAR (50),
+	"numifu"			VARCHAR (255),
+	"numtel"			VARCHAR (125),
+	"pays"			VARCHAR (30),
+	"ville"			VARCHAR (30),
+	"contact"			VARCHAR (75),
+	"info"			VARCHAR (100),
 	"user"			VARCHAR (50)
 );
 
@@ -153,14 +153,14 @@ ALTER TABLE "fournisseur" ADD CONSTRAINT "fournisseur_pkey" PRIMARY KEY ("rsfsr"
 
 CREATE TABLE IF NOT EXISTS "imputation"
  (
-	"nump"			VARCHAR (255), 
-	"datimp"			DATE, 
-	"heurimp"			TIMESTAMP WITHOUT TIME ZONE, 
-	"numl"			INTEGER, 
-	"numcpt"			VARCHAR (255), 
-	"lreg"			INTEGER, 
-	"debit"			INTEGER, 
-	"credit"			INTEGER, 
+	"nump"			VARCHAR (255),
+	"datimp"			DATE,
+	"heurimp"			TIMESTAMP WITHOUT TIME ZONE,
+	"numl"			INTEGER,
+	"numcpt"			VARCHAR (255),
+	"lreg"			INTEGER,
+	"debit"			INTEGER,
+	"credit"			INTEGER,
 	"libelle"			VARCHAR (255)
 );
 
@@ -171,15 +171,15 @@ CREATE INDEX "imputation_numl_idx" ON "imputation" ("numl");
 
 CREATE TABLE IF NOT EXISTS "mouvement"
  (
-	"numcmptbanq"			VARCHAR (255), 
-	"numdep"			INTEGER, 
-	"datmvt"			TIMESTAMP WITHOUT TIME ZONE, 
-	"numl"			INTEGER, 
-	"lreg"			INTEGER, 
-	"nump"			VARCHAR (255), 
-	"objet"			VARCHAR (255), 
-	"debit"			INTEGER, 
-	"credit"			INTEGER, 
+	"numcmptbanq"			VARCHAR (255),
+	"numdep"			INTEGER,
+	"datmvt"			TIMESTAMP WITHOUT TIME ZONE,
+	"numl"			INTEGER,
+	"lreg"			INTEGER,
+	"nump"			VARCHAR (255),
+	"objet"			VARCHAR (255),
+	"debit"			INTEGER,
+	"credit"			INTEGER,
 	"solde"			INTEGER
 );
 
@@ -191,20 +191,20 @@ CREATE INDEX "mouvement_nump_idx" ON "mouvement" ("nump");
 
 CREATE TABLE IF NOT EXISTS "reglement"
  (
-	"lreg"			INTEGER, 
-	"nump"			VARCHAR (12), 
-	"datreg"			TIMESTAMP WITHOUT TIME ZONE, 
-	"mtreg"			INTEGER, 
-	"mtregl"			VARCHAR (100), 
-	"raib"			BOOLEAN NOT NULL, 
-	"modreg"			VARCHAR (30), 
-	"comptinsreg"			VARCHAR (255), 
-	"insreg"			VARCHAR (15), 
-	"numch"			VARCHAR (10), 
-	"datch"			TIMESTAMP WITHOUT TIME ZONE, 
-	"exereg"			VARCHAR (5), 
-	"ord"			VARCHAR (50), 
-	"user"			VARCHAR (50), 
+	"lreg"			INTEGER,
+	"nump"			VARCHAR (12),
+	"datreg"			TIMESTAMP WITHOUT TIME ZONE,
+	"mtreg"			INTEGER,
+	"mtregl"			VARCHAR (100),
+	"raib"			BOOLEAN NOT NULL,
+	"modreg"			VARCHAR (30),
+	"comptinsreg"			VARCHAR (255),
+	"insreg"			VARCHAR (15),
+	"numch"			VARCHAR (10),
+	"datch"			TIMESTAMP WITHOUT TIME ZONE,
+	"exereg"			VARCHAR (5),
+	"ord"			VARCHAR (50),
+	"user"			VARCHAR (50),
 	"impr"			BOOLEAN NOT NULL
 );
 
@@ -223,12 +223,12 @@ ALTER TABLE "respo" ADD CONSTRAINT "respo_pkey" PRIMARY KEY ("nomrespo");
 
 CREATE TABLE IF NOT EXISTS "user"
  (
-	"n°"			SERIAL, 
-	"nompre"			VARCHAR (255), 
-	"civilite"			VARCHAR (255), 
-	"pseudo"			VARCHAR (255), 
-	"operation"			VARCHAR (255), 
-	"pass"			VARCHAR (255), 
+	"n°"			SERIAL,
+	"nompre"			VARCHAR (255),
+	"civilite"			VARCHAR (255),
+	"pseudo"			VARCHAR (255),
+	"operation"			VARCHAR (255),
+	"pass"			VARCHAR (255),
 	"service"			VARCHAR (255)
 );
 
@@ -239,8 +239,8 @@ ALTER TABLE "user" ADD CONSTRAINT "user_pkey" PRIMARY KEY ("n°");
 
 CREATE TABLE IF NOT EXISTS "compteniv4"
  (
-	"numcmpt4"			VARCHAR (255), 
-	"intitule"			VARCHAR (255), 
+	"numcmpt4"			VARCHAR (255),
+	"intitule"			VARCHAR (255),
 	"numcmpt3"			VARCHAR (255)
 );
 
@@ -251,28 +251,28 @@ ALTER TABLE "compteniv4" ADD CONSTRAINT "compteniv4_pkey" PRIMARY KEY ("numcmpt4
 
 CREATE TABLE IF NOT EXISTS "facture"
  (
-	"nump"			VARCHAR (12), 
-	"datenreg"			TIMESTAMP WITHOUT TIME ZONE, 
-	"cmptimp"			VARCHAR (255), 
-	"typimp"			VARCHAR (255), 
-	"reffac"			VARCHAR (25), 
-	"datfac"			TIMESTAMP WITHOUT TIME ZONE, 
-	"libfac"			VARCHAR (150), 
-	"mtfac"			INTEGER, 
-	"mtmd"			INTEGER, 
-	"tesc"			INTEGER, 
-	"avoir"			INTEGER, 
-	"taib"			DOUBLE PRECISION, 
-	"mtaib"			INTEGER, 
-	"numcptacpt"			VARCHAR (255), 
-	"tacpt"			INTEGER, 
-	"mtacpt"			INTEGER, 
-	"rsfsr"			VARCHAR (50), 
-	"datreg"			TIMESTAMP WITHOUT TIME ZONE, 
-	"statu"			BOOLEAN NOT NULL, 
-	"user"			VARCHAR (50), 
-	"numord"			INTEGER, 
-	"annee"			INTEGER, 
+	"nump"			VARCHAR (12),
+	"datenreg"			TIMESTAMP WITHOUT TIME ZONE,
+	"cmptimp"			VARCHAR (255),
+	"typimp"			VARCHAR (255),
+	"reffac"			VARCHAR (25),
+	"datfac"			TIMESTAMP WITHOUT TIME ZONE,
+	"libfac"			VARCHAR (150),
+	"mtfac"			INTEGER,
+	"mtmd"			INTEGER,
+	"tesc"			INTEGER,
+	"avoir"			INTEGER,
+	"taib"			DOUBLE PRECISION,
+	"mtaib"			INTEGER,
+	"numcptacpt"			VARCHAR (255),
+	"tacpt"			INTEGER,
+	"mtacpt"			INTEGER,
+	"rsfsr"			VARCHAR (50),
+	"datreg"			TIMESTAMP WITHOUT TIME ZONE,
+	"statu"			BOOLEAN NOT NULL,
+	"user"			VARCHAR (50),
+	"numord"			INTEGER,
+	"annee"			INTEGER,
 	"etatimp"			BOOLEAN NOT NULL
 );
 
