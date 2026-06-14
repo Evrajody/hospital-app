@@ -14,6 +14,11 @@
     .date-cell { vertical-align: top; }
     /* Ligne de bordereau (SB) : clôture et délimite chaque groupe « bordereau de versement ». */
     .sb-row td { background: #f4f4f4; border-bottom: 2px solid #000; }
+    /* Colonnes montant compactes + libellé en police légèrement réduite et padding serré
+       → on maximise la largeur utile du libellé pour limiter les retours à la ligne. */
+    .report-table td, .report-table th { padding: 4px 5px; }
+    .report-table td:nth-child(2) { font-size: 9px; line-height: 1.25; }
+    .report-table .montant { font-size: 9px; }
 @endsection
 
 @section('content')
@@ -38,11 +43,11 @@
         <table class="report-table">
             <thead>
                 <tr>
-                    <th style="width: 80px">Date</th>
+                    <th style="width: 54px">Date</th>
                     <th>Libellés</th>
-                    <th class="montant" style="width: 100px">Débit</th>
-                    <th class="montant" style="width: 100px">Crédit</th>
-                    <th class="montant" style="width: 100px">Solde</th>
+                    <th class="montant" style="width: 64px">Débit</th>
+                    <th class="montant" style="width: 64px">Crédit</th>
+                    <th class="montant" style="width: 70px">Solde</th>
                 </tr>
             </thead>
             <tbody>

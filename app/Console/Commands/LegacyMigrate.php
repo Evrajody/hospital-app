@@ -309,10 +309,26 @@ class LegacyMigrate extends Command
             $fId = $this->fournisseurByCompte[$this->key($r->comptimp ?? '')]
                 ?? $this->fournisseurByCompte['NOM:'.$this->key($r->rsfsr ?? '')]
                 ?? null;
+            // Date facture : on rejette les années aberrantes (saisie source erronée),
+            // avec repli sur la date d'enregistrement puis l'année. La colonne `date`
+            // est NOT NULL → dernier recours = la date brute (évite un échec d'insert).
+            $dateFac = $this->saneDate($r->datfac ?? null)
+                ?: $this->saneDate($r->datenreg ?? null)
+                ?: $this->yearToDate($r->annee ?? null)
+                ?: $this->date($r->datfac ?? $r->datenreg ?? null);
+
+            // Marqueur « soldé » de la source (statu=1) → date_solde = date de règlement,
+            // avec repli date facture / enregistrement (années aberrantes filtrées).
+            // recomputeSoldes() forcera ensuite 'payee' (le déficit éventuel reste lisible).
+            $soldee = $this->bool($r->statu ?? false);
+            $dateSolde = $soldee
+                ? ($this->saneDate($r->datreg ?? null) ?: $this->saneDate($r->datenreg ?? null) ?: $dateFac)
+                : null;
+
             $f = FactureFournisseur::firstOrNew(['numero_piece' => $this->cut($numP, 50)]);
             $f->fill([
-                'date' => $this->date($r->datfac ?? $r->datenreg ?? null),
-                'date_facture_bc' => $this->date($r->datfac ?? null),
+                'date' => $dateFac,
+                'date_facture_bc' => $this->saneDate($r->datfac ?? null) ?: $this->saneDate($r->datenreg ?? null),
                 'reference_facture' => $this->cut($r->reffac ?? null, 100),
                 'fournisseur_id' => $fId,
                 'fournisseur_nom' => $this->cut($r->rsfsr ?? null, 255),
@@ -325,6 +341,7 @@ class LegacyMigrate extends Command
                 'type_reduction' => $this->clean($r->numcptacpt ?? null),
                 'assujetti_tva' => false,
                 'statut' => 'validee',
+                'date_solde' => $dateSolde,
                 'created_by_name' => $this->clean($r->user ?? null),
             ]);
             $f->save();
@@ -345,13 +362,25 @@ class LegacyMigrate extends Command
                 $this->bump('factures_clients_orphelines');
                 continue;
             }
+            // Date facture : années aberrantes filtrées, repli date règlement / année.
+            // `date_facture` est NOT NULL → dernier recours = date brute.
+            $dateFac = $this->saneDate($r->datfac ?? null)
+                ?: $this->saneDate($r->datregfac ?? null)
+                ?: $this->yearToDate($r->ann ?? null)
+                ?: $this->date($r->datfac ?? null);
+
+            // Marqueur « soldé » de la source (etatfac=1) → date_solde = date de règlement.
+            $soldee = $this->bool($r->etatfac ?? false);
+            $dateSolde = $soldee ? ($this->saneDate($r->datregfac ?? null) ?: $dateFac) : null;
+
             $fc = FactureClient::firstOrNew(['reference' => $this->cut($ref, 20)]);
             $fc->fill([
-                'date_facture' => $this->date($r->datfac ?? null),
+                'date_facture' => $dateFac,
                 'montant' => $this->num($r->mtfac ?? 0),
                 'client_id' => $clientId,
                 'client_nom' => $this->cut(optional(Client::find($clientId))->nom, 255),
                 'statut' => 'non_payee',
+                'date_solde' => $dateSolde,
                 'created_by_name' => $this->clean($r->user ?? null),
             ]);
             $fc->save();
@@ -546,6 +575,23 @@ class LegacyMigrate extends Command
                 WHERE r.facture_id = f.id
             SQL);
         }
+
+        // Factures marquées SOLDÉES à la source (date_solde renseignée) : on force le
+        // statut 'payee' et reste_a_payer = 0, exactement comme le bouton « Marquer
+        // comme soldée ». On garde montant_paye = somme réelle des règlements (calculée
+        // ci-dessus), donc le déficit éventuel (montant > réglé) reste lisible dans
+        // l'état des factures réglées. Sans cette passe, une facture soldée mais
+        // partiellement réglée à la source restait à tort en non_payee/partiellement_payee.
+        DB::statement(<<<'SQL'
+            UPDATE factures_clients
+            SET statut = 'payee', reste_a_payer = 0
+            WHERE date_solde IS NOT NULL AND deleted_at IS NULL AND statut <> 'payee'
+        SQL);
+        DB::statement(<<<'SQL'
+            UPDATE factures_fournisseurs
+            SET statut = 'payee', reste_a_payer = 0
+            WHERE date_solde IS NOT NULL AND deleted_at IS NULL AND statut <> 'payee'
+        SQL);
     }
 
     // ===================================================================
@@ -660,6 +706,37 @@ class LegacyMigrate extends Command
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /** Interprète un booléen legacy (PG bool 't'/'f', entier 1/0, 'true'/'false'…). */
+    private function bool($v): bool
+    {
+        if (is_bool($v)) {
+            return $v;
+        }
+        return in_array(strtolower(trim((string) $v)), ['1', 't', 'true', 'oui', 'yes', 'y'], true);
+    }
+
+    /**
+     * Comme date(), mais REJETTE les années aberrantes (fautes de saisie de la source,
+     * ex. datfac='3017-11-30', '4202-…', '1900-…') en renvoyant null. Cela permet de
+     * se rabattre sur une autre colonne (date d'enregistrement, année) via l'opérateur `?:`.
+     */
+    private function saneDate($v): ?string
+    {
+        $d = $this->date($v);
+        if ($d === null) {
+            return null;
+        }
+        $year = (int) substr($d, 0, 4);
+        return ($year >= 2000 && $year <= ((int) date('Y') + 1)) ? $d : null;
+    }
+
+    /** Reconstruit une date au 1er janvier d'une année plausible (dernier repli). */
+    private function yearToDate($annee): ?string
+    {
+        $y = (int) preg_replace('/\D/', '', (string) $annee);
+        return ($y >= 2000 && $y <= ((int) date('Y') + 1)) ? sprintf('%04d-01-01', $y) : null;
     }
 
     private function paysCode(?string $v): string

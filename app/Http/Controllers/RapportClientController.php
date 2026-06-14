@@ -866,6 +866,12 @@ class RapportClientController extends Controller
 
     public function brouillardChequesPdf(Request $request)
     {
+        // Le brouillard peut être volumineux (plusieurs milliers de lignes sur une
+        // large période) → on relève la mémoire/le temps pour éviter un 500 en
+        // génération synchrone (stream/print), comme le fait le job d'export asynchrone.
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
         $result = $this->buildBrouillardChequesData($request);
         $result['titre'] = 'Brouillard de Chèques';
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
@@ -880,6 +886,9 @@ class RapportClientController extends Controller
 
     public function imputationsComptablesPdf(Request $request)
     {
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
         $result = $this->buildImputationsComptablesData($request);
         $result['titre'] = 'Imputations Comptables Clients';
         $result['generatedAt'] = now()->format('d/m/Y à H:i');

@@ -31,9 +31,9 @@
                 <table class="imputation-table">
                     <thead>
                         <tr>
-                            <th style="width: 110px">Compte</th>
-                            <th style="width: 120px">Débit</th>
-                            <th style="width: 120px">Crédit</th>
+                            <th style="width: 85px">Compte</th>
+                            <th style="width: 90px">Débit</th>
+                            <th style="width: 90px">Crédit</th>
                             <th>Libellé</th>
                         </tr>
                     </thead>
