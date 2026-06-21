@@ -12,11 +12,11 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 13px;
             color: #000;
             line-height: 1.5;
-            padding: 20mm 18mm 18mm;
+            padding: 14mm 18mm 18mm;
         }
 
         .header {
@@ -151,16 +151,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-        <div class="hospital-info">
-            {{ $etablissement['adresse'] }}<br>
-            {{ $etablissement['telephone'] ? 'Tél.: ' . $etablissement['telephone'] : '' }}
-            @if(!empty($etablissement['email']))
-                - E-mail: {{ $etablissement['email'] }}
-            @endif
-        </div>
-    </div>
+    @include('pdf._entete-officiel')
 
     <div class="document-title">
         <h1>État de Règlement Facture</h1>
@@ -198,7 +189,7 @@
     <table class="reglements-table">
         <thead>
             <tr>
-                <th>N° Ordre de règlement</th>
+                <th>N° PC + Ligne règlement</th>
                 <th>Date règlement</th>
                 <th>Mode règlement</th>
                 <th>Bénéficiaire</th>
@@ -208,8 +199,8 @@
         <tbody>
             @forelse($reglements as $index => $reglement)
             <tr>
-                <td>{{ $facture->numero_piece }}{{ $reglement->numero_ligne }}</td>
-                <td>{{ $reglement->date_reglement?->format('d/m/Y') }}</td>
+                <td style="text-align: center;">{{ $facture->numero_piece }}{{ $reglement->numero_ligne }}</td>
+                <td style="text-align: center;">{{ $reglement->date_reglement?->format('d/m/Y') }}</td>
                 <td>
                     @php
                         $modeLabel = match($reglement->mode_paiement) {

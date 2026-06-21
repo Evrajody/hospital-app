@@ -47,7 +47,7 @@
                 <tbody>
                     @foreach($data as $row)
                         <tr>
-                            <td><strong>{{ $row['numero'] }}</strong></td>
+                            <td class="col-num"><strong>{{ $row['numero'] }}</strong></td>
                             <td>{{ $row['raison_sociale'] }}</td>
                             <td class="montant">{{ number_format($row['montant_du'], 0, ',', ' ') }}</td>
                             <td class="montant">{{ number_format($row['montant_reglements'], 0, ',', ' ') }}</td>
@@ -88,7 +88,7 @@
                 <tbody>
                     @foreach($data as $row)
                         <tr>
-                            <td><strong>{{ $row['numero'] }}</strong></td>
+                            <td class="col-num"><strong>{{ $row['numero'] }}</strong></td>
                             <td>[{{ $row['numero_compte'] }}] {{ $row['raison_sociale'] }}</td>
                             <td class="montant">{{ number_format($row['montant_du'], 0, ',', ' ') }}</td>
                             <td class="montant">{{ number_format($row['montant_reglements'], 0, ',', ' ') }}</td>
@@ -134,8 +134,8 @@
                     <tbody>
                         @foreach($fData['lignes'] as $ligne)
                             <tr>
-                                <td>{{ $ligne['numero_piece'] }}</td>
-                                <td>{{ $ligne['date'] }}</td>
+                                <td class="col-num">{{ $ligne['numero_piece'] }}</td>
+                                <td class="col-date">{{ $ligne['date'] }}</td>
                                 <td>{{ $ligne['reference_facture'] }}</td>
                                 <td class="montant">{{ number_format($ligne['montant_facture'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ number_format($ligne['avoir'], 0, ',', ' ') }}</td>

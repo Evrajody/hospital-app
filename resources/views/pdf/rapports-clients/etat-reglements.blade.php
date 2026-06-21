@@ -76,10 +76,10 @@
                             <tbody>
                                 @foreach($clientData['lignes'] as $ligne)
                                     <tr>
-                                        <td><strong>{{ $ligne['numero'] }}</strong></td>
+                                        <td class="col-num"><strong>{{ $ligne['numero'] }}</strong></td>
                                         <td>{{ $ligne['reference'] }}</td>
-                                        <td>{{ $ligne['date_facture'] }}</td>
-                                        <td>{{ $ligne['date_reglement'] }}</td>
+                                        <td class="col-date">{{ $ligne['date_facture'] }}</td>
+                                        <td class="col-date">{{ $ligne['date_reglement'] }}</td>
                                         <td class="montant">{{ number_format($ligne['montant_facture'], 0, ',', ' ') }}</td>
                                         <td class="montant">{{ number_format($ligne['montant_paye'], 0, ',', ' ') }}</td>
                                         <td class="montant">{{ number_format($ligne['total_rejet'], 0, ',', ' ') }}</td>
@@ -140,8 +140,8 @@
                     <tbody>
                         @foreach($groupe['clients'] as $row)
                             <tr>
-                                <td><strong>{{ $loop->iteration }}</strong></td>
-                                <td>{{ $row['numero_compte'] }}</td>
+                                <td class="col-num"><strong>{{ $loop->iteration }}</strong></td>
+                                <td class="col-num">{{ $row['numero_compte'] }}</td>
                                 <td><strong>{{ $row['raison_sociale'] }}</strong></td>
                                 <td class="montant">{{ number_format($row['total_facture'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ number_format($row['total_paye'], 0, ',', ' ') }}</td>

@@ -28,6 +28,7 @@
 @section('content')
     @if(in_array($mode, ['global_du', 'global_au', 'global_periode']))
         @if(is_array($data) && isset($data['theorique']))
+            {{-- Point global (CA théorique / physique / écart) conservé en en-tête. --}}
             <table class="report-table global-table">
                 <thead>
                     <tr>
@@ -44,6 +45,43 @@
                     </tr>
                 </tbody>
             </table>
+
+            {{-- Détail par client : CA théorique (factures), CA physique (règlements
+                 hors pertes et rejets) et écart. --}}
+            @if(!empty($data['clients']))
+                <table class="report-table" style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px">N°</th>
+                            <th style="width: 90px">N° Compte</th>
+                            <th>Client</th>
+                            <th class="montant" style="width: 110px">CA Théorique</th>
+                            <th class="montant" style="width: 110px">CA Physique</th>
+                            <th class="montant ecart" style="width: 100px">Écart</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($data['clients'] as $c)
+                            <tr>
+                                <td class="col-num"><strong>{{ $loop->iteration }}</strong></td>
+                                <td class="col-num">{{ $c['numero_compte'] }}</td>
+                                <td>{{ $c['raison_sociale'] }}</td>
+                                <td class="montant">{{ number_format($c['theorique'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($c['physique'], 0, ',', ' ') }}</td>
+                                <td class="montant ecart">{{ number_format($c['ecart'], 0, ',', ' ') }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="3" class="total-label">Total :</td>
+                            <td class="montant">{{ number_format($data['theorique'], 0, ',', ' ') }}</td>
+                            <td class="montant">{{ number_format($data['physique'], 0, ',', ' ') }}</td>
+                            <td class="montant ecart">{{ number_format($data['ecart'], 0, ',', ' ') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            @endif
         @else
             <p style="text-align: center; padding: 40px; color: #666;">Aucune donnée trouvée.</p>
         @endif
@@ -52,7 +90,7 @@
             <div class="client-header">
                 <strong><u>N° Compte :</u></strong> {{ $data['numero_compte'] }}
                 &nbsp;&nbsp;&nbsp;&nbsp;
-                <strong><u>Raison sociale :</u></strong> {{ $data['raison_sociale'] }}
+                <strong><u>Client :</u></strong> {{ $data['raison_sociale'] }}
             </div>
             <table class="report-table">
                 <thead>
@@ -66,9 +104,9 @@
                 <tbody>
                     @foreach($data['lignes'] as $ligne)
                         <tr>
-                            <td><strong>{{ $ligne['numero'] }}</strong></td>
+                            <td class="col-num"><strong>{{ $ligne['numero'] }}</strong></td>
                             <td>{{ $ligne['reference'] }}</td>
-                            <td>{{ $ligne['date_facture'] }}</td>
+                            <td class="col-date">{{ $ligne['date_facture'] }}</td>
                             <td class="montant">{{ number_format($ligne['montant'], 0, ',', ' ') }}</td>
                         </tr>
                     @endforeach

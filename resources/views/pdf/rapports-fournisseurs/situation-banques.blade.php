@@ -26,7 +26,7 @@
             <tbody>
                 @foreach($lignes as $ligne)
                     <tr>
-                        <td>{{ $ligne['numero_compte'] }}</td>
+                        <td class="col-num">{{ $ligne['numero_compte'] }}</td>
                         <td>{{ $ligne['intitule'] }}</td>
                         <td class="montant">{{ number_format($ligne['total_debit'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($ligne['total_credit'], 0, ',', ' ') }}</td>

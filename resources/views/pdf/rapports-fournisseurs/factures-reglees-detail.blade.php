@@ -13,7 +13,7 @@
            réapplique sur CHAQUE page, y compris les pages de continuation d'un
            tableau qui déborde et les sauts de page entre fournisseurs.
            (Une marge sur un bloc enfant ou sur @page n'est PAS reprise en continuation.) */
-        body { font-family: 'Times New Roman', serif; font-size: 10px; color: #000; line-height: 1.4; padding: 16mm 14mm 20mm; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; line-height: 1.4; padding: 14mm 14mm 20mm; }
 
         .fournisseur-page + .fournisseur-page { page-break-before: always; }
 
@@ -32,7 +32,8 @@
         table.report-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10px; margin-top: 6px; }
         table.report-table th { background: #fff; border: 1px solid #000; padding: 6px 4px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 9px; word-wrap: break-word; }
         table.report-table td { background: #fff; border: 1px solid #000; padding: 5px 4px; word-wrap: break-word; }
-        table.report-table .montant { text-align: right; font-family: 'Courier New', monospace; }
+        table.report-table .montant { text-align: right; }
+        table.report-table .col-num, table.report-table .col-date { text-align: center; }
         table.report-table .total-row td { font-weight: bold; border: 1px solid #000; }
         table.report-table .total-label { text-align: right; text-transform: uppercase; }
         table.report-table tr.soldee-row td { background-color: #fff3e0; }
@@ -59,24 +60,8 @@
         @foreach($detail as $fData)
             <div class="fournisseur-page">
                 @if($loop->first)
-                {{-- En-tête établissement (sans logo) — uniquement sur la 1ère page --}}
-                <table class="header-section">
-                    <tr>
-                        <td style="text-align: center;">
-                            <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-                            <div class="hospital-info">
-                                {{ $etablissement['pays'] }}<br>
-                                {{ $etablissement['adresse'] }}
-                                @if(!empty($etablissement['telephone']))
-                                    - Tél: {{ $etablissement['telephone'] }}
-                                @endif
-                                @if(!empty($etablissement['ifu']))
-                                    <br>IFU: {{ $etablissement['ifu'] }}
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+                {{-- En-tête officielle (identique au bordereau de paiement) — uniquement sur la 1ère page --}}
+                @include('pdf._entete-officiel')
 
                 {{-- Titre du rapport --}}
                 <div class="report-title-wrapper">

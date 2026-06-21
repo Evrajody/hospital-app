@@ -431,6 +431,10 @@
                       <span>Montant du r&egrave;glement :</span>
                       <strong>{{ formatMontant(form.montant) }}</strong>
                     </div>
+                    <div v-if="montantRejetActif > 0" class="summary-row">
+                      <span>Dont rejet (d&eacute;duit) :</span>
+                      <strong style="color: #e6a23c;">- {{ formatMontant(montantRejetActif) }}</strong>
+                    </div>
                     <div class="summary-row">
                       <span>Nouveau reste &agrave; payer :</span>
                       <strong :style="{ color: newReste === 0 ? '#67c23a' : '#f56c6c' }">
@@ -687,9 +691,17 @@ const resteAPayer = computed(() => {
   return parseFloat(props.facture.reste_a_payer) || 0;
 });
 
+// Reste à payer = facture − (payé + rejet + perte). Le montant du rejet fait partie
+// du règlement et réduit donc aussi le reste à payer, en temps réel sur le formulaire.
+const montantRejetActif = computed(() => {
+  return form.value.type_reglement === 'reglement'
+    ? (parseFloat(form.value.montant_rejet) || 0)
+    : 0;
+});
+
 const newReste = computed(() => {
-  const montant = form.value.montant || 0;
-  return Math.max(0, resteAPayer.value - montant);
+  const montant = parseFloat(form.value.montant) || 0;
+  return Math.max(0, resteAPayer.value - montant - montantRejetActif.value);
 });
 
 const filteredApprovisionnements = computed(() => {

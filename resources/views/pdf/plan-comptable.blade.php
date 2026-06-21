@@ -10,7 +10,7 @@
 @endif
 
 @section('extra-styles')
-    table.report-table .compte-col { font-family: 'Courier New', monospace; }
+    table.report-table .compte-col { text-align: center; }
     .recap { margin-top: 10px; font-size: 10px; font-style: italic; color: #444; }
 @endsection
 
@@ -30,7 +30,7 @@
             <tbody>
                 @foreach($comptes as $c)
                     <tr>
-                        <td class="compte-col">{{ $c->numero_compte }}</td>
+                        <td class="compte-col col-num">{{ $c->numero_compte }}</td>
                         <td>{{ $c->libelle }}</td>
                         <td style="text-align: center;">{{ $c->classe }}</td>
                         <td style="text-align: center;">{{ ($c->is_custom ?? false) ? 'Personnalisé' : 'Standard' }}</td>

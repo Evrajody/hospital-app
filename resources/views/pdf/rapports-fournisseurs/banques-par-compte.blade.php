@@ -23,7 +23,7 @@
                 @foreach($data as $ligne)
                     <tr>
                         <td>{{ $ligne['banque'] ?? '-' }}</td>
-                        <td>{{ $ligne['numero_compte'] }}</td>
+                        <td class="col-num">{{ $ligne['numero_compte'] }}</td>
                         <td class="montant">{{ number_format($ligne['approvisionnements'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($ligne['debits'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($ligne['solde'], 0, ',', ' ') }}</td>

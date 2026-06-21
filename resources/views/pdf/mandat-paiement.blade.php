@@ -12,11 +12,11 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Times New Roman', serif;
-            font-size: 14px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 13px;
             color: #000;
-            line-height: 1.6;
-            padding: 20mm 18mm 18mm;
+            line-height: 1.45;
+            padding: 10mm 16mm 12mm;
         }
 
         .header {
@@ -54,27 +54,27 @@
         }
 
         .exercice {
-            margin: 5px 0 18px;
-            font-size: 14px;
+            margin: 4px 0 12px;
+            font-size: 13px;
             font-weight: bold;
         }
 
         .intro-text {
-            font-size: 13px;
+            font-size: 12.5px;
             font-style: italic;
             font-weight: bold;
-            line-height: 1.7;
-            margin-bottom: 20px;
+            line-height: 1.5;
+            margin-bottom: 12px;
         }
 
         .details-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .details-table td {
-            padding: 6px 0;
+            padding: 4px 0;
             vertical-align: top;
         }
 
@@ -114,7 +114,7 @@
         }
 
         .montants-section {
-            margin: 15px 0;
+            margin: 10px 0;
         }
 
         .montants-section table {
@@ -123,7 +123,7 @@
         }
 
         .montants-section td {
-            padding: 6px 0;
+            padding: 3px 0;
             vertical-align: top;
         }
 
@@ -161,25 +161,27 @@
 
         .fait-a {
             text-align: center;
-            margin: 22px 0 14px;
+            margin: 14px 0 10px;
             font-style: italic;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .signatures-table {
             width: 100%;
         }
 
+        /* Zones de signature élargies jusqu'aux bords de la page pour gagner de
+           l'espace : chaque bloc occupe près de la moitié de la largeur, avec un
+           écart central minimal. */
         .signatures-table td.sig-cell {
-            width: 40%;
+            width: 47%;
             vertical-align: top;
-            padding: 0 15px;
+            padding: 0 4px;
             text-align: center;
         }
-        /* Colonne d'espacement central : sépare nettement les deux blocs signataires. */
         .signatures-table td.sig-gap {
-            width: 20%;
+            width: 6%;
         }
 
         .signature-title {
@@ -189,7 +191,7 @@
         }
 
         .signature-name {
-            margin-top: 55px;
+            margin-top: 42px;
             font-size: 13px;
             font-weight: bold;
         }

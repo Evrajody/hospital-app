@@ -13,6 +13,7 @@ class AvanceClientFactory extends Factory
     {
         return [
             'client_id' => ClientFactory::new(),
+            'societe_emettrice_client_id' => ClientFactory::new()->state(['type_client' => 'societe']),
             'societe_emettrice' => fake()->company(),
             'numero_cheque' => fake()->numerify('#######'),
             'date_cheque' => fake()->dateTimeBetween('-6 months', 'now')->format('Y-m-d'),

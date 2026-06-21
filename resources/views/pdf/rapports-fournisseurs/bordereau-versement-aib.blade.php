@@ -10,7 +10,7 @@
         @page { size: A4 portrait; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 11px;
             color: #000;
             line-height: 1.4;
@@ -29,7 +29,7 @@
         table.droits { width: 100%; border-collapse: collapse; font-size: 11px; margin: 0; }
         table.droits th { background: #fff; border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; }
         table.droits td { border: 1px solid #000; padding: 5px 8px; }
-        table.droits .montant { text-align: right; font-family: 'Courier New', monospace; }
+        table.droits .montant { text-align: right; }
         table.droits .cat-header td { font-weight: bold; font-size: 11px; background: #e2e2e2; }
         table.droits .total-row td { font-weight: bold; font-size: 12px; border-top: 1px solid #000; }
         table.droits .lettres-row td { font-size: 10px; font-style: italic; padding: 8px; }

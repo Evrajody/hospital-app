@@ -16,11 +16,11 @@
         }
 
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
             color: #000000;
             line-height: 1.4;
-            padding: 20mm 18mm 18mm;
+            padding: 14mm 18mm 18mm;
         }
 
         /* En-tete */
@@ -122,11 +122,11 @@
 
         .col-date {
             width: 90px;
+            text-align: center;
         }
 
         .col-compte {
             width: 120px;
-            font-family: 'Courier New', monospace;
             text-align: center;
         }
 
@@ -134,7 +134,6 @@
         .col-credit {
             width: 130px;
             text-align: right;
-            font-family: 'Courier New', monospace;
         }
 
         .col-libelle {
@@ -167,14 +166,8 @@
     </style>
 </head>
 <body>
-    <!-- En-tete -->
-    <div class="header">
-        <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-        <div class="hospital-info">
-            {{ $etablissement['pays'] }}<br>
-            {{ $etablissement['adresse'] }}{{ $etablissement['telephone'] ? ' - Tel: ' . $etablissement['telephone'] : '' }}
-        </div>
-    </div>
+    <!-- En-tete officielle (identique au bordereau de paiement) -->
+    @include('pdf._entete-officiel')
 
     <!-- Titre -->
     <div class="document-title">

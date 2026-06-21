@@ -275,7 +275,8 @@ class RapportClientController extends Controller
                     $montantPaye = (float) $facture->reglements->where('type_reglement', '!=', 'perte')->sum('montant');
                     $perteFacture = (float) $facture->reglements->where('type_reglement', 'perte')->sum('montant');
                     $rejetFacture = (float) $facture->reglements->sum('montant_rejet');
-                    $resteAPayer = max(0, $montantFacture - $montantPaye);
+                    // Reste à payer = montant facture - (payé + rejet + perte).
+                    $resteAPayer = max(0, $montantFacture - $montantPaye - $rejetFacture - $perteFacture);
 
                     $lignes[] = [
                         'numero' => $index + 1,
@@ -295,6 +296,16 @@ class RapportClientController extends Controller
                     $totalReste += $resteAPayer;
                 }
 
+                // Solde des créances antérieures à la période (factures dont la date
+                // est strictement avant le début de période, reste à payer > 0).
+                $soldeAnterieur = 0.0;
+                if ($dateDebut) {
+                    $soldeAnterieur = (float) FactureClient::where('client_id', $cId)
+                        ->where('reste_a_payer', '>', 0)
+                        ->whereDate('date_facture', '<', $dateDebut)
+                        ->sum('reste_a_payer');
+                }
+
                 $data[] = [
                     'client_id' => $cId,
                     'numero_compte' => $client->compteComptable?->numero_compte ?? '-',
@@ -304,11 +315,13 @@ class RapportClientController extends Controller
                         ? (Client::TYPES_LABELS[$client->type_client] ?? ucfirst($client->type_client))
                         : null,
                     'lignes' => $lignes,
+                    'solde_anterieur' => $soldeAnterieur,
                     'total_facture' => $totalFacture,
                     'total_paye' => $totalPaye,
                     'total_perte' => $totalPerte,
                     'total_rejet' => $totalRejet,
-                    'total_reste' => $totalReste,
+                    // Le total à recouvrer inclut le solde antérieur reporté.
+                    'total_reste' => $totalReste + $soldeAnterieur,
                 ];
             }
         } elseif ($mode === 'tous_clients') {
@@ -341,7 +354,8 @@ class RapportClientController extends Controller
                     $totalPerte += (float) $f->reglements->where('type_reglement', 'perte')->sum('montant');
                     $totalRejet += (float) $f->reglements->sum('montant_rejet');
                 }
-                $totalReste = max(0, $totalFacture - $totalPaye);
+                // Reste à recouvrer = factures - (payé + rejet + perte).
+                $totalReste = max(0, $totalFacture - $totalPaye - $totalRejet - $totalPerte);
 
                 $numero++;
                 $data[] = [
@@ -587,8 +601,10 @@ class RapportClientController extends Controller
         $data = [];
 
         if (in_array($mode, ['global_du', 'global_au', 'global_periode'])) {
-            $facturesQuery = FactureClient::query();
-            $reglementsQuery = ReglementClient::query();
+            $facturesQuery = FactureClient::with('client.compteComptable');
+            // CA physique = règlements encaissés HORS pertes (et hors part rejetée des chèques).
+            $reglementsQuery = ReglementClient::with('client.compteComptable')
+                ->where('type_reglement', '!=', 'perte');
 
             if ($mode === 'global_du' && $dateRef) {
                 $facturesQuery->whereDate('date_facture', $dateRef);
@@ -608,13 +624,49 @@ class RapportClientController extends Controller
             }
 
             $factures = $facturesQuery->get();
-            $theorique = $factures->sum(fn($f) => (float) $f->montant - (float) ($f->ristourne ?? 0));
-            $physique = (float) $reglementsQuery->sum('montant');
+            $reglements = $reglementsQuery->get();
+
+            // Ventilation par client : CA théorique (factures), CA physique (règlements
+            // hors pertes et hors rejets), écart.
+            $parClient = [];
+            $ensureClient = function ($id, $client, $nomFallback) use (&$parClient) {
+                if (! isset($parClient[$id])) {
+                    $parClient[$id] = [
+                        'client_id' => $id,
+                        'numero_compte' => $client?->compteComptable?->numero_compte ?? '-',
+                        'raison_sociale' => $client?->nom ?: ($nomFallback ?: '—'),
+                        'theorique' => 0.0,
+                        'physique' => 0.0,
+                    ];
+                }
+            };
+
+            foreach ($factures as $f) {
+                $id = $f->client_id ?? 0;
+                $ensureClient($id, $f->client, $f->client_nom);
+                $parClient[$id]['theorique'] += (float) $f->montant - (float) ($f->ristourne ?? 0);
+            }
+            foreach ($reglements as $r) {
+                $id = $r->client_id ?? 0;
+                $ensureClient($id, $r->client, $r->client_nom);
+                $parClient[$id]['physique'] += (float) $r->montant - (float) ($r->montant_rejet ?? 0);
+            }
+
+            $clients = [];
+            foreach ($parClient as $row) {
+                $row['ecart'] = $row['theorique'] - $row['physique'];
+                $clients[] = $row;
+            }
+            usort($clients, fn($a, $b) => strcmp($a['raison_sociale'], $b['raison_sociale']));
+
+            $theorique = array_sum(array_column($clients, 'theorique'));
+            $physique = array_sum(array_column($clients, 'physique'));
 
             $data = [
                 'theorique' => $theorique,
                 'physique' => $physique,
                 'ecart' => $theorique - $physique,
+                'clients' => $clients,
             ];
         } elseif ($mode === 'par_client' && $clientId) {
             $client = Client::with('compteComptable')->find($clientId);

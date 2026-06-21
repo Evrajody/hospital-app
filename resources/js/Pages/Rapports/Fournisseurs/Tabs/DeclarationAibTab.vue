@@ -79,6 +79,7 @@
             <div class="actions-bar">
               <el-button type="primary" @click="exportPdf('declaration')">Exporter PDF</el-button>
               <el-button @click="printReport('declaration')">Imprimer</el-button>
+              <el-button @click="exportImportAib">Export audit AIB (Excel)</el-button>
             </div>
           </el-tab-pane>
 
@@ -242,6 +243,19 @@ const printReport = (type) => {
   params.append('action', 'stream');
   const w = window.open(`/rapports/fournisseurs/pdf/declaration-aib?${params}`, '_blank');
   if (w) w.onload = () => setTimeout(() => w.print(), 500);
+};
+
+// Export Excel des données fournisseurs importées avec le mapping AIB (audit).
+// Reprend la période si on est en mode plage de dates ; sinon exporte tout l'AIB.
+const exportImportAib = () => {
+  const params = new URLSearchParams();
+  if (selectedMode.value === 'periode') {
+    const [debut, fin] = dateRange.value || [];
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
+  }
+  const qs = params.toString();
+  window.open(`/rapports/fournisseurs/excel/import-aib${qs ? '?' + qs : ''}`, '_blank');
 };
 </script>
 

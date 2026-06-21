@@ -44,8 +44,8 @@
             <tbody>
                 @foreach($lignes as $ligne)
                     <tr>
-                        <td><strong>{{ $ligne['numero_piece'] }}</strong></td>
-                        <td>{{ $ligne['date'] }}</td>
+                        <td class="col-num"><strong>{{ $ligne['numero_piece'] }}</strong></td>
+                        <td class="col-date">{{ $ligne['date'] }}</td>
                         <td>{{ $ligne['reference_facture'] }}</td>
                         <td class="montant">{{ number_format($ligne['montant_facture'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($ligne['avoir'], 0, ',', ' ') }}</td>

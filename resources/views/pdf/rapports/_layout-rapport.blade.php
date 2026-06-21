@@ -12,44 +12,11 @@
         /* dompdf ignore les marges @page avec setPaper() : les marges sont portées
            par le body (haut / côtés / bas) pour garantir un rendu correct. */
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 11px;
             color: #000;
             line-height: 1.4;
-            padding: 26mm 20mm 22mm;
-        }
-
-        /* En-tête hôpital — logo à gauche, infos centrées */
-        .header-section {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        .header-section td {
-            border: none;
-            padding: 0;
-            vertical-align: middle;
-        }
-        .header-logo-cell {
-            width: 150px;
-        }
-        .header-logo {
-            height: 44px;
-            width: auto;
-        }
-        .header-spacer-cell {
-            width: 150px;
-        }
-        .header-section .hospital-name {
-            font-size: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .header-section .hospital-info {
-            font-size: 10px;
-            color: #333;
-            line-height: 1.6;
-            margin-top: 4px;
+            padding: 14mm 20mm 22mm;
         }
 
         /* Titre du rapport — cadre simple */
@@ -106,7 +73,13 @@
         }
         table.report-table .montant {
             text-align: right;
-            font-family: 'Courier New', monospace;
+        }
+        /* Colonnes N° de ligne et date : contenu centré (cf. demande uniformisation). */
+        table.report-table .col-num,
+        table.report-table .col-date,
+        table.report-table td.col-num,
+        table.report-table td.col-date {
+            text-align: center;
         }
         table.report-table .total-row {
             font-weight: bold;
@@ -155,24 +128,9 @@
     @php
         $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement();
     @endphp
-    {{-- En-tête établissement : infos centrées en haut (sans logo) --}}
-    <table class="header-section">
-        <tr>
-            <td style="text-align: center;">
-                <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-                <div class="hospital-info">
-                    {{ $etablissement['pays'] }}<br>
-                    {{ $etablissement['adresse'] }}
-                    @if(!empty($etablissement['telephone']))
-                        - Tél: {{ $etablissement['telephone'] }}
-                    @endif
-                    @if(!empty($etablissement['ifu']))
-                        <br>IFU: {{ $etablissement['ifu'] }}
-                    @endif
-                </div>
-            </td>
-        </tr>
-    </table>
+    {{-- En-tête officielle commune (logo Ministère + Direction / Zone / Hôpital),
+         identique au bordereau de paiement. --}}
+    @include('pdf._entete-officiel')
 
     {{-- Titre du rapport --}}
     <div class="report-title-wrapper">

@@ -177,6 +177,7 @@ Route::prefix('api/reglements-clients')->group(function () {
 // Avances Clients Routes
 Route::prefix('avances-clients')->middleware('permission:reglements-clients.voir')->group(function () {
     Route::get('/', [AvanceClientController::class, 'indexView'])->name('avances-clients.index');
+    Route::get('/etat/pdf', [AvanceClientController::class, 'etatAvancesPdf'])->name('avances-clients.etat-pdf');
 });
 
 // API Avances Clients
@@ -296,6 +297,9 @@ Route::prefix('rapports')->group(function () {
 
         // Export Excel Déclaration AIB
         Route::get('/excel/declaration-aib', [RapportFournisseurController::class, 'declarationAibExcel']);
+
+        // Export Excel Import AIB fournisseurs (audit du mapping AIB après ré-import)
+        Route::get('/excel/import-aib', [RapportFournisseurController::class, 'importAibExcel'])->name('rapports.fournisseurs.import-aib.excel');
     });
 
     // Rapports Banques

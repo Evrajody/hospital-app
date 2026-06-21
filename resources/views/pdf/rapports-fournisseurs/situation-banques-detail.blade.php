@@ -45,7 +45,7 @@
                     {{-- Transaction rows --}}
                     @foreach($section['transactions'] as $tx)
                         <tr>
-                            <td>{{ $tx['date_fmt'] }}</td>
+                            <td class="col-date">{{ $tx['date_fmt'] }}</td>
                             <td>{{ $tx['libelle'] }}</td>
                             <td class="montant">{{ $tx['debit'] > 0 ? number_format($tx['debit'], 0, ',', ' ') : '0' }}</td>
                             <td class="montant">{{ $tx['credit'] > 0 ? number_format($tx['credit'], 0, ',', ' ') : '0' }}</td>

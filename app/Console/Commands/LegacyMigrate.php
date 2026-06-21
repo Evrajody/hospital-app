@@ -343,8 +343,11 @@ class LegacyMigrate extends Command
                 'montant_facture' => $this->num($r->mtfac ?? 0),
                 'montant_mo' => $this->num($r->mtmd ?? 0),
                 'avoir' => $this->num($r->avoir ?? 0),
-                'taux' => $this->num($r->taib ?? 0),
-                'montant_reduction' => $this->num($r->mtaib ?? 0),
+                // Taux AIB = TAcpt (taux d'acompte legacy), et non `taib` qui est quasi
+                // toujours à 0 dans la source. Le compte comptable de l'AIB vient de
+                // NumCptAcp (`numcptacpt`). Cf. PC/016/1297 : tacpt=1 → AIB 1%, mtacpt=3840.
+                'taux' => $this->num($r->tacpt ?? 0),
+                'montant_reduction' => $this->num($r->mtacpt ?? 0),
                 'type_reduction' => $this->clean($r->numcptacpt ?? null),
                 'assujetti_tva' => false,
                 'statut' => 'validee',

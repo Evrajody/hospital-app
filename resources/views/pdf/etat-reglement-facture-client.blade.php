@@ -6,7 +6,7 @@
     <style>
         @page { size: A4; margin: 20mm 30mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 13px; color: #000; line-height: 1.5; padding: 20mm 18mm 18mm; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #000; line-height: 1.5; padding: 14mm 18mm 18mm; }
         .header { text-align: center; margin-bottom: 15px; }
         .hospital-name { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         .hospital-info { font-size: 11px; color: #444; line-height: 1.6; margin-top: 3px; }
@@ -27,16 +27,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-        <div class="hospital-info">
-            {{ $etablissement['adresse'] }}<br>
-            {{ $etablissement['telephone'] ? 'Tél.: ' . $etablissement['telephone'] : '' }}
-            @if(!empty($etablissement['email']))
-                - E-mail: {{ $etablissement['email'] }}
-            @endif
-        </div>
-    </div>
+    @include('pdf._entete-officiel')
 
     <div class="document-title">
         <h1>État de Règlement Facture</h1>
@@ -64,6 +55,7 @@
     <table class="reglements-table">
         <thead>
             <tr>
+                <th>N° Règlement</th>
                 <th>Date règlement</th>
                 <th>Type</th>
                 <th>Institution</th>
@@ -74,7 +66,8 @@
         <tbody>
             @forelse($reglements as $reglement)
             <tr>
-                <td>{{ $reglement->date_reglement?->format('d/m/Y') }}</td>
+                <td style="text-align: center;">{{ $facture->reference }}{{ $reglement->numero_ligne }}</td>
+                <td style="text-align: center;">{{ $reglement->date_reglement?->format('d/m/Y') }}</td>
                 <td>{{ $reglement->type_reglement_libelle ?: 'Règlement' }}</td>
                 <td>{{ $reglement->institution ?: '-' }}</td>
                 <td>{{ $reglement->reference_cheque ?: '-' }}</td>
@@ -82,7 +75,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" style="text-align: center; font-style: italic;">Aucun règlement</td>
+                <td colspan="6" style="text-align: center; font-style: italic;">Aucun règlement</td>
             </tr>
             @endforelse
         </tbody>
@@ -90,18 +83,31 @@
 
     <table class="totaux-table">
         <tr>
-            <td class="totaux-label">Total règlement :</td>
-            <td class="totaux-value">{{ number_format($totalReglements, 0, ',', ' ') }}</td>
-        </tr>
-        <tr>
             <td class="totaux-label">Montant Dû (Net à payer) :</td>
             <td class="totaux-value">{{ number_format($montantDu, 0, ',', ' ') }}</td>
         </tr>
         <tr>
-            <td class="totaux-label">Solde :</td>
+            <td class="totaux-label">Total règlement (rejet inclus) :</td>
+            <td class="totaux-value">{{ number_format($totalReglements, 0, ',', ' ') }}</td>
+        </tr>
+        <tr>
+            <td class="totaux-label">Dont total rejet :</td>
+            <td class="totaux-value">{{ number_format($totalRejet ?? 0, 0, ',', ' ') }}</td>
+        </tr>
+        <tr>
+            <td class="totaux-label">Total pertes :</td>
+            <td class="totaux-value">{{ number_format($totalPerte ?? 0, 0, ',', ' ') }}</td>
+        </tr>
+        <tr>
+            <td class="totaux-label">Solde (reste à payer) :</td>
             <td class="totaux-value">{{ number_format($solde, 0, ',', ' ') }}</td>
         </tr>
     </table>
+
+    <p style="font-size: 10px; font-style: italic; margin-top: 6px;">
+        Règle de calcul : Solde = Montant dû − (Total règlement encaissé + Total rejet + Total pertes).
+        Le montant du rejet fait partie du montant du règlement.
+    </p>
 
     <div class="footer">
         Edité par {{ $user?->name ?? 'Système' }}

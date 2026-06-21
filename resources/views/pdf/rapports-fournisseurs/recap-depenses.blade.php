@@ -20,7 +20,7 @@
             <tbody>
                 @foreach($lignes as $ligne)
                     <tr>
-                        <td>{{ $ligne['numero_compte'] }}</td>
+                        <td class="col-num">{{ $ligne['numero_compte'] }}</td>
                         <td>{{ $ligne['libelle'] }}</td>
                         <td class="montant">{{ number_format($ligne['montant'], 0, ',', ' ') }}</td>
                     </tr>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -17,6 +18,7 @@ class AvanceClient extends Model
         'numero_ligne',
         'client_id',
         'client_nom',
+        'societe_emettrice_client_id',
         'societe_emettrice',
         'numero_cheque',
         'date_cheque',
@@ -59,6 +61,24 @@ class AvanceClient extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Client (type société) qui émet le chèque d'avance.
+     */
+    public function societeEmettrice(): BelongsTo
+    {
+        return $this->belongsTo(Client::class, 'societe_emettrice_client_id');
+    }
+
+    /**
+     * Clients bénéficiaires de l'avance (relation many-to-many).
+     */
+    public function beneficiaires(): BelongsToMany
+    {
+        return $this->belongsToMany(Client::class, 'avance_client_beneficiaires', 'avance_id', 'client_id')
+            ->withPivot('client_nom')
+            ->withTimestamps();
     }
 
     public function banqueDepot(): BelongsTo
@@ -113,15 +133,30 @@ class AvanceClient extends Model
 
     public function toApiArray(): array
     {
+        $emetteur = $this->societeEmettrice;
+
         return [
             'id' => $this->id,
             'numero_ligne' => $this->numero_ligne,
+            // Société émettrice EN PREMIER (client type société, porteur du n° de compte).
+            'societe_emettrice_client_id' => $this->societe_emettrice_client_id,
+            'societe_emettrice_client' => $emetteur ? [
+                'id' => $emetteur->id,
+                'nom' => $emetteur->nom,
+                'numero_compte' => $emetteur->compteComptable?->numero_compte,
+            ] : null,
+            'societe_emettrice' => $this->societe_emettrice,
+            // Bénéficiaires (many-to-many).
+            'beneficiaires' => $this->beneficiaires->map(fn ($b) => [
+                'id' => $b->id,
+                'nom' => $b->pivot->client_nom ?: $b->nom,
+                'numero_compte' => $b->compteComptable?->numero_compte,
+            ])->values()->all(),
             'client_id' => $this->client_id,
             'client' => [
                 'id' => $this->client_id,
                 'nom' => $this->client_nom ?: $this->client?->nom,
             ],
-            'societe_emettrice' => $this->societe_emettrice,
             'numero_cheque' => $this->numero_cheque,
             'date_cheque' => $this->date_cheque?->format('Y-m-d'),
             'montant' => (float) $this->montant,

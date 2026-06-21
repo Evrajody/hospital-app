@@ -22,8 +22,8 @@ class AvanceClientApiTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_merge([
-            'client_id' => ClientFactory::new()->create()->id,
-            'societe_emettrice' => 'Société Émettrice SARL',
+            'societe_emettrice_client_id' => ClientFactory::new()->create(['type_client' => 'societe'])->id,
+            'beneficiaires' => [ClientFactory::new()->create()->id],
             'numero_cheque' => '7654321',
             'date_cheque' => '2026-05-01',
             'montant' => 300000,
@@ -41,14 +41,35 @@ class AvanceClientApiTest extends TestCase
     {
         $this->actingAsWithPermissions(['reglements-clients.creer']);
 
-        $this->postJson('/api/avances-clients', $this->payload())
+        $emetteur = ClientFactory::new()->create(['type_client' => 'societe', 'nom' => 'NSIA Assurances']);
+        $beneficiaire = ClientFactory::new()->create();
+
+        $this->postJson('/api/avances-clients', $this->payload([
+            'societe_emettrice_client_id' => $emetteur->id,
+            'beneficiaires' => [$beneficiaire->id],
+        ]))
             ->assertCreated()
             ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('avances_clients', [
-            'societe_emettrice' => 'Société Émettrice SARL',
+            'societe_emettrice_client_id' => $emetteur->id,
+            'societe_emettrice' => 'NSIA Assurances',
             'statut' => 'disponible',
         ]);
+        $this->assertDatabaseHas('avance_client_beneficiaires', [
+            'client_id' => $beneficiaire->id,
+        ]);
+    }
+
+    public function test_societe_emettrice_doit_etre_de_type_societe(): void
+    {
+        $this->actingAsWithPermissions(['reglements-clients.creer']);
+
+        $nonSociete = ClientFactory::new()->create(['type_client' => 'divers']);
+
+        $this->postJson('/api/avances-clients', $this->payload([
+            'societe_emettrice_client_id' => $nonSociete->id,
+        ]))->assertStatus(422);
     }
 
     public function test_validation_champs_obligatoires(): void
@@ -57,7 +78,7 @@ class AvanceClientApiTest extends TestCase
 
         $this->postJson('/api/avances-clients', ['montant' => 1000])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['client_id', 'societe_emettrice', 'numero_cheque', 'date_cheque']);
+            ->assertJsonValidationErrors(['societe_emettrice_client_id', 'beneficiaires', 'numero_cheque', 'date_cheque']);
     }
 
     public function test_suppression(): void

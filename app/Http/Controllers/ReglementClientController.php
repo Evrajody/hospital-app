@@ -214,7 +214,9 @@ class ReglementClientController extends Controller
                 'created_by_name' => auth()->user()->name,
             ]);
 
-            $facture->enregistrerPaiement($request->montant);
+            // Recalcul homogène : payé + rejet + perte (le rejet fait partie du règlement).
+            $facture->load('reglements');
+            $facture->recalculerSoldes();
 
             if ($avance) {
                 $avance->recalculerSolde();
@@ -301,20 +303,9 @@ class ReglementClientController extends Controller
                 'montant_rejet' => (float) ($request->montant_rejet ?? $reglement->montant_rejet ?? 0),
             ]);
 
-            // Mettre à jour la facture
-            $facture->montant_paye = (float) $facture->montant_paye + $difference;
-            $facture->reste_a_payer = (float) $facture->montant - (float) $facture->montant_paye;
-
-            if ($facture->montant_paye <= 0) {
-                $facture->statut = FactureClient::STATUT_NON_PAYEE;
-            } elseif ($facture->reste_a_payer <= 0.01) {
-                $facture->statut = FactureClient::STATUT_PAYEE;
-                $facture->reste_a_payer = 0;
-            } else {
-                $facture->statut = FactureClient::STATUT_PARTIELLEMENT_PAYEE;
-            }
-
-            $facture->save();
+            // Recalcul homogène à partir de l'ensemble des règlements (payé + rejet + perte).
+            $facture->load('reglements');
+            $facture->recalculerSoldes();
 
             DB::commit();
 
@@ -355,20 +346,9 @@ class ReglementClientController extends Controller
                 $avance->recalculerSolde();
             }
 
-            // Reverser le paiement sur la facture
-            $facture->montant_paye = max(0, (float) $facture->montant_paye - $montant);
-            $facture->reste_a_payer = (float) $facture->montant - (float) $facture->montant_paye;
-
-            if ($facture->montant_paye <= 0) {
-                $facture->statut = FactureClient::STATUT_NON_PAYEE;
-            } elseif ($facture->reste_a_payer <= 0.01) {
-                $facture->statut = FactureClient::STATUT_PAYEE;
-                $facture->reste_a_payer = 0;
-            } else {
-                $facture->statut = FactureClient::STATUT_PARTIELLEMENT_PAYEE;
-            }
-
-            $facture->save();
+            // Recalcul homogène après suppression du règlement (payé + rejet + perte).
+            $facture->load('reglements');
+            $facture->recalculerSoldes();
 
             DB::commit();
 

@@ -55,8 +55,8 @@
                     <tbody>
                         @foreach($clientData['lignes'] as $ligne)
                             <tr>
-                                <td><strong>{{ $ligne['numero'] }}</strong></td>
-                                <td>{{ $ligne['date_reglement'] }}</td>
+                                <td class="col-num"><strong>{{ $ligne['numero'] }}</strong></td>
+                                <td class="col-date">{{ $ligne['date_reglement'] }}</td>
                                 <td>{{ $ligne['facture_reference'] ?? '-' }}</td>
                                 <td class="montant">{{ number_format($ligne['montant'], 0, ',', ' ') }}</td>
                                 <td style="font-size: 9px;">{{ $ligne['observations'] ?? '-' }}</td>

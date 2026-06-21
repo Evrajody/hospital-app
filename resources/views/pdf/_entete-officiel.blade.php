@@ -17,7 +17,7 @@
         </tr>
     </table>
 
-    <div style="text-align: center; font-size: 11.5px; font-weight: bold; line-height: 1.35; margin-top: 46px;">
+    <div style="text-align: center; font-size: 11.5px; font-weight: bold; line-height: 1.35; margin-top: 22px;">
         <div>DIRECTION DEPARTEMENTALE DE LA SANTE DU LITTORAL</div>
         <div style="letter-spacing: 2px; font-weight: normal;">******</div>
         <div>ZONE SANITAIRE COTONOU V</div>

@@ -21,6 +21,8 @@ class FactureClient extends Model
         'client_id',
         'client_nom',
         'montant_paye',
+        'total_rejet',
+        'total_perte',
         'reste_a_payer',
         'date_solde',
         'statut',
@@ -33,6 +35,8 @@ class FactureClient extends Model
         'montant' => 'decimal:2',
         'ristourne' => 'decimal:2',
         'montant_paye' => 'decimal:2',
+        'total_rejet' => 'decimal:2',
+        'total_perte' => 'decimal:2',
         'reste_a_payer' => 'decimal:2',
         'date_solde' => 'date',
     ];
@@ -69,8 +73,56 @@ class FactureClient extends Model
         parent::boot();
 
         static::saving(function ($facture) {
-            $facture->reste_a_payer = $facture->montant - ($facture->ristourne ?? 0) - $facture->montant_paye;
+            // Règle de calcul unique : le reste à payer tient compte du montant payé,
+            // mais aussi des rejets (chèques rejetés, inclus dans le montant du règlement)
+            // et des pertes. reste = montant - ristourne - (payé + rejet + perte).
+            $reste = (float) $facture->montant
+                - (float) ($facture->ristourne ?? 0)
+                - (float) $facture->montant_paye
+                - (float) ($facture->total_rejet ?? 0)
+                - (float) ($facture->total_perte ?? 0);
+            $facture->reste_a_payer = max(0, $reste);
         });
+    }
+
+    // ==========================================
+    // CALCUL DES SOLDES
+    // ==========================================
+
+    /**
+     * Recalcule montant_payé, total_rejet, total_perte, reste_a_payer et statut
+     * à partir des règlements liés à la facture. Source de vérité unique appelée
+     * après toute création / modification / suppression de règlement.
+     *
+     * - montant_payé = somme des règlements NON "perte" (encaissements)
+     * - total_rejet  = somme des montant_rejet (le rejet fait partie du règlement)
+     * - total_perte  = somme des règlements de type "perte"
+     */
+    public function recalculerSoldes(): bool
+    {
+        $reglements = $this->relationLoaded('reglements') ? $this->reglements : $this->reglements()->get();
+
+        $paye = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+        $rejet = (float) $reglements->sum('montant_rejet');
+        $perte = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
+
+        $this->montant_paye = $paye;
+        $this->total_rejet = $rejet;
+        $this->total_perte = $perte;
+
+        $net = (float) $this->montant - (float) ($this->ristourne ?? 0);
+        $reste = max(0, $net - ($paye + $rejet + $perte));
+
+        if ($reste <= 0.01) {
+            $this->statut = self::STATUT_PAYEE;
+        } elseif ($paye + $rejet + $perte > 0.01) {
+            $this->statut = self::STATUT_PARTIELLEMENT_PAYEE;
+        } else {
+            $this->statut = self::STATUT_NON_PAYEE;
+        }
+
+        // reste_a_payer est (re)calculé par le hook saving() à partir des colonnes ci-dessus.
+        return $this->save();
     }
 
     // ==========================================
@@ -109,11 +161,12 @@ class FactureClient extends Model
         $netAPayer = (float) $this->montant - (float) ($this->ristourne ?? 0);
 
         $this->montant_paye = $montantPaye;
-        $this->reste_a_payer = $netAPayer - $montantPaye;
+        // Le hook saving() recalcule reste_a_payer (payé + rejet + perte) ; on évalue
+        // ici le statut avec la même règle pour rester cohérent.
+        $reste = max(0, $netAPayer - $montantPaye - (float) ($this->total_rejet ?? 0) - (float) ($this->total_perte ?? 0));
 
-        if ($this->reste_a_payer <= 0.01) {
+        if ($reste <= 0.01) {
             $this->statut = self::STATUT_PAYEE;
-            $this->reste_a_payer = 0;
         } else {
             $this->statut = self::STATUT_PARTIELLEMENT_PAYEE;
         }
@@ -140,6 +193,8 @@ class FactureClient extends Model
                 'telephone' => $this->client?->telephone,
             ],
             'montant_paye' => (float) $this->montant_paye,
+            'total_rejet' => (float) ($this->total_rejet ?? 0),
+            'total_perte' => (float) ($this->total_perte ?? 0),
             'reste_a_payer' => (float) $this->reste_a_payer,
             'statut' => $this->statut,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),

@@ -340,8 +340,11 @@ class FactureClientController extends Controller
         $montant = (float) $facture->montant;
         $ristourne = (float) ($facture->ristourne ?? 0);
         $montantDu = $montant - $ristourne;
-        $totalReglements = (float) $reglements->sum('montant');
-        $solde = $montantDu - $totalReglements;
+        // Règle de calcul homogène : solde = montant dû - (payé + rejet + perte).
+        $totalReglements = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+        $totalRejet = (float) $reglements->sum('montant_rejet');
+        $totalPerte = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
+        $solde = (float) $facture->reste_a_payer;
 
         return response()->json([
             'success' => true,
@@ -364,8 +367,11 @@ class FactureClientController extends Controller
                 'institution' => $r->institution ?: '-',
                 'reference' => $r->reference_cheque ?: '-',
                 'montant' => number_format((float) $r->montant, 0, ',', ' '),
+                'montant_rejet' => number_format((float) ($r->montant_rejet ?? 0), 0, ',', ' '),
             ])->toArray(),
             'total_reglements' => number_format($totalReglements, 0, ',', ' '),
+            'total_rejet' => number_format($totalRejet, 0, ',', ' '),
+            'total_perte' => number_format($totalPerte, 0, ',', ' '),
             'montant_du' => number_format($montantDu, 0, ',', ' '),
             'solde' => number_format($solde, 0, ',', ' '),
         ]);
@@ -386,8 +392,12 @@ class FactureClientController extends Controller
         $montant = (float) $facture->montant;
         $ristourne = (float) ($facture->ristourne ?? 0);
         $montantDu = $montant - $ristourne;
-        $totalReglements = (float) $reglements->sum('montant');
-        $solde = $montantDu - $totalReglements;
+        // Règle de calcul : le montant du rejet fait partie du montant du règlement ;
+        // le solde tient compte du payé + rejet + perte (= reste à payer de la facture).
+        $totalReglements = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+        $totalRejet = (float) $reglements->sum('montant_rejet');
+        $totalPerte = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
+        $solde = (float) $facture->reste_a_payer;
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.etat-reglement-facture-client', [
             'facture' => $facture,
@@ -398,6 +408,8 @@ class FactureClientController extends Controller
             'ristourne' => $ristourne,
             'montantDu' => $montantDu,
             'totalReglements' => $totalReglements,
+            'totalRejet' => $totalRejet,
+            'totalPerte' => $totalPerte,
             'solde' => $solde,
             'user' => auth()->user(),
             'etablissement' => \App\Models\Setting::getEtablissement(),

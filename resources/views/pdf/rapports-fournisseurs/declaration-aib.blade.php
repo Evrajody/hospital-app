@@ -26,8 +26,8 @@
             <tbody>
                 @foreach($lignes as $ligne)
                     <tr>
-                        <td>{{ $ligne['numero_piece'] }}</td>
-                        <td>{{ $ligne['date'] }}</td>
+                        <td class="col-num">{{ $ligne['numero_piece'] }}</td>
+                        <td class="col-date">{{ $ligne['date'] }}</td>
                         <td>{{ $ligne['ifu'] ?? '' }}</td>
                         <td>{{ $ligne['fournisseur'] }}</td>
                         <td>{{ $ligne['libelle'] }}</td>

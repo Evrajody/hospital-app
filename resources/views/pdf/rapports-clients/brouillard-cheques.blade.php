@@ -55,7 +55,7 @@
                     @foreach($group['entries'] as $i => $entry)
                         <tr class="{{ $entry['nature'] === 'SB' ? 'sb-row' : '' }}">
                             @if($i === 0)
-                                <td class="date-cell" rowspan="{{ count($group['entries']) }}"><strong>{{ $group['date'] }}</strong></td>
+                                <td class="date-cell col-date" rowspan="{{ count($group['entries']) }}"><strong>{{ $group['date'] }}</strong></td>
                             @endif
                             <td>{{ $entry['libelle'] }}</td>
                             <td class="montant">{{ $entry['debit'] ? number_format($entry['debit'], 0, ',', ' ') : '' }}</td>

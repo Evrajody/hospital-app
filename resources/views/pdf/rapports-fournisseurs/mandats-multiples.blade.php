@@ -12,7 +12,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 14px;
             color: #000;
             line-height: 1.6;

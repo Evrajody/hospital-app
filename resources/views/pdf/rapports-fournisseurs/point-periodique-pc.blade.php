@@ -9,7 +9,7 @@
     <style>
         @page { size: A4 portrait; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Times New Roman', serif; font-size: 11px; color: #000; line-height: 1.4; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; line-height: 1.4; }
 
         .pc-page { padding: 26mm 20mm 24mm; }
         .pc-page + .pc-page { page-break-before: always; }
@@ -33,7 +33,8 @@
         table.report-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
         table.report-table th { background: #fff; border: 1px solid #000; padding: 6px 4px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 9px; }
         table.report-table td { background: #fff; border: 1px solid #000; padding: 6px 8px; }
-        table.report-table .montant { text-align: right; font-family: 'Courier New', monospace; }
+        table.report-table .montant { text-align: right; }
+        table.report-table .col-num, table.report-table .col-date { text-align: center; }
 
         .footer-section { position: fixed; bottom: 8mm; left: 0; right: 0; font-size: 10px; padding: 0 20mm; color: #666; font-style: italic; }
         .footer-section td { border: none; padding: 4px 0; }
@@ -53,24 +54,8 @@
         @foreach($pieces as $piece)
             <div class="pc-page">
                 @if($loop->first)
-                {{-- En-tête établissement (sans logo) — uniquement sur la 1ère page --}}
-                <table class="header-section">
-                    <tr>
-                        <td style="text-align: center;">
-                            <div class="hospital-name">{{ $etablissement['nom'] }}</div>
-                            <div class="hospital-info">
-                                {{ $etablissement['pays'] }}<br>
-                                {{ $etablissement['adresse'] }}
-                                @if(!empty($etablissement['telephone']))
-                                    - Tél: {{ $etablissement['telephone'] }}
-                                @endif
-                                @if(!empty($etablissement['ifu']))
-                                    <br>IFU: {{ $etablissement['ifu'] }}
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+                {{-- En-tête officielle (identique au bordereau de paiement) — uniquement sur la 1ère page --}}
+                @include('pdf._entete-officiel')
 
                 {{-- Titre du rapport --}}
                 <div class="report-title-wrapper">
@@ -94,7 +79,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>{{ $piece['numero_piece'] }}</td>
+                            <td style="text-align: center;">{{ $piece['numero_piece'] }}</td>
                             <td>{{ $piece['libelle'] }}</td>
                             <td class="montant">{{ number_format($piece['montant'], 0, ',', ' ') }}</td>
                         </tr>

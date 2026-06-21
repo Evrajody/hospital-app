@@ -7,10 +7,16 @@
           <h1 class="page-title">Avances Clients</h1>
           <p class="page-subtitle">Chèques d'avance reçus de sociétés d'assurance ou tierces parties pour le compte des clients</p>
         </div>
-        <el-button type="primary" size="large" @click="openCreate">
-          <el-icon><Plus /></el-icon>
-          Nouvelle avance
-        </el-button>
+        <div style="display: flex; gap: 8px;">
+          <el-button size="large" @click="exportEtatPdf">
+            <el-icon><Printer /></el-icon>
+            État des avances (PDF)
+          </el-button>
+          <el-button type="primary" size="large" @click="openCreate">
+            <el-icon><Plus /></el-icon>
+            Nouvelle avance
+          </el-button>
+        </div>
       </div>
 
       <!-- Stats Cards -->
@@ -96,14 +102,23 @@
         </template>
 
         <el-table :data="avances" border style="width: 100%" stripe>
+          <el-table-column label="Société émettrice" min-width="220">
+            <template #default="{ row }">
+              <strong>{{ emetteurLabel(row) }}</strong>
+            </template>
+          </el-table-column>
+          <el-table-column label="Bénéficiaire(s)" min-width="200">
+            <template #default="{ row }">
+              <template v-if="row.beneficiaires?.length">
+                <el-tag v-for="b in row.beneficiaires" :key="b.id" size="small" class="benef-tag">{{ b.nom }}</el-tag>
+              </template>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
           <el-table-column label="N° Ligne" min-width="90" prop="numero_ligne" />
           <el-table-column label="Date Chèque" min-width="110">
             <template #default="{ row }">{{ formatDate(row.date_cheque) }}</template>
           </el-table-column>
-          <el-table-column label="Client" min-width="180">
-            <template #default="{ row }"><strong>{{ row.client?.nom }}</strong></template>
-          </el-table-column>
-          <el-table-column label="Société émettrice" min-width="200" prop="societe_emettrice" />
           <el-table-column label="N° Chèque" min-width="120" prop="numero_cheque" />
           <el-table-column label="Proforma" min-width="120">
             <template #default="{ row }">{{ row.numero_proforma || '-' }}</template>
@@ -168,20 +183,36 @@
         :close-on-click-modal="false"
       >
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large">
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="Client bénéficiaire" prop="client_id">
-                <el-select v-model="form.client_id" filterable placeholder="Sélectionner" style="width: 100%">
-                  <el-option v-for="c in clients" :key="c.id" :label="c.nom" :value="c.id" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="Société émettrice" prop="societe_emettrice">
-                <el-input v-model="form.societe_emettrice" placeholder="Ex : NSIA Assurances" />
-              </el-form-item>
-            </el-col>
-          </el-row>
+          <!-- Société émettrice EN PREMIER : client de type Société (porteur du n° de compte) -->
+          <el-form-item label="Société émettrice" prop="societe_emettrice_client_id">
+            <el-select
+              v-model="form.societe_emettrice_client_id"
+              filterable
+              placeholder="Sélectionner une société émettrice"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="s in societes"
+                :key="s.id"
+                :label="societeOptionLabel(s)"
+                :value="s.id"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Bénéficiaire(s)" prop="beneficiaires">
+            <el-select
+              v-model="form.beneficiaires"
+              multiple
+              filterable
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="Sélectionner un ou plusieurs clients bénéficiaires"
+              style="width: 100%"
+            >
+              <el-option v-for="c in clients" :key="c.id" :label="c.nom" :value="c.id" />
+            </el-select>
+          </el-form-item>
 
           <el-row :gutter="20">
             <el-col :span="8">
@@ -268,8 +299,13 @@
       <el-dialog v-model="detailVisible" title="Détails de l'avance" width="600px">
         <div v-if="selected">
           <el-descriptions :column="1" border>
-            <el-descriptions-item label="Client">{{ selected.client?.nom }}</el-descriptions-item>
-            <el-descriptions-item label="Société émettrice">{{ selected.societe_emettrice }}</el-descriptions-item>
+            <el-descriptions-item label="Société émettrice">{{ emetteurLabel(selected) }}</el-descriptions-item>
+            <el-descriptions-item label="Bénéficiaire(s)">
+              <template v-if="selected.beneficiaires?.length">
+                <el-tag v-for="b in selected.beneficiaires" :key="b.id" size="small" class="benef-tag">{{ b.nom }}</el-tag>
+              </template>
+              <span v-else>-</span>
+            </el-descriptions-item>
             <el-descriptions-item label="N° Chèque">{{ selected.numero_cheque }}</el-descriptions-item>
             <el-descriptions-item label="Date Chèque">{{ formatDate(selected.date_cheque) }}</el-descriptions-item>
             <el-descriptions-item label="N° Proforma">{{ selected.numero_proforma || '-' }}</el-descriptions-item>
@@ -304,7 +340,7 @@
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Search, Delete, Edit, View, RefreshLeft, Money, CircleCheck, Wallet, TrendCharts, ArrowDown } from '@element-plus/icons-vue';
+import { Plus, Search, Delete, Edit, View, RefreshLeft, Money, CircleCheck, Wallet, TrendCharts, ArrowDown, Printer } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
@@ -315,6 +351,7 @@ const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 const props = defineProps({
   avances: { type: Array, default: () => [] },
   clients: { type: Array, default: () => [] },
+  societes: { type: Array, default: () => [] },
   banques: { type: Array, default: () => [] },
   stats: { type: Object, default: () => ({ total_avances: 0, total_utilise: 0, total_disponible: 0, nombre_avances: 0 }) },
   pagination: { type: Object, default: () => ({ current_page: 1, per_page: 20, total: 0, last_page: 1 }) },
@@ -378,9 +415,9 @@ const formVisible = ref(false);
 const editingId = ref(null);
 const submitting = ref(false);
 const formRef = ref(null);
-const form = ref({
-  client_id: null,
-  societe_emettrice: '',
+const emptyForm = () => ({
+  societe_emettrice_client_id: null,
+  beneficiaires: [],
   numero_cheque: '',
   date_cheque: '',
   montant: null,
@@ -391,12 +428,29 @@ const form = ref({
   observations: '',
 });
 
+const form = ref(emptyForm());
+
 const rules = {
-  client_id: [{ required: true, message: 'Client requis', trigger: 'change' }],
-  societe_emettrice: [{ required: true, message: 'Société requise', trigger: 'blur' }],
+  societe_emettrice_client_id: [{ required: true, message: 'Société émettrice requise', trigger: 'change' }],
+  beneficiaires: [{ required: true, type: 'array', min: 1, message: 'Au moins un bénéficiaire', trigger: 'change' }],
   numero_cheque: [{ required: true, message: 'N° chèque requis', trigger: 'blur' }],
   date_cheque: [{ required: true, message: 'Date requise', trigger: 'change' }],
   montant: [{ required: true, message: 'Montant requis', trigger: 'blur' }],
+};
+
+const societeOptionLabel = (s) => (s.numero_compte ? `[${s.numero_compte}] ${s.nom}` : s.nom);
+
+const emetteurLabel = (row) => {
+  const e = row?.societe_emettrice_client;
+  if (e) return e.numero_compte ? `[${e.numero_compte}] ${e.nom}` : e.nom;
+  return row?.societe_emettrice || '-';
+};
+
+const exportEtatPdf = () => {
+  const params = new URLSearchParams();
+  if (filters.value.statut) params.set('statut', filters.value.statut);
+  params.set('action', 'stream');
+  window.open(`/avances-clients/etat/pdf?${params.toString()}`, '_blank');
 };
 
 const filteredApprovisionnements = computed(() => {
@@ -407,26 +461,15 @@ const filteredApprovisionnements = computed(() => {
 
 const openCreate = () => {
   editingId.value = null;
-  form.value = {
-    client_id: null,
-    societe_emettrice: '',
-    numero_cheque: '',
-    date_cheque: '',
-    montant: null,
-    numero_proforma: '',
-    institution: '',
-    banque_depot_id: null,
-    approvisionnement_id: null,
-    observations: '',
-  };
+  form.value = emptyForm();
   formVisible.value = true;
 };
 
 const openEdit = (avance) => {
   editingId.value = avance.id;
   form.value = {
-    client_id: avance.client_id,
-    societe_emettrice: avance.societe_emettrice,
+    societe_emettrice_client_id: avance.societe_emettrice_client_id || null,
+    beneficiaires: (avance.beneficiaires || []).map((b) => b.id),
     numero_cheque: avance.numero_cheque,
     date_cheque: avance.date_cheque,
     montant: avance.montant,
@@ -460,7 +503,11 @@ const handleSubmit = async () => {
     } else {
       const fd = new FormData();
       Object.entries(form.value).forEach(([k, v]) => {
-        if (v !== null && v !== undefined && v !== '') fd.append(k, v);
+        if (Array.isArray(v)) {
+          v.forEach((item) => fd.append(`${k}[]`, item));
+        } else if (v !== null && v !== undefined && v !== '') {
+          fd.append(k, v);
+        }
       });
       response = await fetchApi('/api/avances-clients', {
         method: 'POST',
@@ -548,6 +595,7 @@ const handleAvanceAction = (command, avance) => {
 .table-card { border-radius: 8px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .card-title { font-size: 16px; font-weight: 600; color: #374151; }
+.benef-tag { margin: 2px 4px 2px 0; }
 :deep(.el-table th) { background-color: #f9fafb; font-weight: 600; color: #374151; }
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
 </style>

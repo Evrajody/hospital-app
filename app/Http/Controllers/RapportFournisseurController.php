@@ -1554,6 +1554,57 @@ class RapportFournisseurController extends Controller
         );
     }
 
+    /**
+     * Export Excel des données fournisseurs importées avec le mapping AIB.
+     * Permet au client d'auditer l'AIB après le ré-import des anciennes données.
+     *
+     * Query params optionnels :
+     *  - date_debut / date_fin : filtre sur la colonne `date` (Y-m-d)
+     *  - tout : si "1"/"true", inclut toutes les factures (sinon uniquement celles avec AIB)
+     */
+    public function importAibExcel(Request $request)
+    {
+        $query = FactureFournisseur::with('fournisseur')->orderBy('date')->orderBy('numero_piece');
+
+        if ($dateDebut = $request->query('date_debut')) {
+            $query->whereDate('date', '>=', $dateDebut);
+        }
+        if ($dateFin = $request->query('date_fin')) {
+            $query->whereDate('date', '<=', $dateFin);
+        }
+
+        // Par défaut, uniquement les factures ayant un AIB (taux > 0 OU compte AIB renseigné).
+        $tout = filter_var($request->query('tout'), FILTER_VALIDATE_BOOLEAN);
+        if (!$tout) {
+            $query->where(function ($q) {
+                $q->where('taux', '>', 0)
+                  ->orWhereNotNull('type_reduction');
+            });
+        }
+
+        $factures = $query->get();
+
+        $rows = $factures->map(fn(FactureFournisseur $f) => [
+            $f->numero_piece,
+            $f->date?->format('d/m/Y'),
+            $f->fournisseur_nom ?: $f->fournisseur?->nom,
+            $f->libelle,
+            (float) $f->montant_facture,
+            (float) $f->montant_mo,
+            (float) $f->taux,
+            (float) $f->montant_reduction,
+            $f->type_reduction,
+            $f->type_reduction_libelle,
+        ])->toArray();
+
+        return \App\Support\ExcelExporter::download(
+            ['N° PC', 'Date', 'Fournisseur', 'Libellé', 'Montant facture', 'Montant M.O.', 'Taux AIB (%)', 'Montant AIB', 'N° Compte AIB', 'Libellé compte AIB'],
+            $rows,
+            'import-aib-fournisseurs',
+            'Import AIB fournisseurs',
+        );
+    }
+
     public function banquesParCompteExcel(Request $request)
     {
         $data = $this->buildEtatBanquesParCompteData($request);

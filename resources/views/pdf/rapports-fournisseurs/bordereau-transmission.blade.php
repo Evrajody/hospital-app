@@ -24,9 +24,9 @@
             <tbody>
                 @foreach($lignes as $ligne)
                     <tr>
-                        <td>{{ $ligne['date'] }}</td>
+                        <td class="col-date">{{ $ligne['date'] }}</td>
                         <td>{{ $ligne['fournisseur'] }}</td>
-                        <td>{{ $ligne['numero_piece'] }}</td>
+                        <td class="col-num">{{ $ligne['numero_piece'] }}</td>
                         <td>{{ $ligne['mode_paiement'] }}</td>
                         <td>{{ $ligne['institution'] }}</td>
                         <td class="montant">{{ number_format($ligne['montant'], 0, ',', ' ') }}</td>

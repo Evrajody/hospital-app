@@ -17,7 +17,7 @@
     .imputation-table { width: 100%; border-collapse: collapse; }
     .imputation-table th, .imputation-table td { border: 1px solid #000; padding: 6px 8px; font-size: 10px; }
     .imputation-table th { text-align: center; font-weight: bold; text-transform: uppercase; background: #f8f8f8; }
-    .imputation-table .compte-col { text-align: center; font-family: 'Courier New', monospace; }
+    .imputation-table .compte-col { text-align: center; }
     .imputation-table .montant-col { text-align: right; }
 @endsection
 
