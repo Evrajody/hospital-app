@@ -32,6 +32,7 @@
                     <th style="width: 65px">Date PC</th>
                     <th style="width: 80px">R&eacute;f. Fact.</th>
                     <th class="montant">Mt TTC</th>
+                    <th class="montant">Mt TVA</th>
                     <th class="montant">Avoir</th>
                     <th class="montant">Mt M.O.</th>
                     <th class="montant" style="width: 45px">AIB (%)</th>
@@ -48,6 +49,7 @@
                         <td class="col-date">{{ $ligne['date'] }}</td>
                         <td>{{ $ligne['reference_facture'] }}</td>
                         <td class="montant">{{ number_format($ligne['montant_facture'], 0, ',', ' ') }}</td>
+                        <td class="montant">{{ number_format($ligne['montant_tva'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($ligne['avoir'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($ligne['montant_mo'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ $ligne['taux_aib'] ? number_format($ligne['taux_aib'], 1) . '%' : '' }}</td>
@@ -62,6 +64,7 @@
                 <tr class="total-row">
                     <td colspan="3" class="total-label">TOTAUX</td>
                     <td class="montant">{{ number_format($totaux['montant_facture'], 0, ',', ' ') }}</td>
+                    <td class="montant">{{ number_format($totaux['montant_tva'], 0, ',', ' ') }}</td>
                     <td class="montant">{{ number_format($totaux['avoir'], 0, ',', ' ') }}</td>
                     <td class="montant">{{ number_format($totaux['montant_mo'], 0, ',', ' ') }}</td>
                     <td class="montant"></td>

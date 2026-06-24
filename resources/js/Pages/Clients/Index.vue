@@ -7,7 +7,7 @@
           <h1>Gestion des Clients</h1>
           <p class="subtitle">Liste complète des clients</p>
         </div>
-        <el-button type="primary" :icon="Plus" @click="handleCreate">
+        <el-button v-if="can('clients.creer')" type="primary" :icon="Plus" @click="handleCreate">
           Nouveau Client
         </el-button>
       </div>
@@ -70,10 +70,10 @@
                     <el-dropdown-item command="factures" :icon="Document">
                       Voir
                     </el-dropdown-item>
-                    <el-dropdown-item command="edit" :icon="Edit">
+                    <el-dropdown-item v-if="can('clients.modifier')" command="edit" :icon="Edit">
                       Modifier
                     </el-dropdown-item>
-                    <el-dropdown-item divided command="delete" :icon="Delete">
+                    <el-dropdown-item v-if="can('clients.supprimer')" divided command="delete" :icon="Delete">
                       <span style="color: #f56c6c">Supprimer</span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -134,6 +134,9 @@ import ClientModal from '@/Components/Modals/ClientModal.vue';
 import { Plus, Search, Edit, Delete, User, ArrowDown, Document } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Simple debounce function
 const debounce = (fn, delay) => {

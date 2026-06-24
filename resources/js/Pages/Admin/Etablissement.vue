@@ -91,7 +91,7 @@
           </el-row>
 
           <div class="form-actions">
-            <el-button type="primary" @click="submitForm" :loading="loading">
+            <el-button v-if="can('parametres.modifier')" type="primary" @click="submitForm" :loading="loading">
               Enregistrer les paramètres
             </el-button>
           </div>
@@ -106,6 +106,9 @@ import { ref, reactive } from 'vue';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 const props = defineProps({
   etablissement: { type: Object, default: () => ({}) },

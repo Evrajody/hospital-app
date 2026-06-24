@@ -1,5 +1,9 @@
 {{-- Entête officielle commune aux bordereaux et autres documents PDF.
-     Utilisation : @include('pdf._entete-officiel') (la variable $etablissement doit être disponible). --}}
+     Utilisation : @include('pdf._entete-officiel').
+     L'entête résout elle-même $etablissement : quand elle est ré-incluse dans une
+     section (ex. "un client par page"), $etablissement n'est pas dans le scope et le
+     nom retombait sur un fallback non accentué. On garantit ainsi le même nom partout. --}}
+@php $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement(); @endphp
 <div style="margin-bottom: 10px;">
     <table style="width: 100%; border-collapse: collapse;">
         <tr>

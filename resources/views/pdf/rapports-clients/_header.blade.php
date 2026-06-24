@@ -11,7 +11,7 @@
                 {{ $etablissement['pays'] }}<br>
                 {{ $etablissement['adresse'] }}
                 @if(!empty($etablissement['telephone']))
-                    - Tél: {{ $etablissement['telephone'] }}
+                    - Tél : {{ $etablissement['telephone'] }}
                 @endif
             </div>
         </td>

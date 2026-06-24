@@ -173,7 +173,7 @@ class FactureClientController extends Controller
     {
         $facture = FactureClient::with('client')->findOrFail($id);
 
-        $reglements = ReglementClient::with(['banqueDepot', 'approvisionnement'])
+        $reglements = ReglementClient::with(['banqueDepot', 'approvisionnement', 'avance'])
             ->where('facture_id', $id)
             ->orderBy('date_reglement', 'desc')
             ->get()

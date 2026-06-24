@@ -17,6 +17,7 @@
     .client-page + .client-page { page-break-before: always; }
     .client-page-title { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #000; display: inline-block; padding: 6px 18px; margin: 8px 0 12px; }
     .client-page-title-wrapper { text-align: center; }
+    .client-page-subtitle { display: block; text-transform: none; font-weight: normal; font-style: italic; font-size: 10px; letter-spacing: 0; margin-top: 4px; }
     .client-header { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; page-break-after: avoid; }
     .reste { color: #cc0000; font-weight: bold; }
     .type-header { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; background: #e5e7eb; border-left: 4px solid #1f2937; margin: 0 0 12px; page-break-after: avoid; }
@@ -37,10 +38,13 @@
         @foreach($data as $clientData)
             <div class="client-page">
                 @unless($loop->first)
-                    {{-- En-tête officielle + titre repris en haut de chaque nouvelle page client. --}}
+                    {{-- En-tête officielle + titre + période repris en haut de chaque nouvelle page client. --}}
                     @include('pdf._entete-officiel')
                     <div class="client-page-title-wrapper">
-                        <div class="client-page-title">{{ $titre ?? 'ÉTAT DES CRÉANCES CLIENTS' }}</div>
+                        <div class="client-page-title">
+                            {{ ($titre ?? 'ÉTAT DES CRÉANCES CLIENTS') . $typeSuffix }}
+                            <span class="client-page-subtitle">Factures non soldées@if(!empty($periode['debut']) && !empty($periode['fin'])) - Période du {{ \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}@elseif(!empty($periode['fin'])) - Au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}@endif</span>
+                        </div>
                     </div>
                 @endunless
 

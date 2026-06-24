@@ -7,7 +7,7 @@
           <h1 class="page-title">Plan Comptable OHADA</h1>
           <p class="page-subtitle">{{ stats.total }} comptes dont {{ stats.custom || 0 }} personnalisé(s)</p>
         </div>
-        <el-button type="primary" size="large" @click="selectedCompte = null; showCompteModal = true">
+        <el-button v-if="can('plan-comptable.modifier')" type="primary" size="large" @click="selectedCompte = null; showCompteModal = true">
           <el-icon><Plus /></el-icon>
           Nouveau Compte
         </el-button>
@@ -237,6 +237,7 @@
           <el-table-column label="Actions" width="120" align="center" resizable>
             <template #default="{ row }">
               <el-button
+                v-if="can('plan-comptable.modifier')"
                 :icon="Edit"
                 size="small"
                 circle
@@ -245,6 +246,7 @@
                 @click="handleEdit(row)"
               />
               <el-button
+                v-if="can('plan-comptable.supprimer')"
                 type="danger"
                 :icon="Delete"
                 size="small"
@@ -308,8 +310,10 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import CompteComptableModal from '@/Components/Modals/CompteComptableModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { useAsyncExport } from '@/Composables/useAsyncExport';
+import { usePermissions } from '@/Composables/usePermissions';
 import { debounce } from '@/utils/debounce';
 const { startExport } = useAsyncExport();
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

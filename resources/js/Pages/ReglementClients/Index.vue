@@ -7,7 +7,7 @@
           <h1 class="page-title">R&egrave;glements Clients</h1>
           <p class="page-subtitle">Historique complet des paiements re&ccedil;us</p>
         </div>
-        <el-button type="primary" size="large" @click="openNewReglement">
+        <el-button v-if="can('reglements-clients.creer')" type="primary" size="large" @click="openNewReglement">
           <el-icon><Plus /></el-icon>
           Nouveau R&egrave;glement
         </el-button>
@@ -210,10 +210,10 @@
                           <el-button :icon="More" size="small" />
                           <template #dropdown>
                             <el-dropdown-menu>
-                              <el-dropdown-item command="edit" :icon="Edit">
+                              <el-dropdown-item v-if="can('reglements-clients.modifier')" command="edit" :icon="Edit">
                                 Modifier
                               </el-dropdown-item>
-                              <el-dropdown-item divided command="delete" :icon="Delete">
+                              <el-dropdown-item v-if="can('reglements-clients.supprimer')" divided command="delete" :icon="Delete">
                                 <span style="color: #f56c6c">Supprimer</span>
                               </el-dropdown-item>
                             </el-dropdown-menu>
@@ -355,7 +355,7 @@
       >
         <el-form v-if="editForm" label-position="top" size="large">
           <el-row :gutter="20">
-            <el-col :span="12">
+            <el-col :span="8">
               <el-form-item label="Date">
                 <el-date-picker
                   v-model="editForm.date_reglement"
@@ -366,7 +366,7 @@
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="8">
               <el-form-item label="Montant">
                 <el-input-number
                   v-model="editForm.montant"
@@ -377,9 +377,7 @@
                 />
               </el-form-item>
             </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
+            <el-col :span="8">
               <el-form-item label="Type de r&egrave;glement">
                 <el-select v-model="editForm.type_reglement" style="width: 100%">
                   <el-option label="R&egrave;glement" value="reglement" />
@@ -387,7 +385,14 @@
                 </el-select>
               </el-form-item>
             </el-col>
+          </el-row>
+          <el-row :gutter="20">
             <el-col :span="12">
+              <el-form-item label="N&deg; Ligne">
+                <el-input v-model="editForm.numero_ligne" />
+              </el-form-item>
+            </el-col>
+            <el-col v-if="editForm.type_reglement === 'reglement'" :span="12">
               <el-form-item label="Montant rejet&eacute; (XOF)">
                 <el-input-number
                   v-model="editForm.montant_rejet"
@@ -399,53 +404,114 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="N&deg; Ligne">
-                <el-input v-model="editForm.numero_ligne" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="Institution">
-                <el-input v-model="editForm.institution" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="R&eacute;f. Ch&egrave;que">
-                <el-input v-model="editForm.reference_cheque" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="Banque de d&eacute;p&ocirc;t">
+
+          <template v-if="editForm.type_reglement !== 'perte'">
+            <el-divider>Source du règlement</el-divider>
+
+            <el-form-item>
+              <el-radio-group v-model="editForm.source_paiement" @change="handleEditSourceChange">
+                <el-radio-button label="direct">Paiement direct (chèque / espèces)</el-radio-button>
+                <el-radio-button label="virement">Virement bancaire</el-radio-button>
+                <el-radio-button label="avance" :disabled="editAvancesOptions.length === 0">
+                  Imputer sur une avance
+                  <span v-if="editAvancesOptions.length === 0" style="font-size: 11px; opacity: 0.7;">(aucune dispo)</span>
+                </el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+
+            <!-- BLOC IMPUTATION SUR AVANCE -->
+            <template v-if="editForm.source_paiement === 'avance'">
+              <el-form-item label="Avance à imputer">
                 <el-select
-                  v-model="editForm.banque_depot_id"
+                  v-model="editForm.avance_id"
+                  filterable
                   clearable
-                  placeholder="Aucune (esp&egrave;ces)"
-                  style="width: 100%"
-                  @change="handleEditBanqueChange"
-                >
-                  <el-option v-for="b in banques" :key="b.id" :label="b.nom" :value="b.id" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="R&eacute;f&eacute;rence bordereau">
-                <el-select
-                  v-model="editForm.approvisionnement_id"
-                  clearable
-                  placeholder="S&eacute;lectionner un bordereau"
-                  :disabled="!editForm.banque_depot_id"
+                  :loading="editAvancesLoading"
+                  placeholder="Sélectionner une avance"
                   style="width: 100%"
                 >
-                  <el-option v-for="a in editApprovisionnements" :key="a.id" :label="a.reference_bordereau" :value="a.id" />
+                  <el-option
+                    v-for="a in editAvancesOptions"
+                    :key="a.id"
+                    :label="`${a.societe_emettrice} — Chq ${a.numero_cheque}${a.montant_restant != null ? ' — Solde ' + formatMontant(a.montant_restant) : ''}`"
+                    :value="a.id"
+                  />
                 </el-select>
               </el-form-item>
-            </el-col>
-          </el-row>
+            </template>
+
+            <!-- BLOC VIREMENT BANCAIRE -->
+            <template v-else-if="editForm.source_paiement === 'virement'">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="Banque">
+                    <el-select
+                      v-model="editForm.banque_depot_id"
+                      clearable
+                      filterable
+                      placeholder="Sélectionner une banque"
+                      style="width: 100%"
+                      @change="handleEditBanqueChange"
+                    >
+                      <el-option v-for="b in banques" :key="b.id" :label="b.nom" :value="b.id" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="Référence virement">
+                    <el-input v-model="editForm.reference_cheque" placeholder="N° / référence du virement" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </template>
+
+            <!-- BLOC PAIEMENT DIRECT (chèque/espèces) -->
+            <template v-else>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="Institution">
+                    <el-input v-model="editForm.institution" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="R&eacute;f. Ch&egrave;que">
+                    <el-input v-model="editForm.reference_cheque" placeholder="N° du chèque (vide si espèces)" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="Banque de d&eacute;p&ocirc;t">
+                    <el-select
+                      v-model="editForm.banque_depot_id"
+                      clearable
+                      filterable
+                      placeholder="Aucune (esp&egrave;ces)"
+                      style="width: 100%"
+                      @change="handleEditBanqueChange"
+                    >
+                      <el-option v-for="b in banques" :key="b.id" :label="b.nom" :value="b.id" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="R&eacute;f&eacute;rence bordereau">
+                    <el-select
+                      v-model="editForm.approvisionnement_id"
+                      clearable
+                      filterable
+                      placeholder="S&eacute;lectionner un bordereau"
+                      :disabled="!editForm.banque_depot_id"
+                      style="width: 100%"
+                    >
+                      <el-option v-for="a in editApprovisionnements" :key="a.id" :label="a.reference_bordereau" :value="a.id" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </template>
+          </template>
+
           <el-form-item label="Observations">
             <el-input v-model="editForm.observations" type="textarea" :rows="3" />
           </el-form-item>
@@ -520,8 +586,11 @@ import {
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
 import { debounce } from '@/utils/debounce';
 import { toYmd } from '@/utils/date';
+
+const { can } = usePermissions();
 
 const props = defineProps({
   reglements: { type: Array, default: () => [] },
@@ -684,14 +753,21 @@ const handleMoreActions = (command, reglement) => {
   }
 };
 
-const handleEdit = (reglement) => {
+const editAvancesList = ref([]);
+const editCurrentAvance = ref(null);
+const editAvancesLoading = ref(false);
+
+const handleEdit = async (reglement) => {
   editingReglementId.value = reglement.id;
+  editCurrentAvance.value = reglement.avance || null;
   editForm.value = {
     type_reglement: reglement.type_reglement || 'reglement',
     date_reglement: reglement.date_reglement,
     montant: reglement.montant,
     montant_rejet: reglement.montant_rejet || 0,
     numero_ligne: reglement.numero_ligne || '',
+    source_paiement: reglement.avance_id ? 'avance' : 'direct',
+    avance_id: reglement.avance_id || null,
     institution: reglement.institution || '',
     reference_cheque: reglement.reference_cheque || '',
     banque_depot_id: reglement.banque_depot?.id || null,
@@ -699,6 +775,22 @@ const handleEdit = (reglement) => {
     observations: reglement.observations || '',
   };
   editDialogVisible.value = true;
+
+  // Charge les avances disponibles du client (pour ré-imputation).
+  editAvancesList.value = [];
+  const clientId = reglement.client?.id || reglement.client_id;
+  if (clientId) {
+    editAvancesLoading.value = true;
+    try {
+      const res = await fetchApi(`/api/avances-clients/client/${clientId}`);
+      const json = await res.json();
+      editAvancesList.value = json.data || [];
+    } catch {
+      editAvancesList.value = [];
+    } finally {
+      editAvancesLoading.value = false;
+    }
+  }
 };
 
 const editApprovisionnements = computed(() => {
@@ -707,16 +799,49 @@ const editApprovisionnements = computed(() => {
   return banque?.approvisionnements || [];
 });
 
+// Avances proposées : disponibles du client + l'avance déjà imputée si elle n'y figure plus.
+const editAvancesOptions = computed(() => {
+  const list = [...editAvancesList.value];
+  const cur = editCurrentAvance.value;
+  if (editForm.value?.avance_id && cur && !list.some(a => a.id === editForm.value.avance_id)) {
+    list.unshift({
+      id: cur.id,
+      societe_emettrice: cur.societe_emettrice,
+      numero_cheque: cur.numero_cheque,
+      montant_restant: null,
+    });
+  }
+  return list;
+});
+
 const handleEditBanqueChange = () => {
   if (editForm.value) editForm.value.approvisionnement_id = null;
+};
+
+const handleEditSourceChange = () => {
+  if (!editForm.value) return;
+  if (editForm.value.source_paiement === 'avance') {
+    editForm.value.institution = '';
+    editForm.value.reference_cheque = '';
+    editForm.value.banque_depot_id = null;
+    editForm.value.approvisionnement_id = null;
+  } else if (editForm.value.source_paiement === 'virement') {
+    editForm.value.avance_id = null;
+    editForm.value.institution = '';
+    editForm.value.approvisionnement_id = null;
+  } else {
+    editForm.value.avance_id = null;
+  }
 };
 
 const handleEditSubmit = async () => {
   editLoading.value = true;
   try {
+    // eslint-disable-next-line no-unused-vars
+    const { source_paiement, ...payload } = editForm.value;
     const response = await fetchApi(`/api/reglements-clients/${editingReglementId.value}`, {
       method: 'PUT',
-      body: editForm.value,
+      body: payload,
     });
     const result = await response.json();
     if (result.success) {

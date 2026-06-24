@@ -7,7 +7,7 @@
           <h1 class="page-title">Gestion des Fournisseurs</h1>
           <p class="page-subtitle">Liste et gestion de tous les fournisseurs</p>
         </div>
-        <el-button type="primary" size="large" @click="handleCreate">
+        <el-button v-if="can('fournisseurs.creer')" type="primary" size="large" @click="handleCreate">
           <el-icon><Plus /></el-icon>
           Nouveau Fournisseur
         </el-button>
@@ -125,10 +125,10 @@
                     <el-dropdown-item command="view" :icon="View">
                       Voir
                     </el-dropdown-item>
-                    <el-dropdown-item command="edit" :icon="Edit">
+                    <el-dropdown-item v-if="can('fournisseurs.modifier')" command="edit" :icon="Edit">
                       Modifier
                     </el-dropdown-item>
-                    <el-dropdown-item divided command="delete" :icon="Delete">
+                    <el-dropdown-item v-if="can('fournisseurs.supprimer')" divided command="delete" :icon="Delete">
                       <span style="color: #f56c6c">Supprimer</span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -231,6 +231,9 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Simple debounce function
 const debounce = (fn, delay) => {

@@ -3,7 +3,7 @@
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">Gestion des Utilisateurs</h1>
-        <el-button type="primary" :icon="Plus" @click="openModal()">
+        <el-button v-if="can('utilisateurs.creer')" type="primary" :icon="Plus" @click="openModal()">
           Nouvel Utilisateur
         </el-button>
       </div>
@@ -25,6 +25,7 @@
           <el-table-column label="Statut" width="100" align="center">
             <template #default="{ row }">
               <el-switch
+                v-if="can('utilisateurs.modifier')"
                 :model-value="row.is_active"
                 @change="toggleActive(row)"
                 size="small"
@@ -33,8 +34,8 @@
           </el-table-column>
           <el-table-column label="Actions" width="120" align="center">
             <template #default="{ row }">
-              <el-button type="primary" :icon="Edit" circle size="small" @click="openModal(row)" />
-              <el-button type="danger" :icon="Delete" circle size="small" @click="handleDelete(row)" />
+              <el-button v-if="can('utilisateurs.modifier')" type="primary" :icon="Edit" circle size="small" @click="openModal(row)" />
+              <el-button v-if="can('utilisateurs.supprimer')" type="danger" :icon="Delete" circle size="small" @click="handleDelete(row)" />
             </template>
           </el-table-column>
         </el-table>
@@ -125,6 +126,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Edit, Delete } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 const props = defineProps({
   users: { type: Array, default: () => [] },

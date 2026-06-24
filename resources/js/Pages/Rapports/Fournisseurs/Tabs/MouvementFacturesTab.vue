@@ -69,6 +69,9 @@
           <el-table-column label="Mt TTC" min-width="100" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
           </el-table-column>
+          <el-table-column label="Mt TVA" min-width="95" align="right">
+            <template #default="{ row }">{{ formatMontant(row.montant_tva) }}</template>
+          </el-table-column>
           <el-table-column label="Avoir" min-width="85" align="right">
             <template #default="{ row }">{{ formatMontant(row.avoir) }}</template>
           </el-table-column>
@@ -168,8 +171,8 @@ const getSummary = ({ columns }) => {
   const sums = [];
   columns.forEach((col, i) => {
     if (i === 0) { sums[i] = 'TOTAUX'; return; }
-    if (i === 1 || i === 2 || i === 6) { sums[i] = ''; return; }
-    const keys = { 3: 'montant_facture', 4: 'avoir', 5: 'montant_mo', 7: 'montant_aib', 8: 'montant_du', 9: 'total_reglement', 10: 'solde' };
+    if (i === 1 || i === 2 || i === 7) { sums[i] = ''; return; }
+    const keys = { 3: 'montant_facture', 4: 'montant_tva', 5: 'avoir', 6: 'montant_mo', 8: 'montant_aib', 9: 'montant_du', 10: 'total_reglement', 11: 'solde' };
     if (keys[i]) {
       sums[i] = formatMontant(totaux.value[keys[i]] || 0);
     } else {

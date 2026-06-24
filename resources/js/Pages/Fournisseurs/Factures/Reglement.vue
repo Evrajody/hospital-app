@@ -119,7 +119,7 @@
                   :class="{ 'reglement-item-editing': reglement.id === editingReglementId }"
                 >
                   <el-tooltip
-                    v-if="reglement.id !== editingReglementId"
+                    v-if="reglement.id !== editingReglementId && can('reglements-fournisseurs.modifier')"
                     content="Modifier ce règlement"
                     placement="top"
                     :show-after="300"
@@ -153,7 +153,7 @@
                     </div>
                     <div v-if="reglement.reference">
                       <el-icon><DocumentCopy /></el-icon>
-                      Réf: {{ reglement.reference }}
+                      Réf : {{ reglement.reference }}
                     </div>
                     <div v-if="reglement.compte_bancaire">
                       <el-icon><CreditCard /></el-icon>
@@ -400,7 +400,7 @@
                       >
                         <div class="compte-option">
                           <span>{{ compte.numero_compte }}</span>
-                          <span class="compte-solde">Solde: {{ formatMontant(compte.solde) }}</span>
+                          <span class="compte-solde">Solde : {{ formatMontant(compte.solde) }}</span>
                         </div>
                       </el-option>
                     </el-select>
@@ -525,6 +525,7 @@
                   Annuler
                 </el-button>
                 <el-button
+                  v-if="isEdit ? can('reglements-fournisseurs.modifier') : can('reglements-fournisseurs.creer')"
                   type="primary"
                   size="large"
                   :loading="submitting"
@@ -601,7 +602,10 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
 import { toYmd, todayYmd } from '@/utils/date';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

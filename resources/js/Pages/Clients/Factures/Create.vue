@@ -183,7 +183,7 @@
           <!-- Actions -->
           <div class="form-actions">
             <el-button @click="handleCancel">Annuler</el-button>
-            <el-button type="primary" :loading="loading" @click="handleSubmit">
+            <el-button v-if="can('factures-clients.creer')" type="primary" :loading="loading" @click="handleSubmit">
               Enregistrer la facture
             </el-button>
           </div>
@@ -200,6 +200,9 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { DocumentCopy } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

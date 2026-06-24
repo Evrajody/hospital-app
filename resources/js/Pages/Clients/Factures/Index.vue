@@ -7,7 +7,7 @@
           <h1>Factures Clients</h1>
           <p class="subtitle">Gestion des factures et cr&eacute;ances</p>
         </div>
-        <el-button type="primary" :icon="Plus" @click="handleCreate">
+        <el-button v-if="can('factures-clients.creer')" type="primary" :icon="Plus" @click="handleCreate">
           Nouvelle Facture
         </el-button>
       </div>
@@ -166,16 +166,16 @@
                     <el-dropdown-item command="view" :icon="View">
                       Voir
                     </el-dropdown-item>
-                    <el-dropdown-item v-if="row.statut !== 'payee'" command="regler" :icon="Money">
+                    <el-dropdown-item v-if="row.statut !== 'payee' && can('reglements-clients.creer')" command="regler" :icon="Money">
                       Régler
                     </el-dropdown-item>
-                    <el-dropdown-item command="edit" :icon="Edit">
+                    <el-dropdown-item v-if="can('factures-clients.modifier')" command="edit" :icon="Edit">
                       Modifier
                     </el-dropdown-item>
                     <el-dropdown-item command="etat_reglement" :icon="Document">
                       État de Règlement
                     </el-dropdown-item>
-                    <el-dropdown-item divided command="delete" :icon="Delete">
+                    <el-dropdown-item v-if="can('factures-clients.supprimer')" divided command="delete" :icon="Delete">
                       <span style="color: #f56c6c">Supprimer</span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -345,6 +345,9 @@ import {
   Document, Money, SuccessFilled, Warning, RefreshLeft, Download
 } from '@element-plus/icons-vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Simple debounce function
 const debounce = (fn, delay) => {

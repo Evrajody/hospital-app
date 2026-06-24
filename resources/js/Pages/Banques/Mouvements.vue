@@ -11,7 +11,7 @@
           </div>
           <div>
             <h1 class="page-title">{{ banque.nom }}</h1>
-            <p class="page-subtitle">{{ banque.numero }} • Solde actuel: {{ formatMontant(banque.solde) }}</p>
+            <p class="page-subtitle">{{ banque.numero }} • Solde actuel : {{ formatMontant(banque.solde) }}</p>
           </div>
         </div>
         <el-button @click="handleBack">
@@ -221,8 +221,8 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="view" :icon="View">Détails</el-dropdown-item>
-                    <el-dropdown-item v-if="row.editable" command="edit" :icon="Edit">Modifier</el-dropdown-item>
-                    <el-dropdown-item v-if="row.editable" command="delete" :icon="Delete" divided>Supprimer</el-dropdown-item>
+                    <el-dropdown-item v-if="row.editable && can('banques.modifier')" command="edit" :icon="Edit">Modifier</el-dropdown-item>
+                    <el-dropdown-item v-if="row.editable && can('banques.supprimer')" command="delete" :icon="Delete" divided>Supprimer</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -549,6 +549,9 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

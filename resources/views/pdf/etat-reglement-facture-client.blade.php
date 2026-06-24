@@ -103,11 +103,11 @@
             <td class="totaux-value">{{ number_format($solde, 0, ',', ' ') }}</td>
         </tr>
     </table>
-
+{{-- 
     <p style="font-size: 10px; font-style: italic; margin-top: 6px;">
         Règle de calcul : Solde = Montant dû − (Total règlement encaissé + Total rejet + Total pertes).
         Le montant du rejet fait partie du montant du règlement.
-    </p>
+    </p> --}}
 
     <div class="footer">
         Edité par {{ $user?->name ?? 'Système' }}

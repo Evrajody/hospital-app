@@ -174,9 +174,14 @@
         <h1>Imputation Comptable</h1>
     </div>
 
-    <!-- Numero piece -->
+    <!-- Numero piece / Règlement -->
     <div class="numero-piece">
-        <strong>Numero piece :</strong> {{ $facture->numero_piece }}
+        @isset($reglement)
+            {{-- Document par règlement : numéro complet = n° pièce facture + n° ligne (comme le mandat). --}}
+            <strong>N° Règlement :</strong> {{ $facture->numero_piece }}{{ $reglement->numero_ligne }}
+        @else
+            <strong>Numero piece :</strong> {{ $facture->numero_piece }}
+        @endisset
     </div>
 
     <!-- Table -->

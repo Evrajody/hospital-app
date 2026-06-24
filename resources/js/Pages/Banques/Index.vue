@@ -8,11 +8,11 @@
           <p class="page-subtitle">Comptes bancaires et soldes de trésorerie</p>
         </div>
         <div class="header-actions">
-          <el-button type="success" size="large" @click="handleApprovisionner">
+          <el-button v-if="can('banques.creer')" type="success" size="large" @click="handleApprovisionner">
             <el-icon><Wallet /></el-icon>
             Approvisionner
           </el-button>
-          <el-dropdown @command="handleNewCommand" trigger="click">
+          <el-dropdown v-if="can('banques.creer')" @command="handleNewCommand" trigger="click">
             <el-button type="primary" size="large">
               <el-icon><Plus /></el-icon>
               Nouveau
@@ -86,7 +86,7 @@
                   <el-icon><OfficeBuilding /></el-icon>
                   Banques
                 </span>
-                <el-button type="primary" size="small" :icon="Plus" circle @click="showBanqueModal = true" />
+                <el-button v-if="can('banques.creer')" type="primary" size="small" :icon="Plus" circle @click="showBanqueModal = true" />
               </div>
             </template>
 
@@ -111,13 +111,13 @@
                   <el-button size="small" :icon="More" text />
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item command="add-compte" :icon="Plus">
+                      <el-dropdown-item v-if="can('banques.creer')" command="add-compte" :icon="Plus">
                         Ajouter un compte
                       </el-dropdown-item>
-                      <el-dropdown-item command="edit" :icon="Edit">
+                      <el-dropdown-item v-if="can('banques.modifier')" command="edit" :icon="Edit">
                         Modifier
                       </el-dropdown-item>
-                      <el-dropdown-item divided command="delete" :icon="Delete">
+                      <el-dropdown-item v-if="can('banques.supprimer')" divided command="delete" :icon="Delete">
                         <span style="color: #f56c6c">Supprimer</span>
                       </el-dropdown-item>
                     </el-dropdown-menu>
@@ -127,7 +127,7 @@
             </div>
 
             <el-empty v-else description="Aucune banque" :image-size="60">
-              <el-button type="primary" size="small" @click="showBanqueModal = true">
+              <el-button v-if="can('banques.creer')" type="primary" size="small" @click="showBanqueModal = true">
                 <el-icon><Plus /></el-icon>
                 Créer une banque
               </el-button>
@@ -208,17 +208,17 @@
                     <el-button size="small" :icon="List" @click="handleViewMouvements(compte)">
                       Mouvements
                     </el-button>
-                    <el-button size="small" type="success" :icon="Wallet" @click="handleApprovisionnerBanque(compte)">
+                    <el-button v-if="can('banques.creer')" size="small" type="success" :icon="Wallet" @click="handleApprovisionnerBanque(compte)">
                       Approvisionner
                     </el-button>
                     <el-dropdown @command="(cmd) => handleMoreActions(cmd, compte)">
                       <el-button size="small" :icon="More" />
                       <template #dropdown>
                         <el-dropdown-menu>
-                          <el-dropdown-item command="edit" :icon="Edit">
+                          <el-dropdown-item v-if="can('banques.modifier')" command="edit" :icon="Edit">
                             Modifier
                           </el-dropdown-item>
-                          <el-dropdown-item divided command="delete" :icon="Delete">
+                          <el-dropdown-item v-if="can('banques.supprimer')" divided command="delete" :icon="Delete">
                             <span style="color: #f56c6c">Supprimer</span>
                           </el-dropdown-item>
                         </el-dropdown-menu>
@@ -328,6 +328,7 @@ import ApprovisionnementBanqueModal from '@/Components/Modals/ApprovisionnementB
 import CompteBancaireModal from '@/Components/Modals/CompteBancaireModal.vue';
 import BanqueModal from '@/Components/Modals/BanqueModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
 import {
   Plus,
   Money,
@@ -345,6 +346,8 @@ import {
   OfficeBuilding
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

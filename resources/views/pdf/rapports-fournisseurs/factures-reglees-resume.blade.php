@@ -15,6 +15,7 @@
                 <tr>
                     <th>Fournisseur</th>
                     <th class="montant" style="width: 110px">Total Mt TTC</th>
+                    <th class="montant" style="width: 100px">Total Mt TVA</th>
                     <th class="montant" style="width: 95px">Total Avoir</th>
                     <th class="montant" style="width: 100px">Total Mt M.O.</th>
                     <th class="montant" style="width: 95px">Total AIB</th>
@@ -27,6 +28,7 @@
                     <tr>
                         <td>{{ $row['fournisseur'] }}</td>
                         <td class="montant">{{ number_format($row['total_montant_facture'], 0, ',', ' ') }}</td>
+                        <td class="montant">{{ number_format($row['total_montant_tva'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($row['total_avoir'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($row['total_montant_mo'], 0, ',', ' ') }}</td>
                         <td class="montant">{{ number_format($row['total_aib'], 0, ',', ' ') }}</td>
@@ -39,6 +41,7 @@
                 <tr class="total-row">
                     <td class="total-label">TOTAL GÉNÉRAL</td>
                     <td class="montant">{{ number_format($grandTotaux['montant_facture'], 0, ',', ' ') }}</td>
+                    <td class="montant">{{ number_format($grandTotaux['montant_tva'], 0, ',', ' ') }}</td>
                     <td class="montant">{{ number_format($grandTotaux['avoir'], 0, ',', ' ') }}</td>
                     <td class="montant">{{ number_format($grandTotaux['montant_mo'], 0, ',', ' ') }}</td>
                     <td class="montant">{{ number_format($grandTotaux['montant_aib'], 0, ',', ' ') }}</td>

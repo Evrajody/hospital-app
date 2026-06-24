@@ -341,7 +341,7 @@
                         </el-button>
                       </template>
                     </el-input>
-                    <div class="form-hint">Format: compte_parent.XXX (auto-incrémenté)</div>
+                    <div class="form-hint">Format : compte_parent.XXX (auto-incrémenté)</div>
                   </el-form-item>
                 </el-col>
 

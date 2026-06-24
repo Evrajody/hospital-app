@@ -21,7 +21,7 @@ class ReglementClientController extends Controller
      */
     public function indexView(Request $request): InertiaResponse
     {
-        $query = ReglementClient::with(['facture', 'client', 'banqueDepot', 'approvisionnement'])
+        $query = ReglementClient::with(['facture', 'client', 'banqueDepot', 'approvisionnement', 'avance'])
             ->orderBy('date_reglement', 'desc');
 
         if ($request->filled('client_id')) {
@@ -260,10 +260,53 @@ class ReglementClientController extends Controller
             'reference_cheque' => ['nullable', 'string', 'max:100'],
             'banque_depot_id' => ['nullable', 'integer', 'exists:banques,id'],
             'approvisionnement_id' => ['nullable', 'integer', 'exists:approvisionnements_banques,id'],
+            'avance_id' => ['nullable', 'integer', 'exists:avances_clients,id'],
             'observations' => ['nullable', 'string'],
             'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'montant_rejet' => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        $ancienMontant = (float) $reglement->montant;
+        $nouveauMontant = (float) $request->montant;
+        $ancienneAvanceId = $reglement->avance_id;
+
+        // Imputation sur avance : appartenance au client + solde disponible.
+        // On réintègre l'ancien montant si on reste sur la même avance (il y est déjà compté).
+        $avance = null;
+        if ($request->filled('avance_id')) {
+            $avance = AvanceClient::findOrFail($request->avance_id);
+            if ($avance->client_id !== $facture->client_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "L'avance sélectionnée n'appartient pas à ce client.",
+                ], 422);
+            }
+            $soldeDispo = (float) $avance->montant_restant
+                + ($avance->id === $ancienneAvanceId ? $ancienMontant : 0);
+            if ($nouveauMontant > $soldeDispo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le montant dépasse le solde restant de cette avance (' . number_format($soldeDispo, 0, ',', ' ') . ' XOF)',
+                ], 422);
+            }
+        }
+
+        // Solde du bordereau (en réintégrant l'ancien montant si on reste sur le même bordereau).
+        if ($request->filled('approvisionnement_id')) {
+            $appro = \App\Models\ApprovisionnementBanque::withSum('reglementsClients', 'montant')
+                ->find($request->approvisionnement_id);
+            if ($appro) {
+                $dejaUtilise = (float) ($appro->reglements_clients_sum_montant ?? 0);
+                $offset = ($reglement->approvisionnement_id === (int) $request->approvisionnement_id) ? $ancienMontant : 0;
+                $soldeBordereau = (float) $appro->montant - $dejaUtilise + $offset;
+                if ($nouveauMontant > $soldeBordereau) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Le montant dépasse le solde du bordereau (' . number_format($soldeBordereau, 0, ',', ' ') . ' XOF)',
+                    ], 422);
+                }
+            }
+        }
 
         $bordereauPath = $reglement->bordereau_depot_path;
         if ($request->hasFile('bordereau_depot')) {
@@ -272,10 +315,6 @@ class ReglementClientController extends Controller
             }
             $bordereauPath = $request->file('bordereau_depot')->store('bordereaux-depot', 'public');
         }
-
-        $ancienMontant = (float) $reglement->montant;
-        $nouveauMontant = (float) $request->montant;
-        $difference = $nouveauMontant - $ancienMontant;
 
         // Vérifier que le nouveau montant ne dépasse pas le reste à payer + ancien montant
         $resteDisponible = (float) $facture->reste_a_payer + $ancienMontant;
@@ -298,10 +337,19 @@ class ReglementClientController extends Controller
                 'reference_cheque' => $request->reference_cheque,
                 'banque_depot_id' => $request->banque_depot_id,
                 'approvisionnement_id' => $request->approvisionnement_id,
+                'avance_id' => $request->avance_id,
                 'observations' => $request->observations,
                 'bordereau_depot_path' => $bordereauPath,
                 'montant_rejet' => (float) ($request->montant_rejet ?? $reglement->montant_rejet ?? 0),
             ]);
+
+            // Recalcul des soldes d'avance : l'ancienne (si elle change/est retirée) et la nouvelle.
+            if ($ancienneAvanceId && $ancienneAvanceId !== ($avance?->id)) {
+                AvanceClient::find($ancienneAvanceId)?->recalculerSolde();
+            }
+            if ($avance) {
+                $avance->recalculerSolde();
+            }
 
             // Recalcul homogène à partir de l'ensemble des règlements (payé + rejet + perte).
             $facture->load('reglements');

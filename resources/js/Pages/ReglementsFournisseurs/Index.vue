@@ -7,7 +7,7 @@
           <h1 class="page-title">Règlements Fournisseurs</h1>
           <p class="page-subtitle">Historique complet des paiements effectués</p>
         </div>
-        <el-button type="primary" size="large" @click="handleNewPayment">
+        <el-button v-if="can('reglements-fournisseurs.creer')" type="primary" size="large" @click="handleNewPayment">
           <el-icon><Plus /></el-icon>
           Nouveau Règlement
         </el-button>
@@ -240,10 +240,10 @@
                               >
                                 Imputation comptable
                               </el-dropdown-item>
-                              <el-dropdown-item command="edit" :icon="Edit">
+                              <el-dropdown-item v-if="can('reglements-fournisseurs.modifier')" command="edit" :icon="Edit">
                                 Modifier
                               </el-dropdown-item>
-                              <el-dropdown-item divided command="delete" :icon="Delete">
+                              <el-dropdown-item v-if="can('reglements-fournisseurs.supprimer')" divided command="delete" :icon="Delete">
                                 <span style="color: #f56c6c">Supprimer</span>
                               </el-dropdown-item>
                             </el-dropdown-menu>
@@ -533,9 +533,11 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePdfViewer } from '@/Composables/usePdfViewer';
+import { usePermissions } from '@/Composables/usePermissions';
 import { toYmd } from '@/utils/date';
 
 const { openPdf } = usePdfViewer();
+const { can } = usePermissions();
 
 // Simple debounce function
 const debounce = (fn, delay) => {

@@ -72,9 +72,9 @@
                 </div>
                 @endif
 
-                @if(!empty($fData['has_soldee']))
+                {{-- @if(!empty($fData['has_soldee']))
                     <div class="soldee-legende"><span class="swatch"></span> Lignes en orange = factures marquées comme soldées (clôturées sans règlement) ; « Mt Total Rég. » en rouge = déficit.</div>
-                @endif
+                @endif --}}
 
                 <div class="fournisseur-label">
                     <strong>Fournisseur :</strong> {{ $fData['fournisseur'] }}
@@ -88,6 +88,7 @@
                             <th style="width: 65px">Date PC</th>
                             <th style="width: 65px">Date Règ.</th>
                             <th class="montant">Mt TTC</th>
+                            <th class="montant">Mt TVA</th>
                             <th class="montant">Avoir</th>
                             <th class="montant">Mt M.O.</th>
                             <th class="montant" style="width: 45px">AIB (%)</th>
@@ -104,6 +105,7 @@
                                 <td>{{ $ligne['date'] }}</td>
                                 <td>{{ $ligne['date_reglement'] }}</td>
                                 <td class="montant">{{ number_format($ligne['montant_facture'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($ligne['montant_tva'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ number_format($ligne['avoir'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ number_format($ligne['montant_mo'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ $ligne['taux_aib'] ? number_format($ligne['taux_aib'], 1) . '%' : '' }}</td>
@@ -117,6 +119,7 @@
                         <tr class="total-row">
                             <td colspan="4" class="total-label">Total Fournisseur :</td>
                             <td class="montant">{{ number_format($fData['totaux']['montant_facture'], 0, ',', ' ') }}</td>
+                            <td class="montant">{{ number_format($fData['totaux']['montant_tva'], 0, ',', ' ') }}</td>
                             <td class="montant">{{ number_format($fData['totaux']['avoir'], 0, ',', ' ') }}</td>
                             <td class="montant">{{ number_format($fData['totaux']['montant_mo'], 0, ',', ' ') }}</td>
                             <td class="montant"></td>
@@ -133,6 +136,7 @@
                             <tr class="total-row">
                                 <td colspan="4" class="total-label">TOTAL GÉNÉRAL :</td>
                                 <td class="montant">{{ number_format($grandTotaux['montant_facture'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($grandTotaux['montant_tva'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ number_format($grandTotaux['avoir'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ number_format($grandTotaux['montant_mo'], 0, ',', ' ') }}</td>
                                 <td class="montant"></td>

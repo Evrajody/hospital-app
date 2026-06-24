@@ -10,8 +10,8 @@
           <div>
             <h1 class="page-title">{{ facture.reference }}</h1>
             <p class="page-subtitle">
-              Client: {{ facture.client?.nom || '-' }} &bull;
-              Date: {{ formatDate(facture.date_facture) }}
+              Client : {{ facture.client?.nom || '-' }} &bull;
+              Date : {{ formatDate(facture.date_facture) }}
             </p>
           </div>
         </div>
@@ -28,16 +28,16 @@
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item v-if="!estPayee" command="regler" :icon="Money">
+                <el-dropdown-item v-if="!estPayee && can('reglements-clients.creer')" command="regler" :icon="Money">
                   Enregistrer un r&#232;glement
                 </el-dropdown-item>
-                <el-dropdown-item v-if="!estPayee" command="edit" :icon="Edit" divided>
+                <el-dropdown-item v-if="!estPayee && can('factures-clients.modifier')" command="edit" :icon="Edit" divided>
                   Modifier
                 </el-dropdown-item>
                 <!-- <el-dropdown-item command="print" :icon="Printer">
                   Imprimer
                 </el-dropdown-item> -->
-                <el-dropdown-item divided command="delete" :icon="Delete">
+                <el-dropdown-item v-if="can('factures-clients.supprimer')" divided command="delete" :icon="Delete">
                   <span style="color: #f56c6c">Supprimer</span>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -145,6 +145,7 @@
 
               <div v-if="!estPayee" style="display: flex; gap: 8px; margin-top: 16px;">
                 <el-button
+                  v-if="can('reglements-clients.creer')"
                   type="primary"
                   size="default"
                   style="flex: 1;"
@@ -155,6 +156,7 @@
                 </el-button>
 
                 <el-button
+                  v-if="can('factures-clients.modifier')"
                   type="success"
                   size="default"
                   plain
@@ -208,6 +210,9 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 const props = defineProps({
   facture: { type: Object, required: true },

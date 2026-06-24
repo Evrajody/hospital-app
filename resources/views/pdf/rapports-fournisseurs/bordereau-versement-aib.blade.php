@@ -35,8 +35,8 @@
         table.droits .lettres-row td { font-size: 10px; font-style: italic; padding: 8px; }
         .paiement-section { border-bottom: none; }
         .paiement-line { margin: 8px 0; font-size: 11px; }
-        .paiement-line .box { display: inline-block; width: 20px; height: 14px; border: 1px solid #000; vertical-align: middle; margin: 0 8px; }
-        .paiement-line .underline { display: inline-block; border-bottom: 1px solid #000; min-width: 150px; }
+        .box { display: inline-block; width: 22px; height: 15px; border: 1px solid #000; vertical-align: middle; }
+        .underline { display: inline-block; border-bottom: 1px solid #000; min-width: 110px; }
         .signature-table { width: 100%; border-collapse: collapse; }
         .signature-table td { border: 1px solid #000; padding: 10px 12px; vertical-align: top; font-size: 10px; height: 120px; }
     </style>
@@ -45,6 +45,11 @@
     @php
         // Le template étant autonome (sans le layout commun), on récupère ici l'établissement.
         $etablissement = $etablissement ?? \App\Models\Setting::getEtablissement();
+    @endphp
+    @php
+        $moisNoms = ['', 'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
+        $anneeAff = $annee ?? \Carbon\Carbon::parse($dateDebut)->format('Y');
+        $moisAff = $mois ? ($moisNoms[(int)$mois] ?? '') : \Carbon\Carbon::parse($dateDebut)->translatedFormat('F');
     @endphp
     {{-- EN-TETE ADMINISTRATIF --}}
     <table style="width: 100%; border: none;">
@@ -63,20 +68,13 @@
                 <div class="titre-encadre">
                     BORDEREAU DE VERSEMENT DES PRELEVEMENTS D'ACOMPTE IMPUTABLE SUR L'IMP&Ocirc;T ASSIS SUR LES BENEFICES
                 </div>
-            </td>
-        </tr>
-    </table>
-
-    <table class="annee-mois">
-        <tr>
-            <td>
-                <strong>Ann&eacute;e</strong>&nbsp;&nbsp;&nbsp;<strong>{{ $annee ?? \Carbon\Carbon::parse($dateDebut)->format('Y') }}</strong>
-            </td>
-            <td style="text-align: right;">
-                @php
-                    $moisNoms = ['', 'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
-                @endphp
-                <strong>Mois</strong>&nbsp;&nbsp;&nbsp;<strong>{{ $mois ? ($moisNoms[(int)$mois] ?? '') : \Carbon\Carbon::parse($dateDebut)->translatedFormat('F') }}</strong>
+                {{-- Année / Mois directement sous le titre, de part et d'autre. --}}
+                <table style="width: 100%; border: none; margin-top: 8px;">
+                    <tr>
+                        <td style="border: none; font-size: 13px;"><strong>Ann&eacute;e</strong>&nbsp;&nbsp;&nbsp;<strong>{{ $anneeAff }}</strong></td>
+                        <td style="border: none; font-size: 13px; text-align: right;"><strong>Mois</strong>&nbsp;&nbsp;&nbsp;<strong>{{ $moisAff }}</strong></td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
@@ -98,8 +96,9 @@
                         <strong>{{ \Carbon\Carbon::parse($dateFin)->format('d/m/Y') }}</strong>
                     </div>
                 </td>
-                <td style="border: none; width: 35%; vertical-align: top; text-align: center;">
-                    <div style="border: 1px solid #999; padding: 20px 10px; font-size: 10px; color: #666; font-style: italic; margin-top: 5px;">
+                <td style="border: none; width: 35%; vertical-align: top; text-align: right;">
+                    {{-- Cachet : plus large et moins haut (plus carré), serré à droite. --}}
+                    <div style="border: 1px solid #999; width: 130px; height: 80px; padding-top: 26px; margin: 5px 0 0 auto; font-size: 10px; color: #666; font-style: italic; text-align: center;">
                         Cachet de la Recette<br>des Imp&ocirc;ts
                     </div>
                 </td>
@@ -118,11 +117,12 @@
             </tr>
         </thead>
         <tbody>
+            {{-- Colonne BASE conservée mais vidée (sur demande). --}}
             {{-- Achats de marchandises --}}
             <tr class="cat-header"><td colspan="3">Achats de marchandises</td></tr>
             <tr>
                 <td>AIB de %</td>
-                <td class="montant">-</td>
+                <td class="montant"></td>
                 <td class="montant">-</td>
             </tr>
 
@@ -131,15 +131,14 @@
             @foreach($parTaux as $tauxData)
                 <tr>
                     <td>AIB de {{ number_format($tauxData['taux'], 0) }}%</td>
-                    <td class="montant">{{ $tauxData['base'] > 0 ? number_format($tauxData['base'], 0, ',', ' ') : '' }}</td>
+                    <td class="montant"></td>
                     <td class="montant">{{ number_format($tauxData['montant'], 0, ',', ' ') }}</td>
                 </tr>
             @endforeach
 
-            {{-- Total --}}
+            {{-- Total : NATURE et BASE fusionnées. --}}
             <tr class="total-row">
-                <td>Montant total &agrave; reverser</td>
-                <td class="montant"></td>
+                <td colspan="2">Montant total &agrave; reverser</td>
                 <td class="montant">{{ number_format($montantTotal, 0, ',', ' ') }}</td>
             </tr>
 
@@ -153,19 +152,27 @@
     {{-- III- PAIEMENT --}}
     <div class="section-header" style="margin-top: 12px;">III-PAIEMENT (Obligatoirement joint &agrave; la d&eacute;claration)</div>
     <div class="section-content paiement-section">
-        <div class="paiement-line">
-            Esp&egrave;ces <span class="box"></span>
-        </div>
-        <div class="paiement-line">
-            Ch&egrave;que <span class="box"></span>
-            &nbsp;&nbsp;&nbsp;&nbsp;Banque: <span class="underline">&nbsp;</span>
-            &nbsp;&nbsp;&nbsp;&nbsp;N&deg; Ch&egrave;que: <span class="underline">&nbsp;</span>
-        </div>
-        <div class="paiement-line">
-            Virement <span class="box"></span>
-            &nbsp;&nbsp;&nbsp;&nbsp;Banque: <span class="underline">&nbsp;</span>
-            &nbsp;&nbsp;&nbsp;&nbsp;R&eacute;f. Virement: <span class="underline">&nbsp;</span>
-        </div>
+        {{-- Cases alignées droit l'une sous l'autre ; colonnes Banque / N° Chèque / Réf. Virement alignées. --}}
+        <table style="width: 100%; border: none; font-size: 11px;">
+            <tr>
+                <td style="border: none; width: 70px; padding: 5px 0;">Esp&egrave;ces</td>
+                <td style="border: none; width: 34px; padding: 5px 0;"><span class="box"></span></td>
+                <td style="border: none; padding: 5px 0;"></td>
+                <td style="border: none; padding: 5px 0;"></td>
+            </tr>
+            <tr>
+                <td style="border: none; padding: 5px 0;">Ch&egrave;que</td>
+                <td style="border: none; padding: 5px 0;"><span class="box"></span></td>
+                <td style="border: none; padding: 5px 0;">Banque: \<span class="underline">&nbsp;</span></td>
+                <td style="border: none; padding: 5px 0;">N&deg; Ch&egrave;que: \<span class="underline">&nbsp;</span></td>
+            </tr>
+            <tr>
+                <td style="border: none; padding: 5px 0;">Virement</td>
+                <td style="border: none; padding: 5px 0;"><span class="box"></span></td>
+                <td style="border: none; padding: 5px 0;">Banque: \<span class="underline">&nbsp;</span></td>
+                <td style="border: none; padding: 5px 0;">R&eacute;f. Virement: \<span class="underline">&nbsp;</span></td>
+            </tr>
+        </table>
     </div>
 
     {{-- SIGNATURES (rattachées directement au cadre paiement) --}}

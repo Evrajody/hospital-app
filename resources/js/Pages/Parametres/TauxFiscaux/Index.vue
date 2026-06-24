@@ -63,7 +63,7 @@
         <el-table :data="tauxTva" stripe style="width: 100%">
           <el-table-column label="Actions" width="120" fixed="left">
             <template #default="{ row }">
-              <el-button size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
+              <el-button v-if="can('parametres.modifier')" size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
             </template>
           </el-table-column>
           <el-table-column prop="libelle" label="Libellé" sortable>
@@ -100,7 +100,7 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">Taux AIB (Acompte sur Impôt assis sur les Bénéfices)</span>
-            <el-button type="primary" size="small" :icon="Plus" @click="handleCreate('aib')">
+            <el-button v-if="can('parametres.modifier')" type="primary" size="small" :icon="Plus" @click="handleCreate('aib')">
               Ajouter AIB
             </el-button>
           </div>
@@ -109,8 +109,9 @@
         <el-table :data="tauxAib" stripe style="width: 100%">
           <el-table-column label="Actions" width="200" fixed="left">
             <template #default="{ row }">
-              <el-button size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
+              <el-button v-if="can('parametres.modifier')" size="small" :icon="Edit" type="warning" @click="handleEdit(row)">Modifier</el-button>
               <el-popconfirm
+                v-if="can('parametres.modifier')"
                 title="Supprimer ce taux ?"
                 confirm-button-text="Oui"
                 cancel-button-text="Non"
@@ -172,6 +173,9 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import TauxFiscalModal from '@/Components/Modals/TauxFiscalModal.vue';
 import { Plus, Edit, Delete, Money, Tickets, CircleCheck } from '@element-plus/icons-vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },

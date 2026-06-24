@@ -55,7 +55,7 @@
                       </div>
                       <div class="banque-option-details">
                         <span class="banque-option-numero">{{ banque.numero }}</span>
-                        <span class="banque-option-solde">Solde: {{ formatMontant(banque.solde) }}</span>
+                        <span class="banque-option-solde">Solde : {{ formatMontant(banque.solde) }}</span>
                       </div>
                     </div>
                   </el-option>
@@ -149,6 +149,7 @@
                     Annuler
                   </el-button>
                   <el-button
+                    v-if="can('banques.creer')"
                     type="primary"
                     @click="handleSubmit"
                     size="large"
@@ -258,7 +259,10 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
+import { usePermissions } from '@/Composables/usePermissions';
 import { todayYmd } from '@/utils/date';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

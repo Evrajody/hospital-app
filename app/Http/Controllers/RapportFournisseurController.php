@@ -105,6 +105,7 @@ class RapportFournisseurController extends Controller
                 $factures = $query->get();
 
                 $totalMontantFacture = 0;
+                $totalMontantTva = 0;
                 $totalAvoir = 0;
                 $totalMontantMo = 0;
                 $totalMontantAib = 0;
@@ -114,19 +115,22 @@ class RapportFournisseurController extends Controller
 
                 foreach ($factures as $f) {
                     $montantFacture = (float) ($f->montant_ttc ?: $f->montant_facture);
+                    $montantTva = (float) $f->montant_tva;
                     $avoir = (float) $f->avoir;
                     $montantMo = (float) $f->montant_mo;
                     $tauxAib = (float) $f->taux;
                     $montantAib = (float) $f->montant_reduction;
                     $montantDu = (float) $f->montant_net;
                     $totalReg = (float) $f->montant_paye;
-                    $solde = (float) $f->reste_a_payer;
+                    // Solde harmonisé : Mt TTC − Mt TVA − Avoir − Mt AIB − Total réglé.
+                    $solde = $montantFacture - $montantTva - $avoir - $montantAib - $totalReg;
 
                     $lignes[] = [
                         'numero_piece' => $f->numero_piece,
                         'date' => $f->date?->format('d/m/Y'),
                         'reference_facture' => $f->reference_facture,
                         'montant_facture' => $montantFacture,
+                        'montant_tva' => $montantTva,
                         'avoir' => $avoir,
                         'montant_mo' => $montantMo,
                         'taux_aib' => $tauxAib,
@@ -137,6 +141,7 @@ class RapportFournisseurController extends Controller
                     ];
 
                     $totalMontantFacture += $montantFacture;
+                    $totalMontantTva += $montantTva;
                     $totalAvoir += $avoir;
                     $totalMontantMo += $montantMo;
                     $totalMontantAib += $montantAib;
@@ -152,6 +157,7 @@ class RapportFournisseurController extends Controller
             'lignes' => $lignes,
             'totaux' => [
                 'montant_facture' => $totalMontantFacture ?? 0,
+                'montant_tva' => $totalMontantTva ?? 0,
                 'avoir' => $totalAvoir ?? 0,
                 'montant_mo' => $totalMontantMo ?? 0,
                 'montant_aib' => $totalMontantAib ?? 0,
@@ -305,7 +311,7 @@ class RapportFournisseurController extends Controller
 
         $data = [];
         $grandTotaux = [
-            'montant_facture' => 0, 'avoir' => 0, 'montant_mo' => 0,
+            'montant_facture' => 0, 'montant_tva' => 0, 'avoir' => 0, 'montant_mo' => 0,
             'montant_aib' => 0, 'montant_du' => 0, 'total_reglement' => 0, 'solde' => 0,
         ];
 
@@ -318,7 +324,12 @@ class RapportFournisseurController extends Controller
 
             foreach ($factures as $fact) {
                 $reglePeriode = $getReglementsPeriode($fact);
-                $soldePeriode = (float) $fact->montant_net - $reglePeriode;
+                $montantTtc = (float) ($fact->montant_ttc ?: $fact->montant_facture);
+                $montantTva = (float) $fact->montant_tva;
+                $avoir = (float) $fact->avoir;
+                $montantAib = (float) $fact->montant_reduction;
+                // Restant dû = Mt TTC − Mt TVA − Avoir − Mt AIB − Total réglé (période).
+                $soldePeriode = $montantTtc - $montantTva - $avoir - $montantAib - $reglePeriode;
 
                 if ($soldePeriode <= 0.01) continue;
 
@@ -326,11 +337,12 @@ class RapportFournisseurController extends Controller
                     'numero_piece' => $fact->numero_piece,
                     'date' => $fact->date?->format('d/m/Y'),
                     'reference_facture' => $fact->reference_facture,
-                    'montant_facture' => (float) ($fact->montant_ttc ?: $fact->montant_facture),
-                    'avoir' => (float) $fact->avoir,
+                    'montant_facture' => $montantTtc,
+                    'montant_tva' => $montantTva,
+                    'avoir' => $avoir,
                     'montant_mo' => (float) $fact->montant_mo,
                     'taux_aib' => (float) $fact->taux,
-                    'montant_aib' => (float) $fact->montant_reduction,
+                    'montant_aib' => $montantAib,
                     'montant_du' => (float) $fact->montant_net,
                     'total_reglement' => $reglePeriode,
                     'solde' => $soldePeriode,
@@ -338,6 +350,7 @@ class RapportFournisseurController extends Controller
                 $lignes[] = $row;
 
                 $totaux['montant_facture'] += $row['montant_facture'];
+                $totaux['montant_tva'] += $row['montant_tva'];
                 $totaux['avoir'] += $row['avoir'];
                 $totaux['montant_mo'] += $row['montant_mo'];
                 $totaux['montant_aib'] += $row['montant_aib'];
@@ -454,7 +467,7 @@ class RapportFournisseurController extends Controller
         $resume = [];
         $detail = [];
         $grandTotaux = [
-            'montant_facture' => 0, 'avoir' => 0, 'montant_mo' => 0,
+            'montant_facture' => 0, 'montant_tva' => 0, 'avoir' => 0, 'montant_mo' => 0,
             'montant_aib' => 0, 'reg_periode' => 0, 'mt_total_reg' => 0,
         ];
 
@@ -485,6 +498,7 @@ class RapportFournisseurController extends Controller
                     'date' => $fact->date?->format('d/m/Y'),
                     'date_reglement' => $dateReg?->format('d/m/Y'),
                     'montant_facture' => (float) ($fact->montant_ttc ?: $fact->montant_facture),
+                    'montant_tva' => (float) $fact->montant_tva,
                     'avoir' => (float) $fact->avoir,
                     'montant_mo' => (float) $fact->montant_mo,
                     'taux_aib' => (float) $fact->taux,
@@ -496,6 +510,7 @@ class RapportFournisseurController extends Controller
                 $lignes[] = $row;
 
                 $totauxFournisseur['montant_facture'] += $row['montant_facture'];
+                $totauxFournisseur['montant_tva'] += $row['montant_tva'];
                 $totauxFournisseur['avoir'] += $row['avoir'];
                 $totauxFournisseur['montant_mo'] += $row['montant_mo'];
                 $totauxFournisseur['montant_aib'] += $row['montant_aib'];
@@ -513,6 +528,7 @@ class RapportFournisseurController extends Controller
             $resume[] = [
                 'fournisseur' => $fournisseurLabel,
                 'total_montant_facture' => $totauxFournisseur['montant_facture'],
+                'total_montant_tva' => $totauxFournisseur['montant_tva'],
                 'total_avoir' => $totauxFournisseur['avoir'],
                 'total_montant_mo' => $totauxFournisseur['montant_mo'],
                 'total_aib' => $totauxFournisseur['montant_aib'],
@@ -611,8 +627,10 @@ class RapportFournisseurController extends Controller
             $lignes[] = [
                 'numero_piece' => $f->numero_piece,
                 'date' => $dateAib?->format('d/m/Y'),
+                'date_facture' => $f->date?->format('d/m/Y'),
                 'ifu' => $fournisseur?->ifu ?? '',
                 'fournisseur' => $fournisseurLabel,
+                'fournisseur_nom' => $fournisseur?->nom ?? 'Inconnu',
                 'libelle' => $f->libelle,
                 'montant_facture' => (float) ($f->montant_ttc ?: $f->montant_facture),
                 'montant_mo' => $montantMo,
@@ -1564,44 +1582,29 @@ class RapportFournisseurController extends Controller
      */
     public function importAibExcel(Request $request)
     {
-        $query = FactureFournisseur::with('fournisseur')->orderBy('date')->orderBy('numero_piece');
+        // Mêmes données que la Déclaration AIB (AIB déduit au règlement, filtré sur la période
+        // de déclaration date_aib) → les colonnes Taux/Montant AIB sont renseignées et la période respectée.
+        $data = $this->buildDeclarationAibData($request);
 
-        if ($dateDebut = $request->query('date_debut')) {
-            $query->whereDate('date', '>=', $dateDebut);
-        }
-        if ($dateFin = $request->query('date_fin')) {
-            $query->whereDate('date', '<=', $dateFin);
-        }
-
-        // Par défaut, uniquement les factures ayant un AIB (taux > 0 OU compte AIB renseigné).
-        $tout = filter_var($request->query('tout'), FILTER_VALIDATE_BOOLEAN);
-        if (!$tout) {
-            $query->where(function ($q) {
-                $q->where('taux', '>', 0)
-                  ->orWhereNotNull('type_reduction');
-            });
-        }
-
-        $factures = $query->get();
-
-        $rows = $factures->map(fn(FactureFournisseur $f) => [
-            $f->numero_piece,
-            $f->date?->format('d/m/Y'),
-            $f->fournisseur_nom ?: $f->fournisseur?->nom,
-            $f->libelle,
-            (float) $f->montant_facture,
-            (float) $f->montant_mo,
-            (float) $f->taux,
-            (float) $f->montant_reduction,
-            $f->type_reduction,
-            $f->type_reduction_libelle,
-        ])->toArray();
+        // Format d'import attendu (legacy) : NumP, DatEnreg (date facture), NumIfu, RsFsr (raison sociale),
+        // LibFac, MtFac, MtMd, TAcpt (taux), MtAcpt (montant AIB), DatReq (date AIB déclarée).
+        $rows = array_map(fn($l) => [
+            $l['numero_piece'],
+            $l['date_facture'],
+            $l['ifu'],
+            $l['fournisseur_nom'],
+            $l['libelle'],
+            (float) $l['montant_facture'],
+            (float) $l['montant_mo'],
+            (int) round($l['taux_aib']),
+            (float) $l['montant_aib'],
+            $l['date'],
+        ], $data['lignes']);
 
         return \App\Support\ExcelExporter::download(
-            ['N° PC', 'Date', 'Fournisseur', 'Libellé', 'Montant facture', 'Montant M.O.', 'Taux AIB (%)', 'Montant AIB', 'N° Compte AIB', 'Libellé compte AIB'],
+            ['N° Pièce', 'Date facture', 'N° IFU', 'Raison sociale', 'Libellé facture', 'Montant facture', 'Montant M.O.', 'Taux AIB (%)', 'Montant AIB', 'Date AIB'],
             $rows,
             'import-aib-fournisseurs',
-            'Import AIB fournisseurs',
         );
     }
 
@@ -1632,6 +1635,7 @@ class RapportFournisseurController extends Controller
             $l['date'],
             $l['reference_facture'] ?? '',
             $l['montant_facture'],
+            $l['montant_tva'],
             $l['avoir'],
             $l['montant_mo'],
             $l['taux_aib'],
@@ -1642,7 +1646,7 @@ class RapportFournisseurController extends Controller
         ], $data['lignes']);
 
         $t = $data['totaux'];
-        $rows[] = ['', 'TOTAL', '', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['montant_du'], $t['total_reglement'], $t['solde']];
+        $rows[] = ['', 'TOTAL', '', $t['montant_facture'], $t['montant_tva'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['montant_du'], $t['total_reglement'], $t['solde']];
 
         $titre = 'Mouvement des factures';
         if ($data['fournisseur']) {
@@ -1654,7 +1658,7 @@ class RapportFournisseurController extends Controller
         }
 
         return \App\Support\ExcelExporter::download(
-            ['N° PC', 'Date', 'Référence', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Dû', 'Mt Réglé', 'Solde'],
+            ['N° PC', 'Date', 'Référence', 'Mt TTC', 'Mt TVA', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Dû', 'Mt Réglé', 'Solde'],
             $rows,
             'mouvement-factures',
             $titre,
@@ -1697,7 +1701,7 @@ class RapportFournisseurController extends Controller
         // Mode par_fournisseur : aplatir avec en-têtes par fournisseur
         $rows = [];
         foreach ($data['data'] as $bloc) {
-            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', '', ''];
+            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', ''];
             foreach ($bloc['lignes'] as $l) {
                 $rows[] = [
                     '',
@@ -1705,24 +1709,23 @@ class RapportFournisseurController extends Controller
                     $l['date'],
                     $l['reference_facture'] ?? '',
                     $l['montant_facture'],
+                    $l['montant_tva'],
                     $l['avoir'],
-                    $l['montant_mo'],
-                    $l['taux_aib'],
                     $l['montant_aib'],
                     $l['total_reglement'],
                     $l['solde'],
                 ];
             }
             $t = $bloc['totaux'];
-            $rows[] = ['', '', '', 'Sous-total', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['total_reglement'], $t['solde']];
+            $rows[] = ['', '', '', 'Sous-total', $t['montant_facture'], $t['montant_tva'], $t['avoir'], $t['montant_aib'], $t['total_reglement'], $t['solde']];
         }
         $g = $data['grandTotaux'] ?? [];
         if (!empty($g)) {
-            $rows[] = ['', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'] ?? 0, $g['avoir'] ?? 0, $g['montant_mo'] ?? 0, '', $g['montant_aib'] ?? 0, $g['total_reglement'] ?? 0, $g['solde'] ?? 0];
+            $rows[] = ['', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'] ?? 0, $g['montant_tva'] ?? 0, $g['avoir'] ?? 0, $g['montant_aib'] ?? 0, $g['total_reglement'] ?? 0, $g['solde'] ?? 0];
         }
 
         return \App\Support\ExcelExporter::download(
-            ['Fournisseur', 'N° PC', 'Date', 'Référence', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Mt Réglé', 'Solde'],
+            ['Fournisseur', 'N° PC', 'Date', 'Référence', 'Mt TTC', 'Mt TVA', 'Avoir', 'Mt AIB', 'Mt total régl.', 'Restant dû'],
             $rows,
             'situation-fournisseurs-detail',
             $titre,
@@ -1745,6 +1748,7 @@ class RapportFournisseurController extends Controller
                         $l['date'],
                         $l['date_reglement'],
                         $l['montant_facture'],
+                        $l['montant_tva'],
                         $l['avoir'],
                         $l['montant_mo'],
                         $l['taux_aib'],
@@ -1756,7 +1760,7 @@ class RapportFournisseurController extends Controller
             }
 
             return \App\Support\ExcelExporter::download(
-                ['Fournisseur', 'N° PC', 'Libellé', 'Date Fact.', 'Date Régl.', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Régl. période', 'Mt Total Rég.'],
+                ['Fournisseur', 'N° PC', 'Libellé', 'Date Fact.', 'Date Régl.', 'Mt TTC', 'Mt TVA', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Régl. période', 'Mt Total Rég.'],
                 $rows,
                 'factures-reglees-detail',
                 $data['titre'] ?: 'Etat des factures réglées',
@@ -1766,7 +1770,7 @@ class RapportFournisseurController extends Controller
         $rows = [];
 
         foreach ($data['detail'] as $bloc) {
-            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', '', '', ''];
+            $rows[] = [$bloc['fournisseur'], '', '', '', '', '', '', '', '', '', '', '', ''];
             foreach ($bloc['lignes'] as $l) {
                 $rows[] = [
                     '',
@@ -1775,6 +1779,7 @@ class RapportFournisseurController extends Controller
                     $l['date'],
                     $l['date_reglement'],
                     $l['montant_facture'],
+                    $l['montant_tva'],
                     $l['avoir'],
                     $l['montant_mo'],
                     $l['taux_aib'],
@@ -1784,16 +1789,16 @@ class RapportFournisseurController extends Controller
                 ];
             }
             $t = $bloc['totaux'];
-            $rows[] = ['', '', '', '', 'Total Fournisseur', $t['montant_facture'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['reg_periode'], $t['mt_total_reg']];
+            $rows[] = ['', '', '', '', 'Total Fournisseur', $t['montant_facture'], $t['montant_tva'], $t['avoir'], $t['montant_mo'], '', $t['montant_aib'], $t['reg_periode'], $t['mt_total_reg']];
         }
 
         $g = $data['grandTotaux'] ?? [];
         if (!empty($g)) {
-            $rows[] = ['', '', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'] ?? 0, $g['avoir'] ?? 0, $g['montant_mo'] ?? 0, '', $g['montant_aib'] ?? 0, $g['reg_periode'] ?? 0, $g['mt_total_reg'] ?? 0];
+            $rows[] = ['', '', '', '', 'TOTAL GÉNÉRAL', $g['montant_facture'] ?? 0, $g['montant_tva'] ?? 0, $g['avoir'] ?? 0, $g['montant_mo'] ?? 0, '', $g['montant_aib'] ?? 0, $g['reg_periode'] ?? 0, $g['mt_total_reg'] ?? 0];
         }
 
         return \App\Support\ExcelExporter::download(
-            ['Fournisseur', 'N° PC', 'Libellé', 'Date Fact.', 'Date Règl.', 'Mt TTC', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Règl. période', 'Mt Total Règ.'],
+            ['Fournisseur', 'N° PC', 'Libellé', 'Date Fact.', 'Date Règl.', 'Mt TTC', 'Mt TVA', 'Avoir', 'Mt M.O.', 'Taux AIB', 'Mt AIB', 'Règl. période', 'Mt Total Règ.'],
             $rows,
             'factures-reglees',
             $data['titre'] ?: 'Etat des factures réglées',

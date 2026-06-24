@@ -164,25 +164,19 @@
               <el-table-column label="Mt TTC" min-width="95" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
               </el-table-column>
+              <el-table-column label="Mt TVA" min-width="90" align="right">
+                <template #default="{ row }">{{ formatMontant(row.montant_tva) }}</template>
+              </el-table-column>
               <el-table-column label="Avoir" min-width="80" align="right">
                 <template #default="{ row }">{{ formatMontant(row.avoir) }}</template>
-              </el-table-column>
-              <el-table-column label="Mt M.O." min-width="85" align="right">
-                <template #default="{ row }">{{ formatMontant(row.montant_mo) }}</template>
-              </el-table-column>
-              <el-table-column label="AIB (%)" min-width="65" align="right">
-                <template #default="{ row }">{{ row.taux_aib ? row.taux_aib.toFixed(1) + '%' : '0%' }}</template>
               </el-table-column>
               <el-table-column label="Mt AIB" min-width="85" align="right">
                 <template #default="{ row }">{{ formatMontant(row.montant_aib) }}</template>
               </el-table-column>
-              <el-table-column label="Mt Dû" min-width="95" align="right">
-                <template #default="{ row }">{{ formatMontant(row.montant_du) }}</template>
-              </el-table-column>
-              <el-table-column label="Total Règ." min-width="95" align="right">
+              <el-table-column label="Mt total régl." min-width="100" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_reglement) }}</template>
               </el-table-column>
-              <el-table-column label="Solde" min-width="95" align="right">
+              <el-table-column label="Restant dû" min-width="100" align="right">
                 <template #default="{ row }">
                   <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.solde) }}</span>
                 </template>
@@ -190,18 +184,20 @@
             </PaginatedTable>
             <div class="fournisseur-totals">
               Total : Mt TTC <strong>{{ formatMontant(group.totaux.montant_facture) }}</strong>
-              &nbsp;|&nbsp; Mt Dû <strong>{{ formatMontant(group.totaux.montant_du) }}</strong>
-              &nbsp;|&nbsp; Règ. <strong>{{ formatMontant(group.totaux.total_reglement) }}</strong>
-              &nbsp;|&nbsp; <span style="color: #cc0000">Solde <strong>{{ formatMontant(group.totaux.solde) }}</strong></span>
+              &nbsp;|&nbsp; Mt TVA <strong>{{ formatMontant(group.totaux.montant_tva) }}</strong>
+              &nbsp;|&nbsp; Mt AIB <strong>{{ formatMontant(group.totaux.montant_aib) }}</strong>
+              &nbsp;|&nbsp; Régl. <strong>{{ formatMontant(group.totaux.total_reglement) }}</strong>
+              &nbsp;|&nbsp; <span style="color: #cc0000">Restant dû <strong>{{ formatMontant(group.totaux.solde) }}</strong></span>
             </div>
             </template>
           </GroupNavigator>
 
           <div class="grand-total">
             <span>TOTAL GÉNÉRAL — Mt TTC : <strong>{{ formatMontant(grandTotaux.montant_facture) }}</strong></span>
-            <span>Mt Dû : <strong>{{ formatMontant(grandTotaux.montant_du) }}</strong></span>
-            <span>Règ. : <strong>{{ formatMontant(grandTotaux.total_reglement) }}</strong></span>
-            <span style="color: #cc0000">Solde : <strong>{{ formatMontant(grandTotaux.solde) }}</strong></span>
+            <span>Mt TVA : <strong>{{ formatMontant(grandTotaux.montant_tva) }}</strong></span>
+            <span>Mt AIB : <strong>{{ formatMontant(grandTotaux.montant_aib) }}</strong></span>
+            <span>Régl. : <strong>{{ formatMontant(grandTotaux.total_reglement) }}</strong></span>
+            <span style="color: #cc0000">Restant dû : <strong>{{ formatMontant(grandTotaux.solde) }}</strong></span>
           </div>
         </template>
       </template>

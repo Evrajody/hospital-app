@@ -17,11 +17,11 @@
             <el-icon><ArrowLeft /></el-icon>
             Retour
           </el-button>
-          <el-button type="primary" @click="handleEdit">
+          <el-button v-if="can('fournisseurs.modifier')" type="primary" @click="handleEdit">
             <el-icon><Edit /></el-icon>
             Modifier
           </el-button>
-          <el-button type="danger" @click="handleDelete">
+          <el-button v-if="can('fournisseurs.supprimer')" type="danger" @click="handleDelete">
             <el-icon><Delete /></el-icon>
             Supprimer
           </el-button>
@@ -267,13 +267,13 @@
                           Voir
                         </el-dropdown-item>
                         <el-dropdown-item
-                          v-if="row.statut_paiement !== 'payee'"
+                          v-if="row.statut_paiement !== 'payee' && can('reglements-fournisseurs.creer')"
                           command="pay"
                           :icon="Money"
                         >
                           Régler
                         </el-dropdown-item>
-                        <el-dropdown-item command="edit" :icon="Edit">
+                        <el-dropdown-item v-if="can('factures-fournisseurs.modifier')" command="edit" :icon="Edit">
                           Modifier
                         </el-dropdown-item>
                         <el-dropdown-item command="etat_reglement" :icon="Document">
@@ -286,7 +286,7 @@
                         >
                           Imputation Comptable
                         </el-dropdown-item>
-                        <el-dropdown-item divided command="delete" :icon="Delete">
+                        <el-dropdown-item v-if="can('factures-fournisseurs.supprimer')" divided command="delete" :icon="Delete">
                           <span style="color: #f56c6c">Supprimer</span>
                         </el-dropdown-item>
                       </el-dropdown-menu>
@@ -375,7 +375,7 @@
             <div class="reglements-header">
               <div class="reglements-title">
                 <h3>Historique des Règlements</h3>
-                <span class="reglements-count">{{ reglements.length }} règlement(s) - Total: {{ formatMontant(statsReglements.total_reglements) }}</span>
+                <span class="reglements-count">{{ reglements.length }} règlement(s) - Total : {{ formatMontant(statsReglements.total_reglements) }}</span>
               </div>
             </div>
 
@@ -458,10 +458,10 @@
                                   >
                                     Imputation comptable
                                   </el-dropdown-item>
-                                  <el-dropdown-item command="edit" :icon="Edit">
+                                  <el-dropdown-item v-if="can('reglements-fournisseurs.modifier')" command="edit" :icon="Edit">
                                     Modifier
                                   </el-dropdown-item>
-                                  <el-dropdown-item divided command="delete" :icon="Delete">
+                                  <el-dropdown-item v-if="can('reglements-fournisseurs.supprimer')" divided command="delete" :icon="Delete">
                                     <span style="color: #f56c6c">Supprimer</span>
                                   </el-dropdown-item>
                                 </el-dropdown-menu>
@@ -591,8 +591,10 @@ import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePdfViewer } from '@/Composables/usePdfViewer';
+import { usePermissions } from '@/Composables/usePermissions';
 
 const { openPdf } = usePdfViewer();
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

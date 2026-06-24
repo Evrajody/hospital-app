@@ -370,18 +370,13 @@ class AvanceClientController extends Controller
     }
 
     /**
-     * État PDF des avances clients (#11).
-     * Filtre optionnel par période sur date_cheque (date_debut / date_fin) + statut.
+     * Liste des avances d'une période, pour alimenter le sélecteur « société émettrice »
+     * de l'état des avances. Une entrée = un chèque/avance, labellisé
+     * « NOM SOCIÉTÉ – date chèque – réf chèque – montant ».
      */
-    public function etatAvancesPdf(Request $request)
+    public function listePeriode(Request $request): JsonResponse
     {
-        @ini_set('memory_limit', '1024M');
-        @set_time_limit(300);
-
-        $query = AvanceClient::with([
-                'societeEmettrice.compteComptable',
-                'beneficiaires.compteComptable',
-            ])
+        $query = AvanceClient::with('societeEmettrice')
             ->orderBy('societe_emettrice_client_id')
             ->orderBy('date_cheque', 'desc');
 
@@ -391,36 +386,117 @@ class AvanceClientController extends Controller
         if ($request->filled('date_fin')) {
             $query->whereDate('date_cheque', '<=', $request->date_fin);
         }
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
+
+        $data = $query->get()->map(function ($a) {
+            $nom = $a->societeEmettrice?->nom ?: $a->societe_emettrice ?: 'Société ?';
+            $date = $a->date_cheque?->format('d/m/Y') ?? '—';
+            $cheque = $a->numero_cheque ?: '—';
+            $montant = number_format((float) $a->montant, 0, ',', ' ');
+            return [
+                'id' => $a->id,
+                'label' => "{$nom} – {$date} – {$cheque} – {$montant}",
+            ];
+        })->values();
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * État PDF des avances clients (#11) — version détaillée, une page par avance.
+     * Toujours périodique (date_debut / date_fin sur date_cheque).
+     * Filtre optionnel `avance_id` : limite l'état à un seul chèque/avance.
+     *
+     * Pour chaque avance : en-tête (société émettrice, date chèque, réf chèque, montant),
+     * puis le détail de TOUS les bénéficiaires déclarés avec, pour chaque facture réglée
+     * depuis l'avance : réf facture, date facture, montant facture, montant réglé (utilisé).
+     * En pied : total utilisé et restant de l'avance.
+     */
+    public function etatAvancesPdf(Request $request)
+    {
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
+        $query = AvanceClient::with([
+                'societeEmettrice.compteComptable',
+                'beneficiaires',
+                'reglements.facture',
+                'reglements.client',
+            ])
+            ->orderBy('societe_emettrice_client_id')
+            ->orderBy('date_cheque', 'desc');
+
+        if ($request->filled('avance_id')) {
+            $query->where('id', (int) $request->avance_id);
+        }
+        if ($request->filled('date_debut')) {
+            $query->whereDate('date_cheque', '>=', $request->date_debut);
+        }
+        if ($request->filled('date_fin')) {
+            $query->whereDate('date_cheque', '<=', $request->date_fin);
         }
 
         $avances = $query->get();
 
         $lignes = $avances->map(function ($a) {
             $emetteur = $a->societeEmettrice;
+            $reglementsParClient = $a->reglements->groupBy('client_id');
+            $declaredIds = $a->beneficiaires->pluck('id')->all();
+
+            $mapReglement = fn ($r, $nom) => [
+                'beneficiaire' => $nom,
+                'facture_ref' => $r->facture_reference ?: $r->facture?->reference,
+                'date_facture' => $r->facture?->date_facture?->format('d/m/Y'),
+                'montant_facture' => (float) ($r->facture?->montant ?? 0),
+                'montant_regle' => (float) $r->montant,
+            ];
+
+            $rows = [];
+
+            // 1) Tous les bénéficiaires déclarés (même sans règlement → ligne facture vide).
+            foreach ($a->beneficiaires as $benef) {
+                $nom = $benef->pivot->client_nom ?: $benef->nom;
+                $regs = $reglementsParClient->get($benef->id, collect());
+                if ($regs->isEmpty()) {
+                    $rows[] = [
+                        'beneficiaire' => $nom,
+                        'facture_ref' => null,
+                        'date_facture' => null,
+                        'montant_facture' => null,
+                        'montant_regle' => null,
+                    ];
+                } else {
+                    foreach ($regs as $r) {
+                        $rows[] = $mapReglement($r, $nom);
+                    }
+                }
+            }
+
+            // 2) Règlements dont le client n'est pas un bénéficiaire déclaré (sécurité : ne rien perdre).
+            foreach ($a->reglements as $r) {
+                if (! in_array($r->client_id, $declaredIds, true)) {
+                    $rows[] = $mapReglement($r, $r->client?->nom ?? '-');
+                }
+            }
+
+            $utilise = (float) $a->reglements->sum('montant');
+
             return [
-                'numero_ligne' => $a->numero_ligne,
                 'emetteur_compte' => $emetteur?->compteComptable?->numero_compte,
                 'emetteur_nom' => $emetteur?->nom ?: $a->societe_emettrice,
-                'beneficiaires' => $a->beneficiaires->map(fn ($b) => $b->pivot->client_nom ?: $b->nom)->values()->all(),
                 'numero_cheque' => $a->numero_cheque,
                 'date_cheque' => $a->date_cheque?->format('d/m/Y'),
+                'numero_proforma' => $a->numero_proforma,
                 'montant' => (float) $a->montant,
-                'montant_utilise' => (float) $a->montant_utilise,
-                'montant_restant' => $a->montant_restant,
+                'montant_utilise' => $utilise,
+                'montant_restant' => max(0, (float) $a->montant - $utilise),
                 'statut_libelle' => AvanceClient::getStatutsLabels()[$a->statut] ?? $a->statut,
+                'rows' => $rows,
             ];
         })->values()->all();
 
         $data = [
             'titre' => 'ÉTAT DES AVANCES CLIENTS',
-            'lignes' => $lignes,
-            'totaux' => [
-                'montant' => $avances->sum('montant'),
-                'montant_utilise' => $avances->sum('montant_utilise'),
-                'montant_restant' => $avances->sum(fn ($a) => $a->montant_restant),
-            ],
+            'avances' => $lignes,
             'periode' => [
                 'debut' => $request->input('date_debut'),
                 'fin' => $request->input('date_fin'),
@@ -430,7 +506,7 @@ class AvanceClientController extends Controller
         ];
 
         $pdf = Pdf::loadView('pdf.rapports-clients.etat-avances', $data);
-        $pdf->setPaper('a4', 'landscape');
+        $pdf->setPaper('a4', 'portrait');
 
         return $request->query('action') === 'stream'
             ? $pdf->stream('etat-avances.pdf')

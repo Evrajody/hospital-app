@@ -74,6 +74,9 @@
               <el-table-column label="Total Mt TTC" min-width="130" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_facture) }}</template>
               </el-table-column>
+              <el-table-column label="Total Mt TVA" min-width="120" align="right">
+                <template #default="{ row }">{{ formatMontant(row.total_montant_tva) }}</template>
+              </el-table-column>
               <el-table-column label="Total Avoir" min-width="110" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_avoir) }}</template>
               </el-table-column>
@@ -116,17 +119,17 @@
               <span class="sub-tab-label">Détail par fournisseur</span>
             </template>
 
-            <div v-if="detailHasSoldee" class="soldee-legend">
+            <!-- <div v-if="detailHasSoldee" class="soldee-legend">
               <span class="soldee-swatch"></span>
               Lignes en orange = factures <strong>marquées comme soldées</strong> (clôturées sans règlement) ; le « Mt Total Rég. » en rouge signale le déficit.
-            </div>
+            </div> -->
 
             <GroupNavigator :groups="detail">
               <template #label="{ group }">
                 <strong>Fournisseur :</strong> {{ group.fournisseur }}
               </template>
               <template #default="{ group }">
-              <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe :row-class-name="rowClassSoldee">
+              <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe >
                 <el-table-column label="N°PC" min-width="120">
                   <template #default="{ row }">
                     {{ row.numero_piece }}
@@ -138,6 +141,9 @@
                 <el-table-column prop="date_reglement" label="Date Règ." min-width="85" />
                 <el-table-column label="Mt TTC" min-width="95" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
+                </el-table-column>
+                <el-table-column label="Mt TVA" min-width="90" align="right">
+                  <template #default="{ row }">{{ formatMontant(row.montant_tva) }}</template>
                 </el-table-column>
                 <el-table-column label="Avoir" min-width="80" align="right">
                   <template #default="{ row }">{{ formatMontant(row.avoir) }}</template>
@@ -305,6 +311,6 @@ const printReport = (type) => {
 .actions-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
 .soldee-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #92400e; background: #fff7ed; border: 1px solid #fed7aa; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; }
 .soldee-swatch { display: inline-block; width: 14px; height: 14px; background: #fff7ed; border: 2px solid #fb923c; border-radius: 2px; flex-shrink: 0; }
-.row-soldee { background: #fff7ed; }
-:deep(.el-table .row-soldee td.el-table__cell) { background: #fff7ed; }
+/* .row-soldee { background: #fff7ed; } */
+/* :deep(.el-table .row-soldee td.el-table__cell) { background: #fff7ed; } */
 </style>

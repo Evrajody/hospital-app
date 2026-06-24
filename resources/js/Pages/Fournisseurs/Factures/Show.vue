@@ -28,8 +28,8 @@
           <div>
             <h1 class="page-title">{{ facture.numero }}</h1>
             <p class="page-subtitle">
-              Fournisseur: {{ facture.fournisseur.nom }} •
-              Date: {{ formatDate(facture.date_facture) }}
+              Fournisseur : {{ facture.fournisseur.nom }} •
+              Date : {{ formatDate(facture.date_facture) }}
             </p>
           </div>
         </div>
@@ -47,21 +47,21 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item
-                  v-if="!estSoldee"
+                  v-if="!estSoldee && can('reglements-fournisseurs.creer')"
                   command="pay"
                   :icon="Money"
                 >
                   Enregistrer un règlement
                 </el-dropdown-item>
                 <el-dropdown-item
-                  v-if="!estSoldee"
+                  v-if="!estSoldee && can('factures-fournisseurs.modifier')"
                   command="marquer_soldee"
                   :icon="CircleCheck"
                   divided
                 >
                   Marquer comme soldée
                 </el-dropdown-item>
-                <el-dropdown-item v-if="!estSoldee" command="edit" :icon="Edit">
+                <el-dropdown-item v-if="!estSoldee && can('factures-fournisseurs.modifier')" command="edit" :icon="Edit">
                   Modifier
                 </el-dropdown-item>
                 <el-dropdown-item command="etat_reglement" :icon="Document">
@@ -78,7 +78,7 @@
                 >
                   Voir Imputation Comptable
                 </el-dropdown-item>
-                <el-dropdown-item divided command="delete" :icon="Delete">
+                <el-dropdown-item v-if="can('factures-fournisseurs.supprimer')" divided command="delete" :icon="Delete">
                   <span style="color: #f56c6c">Supprimer</span>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -284,8 +284,9 @@
                 style="margin-top: 16px"
               />
 
-              <div v-if="!estSoldee" style="display: flex; gap: 8px; margin-top: 16px;">
+              <div v-if="!estSoldee && (can('reglements-fournisseurs.creer') || can('factures-fournisseurs.modifier'))" style="display: flex; gap: 8px; margin-top: 16px;">
                 <el-button
+                  v-if="can('reglements-fournisseurs.creer')"
                   type="primary"
                   size="large"
                   style="flex: 1;"
@@ -296,6 +297,7 @@
                 </el-button>
 
                 <el-button
+                  v-if="can('factures-fournisseurs.modifier')"
                   type="success"
                   size="large"
                   plain
@@ -341,7 +343,7 @@
                 color="#67c23a"
               >
                 <el-card class="reglement-item">
-                  <el-tooltip content="Modifier ce règlement" placement="top" :show-after="300">
+                  <el-tooltip v-if="can('reglements-fournisseurs.modifier')" content="Modifier ce règlement" placement="top" :show-after="300">
                     <el-button
                       class="reglement-edit-hover"
                       size="small"
@@ -383,7 +385,7 @@
             </el-timeline>
 
             <el-empty v-else description="Aucun règlement" :image-size="60">
-              <el-button type="primary" size="small" @click="handleAction('pay')">
+              <el-button v-if="can('reglements-fournisseurs.creer')" type="primary" size="small" @click="handleAction('pay')">
                 Ajouter un règlement
               </el-button>
             </el-empty>
@@ -566,8 +568,10 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePdfViewer } from '@/Composables/usePdfViewer';
+import { usePermissions } from '@/Composables/usePermissions';
 
 const { openPdf } = usePdfViewer();
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

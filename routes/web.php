@@ -178,6 +178,7 @@ Route::prefix('api/reglements-clients')->group(function () {
 Route::prefix('avances-clients')->middleware('permission:reglements-clients.voir')->group(function () {
     Route::get('/', [AvanceClientController::class, 'indexView'])->name('avances-clients.index');
     Route::get('/etat/pdf', [AvanceClientController::class, 'etatAvancesPdf'])->name('avances-clients.etat-pdf');
+    Route::get('/etat/liste-periode', [AvanceClientController::class, 'listePeriode'])->name('avances-clients.etat-liste-periode');
 });
 
 // API Avances Clients

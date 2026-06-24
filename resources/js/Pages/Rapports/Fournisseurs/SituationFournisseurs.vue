@@ -6,7 +6,7 @@
           <div class="hospital-name">HÔPITAL DE MÉNONTIN</div>
           <div class="hospital-info">
             <div>République du Bénin - Service Comptabilité</div>
-            <div>BP 123 - Cotonou - Tél: +229 21 XX XX XX</div>
+            <div>BP 123 - Cotonou - Tél : +229 21 XX XX XX</div>
           </div>
         </div>
       </div>

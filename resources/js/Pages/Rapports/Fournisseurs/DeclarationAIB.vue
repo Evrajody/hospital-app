@@ -10,7 +10,7 @@
           <div class="hospital-info">
             <div>Service Comptabilité</div>
             <div>IFU : 0000000000000</div>
-            <div>BP 123 - Cotonou - Tél: +229 21 XX XX XX</div>
+            <div>BP 123 - Cotonou - Tél : +229 21 XX XX XX</div>
           </div>
         </div>
       </div>

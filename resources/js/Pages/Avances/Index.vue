@@ -8,11 +8,11 @@
           <p class="page-subtitle">Chèques d'avance reçus de sociétés d'assurance ou tierces parties pour le compte des clients</p>
         </div>
         <div style="display: flex; gap: 8px;">
-          <el-button size="large" @click="exportEtatPdf">
+          <el-button size="large" @click="openEtat">
             <el-icon><Printer /></el-icon>
             État des avances (PDF)
           </el-button>
-          <el-button type="primary" size="large" @click="openCreate">
+          <el-button v-if="can('reglements-clients.creer')" type="primary" size="large" @click="openCreate">
             <el-icon><Plus /></el-icon>
             Nouvelle avance
           </el-button>
@@ -115,7 +115,7 @@
               <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="N° Ligne" min-width="90" prop="numero_ligne" />
+          <!-- <el-table-column label="N° Ligne" min-width="90" prop="numero_ligne" /> -->
           <el-table-column label="Date Chèque" min-width="110">
             <template #default="{ row }">{{ formatDate(row.date_cheque) }}</template>
           </el-table-column>
@@ -150,8 +150,8 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="view" :icon="View">Voir</el-dropdown-item>
-                    <el-dropdown-item command="edit" :icon="Edit">Modifier</el-dropdown-item>
-                    <el-dropdown-item divided command="delete" :icon="Delete" :disabled="row.montant_utilise > 0">
+                    <el-dropdown-item v-if="can('reglements-clients.modifier')" command="edit" :icon="Edit">Modifier</el-dropdown-item>
+                    <el-dropdown-item v-if="can('reglements-clients.supprimer')" divided command="delete" :icon="Delete" :disabled="row.montant_utilise > 0">
                       <span style="color: #f56c6c">Supprimer</span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -295,6 +295,52 @@
         </template>
       </el-dialog>
 
+      <!-- Modal État des avances (PDF) -->
+      <el-dialog v-model="etatVisible" title="État des avances — paramètres" width="560px" :close-on-click-modal="false">
+        <el-form label-position="top">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="Date début (date du chèque)">
+                <el-date-picker v-model="etat.date_debut" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" style="width: 100%" placeholder="Début" @change="loadAvancesPeriode" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Date fin">
+                <el-date-picker v-model="etat.date_fin" type="date" format="DD/MM/YYYY" value-format="YYYY-MM-DD" style="width: 100%" placeholder="Fin" @change="loadAvancesPeriode" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item label="Critère">
+            <el-radio-group v-model="etat.mode">
+              <el-radio value="toutes">Toutes les avances</el-radio>
+              <el-radio value="avance">Une société émettrice (chèque)</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item v-if="etat.mode === 'avance'" label="Société émettrice — chèque">
+            <el-select
+              v-model="etat.avance_id"
+              filterable
+              clearable
+              :loading="etatLoading"
+              placeholder="Choisir un chèque (nom société – date – réf – montant)"
+              style="width: 100%"
+              no-data-text="Aucune avance sur cette période"
+            >
+              <el-option v-for="a in avancesPeriode" :key="a.id" :label="a.label" :value="a.id" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <el-button @click="etatVisible = false">Annuler</el-button>
+          <el-button type="primary" @click="genererEtat">
+            <el-icon><Printer /></el-icon> Générer le PDF
+          </el-button>
+        </template>
+      </el-dialog>
+
       <!-- Modal Détails -->
       <el-dialog v-model="detailVisible" title="Détails de l'avance" width="600px">
         <div v-if="selected">
@@ -344,9 +390,13 @@ import { Plus, Search, Delete, Edit, View, RefreshLeft, Money, CircleCheck, Wall
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+import { usePdfViewer } from '@/Composables/usePdfViewer';
 import { debounce } from '@/utils/debounce';
 
 const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
+const { can } = usePermissions();
+const { openPdf } = usePdfViewer();
 
 const props = defineProps({
   avances: { type: Array, default: () => [] },
@@ -446,11 +496,53 @@ const emetteurLabel = (row) => {
   return row?.societe_emettrice || '-';
 };
 
-const exportEtatPdf = () => {
+// --- État des avances (PDF) ---
+const etatVisible = ref(false);
+const etatLoading = ref(false);
+const avancesPeriode = ref([]);
+const etat = ref({ date_debut: '', date_fin: '', mode: 'toutes', avance_id: null });
+
+const openEtat = () => {
+  etat.value = { date_debut: '', date_fin: '', mode: 'toutes', avance_id: null };
+  avancesPeriode.value = [];
+  etatVisible.value = true;
+};
+
+const loadAvancesPeriode = async () => {
+  etat.value.avance_id = null;
+  etatLoading.value = true;
+  try {
+    const params = new URLSearchParams();
+    if (etat.value.date_debut) params.set('date_debut', etat.value.date_debut);
+    if (etat.value.date_fin) params.set('date_fin', etat.value.date_fin);
+    const res = await fetchApi(`/avances-clients/etat/liste-periode?${params.toString()}`);
+    const result = await res.json();
+    avancesPeriode.value = result.data || [];
+  } catch {
+    avancesPeriode.value = [];
+  } finally {
+    etatLoading.value = false;
+  }
+};
+
+const genererEtat = () => {
+  if (!etat.value.date_debut || !etat.value.date_fin) {
+    ElMessage.warning('Veuillez choisir la période (date début et date fin)');
+    return;
+  }
+  if (etat.value.mode === 'avance' && !etat.value.avance_id) {
+    ElMessage.warning('Veuillez choisir un chèque dans la liste');
+    return;
+  }
   const params = new URLSearchParams();
-  if (filters.value.statut) params.set('statut', filters.value.statut);
-  params.set('action', 'stream');
-  window.open(`/avances-clients/etat/pdf?${params.toString()}`, '_blank');
+  params.set('date_debut', etat.value.date_debut);
+  params.set('date_fin', etat.value.date_fin);
+  if (etat.value.mode === 'avance' && etat.value.avance_id) {
+    params.set('avance_id', etat.value.avance_id);
+  }
+  // Le drawer ajoute action=stream pour l'aperçu (et garde l'URL nue pour le téléchargement).
+  openPdf(`/avances-clients/etat/pdf?${params.toString()}`, 'État des avances');
+  etatVisible.value = false;
 };
 
 const filteredApprovisionnements = computed(() => {

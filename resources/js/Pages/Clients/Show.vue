@@ -15,11 +15,11 @@
             <el-icon><ArrowLeft /></el-icon>
             Retour
           </el-button>
-          <el-button type="primary" @click="handleEdit">
+          <el-button v-if="can('clients.modifier')" type="primary" @click="handleEdit">
             <el-icon><Edit /></el-icon>
             Modifier
           </el-button>
-          <el-button type="danger" @click="handleDelete">
+          <el-button v-if="can('clients.supprimer')" type="danger" @click="handleDelete">
             <el-icon><Delete /></el-icon>
             Supprimer
           </el-button>
@@ -212,7 +212,7 @@
                 <h3>Liste des Factures</h3>
                 <span class="factures-count">{{ factures.length }} facture(s)</span>
               </div>
-              <el-button size="small" type="primary" @click="handleNewFacture">
+              <el-button v-if="can('factures-clients.creer')" size="small" type="primary" @click="handleNewFacture">
                 <el-icon><Document /></el-icon>
                 Nouvelle Facture
               </el-button>
@@ -228,9 +228,9 @@
                     <template #dropdown>
                       <el-dropdown-menu>
                         <el-dropdown-item command="view" :icon="View">Voir</el-dropdown-item>
-                        <el-dropdown-item v-if="row.statut !== 'payee'" command="regler" :icon="Money">Régler</el-dropdown-item>
-                        <el-dropdown-item command="edit" :icon="Edit">Modifier</el-dropdown-item>
-                        <el-dropdown-item divided command="delete" :icon="Delete">
+                        <el-dropdown-item v-if="row.statut !== 'payee' && can('reglements-clients.creer')" command="regler" :icon="Money">Régler</el-dropdown-item>
+                        <el-dropdown-item v-if="can('factures-clients.modifier')" command="edit" :icon="Edit">Modifier</el-dropdown-item>
+                        <el-dropdown-item v-if="can('factures-clients.supprimer')" divided command="delete" :icon="Delete">
                           <span style="color: #f56c6c">Supprimer</span>
                         </el-dropdown-item>
                       </el-dropdown-menu>
@@ -288,7 +288,7 @@
             <div class="reglements-header">
               <div class="reglements-title">
                 <h3>Historique des Règlements</h3>
-                <span class="reglements-count">{{ reglements.length }} règlement(s) — Total: {{ formatMontant(statsReglements.total_reglements) }}</span>
+                <span class="reglements-count">{{ reglements.length }} règlement(s) — Total : {{ formatMontant(statsReglements.total_reglements) }}</span>
               </div>
             </div>
 
@@ -344,8 +344,8 @@
                               <el-button :icon="More" size="small" />
                               <template #dropdown>
                                 <el-dropdown-menu>
-                                  <el-dropdown-item command="edit" :icon="Edit">Modifier</el-dropdown-item>
-                                  <el-dropdown-item divided command="delete" :icon="Delete">
+                                  <el-dropdown-item v-if="can('reglements-clients.modifier')" command="edit" :icon="Edit">Modifier</el-dropdown-item>
+                                  <el-dropdown-item v-if="can('reglements-clients.supprimer')" divided command="delete" :icon="Delete">
                                     <span style="color: #f56c6c">Supprimer</span>
                                   </el-dropdown-item>
                                 </el-dropdown-menu>
@@ -422,6 +422,9 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 const props = defineProps({
   client: {

@@ -7,7 +7,7 @@
           <h1 class="page-title">Factures Fournisseurs</h1>
           <p class="page-subtitle">Gestion et suivi des factures d'achat</p>
         </div>
-        <el-button type="primary" size="large" @click="handleCreate">
+        <el-button v-if="can('factures-fournisseurs.creer')" type="primary" size="large" @click="handleCreate">
           <el-icon><Plus /></el-icon>
           Nouvelle Facture
         </el-button>
@@ -173,13 +173,13 @@
                       Voir
                     </el-dropdown-item>
                     <el-dropdown-item
-                      v-if="row.statut_paiement !== 'payee'"
+                      v-if="row.statut_paiement !== 'payee' && can('reglements-fournisseurs.creer')"
                       command="pay"
                       :icon="Money"
                     >
                       Régler
                     </el-dropdown-item>
-                    <el-dropdown-item command="edit" :icon="Edit">
+                    <el-dropdown-item v-if="can('factures-fournisseurs.modifier')" command="edit" :icon="Edit">
                       Modifier
                     </el-dropdown-item>
                     <el-dropdown-item command="etat_reglement" :icon="Document">
@@ -192,7 +192,7 @@
                     >
                       Imputation Comptable
                     </el-dropdown-item>
-                    <el-dropdown-item divided command="delete" :icon="Delete">
+                    <el-dropdown-item v-if="can('factures-fournisseurs.supprimer')" divided command="delete" :icon="Delete">
                       <span style="color: #f56c6c">Supprimer</span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -492,6 +492,9 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

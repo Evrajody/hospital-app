@@ -179,6 +179,7 @@
                 Annuler
               </el-button>
               <el-button
+                v-if="can('plan-comptable.modifier')"
                 type="primary"
                 @click="handleSubmit"
                 size="large"
@@ -214,6 +215,9 @@ import {
   Grid
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

@@ -16,7 +16,7 @@
             <span class="stat-pill"><strong>{{ permissions.length }}</strong> permissions</span>
           </div>
         </div>
-        <el-button type="primary" :icon="Plus" size="large" @click="openRoleModal()">
+        <el-button v-if="can('roles.creer')" type="primary" :icon="Plus" size="large" @click="openRoleModal()">
           Nouveau Rôle
         </el-button>
       </div>
@@ -63,7 +63,7 @@
                           @click="bulkRolePermissions(role, false)"
                         />
                       </el-tooltip>
-                      <el-tooltip content="Modifier le rôle" placement="top">
+                      <el-tooltip v-if="can('roles.modifier')" content="Modifier le rôle" placement="top">
                         <el-button
                           :icon="Edit"
                           size="small"
@@ -73,7 +73,7 @@
                           @click="openRoleModal(role)"
                         />
                       </el-tooltip>
-                      <el-tooltip content="Supprimer le rôle" placement="top">
+                      <el-tooltip v-if="can('roles.supprimer')" content="Supprimer le rôle" placement="top">
                         <el-button
                           :icon="Delete"
                           size="small"
@@ -193,6 +193,9 @@ import {
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 const props = defineProps({
   roles: { type: Array, default: () => [] },

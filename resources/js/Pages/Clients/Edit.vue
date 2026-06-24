@@ -140,7 +140,7 @@
           <!-- Actions -->
           <div class="form-actions">
             <el-button @click="handleCancel">Annuler</el-button>
-            <el-button type="primary" :loading="loading" @click="handleSubmit">
+            <el-button v-if="can('clients.modifier')" type="primary" :loading="loading" @click="handleSubmit">
               Enregistrer les modifications
             </el-button>
           </div>
@@ -156,6 +156,9 @@ import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { DocumentCopy, User, Phone, Message, Postcard, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { usePermissions } from '@/Composables/usePermissions';
+
+const { can } = usePermissions();
 
 // Props
 const props = defineProps({

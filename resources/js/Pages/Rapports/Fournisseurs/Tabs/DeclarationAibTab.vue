@@ -91,26 +91,24 @@
               <div class="bordereau-title">BORDEREAU DE VERSEMENT DES PRÉLÈVEMENTS D'ACOMPTE IMPUTABLE SUR L'IMPÔT ASSIS SUR LES BÉNÉFICES</div>
 
               <div class="bordereau-section-header">II- LIQUIDATION DES DROITS</div>
-              <el-table style="width: 100%" :data="bordereauRows" border size="small" :show-header="true">
-                <el-table-column prop="nature" label="NATURE" min-width="300" />
-                <el-table-column label="BASE" min-width="130" align="right">
+              <el-table style="width: 100%" :data="bordereauRows" border size="small" :show-header="true" :span-method="bordereauSpan">
+                <el-table-column prop="nature" label="NATURE" min-width="300">
                   <template #default="{ row }">
-                    <span v-if="row.isCategory" style="font-weight: bold;"></span>
-                    <span v-else>{{ row.base !== null ? formatMontant(row.base) : '-' }}</span>
+                    <span v-if="row.isLettres" style="font-style: italic;">{{ row.nature }}</span>
+                    <span v-else>{{ row.nature }}</span>
                   </template>
+                </el-table-column>
+                <el-table-column label="BASE" min-width="130" align="right">
+                  <template #default><span></span></template>
                 </el-table-column>
                 <el-table-column label="MONTANT" min-width="130" align="right">
                   <template #default="{ row }">
-                    <span v-if="row.isCategory"></span>
+                    <span v-if="row.isCategory || row.isLettres"></span>
                     <span v-else-if="row.isTotal" style="font-weight: bold; font-size: 14px;">{{ formatMontant(row.montant) }}</span>
                     <span v-else>{{ row.montant !== null ? formatMontant(row.montant) : '-' }}</span>
                   </template>
                 </el-table-column>
               </el-table>
-
-              <div class="montant-lettres">
-                Montant du versement en lettres : <strong>{{ montantEnLettres }}</strong>
-              </div>
             </div>
 
             <div class="actions-bar">
@@ -168,8 +166,21 @@ const bordereauRows = computed(() => {
     rows.push({ nature: `AIB de ${Math.round(t.taux)}%`, isCategory: false, base: t.base, montant: t.montant });
   });
   rows.push({ nature: 'Montant total à reverser', isCategory: false, isTotal: true, base: null, montant: montantTotal.value });
+  rows.push({ nature: `Montant du versement en lettres : ${montantEnLettres.value}`, isLettres: true, base: null, montant: null });
   return rows;
 });
+
+// Fusion de cellules : ligne total → NATURE+BASE fusionnées ; ligne « en lettres » → toute la largeur.
+const bordereauSpan = ({ row, columnIndex }) => {
+  if (row.isLettres) {
+    return columnIndex === 0 ? [1, 3] : [0, 0];
+  }
+  if (row.isTotal) {
+    if (columnIndex === 0) return [1, 2];
+    if (columnIndex === 1) return [0, 0];
+  }
+  return [1, 1];
+};
 
 const fetchData = async () => {
   if (selectedMode.value === 'mois_annee' && (!selectedMois.value || !selectedAnnee.value)) {
@@ -214,8 +225,9 @@ const getSummaryDeclaration = ({ columns, data: tableData }) => {
   const sums = [];
   columns.forEach((col, i) => {
     if (i === 0) { sums[i] = 'TOTAL'; return; }
-    if (i === 5) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.montant_mo || 0), 0)); return; }
-    if (i === 7) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.montant_aib || 0), 0)); return; }
+    // i=6 -> colonne Mt M.O. ; i=8 -> colonne Montant AIB (cf. ordre des el-table-column).
+    if (i === 6) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.montant_mo || 0), 0)); return; }
+    if (i === 8) { sums[i] = formatMontant(tableData.reduce((s, r) => s + (r.montant_aib || 0), 0)); return; }
     sums[i] = '';
   });
   return sums;
@@ -245,17 +257,10 @@ const printReport = (type) => {
   if (w) w.onload = () => setTimeout(() => w.print(), 500);
 };
 
-// Export Excel des données fournisseurs importées avec le mapping AIB (audit).
-// Reprend la période si on est en mode plage de dates ; sinon exporte tout l'AIB.
+// Export Excel au format d'import AIB : mêmes données/période que la Déclaration AIB affichée.
 const exportImportAib = () => {
-  const params = new URLSearchParams();
-  if (selectedMode.value === 'periode') {
-    const [debut, fin] = dateRange.value || [];
-    if (debut) params.append('date_debut', debut);
-    if (fin) params.append('date_fin', fin);
-  }
-  const qs = params.toString();
-  window.open(`/rapports/fournisseurs/excel/import-aib${qs ? '?' + qs : ''}`, '_blank');
+  const params = buildPdfParams('declaration');
+  window.open(`/rapports/fournisseurs/excel/import-aib?${params.toString()}`, '_blank');
 };
 </script>
 
