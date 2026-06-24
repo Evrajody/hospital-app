@@ -124,6 +124,11 @@ class ReportExportService
             'pdf' => 'chiffreAffairesPdf', 'excel' => 'chiffreAffairesExcel',
             'label' => "Chiffre d'affaires",
         ],
+        'rapports-clients.factures-editees' => [
+            'controller' => RapportClientController::class,
+            'pdf' => 'facturesEditeesPdf', 'excel' => 'facturesEditeesExcel',
+            'label' => 'État des factures clients éditées',
+        ],
 
         // ----- Plan comptable -----
         'plan-comptable' => [

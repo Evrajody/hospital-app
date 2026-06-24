@@ -123,7 +123,9 @@ class RapportFournisseurController extends Controller
                     $montantDu = (float) $f->montant_net;
                     $totalReg = (float) $f->montant_paye;
                     // Solde harmonisé : Mt TTC − Mt TVA − Avoir − Mt AIB − Total réglé.
-                    $solde = $montantFacture - $montantTva - $avoir - $montantAib - $totalReg;
+                    // Borné à ≥ 0 : un restant dû ne peut être négatif (facture sur-réglée
+                    // quand l'AIB a été enregistrée au TTC dans le règlement → considérée soldée).
+                    $solde = max(0, $montantFacture - $montantTva - $avoir - $montantAib - $totalReg);
 
                     $lignes[] = [
                         'numero_piece' => $f->numero_piece,
@@ -965,10 +967,12 @@ class RapportFournisseurController extends Controller
                     ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
                     ->where('date_reglement', '<=', $datePoint)
                     ->sum('montant');
-                $resteAPayer = (float) $f->montant_net - $montantPaye;
+                // Borné à ≥ 0 : un reste à payer ne peut être négatif (facture sur-réglée
+                // quand l'AIB a été enregistrée au TTC dans le règlement → soldée).
+                $resteAPayer = max(0, (float) $f->montant_net - $montantPaye);
             } else {
                 $montantPaye = (float) $f->montant_paye;
-                $resteAPayer = (float) $f->reste_a_payer;
+                $resteAPayer = max(0, (float) $f->reste_a_payer);
             }
 
             return [

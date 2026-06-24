@@ -50,6 +50,7 @@ import {
   CreditCard,
   TrendCharts,
   Money,
+  Tickets,
 } from '@element-plus/icons-vue';
 
 import EtatReglementsTab from './Tabs/EtatReglementsTab.vue';
@@ -57,6 +58,7 @@ import EtatCreancesTab from './Tabs/EtatCreancesTab.vue';
 import BrouillardChequesTab from './Tabs/BrouillardChequesTab.vue';
 import ChiffreAffairesTab from './Tabs/ChiffreAffairesTab.vue';
 import PertesRejetsTab from './Tabs/PertesRejetsTab.vue';
+import FacturesEditeesTab from './Tabs/FacturesEditeesTab.vue';
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) },
@@ -75,6 +77,7 @@ const reports = [
   { name: 'brouillard-cheques', label: 'Brouillard de chèques et Imputations Comptables', icon: markRaw(CreditCard), component: markRaw(BrouillardChequesTab), props: { banques: props.banques } },
   { name: 'chiffre-affaires', label: "Chiffre d'affaires", icon: markRaw(TrendCharts), component: markRaw(ChiffreAffairesTab), props: { clients: props.clients } },
   { name: 'pertes-rejets', label: 'Pertes & Rejets', icon: markRaw(Document), component: markRaw(PertesRejetsTab), props: { clients: props.clients } },
+  { name: 'factures-editees', label: 'Factures clients éditées (par année)', icon: markRaw(Tickets), component: markRaw(FacturesEditeesTab), props: {} },
 ];
 
 const activeTab = ref('etat-reglements');

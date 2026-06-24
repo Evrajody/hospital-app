@@ -322,6 +322,7 @@ Route::prefix('rapports')->group(function () {
         Route::get('/api/imputations-comptables', [RapportClientController::class, 'imputationsComptables']);
         Route::get('/api/chiffre-affaires', [RapportClientController::class, 'chiffreAffaires']);
         Route::get('/api/pertes-rejets', [RapportClientController::class, 'pertesRejets']);
+        Route::get('/api/factures-editees', [RapportClientController::class, 'facturesEditees']);
 
         // Export PDF
         Route::get('/pdf/etat-reglements', [RapportClientController::class, 'etatReglementsPdf']);
@@ -330,6 +331,7 @@ Route::prefix('rapports')->group(function () {
         Route::get('/pdf/imputations-comptables', [RapportClientController::class, 'imputationsComptablesPdf']);
         Route::get('/pdf/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesPdf']);
         Route::get('/pdf/pertes-rejets', [RapportClientController::class, 'pertesRejetsPdf']);
+        Route::get('/pdf/factures-editees', [RapportClientController::class, 'facturesEditeesPdf']);
 
         // Export Excel
         Route::get('/excel/etat-reglements', [RapportClientController::class, 'etatReglementsExcel']);
@@ -338,6 +340,7 @@ Route::prefix('rapports')->group(function () {
         Route::get('/excel/imputations-comptables', [RapportClientController::class, 'imputationsComptablesExcel']);
         Route::get('/excel/chiffre-affaires', [RapportClientController::class, 'chiffreAffairesExcel']);
         Route::get('/excel/pertes-rejets', [RapportClientController::class, 'pertesRejetsExcel']);
+        Route::get('/excel/factures-editees', [RapportClientController::class, 'facturesEditeesExcel']);
 
         // Pages standalone (backward compat)
         Route::get('/etat-reglements', [RapportClientController::class, 'etatReglementsPage'])->name('rapports.clients.etat-reglements');

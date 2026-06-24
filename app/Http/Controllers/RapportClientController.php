@@ -100,7 +100,8 @@ class RapportClientController extends Controller
                     $montantPaye = (float) $reglementsNonPerte->sum('montant');
                     $totalPerteFacture = (float) $reglementsPerte->sum('montant');
                     $totalRejetFacture = (float) $facture->reglements->sum('montant_rejet');
-                    $solde = $montantFacture - $montantPaye - $totalPerteFacture - $totalRejetFacture;
+                    // Reste à payer borné à ≥ 0 (cohérent avec l'état des créances).
+                    $solde = max(0, $montantFacture - $montantPaye - $totalPerteFacture - $totalRejetFacture);
 
                     $dernierReglement = $facture->reglements->sortByDesc('date_reglement')->first();
 
@@ -174,7 +175,7 @@ class RapportClientController extends Controller
                     $totalPerte += $tp;
                     $totalRejet += $tr;
                 }
-                $totalSolde = $totalFacture - $totalPaye - $totalPerte - $totalRejet;
+                $totalSolde = max(0, $totalFacture - $totalPaye - $totalPerte - $totalRejet);
 
                 $numero++;
                 $data[] = [
@@ -988,6 +989,81 @@ class RapportClientController extends Controller
         return $request->query('action') === 'stream'
             ? $pdf->stream('pertes-rejets.pdf')
             : $pdf->download('pertes-rejets.pdf');
+    }
+
+    // ==========================================
+    // ÉTAT DES FACTURES CLIENTS ÉDITÉES (par année)
+    // ==========================================
+
+    private function buildFacturesEditeesData(Request $request): array
+    {
+        $annee = (int) ($request->input('annee') ?: now()->year);
+
+        $factures = FactureClient::with('client')
+            ->whereYear('date_facture', $annee)
+            ->orderBy('date_facture')
+            ->orderBy('reference')
+            ->get();
+
+        $lignes = [];
+        $total = 0;
+        foreach ($factures as $i => $f) {
+            $montant = (float) $f->montant;
+            $lignes[] = [
+                'numero' => $i + 1,
+                'reference' => $f->reference,
+                'date_facture' => $f->date_facture?->format('d/m/Y'),
+                'client' => $f->client_nom ?: $f->client?->nom,
+                'montant' => $montant,
+            ];
+            $total += $montant;
+        }
+
+        return [
+            'annee' => $annee,
+            'lignes' => $lignes,
+            'total' => $total,
+        ];
+    }
+
+    public function facturesEditees(Request $request): JsonResponse
+    {
+        return response()->json($this->buildFacturesEditeesData($request));
+    }
+
+    public function facturesEditeesPdf(Request $request)
+    {
+        $result = $this->buildFacturesEditeesData($request);
+        $result['titre'] = 'ÉTAT DES FACTURES CLIENTS ÉDITÉES — ANNÉE ' . $result['annee'];
+        $result['generatedAt'] = now()->format('d/m/Y à H:i');
+
+        $pdf = Pdf::loadView('pdf.rapports-clients.factures-editees', $result);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $request->query('action') === 'stream'
+            ? $pdf->stream('factures-clients-editees.pdf')
+            : $pdf->download('factures-clients-editees.pdf');
+    }
+
+    public function facturesEditeesExcel(Request $request)
+    {
+        $result = $this->buildFacturesEditeesData($request);
+
+        $rows = array_map(fn($l) => [
+            $l['numero'],
+            $l['reference'],
+            $l['date_facture'],
+            $l['client'],
+            $l['montant'],
+        ], $result['lignes']);
+        $rows[] = ['', '', '', 'TOTAL', $result['total']];
+
+        return \App\Support\ExcelExporter::download(
+            ['N°', 'N° Facture', 'Date Facture', 'Nom Client', 'Montant'],
+            $rows,
+            'factures-clients-editees-' . $result['annee'],
+            'État des factures clients éditées — Année ' . $result['annee'],
+        );
     }
 
     // ==========================================
