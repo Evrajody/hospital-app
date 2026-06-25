@@ -133,16 +133,28 @@
                 <el-table-column label="Montant Payé" min-width="120" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_paye) }}</template>
                 </el-table-column>
-                <el-table-column label="Rejet" min-width="100" align="right">
+                <el-table-column label="Total rejet" min-width="110" align="right">
                   <template #default="{ row }">
-                    <span :style="{ color: row.rejet > 0 ? '#cc0000' : 'inherit' }">{{ formatMontant(row.rejet) }}</span>
+                    <span :style="{ color: row.total_rejet > 0 ? '#cc0000' : 'inherit' }">{{ formatMontant(row.total_rejet) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Total pertes" min-width="110" align="right">
+                  <template #default="{ row }">
+                    <span :style="{ color: row.total_perte > 0 ? '#cc0000' : 'inherit' }">{{ formatMontant(row.total_perte) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Solde" min-width="110" align="right">
+                  <template #default="{ row }">
+                    <strong>{{ formatMontant(row.solde) }}</strong>
                   </template>
                 </el-table-column>
               </PaginatedTable>
               <div class="client-totals">
                 <span>Total Factures: <strong>{{ formatMontant(group.total_facture) }}</strong></span>
                 <span>Total Payé: <strong>{{ formatMontant(group.total_paye) }}</strong></span>
-                <span style="color: #cc0000">Rejet: <strong>{{ formatMontant(group.total_rejet) }}</strong></span>
+                <span style="color: #cc0000">Total rejet: <strong>{{ formatMontant(group.total_rejet) }}</strong></span>
+                <span style="color: #cc0000">Total pertes: <strong>{{ formatMontant(group.total_perte) }}</strong></span>
+                <span>Solde: <strong>{{ formatMontant(group.total_solde) }}</strong></span>
               </div>
             </template>
           </GroupNavigator>

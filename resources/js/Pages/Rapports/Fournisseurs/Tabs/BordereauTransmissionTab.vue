@@ -85,7 +85,13 @@ import { useMontant } from '@/Composables/useMontant';
 
 const { formatMontant } = useMontant();
 
-const dateRange = ref([]);
+// Défaut : mois courant — évite de charger TOUS les règlements au montage (chargement long).
+const _now = new Date();
+const _pad = (n) => String(n).padStart(2, '0');
+const _firstDay = `${_now.getFullYear()}-${_pad(_now.getMonth() + 1)}-01`;
+const _lastDay = `${_now.getFullYear()}-${_pad(_now.getMonth() + 1)}-${_pad(new Date(_now.getFullYear(), _now.getMonth() + 1, 0).getDate())}`;
+
+const dateRange = ref([_firstDay, _lastDay]);
 const loading = ref(false);
 const fetched = ref(false);
 const reglements = ref([]);

@@ -27,7 +27,11 @@ class FactureFournisseurController extends Controller
     public function indexView(Request $request): InertiaResponse
     {
         $query = FactureFournisseur::with(['fournisseur', 'imputation', 'compte'])
-            ->withCount('imputations');
+            ->withCount('imputations')
+            // Dernière date de règlement (règlements non annulés) → date de l'action qui solde la facture.
+            ->withMax(['reglements as derniere_date_reglement' => function ($q) {
+                $q->where('statut', '!=', \App\Models\ReglementFournisseur::STATUT_ANNULE);
+            }], 'date_reglement');
 
         // Filtre par fournisseur
         if ($request->filled('fournisseur_id')) {
@@ -79,12 +83,21 @@ class FactureFournisseurController extends Controller
 
         // Formater les factures pour la vue
         $factures = $facturesPaginated->map(function ($facture) {
+            // Date de l'action qui a soldé la facture : date_solde (clôture manuelle) sinon,
+            // si la facture est soldée par règlement, la dernière date de règlement. Sinon vide.
+            $dateReglement = $facture->date_solde
+                ? $facture->date_solde->format('Y-m-d')
+                : (((float) $facture->reste_a_payer <= 0.01 && $facture->derniere_date_reglement)
+                    ? \Carbon\Carbon::parse($facture->derniere_date_reglement)->format('Y-m-d')
+                    : null);
+
             return [
                 'id' => $facture->id,
                 'numero' => $facture->numero_piece,
                 'numero_piece' => $facture->numero_piece,
                 'date_facture' => $facture->date?->format('Y-m-d'),
                 'date' => $facture->date?->format('Y-m-d'),
+                'date_reglement' => $dateReglement,
                 'reference' => $facture->reference_facture,
                 'reference_facture' => $facture->reference_facture,
                 'fournisseur' => $facture->fournisseur ? [

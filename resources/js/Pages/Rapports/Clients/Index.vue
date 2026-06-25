@@ -77,7 +77,7 @@ const reports = [
   { name: 'brouillard-cheques', label: 'Brouillard de chèques et Imputations Comptables', icon: markRaw(CreditCard), component: markRaw(BrouillardChequesTab), props: { banques: props.banques } },
   { name: 'chiffre-affaires', label: "Chiffre d'affaires (CA)", icon: markRaw(TrendCharts), component: markRaw(ChiffreAffairesTab), props: { clients: props.clients } },
   { name: 'pertes-rejets', label: 'Pertes & Rejets', icon: markRaw(Document), component: markRaw(PertesRejetsTab), props: { clients: props.clients } },
-  { name: 'factures-editees', label: 'Factures clients éditées (par année)', icon: markRaw(Tickets), component: markRaw(FacturesEditeesTab), props: {} },
+  { name: 'factures-editees', label: 'Factures clients éditées (par période)', icon: markRaw(Tickets), component: markRaw(FacturesEditeesTab), props: {} },
 ];
 
 const activeTab = ref('etat-reglements');

@@ -997,13 +997,21 @@ class RapportClientController extends Controller
 
     private function buildFacturesEditeesData(Request $request): array
     {
-        $annee = (int) ($request->input('annee') ?: now()->year);
+        $dateDebut = $request->input('date_debut');
+        $dateFin = $request->input('date_fin');
 
-        $factures = FactureClient::with('client')
-            ->whereYear('date_facture', $annee)
+        $query = FactureClient::with('client')
             ->orderBy('date_facture')
-            ->orderBy('reference')
-            ->get();
+            ->orderBy('reference');
+
+        if ($dateDebut) {
+            $query->whereDate('date_facture', '>=', $dateDebut);
+        }
+        if ($dateFin) {
+            $query->whereDate('date_facture', '<=', $dateFin);
+        }
+
+        $factures = $query->get();
 
         $lignes = [];
         $total = 0;
@@ -1020,7 +1028,7 @@ class RapportClientController extends Controller
         }
 
         return [
-            'annee' => $annee,
+            'periode' => ['debut' => $dateDebut, 'fin' => $dateFin],
             'lignes' => $lignes,
             'total' => $total,
         ];
@@ -1034,7 +1042,7 @@ class RapportClientController extends Controller
     public function facturesEditeesPdf(Request $request)
     {
         $result = $this->buildFacturesEditeesData($request);
-        $result['titre'] = 'ÉTAT DES FACTURES CLIENTS ÉDITÉES — ANNÉE ' . $result['annee'];
+        $result['titre'] = 'ÉTAT DES FACTURES CLIENTS ÉDITÉES';
         $result['generatedAt'] = now()->format('d/m/Y à H:i');
 
         $pdf = Pdf::loadView('pdf.rapports-clients.factures-editees', $result);
@@ -1058,11 +1066,18 @@ class RapportClientController extends Controller
         ], $result['lignes']);
         $rows[] = ['', '', '', 'TOTAL', $result['total']];
 
+        $periode = $result['periode'];
+        $titre = 'État des factures clients éditées';
+        if (!empty($periode['debut']) && !empty($periode['fin'])) {
+            $titre .= ' — du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y');
+        }
+
         return \App\Support\ExcelExporter::download(
             ['N°', 'N° Facture', 'Date Facture', 'Nom Client', 'Montant'],
             $rows,
-            'factures-clients-editees-' . $result['annee'],
-            'État des factures clients éditées — Année ' . $result['annee'],
+            'factures-clients-editees',
+            $titre,
         );
     }
 

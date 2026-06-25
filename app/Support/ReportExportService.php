@@ -122,7 +122,7 @@ class ReportExportService
         'rapports-clients.chiffre-affaires' => [
             'controller' => RapportClientController::class,
             'pdf' => 'chiffreAffairesPdf', 'excel' => 'chiffreAffairesExcel',
-            'label' => "Chiffre d'affaires",
+            'label' => "Chiffre d'affaires (CA)",
         ],
         'rapports-clients.factures-editees' => [
             'controller' => RapportClientController::class,
