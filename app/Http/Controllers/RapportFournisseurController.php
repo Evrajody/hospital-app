@@ -194,14 +194,27 @@ class RapportFournisseurController extends Controller
         // donc sans requête supplémentaire (évite le N+1 par facture).
         $getReglementsPeriode = fn (FactureFournisseur $facture) => (float) $facture->reglements->sum('montant');
 
-        // Filtre de base : factures émises dans la période.
+        // Filtre de base. Une facture entre dans la situation de la période si :
+        //  - elle a subi un RÈGLEMENT dans la période (date_reglement), OU
+        //  - elle n'a subi aucun règlement dans la période mais a été ENREGISTRÉE
+        //    (date PC) dans la période.
+        // (union des deux ensembles ⇒ un simple OR.)
         $baseFilter = function ($q) use ($dateDebut, $dateFin) {
             $q->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE]);
-            if ($dateDebut) {
-                $q->where('date', '>=', $dateDebut);
-            }
-            if ($dateFin) {
-                $q->where('date', '<=', $dateFin);
+            if ($dateDebut || $dateFin) {
+                $q->where(function ($sub) use ($dateDebut, $dateFin) {
+                    // Date PC (enregistrement) dans la période.
+                    $sub->where(function ($pc) use ($dateDebut, $dateFin) {
+                        if ($dateDebut) $pc->where('date', '>=', $dateDebut);
+                        if ($dateFin) $pc->where('date', '<=', $dateFin);
+                    })
+                    // OU un règlement (non annulé) dans la période.
+                    ->orWhereHas('reglements', function ($r) use ($dateDebut, $dateFin) {
+                        $r->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
+                        if ($dateDebut) $r->where('date_reglement', '>=', $dateDebut);
+                        if ($dateFin) $r->where('date_reglement', '<=', $dateFin);
+                    });
+                });
             }
         };
 
@@ -580,18 +593,14 @@ class RapportFournisseurController extends Controller
             ];
         }
 
-        // Règlements où l'AIB a été effectivement déduit dans la période
+        // Règlements où l'AIB a été déduit, datés par la DATE DE PRÉLÈVEMENT = date du
+        // règlement où l'AIB a été retenu (cohérent legacy + saisies app ; on n'utilise
+        // plus date_aib qui valait le jour de saisie, pas la date réelle du prélèvement).
         $reglements = ReglementFournisseur::where('deduire_aib', true)
             ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
-            ->where(function ($q) use ($dateDebut, $dateFin) {
-                $q->whereBetween('date_aib', [$dateDebut, $dateFin])
-                  ->orWhere(function ($q2) use ($dateDebut, $dateFin) {
-                      $q2->whereNull('date_aib')
-                          ->whereBetween('date_reglement', [$dateDebut, $dateFin]);
-                  });
-            })
+            ->whereBetween('date_reglement', [$dateDebut, $dateFin])
             ->with('facture.fournisseur.compteComptable')
-            ->orderByDesc('date_aib')
+            ->orderByDesc('date_reglement')
             ->get();
 
         // Grouper par facture (1 facture = 1 déclaration AIB)
@@ -606,7 +615,7 @@ class RapportFournisseurController extends Controller
         $parTaux = [];
 
         foreach ($reglementsByFacture as $factureId => $factureReglements) {
-            $firstReglement = $factureReglements->sortBy('date_aib')->first();
+            $firstReglement = $factureReglements->sortBy('date_reglement')->first();
             $f = $firstReglement->facture;
 
             if (!$f || $f->statut === FactureFournisseur::STATUT_ANNULEE) {
@@ -624,7 +633,7 @@ class RapportFournisseurController extends Controller
                 ? (float) $firstReglement->montant_aib_deduit
                 : (float) $f->montant_reduction;
 
-            $dateAib = $firstReglement->date_aib ?? $firstReglement->date_reglement;
+            $dateAib = $firstReglement->date_reglement;
 
             $lignes[] = [
                 'numero_piece' => $f->numero_piece,
@@ -938,21 +947,23 @@ class RapportFournisseurController extends Controller
         $dateDebut = $datePoint ? null : $request->input('date_debut');
         $dateFin = $datePoint ?: $request->input('date_fin');
 
-        $query = FactureFournisseur::with(['fournisseur.compteComptable'])
+        // Règlements eager-loadés (évite un N+1 lors du recalcul à une date de point).
+        $query = FactureFournisseur::with(['fournisseur.compteComptable', 'reglements'])
             ->where('statut', '!=', FactureFournisseur::STATUT_ANNULEE);
 
         if ($fournisseurId) {
             $query->where('fournisseur_id', $fournisseurId);
         }
 
+        // Période sur la DATE PC (date d'enregistrement de la pièce).
         if ($dateDebut) {
-            $query->where('date_facture_bc', '>=', $dateDebut);
+            $query->where('date', '>=', $dateDebut);
         }
         if ($dateFin) {
-            $query->where('date_facture_bc', '<=', $dateFin);
+            $query->where('date', '<=', $dateFin);
         }
 
-        $factures = $query->orderByDesc('date_facture_bc')->get();
+        $factures = $query->orderByDesc('date')->get();
 
         $data = $factures->map(function ($f) use ($datePoint) {
             $code = $f->fournisseur?->compteComptable?->numero_compte;
@@ -961,11 +972,11 @@ class RapportFournisseurController extends Controller
 
             if ($datePoint) {
                 // Solde arrêté à la date : on recalcule à partir des règlements effectués
-                // jusqu'à cette date. Les colonnes montant_paye/reste_a_payer sont des
-                // cumuls "à aujourd'hui", inadaptés à un arrêté à une date passée.
-                $montantPaye = (float) $f->reglements()
-                    ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
-                    ->where('date_reglement', '<=', $datePoint)
+                // jusqu'à cette date (règlements déjà chargés → pas de requête par facture).
+                $montantPaye = (float) $f->reglements
+                    ->filter(fn($r) => $r->statut !== ReglementFournisseur::STATUT_ANNULE
+                        && $r->date_reglement
+                        && $r->date_reglement->format('Y-m-d') <= $datePoint)
                     ->sum('montant');
                 // Borné à ≥ 0 : un reste à payer ne peut être négatif (facture sur-réglée
                 // quand l'AIB a été enregistrée au TTC dans le règlement → soldée).
@@ -978,7 +989,7 @@ class RapportFournisseurController extends Controller
             return [
                 'id' => $f->id,
                 'numero' => $f->numero_piece,
-                'date_facture' => $f->date_facture_bc?->format('Y-m-d'),
+                'date_facture' => $f->date?->format('Y-m-d'),
                 'fournisseur_label' => $fournisseurLabel,
                 'montant_ttc' => (float) $f->montant_net,
                 'montant_paye' => $montantPaye,

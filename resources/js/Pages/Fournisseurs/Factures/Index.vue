@@ -271,6 +271,12 @@
             </template>
           </el-table-column>
 
+          <el-table-column prop="date_reglement" label="Date Règlement" width="120" align="center" resizable>
+            <template #default="{ row }">
+              <span class="nowrap-cell">{{ row.date_reglement ? formatDate(row.date_reglement) : '-' }}</span>
+            </template>
+          </el-table-column>
+
         </el-table>
 
         <!-- Pagination -->

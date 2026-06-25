@@ -4,11 +4,18 @@
 @section('page-size', 'A4 portrait')
 @section('page-margin', '32mm 25mm 22mm')
 @section('report-title', $titre ?? 'ÉTAT DES FACTURES CLIENTS ÉDITÉES')
-@section('report-subtitle', 'Année ' . ($annee ?? ''))
+@section('report-subtitle',
+    (!empty($periode['debut']) && !empty($periode['fin'])
+        ? 'Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y')
+        : (!empty($periode['fin'])
+            ? 'Au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y')
+            : (!empty($periode['debut'])
+                ? 'À partir du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y')
+                : 'Toutes périodes'))))
 
 @section('content')
     @if(count($lignes) === 0)
-        <p style="text-align: center; padding: 40px; color: #666;">Aucune facture éditée pour l'année {{ $annee }}.</p>
+        <p style="text-align: center; padding: 40px; color: #666;">Aucune facture éditée pour la période sélectionnée.</p>
     @else
         <table class="report-table">
             <thead>

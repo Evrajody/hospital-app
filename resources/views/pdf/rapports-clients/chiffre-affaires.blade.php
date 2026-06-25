@@ -32,8 +32,8 @@
             <table class="report-table global-table">
                 <thead>
                     <tr>
-                        <th>CA Théorique</th>
-                        <th>CA Physique</th>
+                        <th>CA Théorique (Mt des factures)</th>
+                        <th>CA Physique (Mt des règlements)</th>
                         <th>Écart</th>
                     </tr>
                 </thead>
@@ -55,8 +55,8 @@
                             <th style="width: 30px">N°</th>
                             <th style="width: 90px">N° Compte</th>
                             <th>Client</th>
-                            <th class="montant" style="width: 110px">CA Théorique</th>
-                            <th class="montant" style="width: 110px">CA Physique</th>
+                            <th class="montant" style="width: 110px">Mt Facture</th>
+                            <th class="montant" style="width: 110px">Mt encaissé</th>
                             <th class="montant ecart" style="width: 100px">Écart</th>
                         </tr>
                     </thead>

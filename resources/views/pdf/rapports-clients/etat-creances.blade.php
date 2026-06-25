@@ -32,6 +32,10 @@
     @elseif($mode === 'par_client' || $mode === 'un_client')
         @php
             $periodeDebut = !empty($periode['debut']) ? \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') : null;
+            $periodeSousTitre = 'Factures non soldées'
+                . (!empty($periode['debut']) && !empty($periode['fin'])
+                    ? ' - Période du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y')
+                    : (!empty($periode['fin']) ? ' - Au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') : ''));
         @endphp
 
         {{-- Un client par page (l'en-tête officielle est reprise en haut de chaque page). --}}
@@ -43,7 +47,7 @@
                     <div class="client-page-title-wrapper">
                         <div class="client-page-title">
                             {{ ($titre ?? 'ÉTAT DES CRÉANCES CLIENTS') . $typeSuffix }}
-                            <span class="client-page-subtitle">Factures non soldées@if(!empty($periode['debut']) && !empty($periode['fin'])) - Période du {{ \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y') }} au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}@elseif(!empty($periode['fin'])) - Au {{ \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y') }}@endif</span>
+                            <span class="client-page-subtitle">{{ $periodeSousTitre }}</span>
                         </div>
                     </div>
                 @endunless

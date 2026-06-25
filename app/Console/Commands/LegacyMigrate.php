@@ -40,6 +40,7 @@ class LegacyMigrate extends Command
         {--dry-run : Simule sans rien écrire (transaction annulée à la fin)}
         {--only= : Sous-ensemble : plan,fournisseurs,clients,banques,factures-fournisseurs,factures-clients,reglements-fournisseurs,reglements-clients,imputations,users}
         {--except= : Tout SAUF ces étapes (ex. --except=users). Ignoré si --only est fourni}
+        {--fix-facture-dates : Passe CORRECTIVE : met uniquement à jour date (PC=datenreg) et date_facture_bc (=datfac) des factures fsr déjà migrées, sans toucher au reste}
         {--clients-schema=legacy_clients : Schéma de staging côté Clients}
         {--fsr-schema=legacy_fsr : Schéma de staging côté Fournisseurs}';
 
@@ -82,6 +83,11 @@ class LegacyMigrate extends Command
         if (! $this->schemaExists($this->schemaClients) && ! $this->schemaExists($this->schemaFsr)) {
             $this->error("Aucun schéma de staging trouvé. Lancez d'abord :  make migrate-legacy-load");
             return self::FAILURE;
+        }
+
+        // Passe corrective ciblée : ne corrige QUE les dates des factures fournisseurs déjà migrées.
+        if ($this->option('fix-facture-dates')) {
+            return $this->fixFactureFournisseurDates($dryRun);
         }
 
         // En DRY-RUN on se contente de COMPTER les volumes sources (rapide, aucune écriture).
@@ -316,25 +322,28 @@ class LegacyMigrate extends Command
             $fId = $this->fournisseurByCompte[$this->key($r->comptimp ?? '')]
                 ?? $this->fournisseurByCompte['NOM:'.$this->key($r->rsfsr ?? '')]
                 ?? null;
-            // Date facture : on rejette les années aberrantes (saisie source erronée),
-            // avec repli sur la date d'enregistrement puis l'année. La colonne `date`
-            // est NOT NULL → dernier recours = la date brute (évite un échec d'insert).
-            $dateFac = $this->saneDate($r->datfac ?? null)
-                ?: $this->saneDate($r->datenreg ?? null)
+            // SÉMANTIQUE DES DATES :
+            //  - date (PC) = date d'ENREGISTREMENT de la pièce dans le système = datenreg.
+            //  - date_facture_bc = date inscrite par le fournisseur = datfac.
+            // On rejette les années aberrantes (saisie source erronée) avec repli sur
+            // l'autre date puis l'année. La colonne `date` est NOT NULL → dernier recours
+            // = date brute (évite un échec d'insert).
+            $datePc = $this->saneDate($r->datenreg ?? null)
+                ?: $this->saneDate($r->datfac ?? null)
                 ?: $this->yearToDate($r->annee ?? null)
-                ?: $this->date($r->datfac ?? $r->datenreg ?? null);
+                ?: $this->date($r->datenreg ?? $r->datfac ?? null);
 
             // Marqueur « soldé » de la source (statu=1) → date_solde = date de règlement,
-            // avec repli date facture / enregistrement (années aberrantes filtrées).
+            // avec repli date d'enregistrement / facture (années aberrantes filtrées).
             // recomputeSoldes() forcera ensuite 'payee' (le déficit éventuel reste lisible).
             $soldee = $this->bool($r->statu ?? false);
             $dateSolde = $soldee
-                ? ($this->saneDate($r->datreg ?? null) ?: $this->saneDate($r->datenreg ?? null) ?: $dateFac)
+                ? ($this->saneDate($r->datreg ?? null) ?: $this->saneDate($r->datenreg ?? null) ?: $datePc)
                 : null;
 
             $f = FactureFournisseur::firstOrNew(['numero_piece' => $this->cut($numP, 50)]);
             $f->fill([
-                'date' => $dateFac,
+                'date' => $datePc,
                 'date_facture_bc' => $this->saneDate($r->datfac ?? null) ?: $this->saneDate($r->datenreg ?? null),
                 'reference_facture' => $this->cut($r->reffac ?? null, 100),
                 'fournisseur_id' => $fId,
@@ -358,6 +367,65 @@ class LegacyMigrate extends Command
             $this->factureFsrByNumP[$this->key($numP)] = $f->id;
             $this->bump('factures_fournisseurs');
         }
+    }
+
+    /**
+     * Passe CORRECTIVE : remet d'aplomb UNIQUEMENT les dates des factures fournisseurs
+     * déjà migrées, en relisant le staging.
+     *   - date (PC) = datenreg (date d'enregistrement) ; repli datfac / année / valeur actuelle.
+     *   - date_facture_bc = datfac (date inscrite par le fournisseur) ; repli datenreg.
+     * Update SQL ciblé sur ces 2 colonnes uniquement (pas de boot Eloquent, aucun recalcul
+     * de montants, aucun autre champ touché). Idempotent.
+     */
+    private function fixFactureFournisseurDates(bool $dryRun): int
+    {
+        if (! $this->schemaExists($this->schemaFsr)) {
+            $this->error("Schéma de staging {$this->schemaFsr} absent. Lancez : make migrate-legacy-load");
+            return self::FAILURE;
+        }
+
+        $this->info('=== Correction des dates des factures fournisseurs (date PC / date Fact-BC) ===');
+        $maj = 0;
+        $introuvables = 0;
+
+        DB::beginTransaction();
+        foreach ($this->staging($this->schemaFsr, 'facture') as $r) {
+            $numP = $this->clean($r->nump ?? null);
+            if (! $numP) {
+                continue;
+            }
+
+            $f = FactureFournisseur::where('numero_piece', $this->cut($numP, 50))->first();
+            if (! $f) {
+                $introuvables++;
+                continue;
+            }
+
+            $datePc = $this->saneDate($r->datenreg ?? null)
+                ?: $this->saneDate($r->datfac ?? null)
+                ?: $this->yearToDate($r->annee ?? null)
+                ?: $f->date?->format('Y-m-d');
+            $dateBc = $this->saneDate($r->datfac ?? null)
+                ?: $this->saneDate($r->datenreg ?? null);
+
+            DB::table('factures_fournisseurs')
+                ->where('id', $f->id)
+                ->update([
+                    'date' => $datePc,
+                    'date_facture_bc' => $dateBc,
+                ]);
+            $maj++;
+        }
+
+        if ($dryRun) {
+            DB::rollBack();
+            $this->warn("DRY-RUN : {$maj} factures seraient corrigées, {$introuvables} introuvables. Aucune écriture.");
+        } else {
+            DB::commit();
+            $this->info("{$maj} factures corrigées, {$introuvables} introuvables (non présentes en base).");
+        }
+
+        return self::SUCCESS;
     }
 
     private function migrateFacturesClients(): void
