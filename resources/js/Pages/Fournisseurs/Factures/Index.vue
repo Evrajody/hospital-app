@@ -270,18 +270,10 @@
               </span>
             </template>
           </el-table-column>
-
-<<<<<<< HEAD
-          <el-table-column prop="date_solde" label="Date Règlement" width="130" align="center" sortable="custom" resizable>
-            <template #default="{ row }">
-              <span class="nowrap-cell">
-                {{ row.date_solde ? formatDate(row.date_solde) : '—' }}
-              </span>
-=======
+          
           <el-table-column prop="date_reglement" label="Date Règlement" width="120" align="center" resizable>
             <template #default="{ row }">
               <span class="nowrap-cell">{{ row.date_reglement ? formatDate(row.date_reglement) : '-' }}</span>
->>>>>>> eb48255941ced68ee64f92fc1d3798e1386f7af2
             </template>
           </el-table-column>
 
