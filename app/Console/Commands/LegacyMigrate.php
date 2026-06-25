@@ -41,6 +41,7 @@ class LegacyMigrate extends Command
         {--only= : Sous-ensemble : plan,fournisseurs,clients,banques,factures-fournisseurs,factures-clients,reglements-fournisseurs,reglements-clients,imputations,users}
         {--except= : Tout SAUF ces étapes (ex. --except=users). Ignoré si --only est fourni}
         {--fix-facture-dates : Passe CORRECTIVE : met uniquement à jour date (PC=datenreg) et date_facture_bc (=datfac) des factures fsr déjà migrées, sans toucher au reste}
+        {--fix-charge-accounts : Passe CORRECTIVE : renseigne compte_id (compte de charge classe 6/42 ou investissement classe 2) des factures fsr depuis leurs imputations debit, pour les etats Point des charges / investissements}
         {--clients-schema=legacy_clients : Schéma de staging côté Clients}
         {--fsr-schema=legacy_fsr : Schéma de staging côté Fournisseurs}';
 
@@ -79,6 +80,21 @@ class LegacyMigrate extends Command
         $this->line('Staging Clients     : '.$this->schemaClients.($this->schemaExists($this->schemaClients) ? ' <info>[présent]</info>' : ' <comment>[absent]</comment>'));
         $this->line('Staging Fournisseurs: '.$this->schemaFsr.($this->schemaExists($this->schemaFsr) ? ' <info>[présent]</info>' : ' <comment>[absent]</comment>'));
         $this->newLine();
+
+        // Passe corrective : renseigne compte_id (charge/immo) depuis les imputations DÉJÀ
+        // en base applicative. Ne dépend PAS du staging → traitée avant le contrôle de staging.
+        if ($this->option('fix-charge-accounts')) {
+            DB::beginTransaction();
+            $n = $this->backfillFactureChargeAccounts();
+            if ($dryRun) {
+                DB::rollBack();
+                $this->warn("DRY-RUN : {$n} factures recevraient un compte_id de charge/immo. Aucune écriture.");
+            } else {
+                DB::commit();
+                $this->info("{$n} factures mises à jour avec leur compte de charge/investissement.");
+            }
+            return self::SUCCESS;
+        }
 
         if (! $this->schemaExists($this->schemaClients) && ! $this->schemaExists($this->schemaFsr)) {
             $this->error("Aucun schéma de staging trouvé. Lancez d'abord :  make migrate-legacy-load");
@@ -594,6 +610,45 @@ class LegacyMigrate extends Command
             ]);
             $this->bump('imputations');
         }
+
+        // Une fois les imputations en place : renseigner le compte_id (charge/immo) des
+        // factures, indispensable aux états Point des charges / Point des investissements.
+        $n = $this->backfillFactureChargeAccounts();
+        $this->stats['compte_charge_renseigne'] = ($this->stats['compte_charge_renseigne'] ?? 0) + $n;
+    }
+
+    /**
+     * Renseigne factures_fournisseurs.compte_id (compte de charge classe 6/42 ou
+     * d'investissement classe 2) à partir de l'imputation DÉBIT principale de chaque facture.
+     * Ne touche que les factures dont le compte_id est NULL (n'écrase pas une saisie app).
+     * Update SQL ciblé (pas de boot Eloquent). Retourne le nombre de factures mises à jour.
+     */
+    private function backfillFactureChargeAccounts(): int
+    {
+        $n = 0;
+        FactureFournisseur::whereNull('compte_id')
+            ->with(['imputations.compte'])
+            ->chunkById(500, function ($factures) use (&$n) {
+                foreach ($factures as $f) {
+                    // Imputation débit dont le compte est une charge (6 / 42) ou un
+                    // investissement (2) ; on prend le montant le plus élevé.
+                    $imp = $f->imputations
+                        ->where('nature', 'debit')
+                        ->filter(fn ($i) => $i->compte
+                            && preg_match('/^(6|42|2)/', (string) $i->compte->numero_compte))
+                        ->sortByDesc('montant')
+                        ->first();
+
+                    if ($imp) {
+                        DB::table('factures_fournisseurs')
+                            ->where('id', $f->id)
+                            ->update(['compte_id' => $imp->compte_id]);
+                        $n++;
+                    }
+                }
+            });
+
+        return $n;
     }
 
     private function migrateUsers(): void
