@@ -1,6 +1,6 @@
-    <?php
+<?php
 
-namespace App\Console\Commands;
+use App\Console\Commands;
 
 use App\Models\ApprovisionnementBanque;
 use App\Models\Banque;
