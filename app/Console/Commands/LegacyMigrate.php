@@ -501,6 +501,8 @@ class LegacyMigrate extends Command
                     // Numéro déterministe (stable d'un run à l'autre) ET quasi sans risque
                     // de collision : 16 hex = 64 bits sur la contrainte UNIQUE numero_reglement.
                     'numero_reglement' => 'LEG/'.substr(md5(($r->nump ?? '').'|'.($r->lreg ?? '').'|'.$ref.'|'.$date.'|'.$montant), 0, 16),
+                    // lreg = numéro de ligne du règlement (idem côté clients).
+                    'numero_ligne' => $this->cut((string) ($r->lreg ?? ''), 50),
                     'fournisseur_id' => $facture?->fournisseur_id,
                     'fournisseur_nom' => $facture?->fournisseur_nom,
                     'facture_numero' => $facture?->numero_piece,
