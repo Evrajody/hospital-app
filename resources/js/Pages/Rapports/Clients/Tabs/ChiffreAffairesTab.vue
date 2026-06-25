@@ -59,11 +59,11 @@
         <div class="global-ca-card">
           <div class="ca-row">
             <div class="ca-item">
-              <div class="ca-label">CA Théorique</div>
+              <div class="ca-label">CA Théorique (Mt des factures)</div>
               <div class="ca-value">{{ formatMontant(data.theorique) }}</div>
             </div>
             <div class="ca-item">
-              <div class="ca-label">CA Physique</div>
+              <div class="ca-label">CA Physique (Mt des règlements)</div>
               <div class="ca-value">{{ formatMontant(data.physique) }}</div>
             </div>
             <div class="ca-item ecart">

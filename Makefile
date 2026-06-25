@@ -204,7 +204,7 @@ prod-init-dirs: ## Créer les dossiers de données bind-mount (voisins du projet
 
 build: ## Construire les images Docker (dev)
 	@echo "$(GREEN)Construction des images Docker...$(NC)"
-	$(DOCKER_COMPOSE) build --no-cache
+	$(DOCKER_COMPOSE) build
 
 up: ## Démarrer les conteneurs en arrière-plan (dev)
 	@echo "$(GREEN)Démarrage des conteneurs...$(NC)"

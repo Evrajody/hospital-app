@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * Modèle FactureFournisseur
  * Gestion des factures reçues des fournisseurs
+ *
+ * @property-read \Illuminate\Support\Carbon|null $date            Date PC : enregistrement dans le système
+ * @property-read \Illuminate\Support\Carbon|null $date_facture_bc Date facture / BC : inscrite par le fournisseur
+ * @property-read \Illuminate\Support\Carbon|null $date_solde      Date de règlement : dernier règlement ou marquage manuel
  */
 class FactureFournisseur extends Model
 {
@@ -321,17 +325,17 @@ class FactureFournisseur extends Model
 
         // TVA calculée sur le HT (informative, versée par l'entreprise)
         if ($this->assujetti_tva && $this->taux_tva > 0) {
-            $this->montant_tva = ($this->montant_ht * $this->taux_tva) / 100;
+            $this->montant_tva = round(($this->montant_ht * $this->taux_tva) / 100, 2);
         } else {
             $this->montant_tva = 0;
         }
 
         // TTC (pour référence)
-        $this->montant_ttc = $this->montant_ht + $this->montant_tva;
+        $this->montant_ttc = round($this->montant_ht + $this->montant_tva, 2);
 
         // AIB calculé sur le Montant M.O.
         if ($this->montant_mo > 0 && $this->taux > 0) {
-            $this->montant_reduction = ($this->montant_mo * $this->taux) / 100;
+            $this->montant_reduction = round(($this->montant_mo * $this->taux) / 100, 2);
         } else {
             $this->montant_reduction = 0;
         }
@@ -339,10 +343,10 @@ class FactureFournisseur extends Model
         // NAP (Net à Payer) = TTC − TVA − Avoir − AIB = HT − Avoir − AIB
         // Modèle "TVA pour compte" : le fournisseur n'encaisse que le HT,
         // la TVA reste pour le compte de l'État.
-        $this->montant_net = $this->montant_facture - $this->avoir - $this->montant_reduction;
+        $this->montant_net = round($this->montant_facture - $this->avoir - $this->montant_reduction, 2);
 
         // Reste à payer
-        $this->reste_a_payer = $this->montant_net - $this->montant_paye;
+        $this->reste_a_payer = round($this->montant_net - $this->montant_paye, 2);
     }
 
     /**
@@ -385,16 +389,17 @@ class FactureFournisseur extends Model
         }
 
         // Convertir explicitement en float pour éviter les problèmes de comparaison decimal/string
-        $montantPaye = (float) $this->montant_paye + $montant;
+        $montantPaye = round((float) $this->montant_paye + $montant, 2);
         $montantNet = (float) $this->montant_net;
 
         $this->montant_paye = $montantPaye;
-        $this->reste_a_payer = $montantNet - $montantPaye;
+        $this->reste_a_payer = round($montantNet - $montantPaye, 2);
 
         // Tolérance de 0.01 pour les erreurs d'arrondi
         if ($this->reste_a_payer <= 0.01) {
             $this->statut = self::STATUT_PAYEE;
             $this->reste_a_payer = 0;
+            $this->date_solde = now();
         } else {
             $this->statut = self::STATUT_PARTIELLEMENT_PAYEE;
         }
@@ -538,6 +543,7 @@ class FactureFournisseur extends Model
             'montant_paye' => $this->montant_paye,
             'reste_a_payer' => $this->reste_a_payer,
             'date_facture_bc' => $this->date_facture_bc?->format('Y-m-d'),
+            'date_solde' => $this->date_solde?->format('Y-m-d'),
             'observations' => $this->observations,
             'metadata' => $this->metadata,
             'est_modifiable' => $this->est_modifiable,

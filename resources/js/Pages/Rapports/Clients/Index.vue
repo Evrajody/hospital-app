@@ -75,7 +75,7 @@ const reports = [
   { name: 'etat-reglements', label: 'État des règlements', icon: markRaw(Money), component: markRaw(EtatReglementsTab), props: { clients: props.clients } },
   { name: 'etat-creances', label: 'État des créances', icon: markRaw(Wallet), component: markRaw(EtatCreancesTab), props: { clients: props.clients } },
   { name: 'brouillard-cheques', label: 'Brouillard de chèques et Imputations Comptables', icon: markRaw(CreditCard), component: markRaw(BrouillardChequesTab), props: { banques: props.banques } },
-  { name: 'chiffre-affaires', label: "Chiffre d'affaires", icon: markRaw(TrendCharts), component: markRaw(ChiffreAffairesTab), props: { clients: props.clients } },
+  { name: 'chiffre-affaires', label: "Chiffre d'affaires (CA)", icon: markRaw(TrendCharts), component: markRaw(ChiffreAffairesTab), props: { clients: props.clients } },
   { name: 'pertes-rejets', label: 'Pertes & Rejets', icon: markRaw(Document), component: markRaw(PertesRejetsTab), props: { clients: props.clients } },
   { name: 'factures-editees', label: 'Factures clients éditées (par année)', icon: markRaw(Tickets), component: markRaw(FacturesEditeesTab), props: {} },
 ];

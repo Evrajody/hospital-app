@@ -3,7 +3,7 @@
     <!-- Filtres -->
     <div class="filters-section">
       <el-form :inline="true" class="filters-form">
-        <el-form-item label="Période">
+        <el-form-item label="Période" required>
           <el-date-picker
             v-model="dateRange"
             type="daterange"
@@ -16,7 +16,7 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="fetchData" :loading="loading">Afficher</el-button>
+          <el-button type="primary" @click="fetchData" :loading="loading" :disabled="!dateRange || dateRange.length < 2">Afficher</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -78,7 +78,7 @@ import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
 const { startExport } = useAsyncExport();
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Document, List } from '@element-plus/icons-vue';
 import { useMontant } from '@/Composables/useMontant';
@@ -92,19 +92,21 @@ const reglements = ref([]);
 const selectedIds = ref([]);
 const tableRef = ref(null);
 
-onMounted(() => fetchData());
-
 const handleSelectionChange = (selection) => {
   selectedIds.value = selection.map(r => r.id);
 };
 
 const fetchData = async () => {
+  if (!dateRange.value || dateRange.value.length < 2) {
+    ElMessage.warning('Veuillez sélectionner une période');
+    return;
+  }
   loading.value = true;
   try {
+    const [debut, fin] = dateRange.value;
     const params = new URLSearchParams();
-    const [debut, fin] = dateRange.value || [];
-    if (debut) params.append('date_debut', debut);
-    if (fin) params.append('date_fin', fin);
+    params.append('date_debut', debut);
+    params.append('date_fin', fin);
     const res = await fetch(`/rapports/fournisseurs/api/bordereau-transmission?${params}`);
     const json = await res.json();
     reglements.value = json.reglements || [];

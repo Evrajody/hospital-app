@@ -305,9 +305,9 @@
                 </template>
               </el-table-column>
 
-              <el-table-column prop="date_facture" label="Date" width="110" sortable fixed="left" resizable>
+              <el-table-column prop="date" label="Date Enreg." width="110" sortable fixed="left" resizable>
                 <template #default="{ row }">
-                  {{ formatDate(row.date_facture) }}
+                  {{ formatDate(row.date) }}
                 </template>
               </el-table-column>
 
@@ -353,6 +353,14 @@
                     <el-tag :type="getStatutType(row.statut_paiement)" size="small">
                       {{ getStatutLabel(row.statut_paiement) }}
                     </el-tag>
+                  </span>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="date_solde" label="Date Règlement" width="130" align="center" sortable resizable>
+                <template #default="{ row }">
+                  <span class="nowrap-cell">
+                    {{ row.date_solde ? formatDate(row.date_solde) : '—' }}
                   </span>
                 </template>
               </el-table-column>

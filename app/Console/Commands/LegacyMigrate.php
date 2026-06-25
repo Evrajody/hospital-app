@@ -316,26 +316,33 @@ class LegacyMigrate extends Command
             $fId = $this->fournisseurByCompte[$this->key($r->comptimp ?? '')]
                 ?? $this->fournisseurByCompte['NOM:'.$this->key($r->rsfsr ?? '')]
                 ?? null;
-            // Date facture : on rejette les années aberrantes (saisie source erronée),
-            // avec repli sur la date d'enregistrement puis l'année. La colonne `date`
-            // est NOT NULL → dernier recours = la date brute (évite un échec d'insert).
-            $dateFac = $this->saneDate($r->datfac ?? null)
-                ?: $this->saneDate($r->datenreg ?? null)
+            // Date PC (enregistrement) : on rejette les années aberrantes (saisie source erronée),
+            // avec repli sur la date facture puis l'année. La colonne `date` est NOT NULL →
+            // dernier recours = la date brute (évite un échec d'insert).
+            // date = datenreg (date d'enregistrement dans le système)
+            $datePC = $this->saneDate($r->datenreg ?? null)
+                ?: $this->saneDate($r->datfac ?? null)
                 ?: $this->yearToDate($r->annee ?? null)
-                ?: $this->date($r->datfac ?? $r->datenreg ?? null);
+                ?: $this->date($r->datenreg ?? $r->datfac ?? null);
 
-            // Marqueur « soldé » de la source (statu=1) → date_solde = date de règlement,
-            // avec repli date facture / enregistrement (années aberrantes filtrées).
+            // Date facture / BC : date inscrite sur la facture par le fournisseur (datfac).
+            $dateFactureBc = $this->saneDate($r->datfac ?? null)
+                ?: $this->saneDate($r->datenreg ?? null);
+
+            // Marqueur « soldé » de la source (statu=1) → date_solde = date de règlement.
+            // Si datreg est NULL, on laisse date_solde = NULL : recomputeSoldes() la
+            // remplira depuis MAX(date_reglement) de la table reglements_fournisseurs,
+            // ou depuis date sinon (fallback raisonnable).
             // recomputeSoldes() forcera ensuite 'payee' (le déficit éventuel reste lisible).
             $soldee = $this->bool($r->statu ?? false);
             $dateSolde = $soldee
-                ? ($this->saneDate($r->datreg ?? null) ?: $this->saneDate($r->datenreg ?? null) ?: $dateFac)
+                ? $this->saneDate($r->datreg ?? null)
                 : null;
 
             $f = FactureFournisseur::firstOrNew(['numero_piece' => $this->cut($numP, 50)]);
             $f->fill([
-                'date' => $dateFac,
-                'date_facture_bc' => $this->saneDate($r->datfac ?? null) ?: $this->saneDate($r->datenreg ?? null),
+                'date' => $datePC,
+                'date_facture_bc' => $dateFactureBc,
                 'reference_facture' => $this->cut($r->reffac ?? null, 100),
                 'fournisseur_id' => $fId,
                 'fournisseur_nom' => $this->cut($r->rsfsr ?? null, 255),
@@ -603,6 +610,55 @@ class LegacyMigrate extends Command
             UPDATE factures_fournisseurs
             SET statut = 'payee', reste_a_payer = 0
             WHERE date_solde IS NOT NULL AND deleted_at IS NULL AND statut <> 'payee'
+        SQL);
+
+        // Toute facture payée (statut = 'payee') sans date_solde reçoit la date du
+        // dernier règlement. Cela couvre les factures soldées par des règlements
+        // (pas seulement celles marquées statu=1 à la source Access).
+        DB::statement(<<<'SQL'
+            UPDATE factures_fournisseurs f
+            SET date_solde = sub.derniere_date
+            FROM (
+                SELECT facture_id, MAX(date_reglement) AS derniere_date
+                FROM reglements_fournisseurs
+                WHERE statut <> 'annule' AND deleted_at IS NULL
+                GROUP BY facture_id
+            ) sub
+            WHERE sub.facture_id = f.id
+              AND f.date_solde IS NULL
+              AND f.statut = 'payee'
+              AND f.deleted_at IS NULL
+        SQL);
+        DB::statement(<<<'SQL'
+            UPDATE factures_clients f
+            SET date_solde = sub.derniere_date
+            FROM (
+                SELECT facture_id, MAX(date_reglement) AS derniere_date
+                FROM reglements_clients
+                WHERE deleted_at IS NULL
+                GROUP BY facture_id
+            ) sub
+            WHERE sub.facture_id = f.id
+              AND f.date_solde IS NULL
+              AND f.statut = 'payee'
+              AND f.deleted_at IS NULL
+        SQL);
+
+        // Dernier repli : factures payées sans date_solde ET sans règlement
+        // → on utilise la date PC (date d'enregistrement) comme date de solde.
+        DB::statement(<<<'SQL'
+            UPDATE factures_fournisseurs
+            SET date_solde = date
+            WHERE date_solde IS NULL
+              AND statut = 'payee'
+              AND deleted_at IS NULL
+        SQL);
+        DB::statement(<<<'SQL'
+            UPDATE factures_clients
+            SET date_solde = date_facture
+            WHERE date_solde IS NULL
+              AND statut = 'payee'
+              AND deleted_at IS NULL
         SQL);
     }
 
