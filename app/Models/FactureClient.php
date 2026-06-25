@@ -115,10 +115,13 @@ class FactureClient extends Model
 
         if ($reste <= 0.01) {
             $this->statut = self::STATUT_PAYEE;
+            $this->date_solde = now();
         } elseif ($paye + $rejet + $perte > 0.01) {
             $this->statut = self::STATUT_PARTIELLEMENT_PAYEE;
+            $this->date_solde = null;
         } else {
             $this->statut = self::STATUT_NON_PAYEE;
+            $this->date_solde = null;
         }
 
         // reste_a_payer est (re)calculé par le hook saving() à partir des colonnes ci-dessus.
@@ -167,6 +170,7 @@ class FactureClient extends Model
 
         if ($reste <= 0.01) {
             $this->statut = self::STATUT_PAYEE;
+            $this->date_solde = now();
         } else {
             $this->statut = self::STATUT_PARTIELLEMENT_PAYEE;
         }

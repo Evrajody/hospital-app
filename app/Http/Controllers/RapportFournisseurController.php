@@ -120,12 +120,12 @@ class RapportFournisseurController extends Controller
                     $montantMo = (float) $f->montant_mo;
                     $tauxAib = (float) $f->taux;
                     $montantAib = (float) $f->montant_reduction;
-                    $montantDu = (float) $f->montant_net;
                     $totalReg = (float) $f->montant_paye;
-                    // Solde harmonisé : Mt TTC − Mt TVA − Avoir − Mt AIB − Total réglé.
-                    // Borné à ≥ 0 : un restant dû ne peut être négatif (facture sur-réglée
-                    // quand l'AIB a été enregistrée au TTC dans le règlement → considérée soldée).
-                    $solde = max(0, $montantFacture - $montantTva - $avoir - $montantAib - $totalReg);
+                    // Mt Dû = Mt TTC − TVA − Avoir − AIB (recalculé, pas montant_net)
+                    $montantDu = round($montantFacture - $montantTva - $avoir - $montantAib, 2);
+                    // Solde = Mt Dû − Total réglé
+                    $solde = round($montantDu - $totalReg, 2);
+                    if ($solde < 0) $solde = 0;
 
                     $lignes[] = [
                         'numero_piece' => $f->numero_piece,
@@ -260,9 +260,16 @@ class RapportFournisseurController extends Controller
 
                 foreach ($factures as $fact) {
                     $reglePeriode = $getReglementsPeriode($fact);
-                    $restePeriode = (float) $fact->montant_net - $reglePeriode;
+                    // Mt Dû = Mt TTC − TVA − Avoir − AIB (recalculé, pas montant_net)
+                    $montantDuFact = round(
+                        ((float) ($fact->montant_ttc ?: $fact->montant_facture))
+                        - (float) $fact->montant_tva
+                        - (float) $fact->avoir
+                        - (float) $fact->montant_reduction, 2
+                    );
+                    $restePeriode = $montantDuFact - $reglePeriode;
                     if ($restePeriode > 0.01) {
-                        $montantDu += (float) $fact->montant_net;
+                        $montantDu += $montantDuFact;
                         $montantReglements += $reglePeriode;
                     }
                 }
@@ -343,10 +350,13 @@ class RapportFournisseurController extends Controller
                 $montantTva = (float) $fact->montant_tva;
                 $avoir = (float) $fact->avoir;
                 $montantAib = (float) $fact->montant_reduction;
-                // Restant dû = Mt TTC − Mt TVA − Avoir − Mt AIB − Total réglé (période).
-                $soldePeriode = $montantTtc - $montantTva - $avoir - $montantAib - $reglePeriode;
+                // Restant dû = Mt Dû − Total réglé (utilise montant_net déjà arrondi).
+                $soldePeriode = round((float) $fact->montant_net - $reglePeriode, 2);
 
                 if ($soldePeriode <= 0.01) continue;
+
+                // Mt Dû = Mt TTC − TVA − Avoir − AIB (recalculé, pas montant_net)
+                $montantDu = round($montantTtc - $montantTva - $avoir - $montantAib, 2);
 
                 $row = [
                     'numero_piece' => $fact->numero_piece,
@@ -358,7 +368,7 @@ class RapportFournisseurController extends Controller
                     'montant_mo' => (float) $fact->montant_mo,
                     'taux_aib' => (float) $fact->taux,
                     'montant_aib' => $montantAib,
-                    'montant_du' => (float) $fact->montant_net,
+                    'montant_du' => $montantDu,
                     'total_reglement' => $reglePeriode,
                     'solde' => $soldePeriode,
                 ];
@@ -1356,23 +1366,44 @@ class RapportFournisseurController extends Controller
             $query->where('compte_id', $compteId);
         }
 
-        $factures = $query->with('compte')->get();
+        $factures = $query->with(['compte', 'imputations.compte'])->get();
 
-        // Grouper par compte et totaliser
+        // Grouper par compte et totaliser (inclut les imputations multiples)
         $parCompte = [];
         foreach ($factures as $f) {
-            $compte = $f->compte;
-            if (!$compte) continue;
+            $hasImputations = $f->imputations->isNotEmpty();
 
-            $key = $compte->numero_compte;
-            if (!isset($parCompte[$key])) {
-                $parCompte[$key] = [
-                    'numero_compte' => $compte->numero_compte,
-                    'libelle' => $compte->libelle,
-                    'montant' => 0,
-                ];
+            if ($hasImputations) {
+                // Imputations multiples : répartir le montant par compte
+                foreach ($f->imputations as $imp) {
+                    $compte = $imp->compte;
+                    if (!$compte) continue;
+
+                    $key = $compte->numero_compte;
+                    if (!isset($parCompte[$key])) {
+                        $parCompte[$key] = [
+                            'numero_compte' => $compte->numero_compte,
+                            'libelle' => $compte->libelle,
+                            'montant' => 0,
+                        ];
+                    }
+                    $parCompte[$key]['montant'] += (float) $imp->montant;
+                }
+            } else {
+                // Imputation unique (compte_id sur la facture)
+                $compte = $f->compte;
+                if (!$compte) continue;
+
+                $key = $compte->numero_compte;
+                if (!isset($parCompte[$key])) {
+                    $parCompte[$key] = [
+                        'numero_compte' => $compte->numero_compte,
+                        'libelle' => $compte->libelle,
+                        'montant' => 0,
+                    ];
+                }
+                $parCompte[$key]['montant'] += (float) ($f->montant_ttc ?: $f->montant_facture);
             }
-            $parCompte[$key]['montant'] += (float) ($f->montant_ttc ?: $f->montant_facture);
         }
 
         ksort($parCompte);
@@ -1399,11 +1430,14 @@ class RapportFournisseurController extends Controller
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
 
-        $query = ReglementFournisseur::where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
-
-        if ($dateDebut && $dateFin) {
-            $query->whereBetween('date_reglement', [$dateDebut, $dateFin]);
+        if (!$dateDebut || !$dateFin) {
+            return response()->json([
+                'message' => 'La sélection d\'une période est obligatoire',
+            ], 422);
         }
+
+        $query = ReglementFournisseur::where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+            ->whereBetween('date_reglement', [$dateDebut, $dateFin]);
 
         $reglements = $query
             ->with(['facture.fournisseur.compteComptable'])
@@ -1893,6 +1927,10 @@ class RapportFournisseurController extends Controller
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
         $ids = array_filter(explode(',', (string) $request->input('ids', '')));
+
+        if (empty($ids) && (!$dateDebut || !$dateFin)) {
+            abort(422, 'La sélection d\'une période ou de règlements est obligatoire');
+        }
 
         $query = ReglementFournisseur::where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
         if (!empty($ids)) {

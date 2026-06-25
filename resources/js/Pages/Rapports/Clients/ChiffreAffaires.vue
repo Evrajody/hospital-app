@@ -162,11 +162,11 @@
           </thead>
           <tbody>
             <tr>
-              <td><strong>Théorique (Mt des factures) :</strong></td>
+              <td><strong>CA Théorique (Mt des factures) :</strong></td>
               <td class="montant-col">{{ formatMontant(data.theorique) }}</td>
             </tr>
             <tr>
-              <td><strong>Physique (Mt des règlements) :</strong></td>
+              <td><strong>CA Physique (Mt des règlements) :</strong></td>
               <td class="montant-col">{{ formatMontant(data.physique) }}</td>
             </tr>
             <tr class="ecart-row">

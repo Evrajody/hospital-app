@@ -417,11 +417,11 @@ class ReglementFournisseurController extends Controller
 
             // b) Reverser le paiement sur la facture (et remettre le statut cohérent
             //    sinon enregistrerPaiement refusera d'agir sur une facture déjà PAYEE)
-            $facture->montant_paye = max(0, (float) $facture->montant_paye - $ancienMontant);
-            $facture->reste_a_payer = (float) $facture->montant_net - $facture->montant_paye;
+            $facture->montant_paye = round(max(0, (float) $facture->montant_paye - $ancienMontant), 2);
+            $facture->reste_a_payer = round((float) $facture->montant_net - $facture->montant_paye, 2);
             if ($facture->montant_paye <= 0.01) {
                 $facture->montant_paye = 0;
-                $facture->reste_a_payer = (float) $facture->montant_net;
+                $facture->reste_a_payer = round((float) $facture->montant_net, 2);
                 $facture->statut = FactureFournisseur::STATUT_VALIDEE;
             } else {
                 $facture->statut = FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE;
@@ -557,12 +557,13 @@ class ReglementFournisseurController extends Controller
 
             // Reverser le paiement sur la facture
             if ($facture) {
-                $facture->montant_paye = max(0, (float) $facture->montant_paye - $montant);
-                $facture->reste_a_payer = (float) $facture->montant_net - (float) $facture->montant_paye;
+                $facture->montant_paye = round(max(0, (float) $facture->montant_paye - $montant), 2);
+                $facture->reste_a_payer = round((float) $facture->montant_net - (float) $facture->montant_paye, 2);
 
                 if ($facture->montant_paye <= 0.01) {
                     $facture->statut = FactureFournisseur::STATUT_VALIDEE;
                     $facture->montant_paye = 0;
+                    $facture->date_solde = null;
                 } elseif ($facture->reste_a_payer <= 0.01) {
                     $facture->statut = FactureFournisseur::STATUT_PAYEE;
                     $facture->reste_a_payer = 0;

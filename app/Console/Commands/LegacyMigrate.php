@@ -729,6 +729,55 @@ class LegacyMigrate extends Command
             SET statut = 'payee', reste_a_payer = 0
             WHERE date_solde IS NOT NULL AND deleted_at IS NULL AND statut <> 'payee'
         SQL);
+
+        // Toute facture payée (statut = 'payee') sans date_solde reçoit la date du
+        // dernier règlement. Cela couvre les factures soldées par des règlements
+        // (pas seulement celles marquées statu=1 à la source Access).
+        DB::statement(<<<'SQL'
+            UPDATE factures_fournisseurs f
+            SET date_solde = sub.derniere_date
+            FROM (
+                SELECT facture_id, MAX(date_reglement) AS derniere_date
+                FROM reglements_fournisseurs
+                WHERE statut <> 'annule' AND deleted_at IS NULL
+                GROUP BY facture_id
+            ) sub
+            WHERE sub.facture_id = f.id
+              AND f.date_solde IS NULL
+              AND f.statut = 'payee'
+              AND f.deleted_at IS NULL
+        SQL);
+        DB::statement(<<<'SQL'
+            UPDATE factures_clients f
+            SET date_solde = sub.derniere_date
+            FROM (
+                SELECT facture_id, MAX(date_reglement) AS derniere_date
+                FROM reglements_clients
+                WHERE deleted_at IS NULL
+                GROUP BY facture_id
+            ) sub
+            WHERE sub.facture_id = f.id
+              AND f.date_solde IS NULL
+              AND f.statut = 'payee'
+              AND f.deleted_at IS NULL
+        SQL);
+
+        // Dernier repli : factures payées sans date_solde ET sans règlement
+        // → on utilise la date PC (date d'enregistrement) comme date de solde.
+        DB::statement(<<<'SQL'
+            UPDATE factures_fournisseurs
+            SET date_solde = date
+            WHERE date_solde IS NULL
+              AND statut = 'payee'
+              AND deleted_at IS NULL
+        SQL);
+        DB::statement(<<<'SQL'
+            UPDATE factures_clients
+            SET date_solde = date_facture
+            WHERE date_solde IS NULL
+              AND statut = 'payee'
+              AND deleted_at IS NULL
+        SQL);
     }
 
     // ===================================================================

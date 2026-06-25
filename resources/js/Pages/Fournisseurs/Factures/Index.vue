@@ -211,9 +211,9 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="date_facture" label="Date" width="110" sortable="custom" fixed="left" resizable>
+          <el-table-column prop="date" label="Date Enreg." width="110" sortable="custom" fixed="left" resizable>
             <template #default="{ row }">
-              {{ formatDate(row.date_facture) }}
+              {{ formatDate(row.date) }}
             </template>
           </el-table-column>
 
@@ -270,7 +270,7 @@
               </span>
             </template>
           </el-table-column>
-
+          
           <el-table-column prop="date_reglement" label="Date Règlement" width="120" align="center" resizable>
             <template #default="{ row }">
               <span class="nowrap-cell">{{ row.date_reglement ? formatDate(row.date_reglement) : '-' }}</span>

@@ -29,7 +29,8 @@
             <h1 class="page-title">{{ facture.numero }}</h1>
             <p class="page-subtitle">
               Fournisseur : {{ facture.fournisseur.nom }} •
-              Date : {{ formatDate(facture.date_facture) }}
+              Date Enreg. : {{ formatDate(facture.date) }} •
+              Date Facture : {{ facture.date_facture_bc ? formatDate(facture.date_facture_bc) : '-' }}
             </p>
           </div>
         </div>
@@ -114,8 +115,14 @@
               <el-descriptions-item label="N° Pièce">
                 <el-tag type="primary">{{ facture.numero_piece || facture.numero }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="Date">
-                {{ formatDate(facture.date || facture.date_facture) }}
+              <el-descriptions-item label="Date Enreg.">
+                {{ formatDate(facture.date) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Date Facture / B.C.">
+                {{ facture.date_facture_bc ? formatDate(facture.date_facture_bc) : '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="Date Règlement">
+                {{ facture.date_solde ? formatDate(facture.date_solde) : '-' }}
               </el-descriptions-item>
               <el-descriptions-item label="Référence Facture / N° B.C" :span="2">
                 {{ facture.reference_facture || facture.reference || '-' }}
