@@ -171,6 +171,93 @@ class FactureFournisseurController extends Controller
     }
 
     /**
+     * Page "Factures et soldes" (déplacée des rapports vers l'onglet Factures Fournisseurs).
+     * Mêmes filtres que la liste des factures (recherche / fournisseur / statut / période sur
+     * la date PC). Colonnes : Fournisseur, N° Pièce, Date Enregistrement, Montant Dû, Total
+     * Règlement, Solde. Le clic sur une ligne ouvre le drawer "État de Règlement".
+     */
+    public function facturesSoldesView(Request $request): InertiaResponse
+    {
+        $query = FactureFournisseur::with(['fournisseur.compteComptable'])
+            ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE]);
+
+        if ($request->filled('fournisseur_id')) {
+            $query->where('fournisseur_id', $request->fournisseur_id);
+        }
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+        if ($request->filled('date_debut') && $request->filled('date_fin')) {
+            $query->periode($request->date_debut, $request->date_fin);
+        }
+        if ($request->filled('search')) {
+            $query->recherche($request->search);
+        }
+
+        // Totaux sur l'ensemble filtré (pas seulement la page courante).
+        $totaux = [
+            'montant_ttc' => (float) (clone $query)->sum('montant_net'),
+            'montant_paye' => (float) (clone $query)->sum('montant_paye'),
+            'reste_a_payer' => (float) (clone $query)->sum('reste_a_payer'),
+        ];
+
+        $perPage = (int) $request->input('per_page', 20);
+        $paginated = $query->orderByDesc('date')->paginate($perPage);
+
+        $factures = $paginated->getCollection()->map(function ($f) {
+            $code = $f->fournisseur?->compteComptable?->numero_compte ?? '-';
+            $nom = $f->fournisseur_nom ?: ($f->fournisseur?->nom ?? '-');
+            return [
+                'id' => $f->id,
+                'fournisseur_label' => "[{$code}] {$nom}",
+                'numero' => $f->numero_piece,
+                'date_facture' => $f->date?->format('Y-m-d'),
+                'montant_ttc' => (float) $f->montant_net,   // "Montant Dû"
+                'montant_paye' => (float) $f->montant_paye,
+                'reste_a_payer' => (float) $f->reste_a_payer,
+            ];
+        });
+
+        return Inertia::render('Fournisseurs/FacturesSoldes', [
+            'factures' => $factures,
+            'totaux' => $totaux,
+            'fournisseurs' => Fournisseur::select('id', 'nom')->orderBy('nom')->get()
+                ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'last_page' => $paginated->lastPage(),
+            ],
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'fournisseur_id' => $request->input('fournisseur_id') ? (int) $request->input('fournisseur_id') : null,
+                'statut' => $request->input('statut', ''),
+                'date_debut' => $request->input('date_debut'),
+                'date_fin' => $request->input('date_fin'),
+            ],
+            'user' => [
+                'name' => auth()->user()?->name ?? 'Utilisateur',
+                'email' => auth()->user()?->email ?? 'user@hospital.bj',
+            ],
+        ]);
+    }
+
+    /**
+     * Page "Bordereau de transmission" (déplacée des rapports). Le contenu est chargé via
+     * l'API existante /rapports/fournisseurs/api/bordereau-transmission.
+     */
+    public function bordereauTransmissionView(): InertiaResponse
+    {
+        return Inertia::render('Fournisseurs/BordereauTransmission', [
+            'user' => [
+                'name' => auth()->user()?->name ?? 'Utilisateur',
+                'email' => auth()->user()?->email ?? 'user@hospital.bj',
+            ],
+        ]);
+    }
+
+    /**
      * Afficher le détail d'une facture (Vue Inertia)
      */
     public function showView(int $id): InertiaResponse

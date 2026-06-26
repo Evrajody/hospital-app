@@ -101,7 +101,7 @@
           </div>
         </template>
 
-        <el-table :data="avances" border style="width: 100%" stripe>
+        <el-table ref="mainTableRef" :data="avances" :height="tableHeight" border style="width: 100%" stripe>
           <el-table-column label="Société émettrice" min-width="220">
             <template #default="{ row }">
               <strong>{{ emetteurLabel(row) }}</strong>
@@ -392,11 +392,15 @@ import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
 import { usePdfViewer } from '@/Composables/usePdfViewer';
+import { useTableHeight } from '@/Composables/useTableHeight';
 import { debounce } from '@/utils/debounce';
 
 const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 const { can } = usePermissions();
 const { openPdf } = usePdfViewer();
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 const props = defineProps({
   avances: { type: Array, default: () => [] },

@@ -9,7 +9,7 @@
       </div>
 
       <el-card shadow="never">
-        <el-table :data="pagedUsers" stripe style="width: 100%">
+        <el-table ref="mainTableRef" :data="pagedUsers" stripe style="width: 100%" :height="tableHeight">
           <el-table-column prop="name" label="Nom" sortable />
           <el-table-column prop="email" label="Email" sortable />
           <el-table-column prop="poste" label="Poste" sortable />
@@ -127,8 +127,11 @@ import { Plus, Edit, Delete } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 
 const { can } = usePermissions();
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 const props = defineProps({
   users: { type: Array, default: () => [] },

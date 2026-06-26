@@ -204,11 +204,13 @@
         </template>
 
         <el-table
+          ref="mainTableRef"
           v-loading="loading"
           :data="comptes"
           stripe
           border
           style="width: 100%"
+          :height="tableHeight"
           @sort-change="handleSortChange"
         >
           <el-table-column prop="numero" label="N° Compte" width="140" sortable="custom" resizable>
@@ -311,9 +313,12 @@ import CompteComptableModal from '@/Components/Modals/CompteComptableModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { useAsyncExport } from '@/Composables/useAsyncExport';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 import { debounce } from '@/utils/debounce';
 const { startExport } = useAsyncExport();
 const { can } = usePermissions();
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 // Props
 const props = defineProps({

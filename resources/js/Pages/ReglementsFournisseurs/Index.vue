@@ -158,8 +158,10 @@
         </template>
 
         <el-table
+          ref="mainTableRef"
           v-loading="loading"
           :data="groupedReglements"
+          :height="tableHeight"
           stripe
           border
           style="width: 100%"
@@ -534,10 +536,14 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 import { toYmd } from '@/utils/date';
 
 const { openPdf } = usePdfViewer();
 const { can } = usePermissions();
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 // Simple debounce function
 const debounce = (fn, delay) => {

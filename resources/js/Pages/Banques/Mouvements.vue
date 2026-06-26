@@ -150,8 +150,10 @@
         </template>
 
         <el-table
+          ref="mainTableRef"
           v-loading="loading"
           :data="mouvements"
+          :height="tableHeight"
           stripe
           style="width: 100%"
           :row-class-name="getRowClassName"
@@ -550,8 +552,12 @@ import {
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 
 const { can } = usePermissions();
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 // Props
 const props = defineProps({

@@ -51,11 +51,13 @@
         </template>
 
         <el-table
+          ref="mainTableRef"
           v-loading="loading"
           :data="clients"
           stripe
           border
           style="width: 100%"
+          :height="tableHeight"
           @sort-change="handleSortChange"
           class="clients-table"
         >
@@ -135,6 +137,7 @@ import { Plus, Search, Edit, Delete, User, ArrowDown, Document } from '@element-
 import { ElMessageBox } from 'element-plus';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 
 const { can } = usePermissions();
 
@@ -170,6 +173,9 @@ const showClientModal = ref(false);
 const selectedClient = ref(null);
 const modalLoading = ref(false);
 const serverErrors = ref(null);
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 const localFilters = reactive({
   search: props.filters?.search || ''

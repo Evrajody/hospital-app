@@ -82,3 +82,18 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
     border-radius: var(--el-border-radius-base);
 }
+
+/* ------------------------------------------------------------------ */
+/* Filtres figés : la barre de filtres reste visible pendant le        */
+/* défilement, sur toutes les pages (et dans les onglets de rapports). */
+/* sticky = relatif au conteneur scrollable le plus proche (.app-main   */
+/* ou .rapports-content). Background opaque pour masquer le contenu.    */
+/* ------------------------------------------------------------------ */
+.app-main .filter-card,
+.rapports-content .filters-section,
+.app-main .filters-section {
+    position: sticky;
+    top: 0;
+    z-index: 11;
+    background: #ffffff;
+}

@@ -51,24 +51,52 @@ class RapportFournisseurController extends Controller
     {
         // Regroupements de fournisseurs = comptes parents (ex. 401111, 401112…) sous lesquels
         // les fournisseurs sont rattachés. On ne liste que ceux ayant au moins un fournisseur.
+        //
+        // Le regroupement est dérivé du NUMÉRO de compte (plus long préfixe existant) et NON de
+        // parent_id : les comptes importés (migration) n'ont pas de parent_id renseigné, ce qui
+        // rendait cette liste vide. Cette approche fonctionne avec ou sans hiérarchie posée.
         $compteIds = Fournisseur::whereNotNull('compte_comptable_id')
             ->distinct()
             ->pluck('compte_comptable_id');
 
-        $parentIds = CompteComptable::whereIn('id', $compteIds)
-            ->whereNotNull('parent_id')
-            ->distinct()
-            ->pluck('parent_id');
+        $comptesFournisseurs = CompteComptable::whereIn('id', $compteIds)
+            ->get(['id', 'numero_compte']);
 
-        return CompteComptable::whereIn('id', $parentIds)
-            ->orderBy('numero_compte')
-            ->get()
-            ->map(fn($c) => [
-                'id' => $c->id,
-                'numero_compte' => $c->numero_compte,
-                'libelle' => $c->libelle,
-            ])
-            ->toArray();
+        // Index de tous les comptes par numéro, pour retrouver le parent par préfixe.
+        $byNumero = CompteComptable::orderBy('numero_compte')
+            ->get(['id', 'numero_compte', 'libelle'])
+            ->keyBy('numero_compte');
+
+        $regroupements = [];
+        foreach ($comptesFournisseurs as $c) {
+            $num = (string) $c->numero_compte;
+            $cible = null;
+
+            // Plus long préfixe STRICT qui existe comme compte (ex. 401111.037 → 401111).
+            for ($len = strlen($num) - 1; $len >= 1; $len--) {
+                $prefixe = rtrim(substr($num, 0, $len), '.');
+                if ($prefixe === '' || $prefixe === $num) {
+                    continue;
+                }
+                if ($byNumero->has($prefixe)) {
+                    $cible = $byNumero->get($prefixe);
+                    break;
+                }
+            }
+
+            // Pas de parent trouvé → on retombe sur le compte lui-même (le filtre par préfixe marchera).
+            $cible = $cible ?: $byNumero->get($num);
+            if ($cible) {
+                $regroupements[$cible->numero_compte] = [
+                    'id' => $cible->id,
+                    'numero_compte' => $cible->numero_compte,
+                    'libelle' => $cible->libelle,
+                ];
+            }
+        }
+
+        ksort($regroupements);
+        return array_values($regroupements);
     }
 
     // ==========================================
@@ -268,14 +296,14 @@ class RapportFournisseurController extends Controller
                         - (float) $fact->montant_reduction, 2
                     );
                     $restePeriode = $montantDuFact - $reglePeriode;
-                    if ($restePeriode > 0.01) {
+                    if (round($restePeriode) > 0) {
                         $montantDu += $montantDuFact;
                         $montantReglements += $reglePeriode;
                     }
                 }
 
                 $restantDu = $montantDu - $montantReglements;
-                if ($restantDu <= 0.01) continue;
+                if (round($restantDu) <= 0) continue;
 
                 $code = $f->compteComptable?->numero_compte ?? '-';
 
@@ -353,7 +381,9 @@ class RapportFournisseurController extends Controller
                 // Restant dû = Mt Dû − Total réglé (utilise montant_net déjà arrondi).
                 $soldePeriode = round((float) $fact->montant_net - $reglePeriode, 2);
 
-                if ($soldePeriode <= 0.01) continue;
+                // On exclut toute facture dont le restant dû s'affiche comme 0 (arrondi à l'unité),
+                // pas seulement le 0 strict — sinon des résidus < 0,5 apparaîtraient en « 0 ».
+                if (round($soldePeriode) <= 0) continue;
 
                 // Mt Dû = Mt TTC − TVA − Avoir − AIB (recalculé, pas montant_net)
                 $montantDu = round($montantTtc - $montantTva - $avoir - $montantAib, 2);

@@ -107,11 +107,13 @@
         </template>
 
         <el-table
+          ref="mainTableRef"
           v-loading="loading"
           :data="fournisseurs"
           stripe
           border
           style="width: 100%"
+          :height="tableHeight"
           @sort-change="handleSortChange"
         >
           <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
@@ -232,6 +234,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FournisseurModal from '@/Components/Modals/FournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 
 const { can } = usePermissions();
 
@@ -290,6 +293,9 @@ const showFournisseurModal = ref(false);
 const selectedFournisseur = ref(null);
 const serverErrors = ref(null);
 const modalLoading = ref(false);
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 const localFilters = reactive({
   search: props.filters?.search || '',
