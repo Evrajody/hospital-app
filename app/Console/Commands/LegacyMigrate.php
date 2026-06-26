@@ -245,7 +245,8 @@ class LegacyMigrate extends Command
     {
         foreach ($this->staging($this->schemaClients, 'client') as $r) {
             $nom = $this->cut($r->rscli ?? null, 255) ?: 'Client '.($r->numcli ?? '');
-            $compteId = $this->ensureCompte($r->numcli ?? null, $nom);
+            $numcli = str_replace(',', '.', $this->cut($r->numcli ?? null, 20));
+            $compteId = $this->ensureCompte($numcli, $nom);
             $c = Client::updateOrCreate(
                 ['compte_comptable_id' => $compteId, 'nom' => $nom],
                 [
@@ -253,8 +254,8 @@ class LegacyMigrate extends Command
                     'type_client' => 'divers',
                 ]
             );
-            if ($r->numcli ?? null) {
-                $this->clientByNumcli[$this->key($r->numcli)] = $c->id;
+            if ($numcli) {
+                $this->clientByNumcli[$this->key($numcli)] = $c->id;
             }
             $this->bump('clients');
         }
@@ -451,7 +452,7 @@ class LegacyMigrate extends Command
             if (! $ref) {
                 continue;
             }
-            $clientId = $this->clientByNumcli[$this->key($r->numcli ?? '')] ?? null;
+            $clientId = $this->clientByNumcli[$this->key(str_replace(',', '.', $r->numcli ?? ''))] ?? null;
             if (! $clientId) {
                 $this->bump('factures_clients_orphelines');
                 continue;
@@ -485,6 +486,13 @@ class LegacyMigrate extends Command
 
     private function migrateReglementsFournisseurs(): void
     {
+        // Si la map n'a pas été construite (ex. --only=reglements-fournisseurs), la peupler depuis la DB.
+        if (empty($this->factureFsrByNumP)) {
+            foreach (FactureFournisseur::select('id', 'numero_piece')->get() as $f) {
+                $this->factureFsrByNumP[$this->key($f->numero_piece)] = $f->id;
+            }
+        }
+
         foreach ($this->staging($this->schemaFsr, 'reglement') as $r) {
             $factureId = $this->factureFsrByNumP[$this->key($r->nump ?? '')] ?? null;
             if (! $factureId) {
@@ -519,6 +527,13 @@ class LegacyMigrate extends Command
 
     private function migrateReglementsClients(): void
     {
+        // Si la map n'a pas été construite (ex. --only=reglements-clients), la peupler depuis la DB.
+        if (empty($this->factureClientByRef)) {
+            foreach (FactureClient::select('id', 'reference')->get() as $fc) {
+                $this->factureClientByRef[$this->key($fc->reference)] = $fc->id;
+            }
+        }
+
         foreach ($this->staging($this->schemaClients, 'reglement') as $r) {
             $factureId = $this->factureClientByRef[$this->key($this->clean($r->reffac ?? '') ?? '')] ?? null;
             if (! $factureId) {
@@ -582,7 +597,7 @@ class LegacyMigrate extends Command
             if (! $factureId) {
                 continue;
             }
-            $numCompte = $this->cut($r->numcpt ?? null, 50);
+            $numCompte = str_replace(',', '.', $this->cut($r->numcpt ?? null, 50));
             if (! $numCompte) {
                 $this->bump('imputations_ignorees_sans_compte');
                 continue; // ligne d'imputation sans compte exploitable

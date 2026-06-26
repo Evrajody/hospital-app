@@ -473,11 +473,21 @@ migrate-legacy-load: ## 2) Charger les exports SQL dans les schémas de staging 
 	@CLI=olds/sql/legacy_clients.sql; [ -f "$$CLI" ] || CLI=olds/sql/database_export.sql; \
 	echo "$(GREEN)Staging Clients ($$CLI) -> schéma legacy_clients...$(NC)"; \
 	( printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_clients CASCADE; CREATE SCHEMA legacy_clients; SET search_path TO legacy_clients;\n"; \
-	  sed -e 's/\xEF\xBB\xBF//g' -e 's/BOOLEAN/INTEGER/g' -e 's/-00 00:00:00/-01 00:00:00/g' "$$CLI" ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null
+	  sed -e 's/\xEF\xBB\xBF//g' \
+	      -e 's/BOOLEAN/INTEGER/g' \
+	      -e 's/-00 00:00:00/-01 00:00:00/g' \
+	      -e 's/); VALUES/); ON CONFLICT DO NOTHING VALUES/g' \
+	      -e '/^INSERT INTO/{ /ON CONFLICT/!s/;$$/ ON CONFLICT DO NOTHING;/ }' \
+	      "$$CLI" ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null
 	@if [ -f olds/sql/legacy_fournisseurs.sql ]; then \
 	  echo "$(GREEN)Staging Fournisseurs -> schéma legacy_fsr...$(NC)"; \
 	  ( printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_fsr CASCADE; CREATE SCHEMA legacy_fsr; SET search_path TO legacy_fsr;\n"; \
-	    sed -e 's/\xEF\xBB\xBF//g' -e 's/BOOLEAN/INTEGER/g' -e 's/-00 00:00:00/-01 00:00:00/g' olds/sql/legacy_fournisseurs.sql ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null; \
+	    sed -e 's/\xEF\xBB\xBF//g' \
+	        -e 's/BOOLEAN/INTEGER/g' \
+	        -e 's/-00 00:00:00/-01 00:00:00/g' \
+	        -e 's/); VALUES/); ON CONFLICT DO NOTHING VALUES/g' \
+	        -e '/^INSERT INTO/{ /ON CONFLICT/!s/;$$/ ON CONFLICT DO NOTHING;/ }' \
+	        olds/sql/legacy_fournisseurs.sql ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null; \
 	else echo "$(YELLOW)olds/sql/legacy_fournisseurs.sql absent — lancez 'make migrate-legacy-export'.$(NC)"; fi
 	@echo "$(GREEN)✓ Staging chargé.$(NC)"
 
