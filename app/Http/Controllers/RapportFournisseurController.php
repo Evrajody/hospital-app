@@ -378,15 +378,14 @@ class RapportFournisseurController extends Controller
                 $montantTva = (float) $fact->montant_tva;
                 $avoir = (float) $fact->avoir;
                 $montantAib = (float) $fact->montant_reduction;
-                // Restant dû = Mt Dû − Total réglé (utilise montant_net déjà arrondi).
-                $soldePeriode = round((float) $fact->montant_net - $reglePeriode, 2);
+                // Mt Dû = Mt TTC − TVA − Avoir − AIB (recalculé, pas montant_net)
+                $montantDu = round($montantTtc - $montantTva - $avoir - $montantAib, 2);
+                // Restant dû = Mt Dû − Total réglé (recalculé, pas montant_net).
+                $soldePeriode = round($montantDu - $reglePeriode, 2);
 
                 // On exclut toute facture dont le restant dû s'affiche comme 0 (arrondi à l'unité),
                 // pas seulement le 0 strict — sinon des résidus < 0,5 apparaîtraient en « 0 ».
                 if (round($soldePeriode) <= 0) continue;
-
-                // Mt Dû = Mt TTC − TVA − Avoir − AIB (recalculé, pas montant_net)
-                $montantDu = round($montantTtc - $montantTva - $avoir - $montantAib, 2);
 
                 $row = [
                     'numero_piece' => $fact->numero_piece,
