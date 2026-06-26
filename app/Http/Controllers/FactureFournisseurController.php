@@ -272,6 +272,7 @@ class FactureFournisseurController extends Controller
             'date_facture' => $facture->date?->format('Y-m-d'),
             'date' => $facture->date?->format('Y-m-d'),
             'date_facture_bc' => $facture->date_facture_bc?->format('Y-m-d'),
+            'date_solde' => $facture->date_solde?->format('Y-m-d'),
             'reference' => $facture->reference_facture,
             'reference_facture' => $facture->reference_facture,
             'fournisseur' => $facture->fournisseur ? [

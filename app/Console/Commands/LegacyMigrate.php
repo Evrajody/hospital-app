@@ -520,7 +520,7 @@ class LegacyMigrate extends Command
     private function migrateReglementsClients(): void
     {
         foreach ($this->staging($this->schemaClients, 'reglement') as $r) {
-            $factureId = $this->factureClientByRef[$this->key($r->reffac ?? '')] ?? null;
+            $factureId = $this->factureClientByRef[$this->key($this->clean($r->reffac ?? '') ?? '')] ?? null;
             if (! $factureId) {
                 $this->bump('reglements_clients_orphelins');
                 continue;
