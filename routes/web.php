@@ -113,6 +113,10 @@ Route::prefix('api/reglements-fournisseurs')->group(function () {
 // Factures Fournisseurs Routes
 Route::prefix('factures-fournisseurs')->middleware('permission:factures-fournisseurs.voir')->group(function () {
     Route::get('/', [FactureFournisseurController::class, 'indexView'])->name('factures-fournisseurs.index');
+    // États rapatriés des rapports → onglet Factures Fournisseurs.
+    Route::get('/soldes', [FactureFournisseurController::class, 'facturesSoldesView'])->name('factures-fournisseurs.soldes');
+    Route::get('/bordereau-transmission', [FactureFournisseurController::class, 'bordereauTransmissionView'])->name('factures-fournisseurs.bordereau-transmission');
+    Route::get('/bordereau-transmission/data', [RapportFournisseurController::class, 'bordereauTransmission'])->name('factures-fournisseurs.bordereau-transmission.data');
     Route::get('/{id}', [FactureFournisseurController::class, 'showView'])->where('id', '[0-9]+')->name('factures-fournisseurs.show');
     Route::get('/{id}/regler', [FactureFournisseurController::class, 'reglementView'])->where('id', '[0-9]+')->name('factures-fournisseurs.regler');
     Route::get('/{id}/imputation-pdf', [FactureFournisseurController::class, 'imputationPdf'])->where('id', '[0-9]+')->name('factures-fournisseurs.imputation-pdf');

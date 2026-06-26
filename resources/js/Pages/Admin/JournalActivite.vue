@@ -104,7 +104,7 @@
 
       <!-- Table -->
       <el-card shadow="never" class="table-card">
-        <el-table :data="logs" stripe style="width: 100%" empty-text="Aucune activité trouvée">
+        <el-table ref="mainTableRef" :data="logs" stripe style="width: 100%" empty-text="Aucune activité trouvée" :height="tableHeight">
           <el-table-column label="Date/Heure" width="160">
             <template #default="{ row }">
               <el-tooltip :content="row.created_at_human" placement="top">
@@ -173,6 +173,10 @@ import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Search, RefreshRight } from '@element-plus/icons-vue';
+import { useTableHeight } from '@/Composables/useTableHeight';
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 const props = defineProps({
   logs: Array,

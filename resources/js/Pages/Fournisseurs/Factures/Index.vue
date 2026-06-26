@@ -154,11 +154,13 @@
         </template>
 
         <el-table
+          ref="mainTableRef"
           v-loading="loading"
           :data="factures"
           stripe
           border
           style="width: 100%"
+          :height="tableHeight"
           @sort-change="handleSortChange"
         >
           <el-table-column label="Actions" width="100" fixed="left" align="center" resizable>
@@ -499,6 +501,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 
 const { can } = usePermissions();
 
@@ -568,6 +571,9 @@ const debounce = (fn, delay) => {
 const loading = ref(false);
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 // Drawer Imputation Comptable
 const showImputationDrawer = ref(false);

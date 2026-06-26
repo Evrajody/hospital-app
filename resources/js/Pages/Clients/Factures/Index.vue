@@ -147,11 +147,13 @@
         </template>
 
         <el-table
+          ref="mainTableRef"
           v-loading="loading"
           :data="factures"
           stripe
           border
           style="width: 100%"
+          :height="tableHeight"
           @sort-change="handleSortChange"
           class="factures-table"
         >
@@ -346,6 +348,7 @@ import {
 } from '@element-plus/icons-vue';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
+import { useTableHeight } from '@/Composables/useTableHeight';
 
 const { can } = usePermissions();
 
@@ -383,6 +386,9 @@ const loading = ref(false);
 const showFactureModal = ref(false);
 const selectedFacture = ref(null);
 const modalLoading = ref(false);
+
+const mainTableRef = ref(null);
+const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 const localFilters = reactive({
   search: props.filters?.search || '',
