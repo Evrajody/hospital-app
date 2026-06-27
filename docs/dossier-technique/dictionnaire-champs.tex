@@ -1,0 +1,639 @@
+% =====================================================================
+%  DICTIONNAIRE DES CHAMPS — Mapping legacy
+%  Compilation : tectonic dictionnaire-champs.tex
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\setmainfont{Liberation Sans}
+\usepackage[french]{babel}
+\usepackage[table]{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+\geometry{margin=1.5cm}
+
+\definecolor{primary}{HTML}{1C6FB8}
+\definecolor{lightbg}{HTML}{EEF2F7}
+\definecolor{greytext}{HTML}{5A6675}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{greytext}Dictionnaire des champs}
+\fancyhead[R]{\small\color{greytext}Hôpital de Zone de Ménontin}
+\fancyfoot[C]{\small\color{greytext}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\newcommand{\HDR}{%
+  \rowcolor{primary}%
+  \textcolor{white}{\textbf{Champ}} &
+  \textcolor{white}{\textbf{Type}} &
+  \textcolor{white}{\textbf{Colonne legacy}} \\
+}
+\newcommand{\E}{\rowcolor{lightbg}}
+
+\begin{document}
+
+% ================================================================
+\section*{Fournisseurs — \texttt{fournisseurs}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+nom & string & rsfsr \\
+\hline
+contact & string & contact \\
+\E
+telephone & string & numtel \\
+\hline
+telephone\_secondaire & string & --- \\
+\E
+email & string & --- \\
+\hline
+site\_web & string & --- \\
+\E
+adresse & string & --- \\
+\hline
+ville & string & ville \\
+\E
+pays & string & pays \\
+\hline
+ifu & string & numifu \\
+\E
+compte\_comptable\_id & int & comptfsr $\rightarrow$ lookup plan\_comptable\_ohada \\
+\hline
+rccm & string & --- \\
+\E
+observations & text & info \\
+\hline
+type\_fournisseur & string & --- \\
+\E
+fonction\_contact & string & --- \\
+\hline
+created\_at & datetime & --- \\
+\E
+updated\_at & datetime & --- \\
+\hline
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Factures Fournisseurs — \texttt{factures\_fournisseurs}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+numero\_piece & string & nump \\
+\hline
+date & date & datenreg \\
+\E
+date\_facture\_bc & date & datfac \\
+\hline
+reference\_facture & string & reffac \\
+\E
+fournisseur\_id & int & comptfsr / rsfsr $\rightarrow$ lookup fournisseurs \\
+\hline
+fournisseur\_nom & string & rsfsr \\
+\E
+libelle & text & libfac \\
+\hline
+montant\_facture & decimal & mtfac \\
+\E
+montant\_mo & decimal & mtmd \\
+\hline
+avoir & decimal & avoir \\
+\E
+taux & decimal & tacpt \\
+\hline
+montant\_reduction & decimal & mtacpt \\
+\E
+type\_reduction & string & numcptacpt \\
+\hline
+assujetti\_tva & boolean & --- \\
+\E
+taux\_tva & decimal & --- \\
+\hline
+montant\_tva & decimal & calculé \\
+\E
+montant\_ht & decimal & calculé \\
+\hline
+montant\_ttc & decimal & calculé \\
+\E
+montant\_net & decimal & calculé \\
+\hline
+statut & string & statu \\
+\E
+montant\_paye & decimal & calculé \\
+\hline
+reste\_a\_payer & decimal & calculé \\
+\E
+date\_solde & date & calculé \\
+\hline
+imputation\_id & int & --- \\
+\E
+compte\_id & int & --- \\
+\hline
+created\_by & int & --- \\
+\E
+created\_by\_name & string & --- \\
+\hline
+validated\_by & int & --- \\
+\E
+validated\_by\_name & string & --- \\
+\hline
+validated\_at & datetime & --- \\
+\E
+observations & text & --- \\
+\hline
+metadata & json & --- \\
+\E
+created\_at & datetime & --- \\
+\hline
+updated\_at & datetime & --- \\
+\E
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Règlements Fournisseurs — \texttt{reglements\_fournisseurs}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+numero\_reglement & string & calculé \\
+\hline
+numero\_ligne & string & lreg \\
+\E
+date\_reglement & date & datreg \\
+\hline
+facture\_id & int & nump $\rightarrow$ lookup factures\_fournisseurs \\
+\E
+fournisseur\_id & int & (via facture) \\
+\hline
+fournisseur\_nom & string & (via facture) \\
+\E
+facture\_numero & string & (via facture) \\
+\hline
+montant & decimal & mtreg \\
+\E
+mode\_paiement & string & modreg \\
+\hline
+reference & string & numch \\
+\E
+beneficiaire & string & insreg \\
+\hline
+banque & string & --- \\
+\E
+numero\_compte\_bancaire & string & --- \\
+\hline
+compte\_tresorerie\_id & int & --- \\
+\E
+compte\_credit\_id & int & --- \\
+\hline
+deduire\_aib & boolean & raib \\
+\E
+montant\_aib\_deduit & decimal & --- \\
+\hline
+compte\_aib & string & --- \\
+\E
+date\_aib & date & --- \\
+\hline
+date\_reference & date & --- \\
+\E
+statut & string & --- \\
+\hline
+created\_by & int & --- \\
+\E
+created\_by\_name & string & --- \\
+\hline
+validated\_by & int & --- \\
+\E
+validated\_by\_name & string & --- \\
+\hline
+validated\_at & datetime & --- \\
+\E
+observations & text & --- \\
+\hline
+etablissement\_nom & string & --- \\
+\E
+etablissement\_directeur & string & --- \\
+\hline
+etablissement\_entete\_bp & string & --- \\
+\E
+etablissement\_entete\_tel & string & --- \\
+\hline
+etablissement\_entete\_email & string & --- \\
+\E
+etablissement\_entete\_site & string & --- \\
+\hline
+created\_at & datetime & --- \\
+\E
+updated\_at & datetime & --- \\
+\hline
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Imputations Facture Fournisseur — \texttt{imputations\_facture\_fournisseur}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+facture\_id & int & nump $\rightarrow$ lookup factures\_fournisseurs \\
+\hline
+compte\_id & int & numcpt $\rightarrow$ lookup plan\_comptable\_ohada \\
+\E
+nature & string & calculé (debit si debit $>$ credit) \\
+\hline
+montant & decimal & debit ou credit (max des deux) \\
+\E
+libelle & text & libelle \\
+\hline
+created\_at & datetime & --- \\
+\E
+updated\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Écritures Comptables — \texttt{ecritures\_comptables}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+facture\_id & int & --- \\
+\hline
+reglement\_id & int & --- \\
+\E
+date\_ecriture & date & --- \\
+\hline
+numero\_compte & string & --- \\
+\E
+debit & decimal & --- \\
+\hline
+credit & decimal & --- \\
+\E
+libelle & text & --- \\
+\hline
+type & string & --- \\
+\E
+created\_at & datetime & --- \\
+\hline
+updated\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Clients — \texttt{clients}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+nom & string & rscli \\
+\hline
+telephone & string & --- \\
+\E
+ifu & string & numcli \\
+\hline
+type\_client & string & --- \\
+\E
+observation & text & --- \\
+\hline
+adresse & text & adrcli \\
+\E
+compte\_comptable\_id & int & numcli $\rightarrow$ lookup plan\_comptable\_ohada \\
+\hline
+created\_at & datetime & --- \\
+\E
+updated\_at & datetime & --- \\
+\hline
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Factures Clients — \texttt{factures\_clients}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+reference & string & reffac \\
+\hline
+date\_facture & date & datfac \\
+\E
+montant & decimal & mtfac \\
+\hline
+ristourne & decimal & ristourne \\
+\E
+client\_id & int & numcli $\rightarrow$ lookup clients \\
+\hline
+client\_nom & string & (via client) \\
+\E
+montant\_paye & decimal & calculé \\
+\hline
+total\_rejet & decimal & calculé \\
+\E
+total\_perte & decimal & calculé \\
+\hline
+reste\_a\_payer & decimal & calculé \\
+\E
+date\_solde & date & calculé \\
+\hline
+statut & string & etatfac \\
+\E
+created\_by & int & --- \\
+\hline
+created\_by\_name & string & --- \\
+\E
+created\_at & datetime & --- \\
+\hline
+updated\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Règlements Clients — \texttt{reglements\_clients}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+numero\_ligne & string & lreg \\
+\hline
+type\_reglement & string & --- \\
+\E
+date\_reglement & date & datreg \\
+\hline
+facture\_id & int & reffac $\rightarrow$ lookup factures\_clients \\
+\E
+client\_id & int & (via facture) \\
+\hline
+client\_nom & string & (via facture) \\
+\E
+facture\_reference & string & reffac \\
+\hline
+montant & decimal & mtch \\
+\E
+montant\_rejet & decimal & --- \\
+\hline
+institution & string & insreg \\
+\E
+reference\_cheque & string & refch \\
+\hline
+banque\_depot\_id & int & cptbanqdep $\rightarrow$ lookup comptes\_bancaires \\
+\E
+approvisionnement\_id & int & refbordep $\rightarrow$ lookup approvisionnements\_banques \\
+\hline
+avance\_id & int & --- \\
+\E
+observations & text & --- \\
+\hline
+bordereau\_depot\_path & string & --- \\
+\E
+created\_by & int & --- \\
+\hline
+created\_by\_name & string & --- \\
+\E
+created\_at & datetime & --- \\
+\hline
+updated\_at & datetime & --- \\
+\E
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Banques — \texttt{banques}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+nom & string & libbanqdep \\
+\hline
+created\_at & datetime & --- \\
+\E
+updated\_at & datetime & --- \\
+\hline
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Comptes Bancaires — \texttt{comptes\_bancaires}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+banque\_id & int & (via banque) \\
+\hline
+numero\_compte & string & cptbanqdep \\
+\E
+compte\_ohada\_id & int & --- \\
+\hline
+solde & decimal & --- \\
+\E
+observations & text & --- \\
+\hline
+created\_at & datetime & --- \\
+\E
+updated\_at & datetime & --- \\
+\hline
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Plan Comptable OHADA — \texttt{plan\_comptable\_ohada}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+numero\_compte & string & numcmpt \\
+\hline
+libelle & string & libelle \\
+\E
+classe & integer & classe \\
+\hline
+niveau & integer & --- \\
+\E
+type\_compte & string & --- \\
+\hline
+is\_custom & boolean & --- \\
+\E
+parent\_id & int & --- \\
+\hline
+created\_by & int & --- \\
+\E
+created\_at & datetime & --- \\
+\hline
+updated\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Approvisionnements Banque — \texttt{approvisionnements\_banques}}
+% ================================================================
+\begin{tabularx}{\textwidth}{|L{4.5cm}|C{2cm}|X|}
+\hline \HDR \hline
+id & int & auto-incrémenté \\
+\E
+compte\_bancaire\_id & int & cptbanqdep $\rightarrow$ lookup comptes\_bancaires \\
+\hline
+reference\_bordereau & string & refbordep (clients) / numdep (fournisseurs) \\
+\E
+date\_depot & date & datdep (clients) / datedep (fournisseurs) \\
+\hline
+montant & decimal & mtdep \\
+\E
+observations & text & observ (fournisseurs uniquement) \\
+\hline
+piece\_jointe & string & --- \\
+\E
+created\_by & int & --- \\
+\hline
+created\_at & datetime & --- \\
+\E
+updated\_at & datetime & --- \\
+\hline
+deleted\_at & datetime & --- \\
+\hline
+\end{tabularx}
+
+\vspace{0.8cm}
+
+% ================================================================
+\section*{Mapping statuts}
+% ================================================================
+\begin{tabular}{|C{3cm}|C{3cm}|C{3cm}|}
+\hline
+\rowcolor{primary} \textcolor{white}{\textbf{Champ}} & \textcolor{white}{\textbf{Valeur Access}} & \textcolor{white}{\textbf{Valeur App}} \\
+\hline
+\multicolumn{3}{|l|}{\textbf{Facture fournisseur — statu}} \\
+\hline
+statu & 0 & brouillon \\
+\E
+statu & 1 & payee \\
+\hline
+statu & 2 & partiellement\_payee \\
+\hline
+\multicolumn{3}{|l|}{\textbf{Facture client — etatfac}} \\
+\hline
+etatfac & 1 & payee \\
+\E
+etatfac & 2 & partiellement\_payee \\
+\hline
+etatfac & NULL & non\_payee \\
+\hline
+\end{tabular}
+
+\vspace{0.6cm}
+
+% ================================================================
+\section*{Mapping mode\_paiement}
+% ================================================================
+\begin{tabular}{|C{3cm}|C{3cm}|C{3cm}|}
+\hline
+\rowcolor{primary} \textcolor{white}{\textbf{Valeur Access}} & \textcolor{white}{\textbf{Valeur App}} & \textcolor{white}{\textbf{Libellé}} \\
+\hline
+1 & especes & Espèces \\
+\E
+2 & cheque & Chèque \\
+\hline
+3 & virement & Virement bancaire \\
+\E
+4 & mobile\_money & Mobile Money \\
+\hline
+5 & carte & Carte bancaire \\
+\hline
+\end{tabular}
+
+\vspace{0.6cm}
+
+% ================================================================
+\section*{Mapping AIB}
+% ================================================================
+\begin{tabular}{|C{3cm}|C{4cm}|}
+\hline
+\rowcolor{primary} \textcolor{white}{\textbf{Champ source}} & \textcolor{white}{\textbf{Champ app}} \\
+\hline
+tacpt & taux \\
+\E
+mtacpt & montant\_reduction \\
+\hline
+numcptacpt & type\_reduction \\
+\E
+taib & ignoré (= 0) \\
+\hline
+mtaib & ignoré (= 0) \\
+\hline
+\end{tabular}
+
+\vspace{0.6cm}
+
+% ================================================================
+\section*{Contraintes UNIQUE}
+% ================================================================
+\begin{tabular}{|L{5cm}|L{8cm}|}
+\hline
+\rowcolor{primary} \textcolor{white}{\textbf{Table}} & \textcolor{white}{\textbf{Contrainte}} \\
+\hline
+fournisseurs & UNIQUE(nom) \\
+\E
+factures\_fournisseurs & UNIQUE(numero\_piece) \\
+\hline
+factures\_fournisseurs & UNIQUE(reference\_facture) \\
+\E
+reglements\_fournisseurs & UNIQUE(numero\_reglement) \\
+\hline
+clients & UNIQUE(nom) \\
+\E
+factures\_clients & UNIQUE(reference) \\
+\hline
+reglements\_clients & UNIQUE(numero\_ligne) \\
+\hline
+\end{tabular}
+
+\end{document}
