@@ -34,7 +34,7 @@
           <template #title>Tableau de bord</template>
         </el-menu-item>
 
-        <div class="menu-separator"></div>
+        <div v-if="can('fournisseurs.voir') || can('factures-fournisseurs.voir') || can('reglements-fournisseurs.voir')" class="menu-separator"></div>
 
         <!-- Factures Fournisseurs -->
         <el-menu-item-group v-if="can('fournisseurs.voir') || can('factures-fournisseurs.voir') || can('reglements-fournisseurs.voir')">
@@ -61,7 +61,7 @@
           </el-menu-item>
         </el-menu-item-group>
 
-        <div class="menu-separator"></div>
+        <div v-if="can('clients.voir') || can('factures-clients.voir') || can('reglements-clients.voir')" class="menu-separator"></div>
 
         <!-- Factures Clients -->
         <el-menu-item-group v-if="can('clients.voir') || can('factures-clients.voir') || can('reglements-clients.voir')">
@@ -84,7 +84,7 @@
           </el-menu-item>
         </el-menu-item-group>
 
-        <div class="menu-separator"></div>
+        <div v-if="can('plan-comptable.voir') || can('banques.voir')" class="menu-separator"></div>
 
         <!-- Autres -->
         <el-menu-item-group v-if="can('plan-comptable.voir') || can('banques.voir')">
@@ -99,7 +99,7 @@
           </el-menu-item>
         </el-menu-item-group>
 
-        <div class="menu-separator"></div>
+        <div v-if="can('rapports-clients.voir') || can('rapports-fournisseurs.voir') || can('rapports-banques.voir')" class="menu-separator"></div>
 
         <!-- Rapports -->
         <el-menu-item-group v-if="can('rapports-clients.voir') || can('rapports-fournisseurs.voir') || can('rapports-banques.voir')">
@@ -115,7 +115,7 @@
           </el-menu-item>
         </el-menu-item-group>
 
-        <div class="menu-separator"></div>
+        <div v-if="can('utilisateurs.voir') || can('roles.voir') || can('parametres.voir')" class="menu-separator"></div>
 
         <!-- Paramètres -->
         <el-menu-item-group v-if="can('utilisateurs.voir') || can('roles.voir') || can('parametres.voir')">
@@ -138,7 +138,7 @@
           </el-menu-item>
         </el-menu-item-group>
 
-        <div class="menu-separator"></div>
+        <div v-if="can('journal.voir')" class="menu-separator"></div>
 
         <!-- Journal d'Activité -->
         <el-menu-item v-if="can('journal.voir')" index="/journal-activite" @click="navigate('/journal-activite')">

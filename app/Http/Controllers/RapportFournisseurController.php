@@ -252,7 +252,7 @@ class RapportFournisseurController extends Controller
             'compteComptable',
             'factures' => function ($q) use ($baseFilter) {
                 $baseFilter($q);
-                $q->orderByDesc('date');
+                $q->orderBy('date');
             },
             'factures.reglements' => $reglementConstraint,
         ];
