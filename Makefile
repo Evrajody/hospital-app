@@ -1,4 +1,4 @@
-.PHONY: help deploy deploy-init deploy-quick prod-init-dirs prod-backup rebuild rebuild-prod rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-db test-coverage test-filter clear-cache clear-logs clean perm down destroy
+.PHONY: help deploy deploy-init deploy-quick prod-init-dirs prod-backup rebuild rebuild-prod rollback maintenance-on maintenance-off build up start stop restart status ps logs shell composer artisan migrate migrate-fresh migrate-rollback seed db-fresh db-backup db-restore install setup test test-db test-coverage test-filter clear-cache clear-logs clean perm down destroy legacy-up legacy-down legacy-restart legacy-status legacy-logs legacy-shell legacy-api legacy-compare legacy-reset legacy-migrate
 
 # =============================================================================
 # Variables
@@ -7,10 +7,12 @@ DOCKER_COMPOSE     = docker compose
 # --env-file .env.production : compose lit ce fichier pour l'interpolation (DB_PASSWORD, APP_PORT…)
 # au lieu du .env par défaut. Toutes les cibles prod en héritent.
 DOCKER_COMPOSE_PROD = docker compose --env-file .env.production -f docker-compose.prod.yml
+DOCKER_COMPOSE_LEGACY = docker compose -f legacy-db/docker-compose.yml
 EXEC_APP           = $(DOCKER_COMPOSE) exec app
 EXEC_APP_PROD      = $(DOCKER_COMPOSE_PROD) exec app
 EXEC_DB            = $(DOCKER_COMPOSE) exec db
 EXEC_DB_PROD       = $(DOCKER_COMPOSE_PROD) exec db
+EXEC_LEGACY_DB     = $(DOCKER_COMPOSE_LEGACY) exec legacy-db
 BACKUP_DIR         = backups
 TIMESTAMP          = $(shell date +%Y%m%d_%H%M%S)
 
@@ -499,3 +501,63 @@ migrate-legacy: migrate-legacy-load ## 3b) Migration RÉELLE (idempotente). Opti
 	$(MAKE) db-backup
 	$(EXEC_APP) php artisan legacy:migrate $(if $(only),--only=$(only),) $(if $(except),--except=$(except),)
 	@echo "$(GREEN)✓ Migration héritée terminée.$(NC)"
+
+# =============================================================================
+##@ LEGACY DB — Base de données héritée (ancien système)
+# =============================================================================
+
+legacy-up: ## Démarrer les services legacy (PostgreSQL + Adminer + PostgREST + Swagger)
+	@echo "$(GREEN)Démarrage des services legacy...$(NC)"
+	$(DOCKER_COMPOSE_LEGACY) up -d
+	@echo ""
+	@echo "$(BOLD)$(GREEN)Services legacy démarrés:$(NC)"
+	@echo "  $(BLUE)→ Adminer    :$(NC) http://localhost:37800"
+	@echo "  $(BLUE)→ API REST   :$(NC) http://localhost:3001"
+	@echo "  $(BLUE)→ Swagger UI :$(NC) http://localhost:37801"
+	@echo ""
+
+legacy-down: ## Arrêter les services legacy
+	@echo "$(YELLOW)Arrêt des services legacy...$(NC)"
+	$(DOCKER_COMPOSE_LEGACY) down
+
+legacy-restart: ## Redémarrer les services legacy
+	@echo "$(YELLOW)Redémarrage des services legacy...$(NC)"
+	$(DOCKER_COMPOSE_LEGACY) restart
+
+legacy-status: ## Statut des conteneurs legacy
+	@echo "$(GREEN)Statut des services legacy:$(NC)"
+	$(DOCKER_COMPOSE_LEGACY) ps
+
+legacy-logs: ## Logs des conteneurs legacy (tous)
+	$(DOCKER_COMPOSE_LEGACY) logs -f
+
+legacy-logs-db: ## Logs du conteneur legacy-db
+	$(DOCKER_COMPOSE_LEGACY) logs -f legacy-db
+
+legacy-shell: ## Shell PostgreSQL de la base legacy
+	$(EXEC_LEGACY_DB) psql -U legacy_user -d legacy_hospital
+
+legacy-api: ## Tester l'API legacy (GET /api_clients?limit=5)
+	@echo "$(GREEN)Test API legacy:$(NC)"
+	@curl -s http://localhost:3001/api_clients?limit=5 | python3 -m json.tool 2>/dev/null || curl -s http://localhost:3001/api_clients?limit=5
+
+legacy-compare: ## Comparer les bases legacy vs nouvelle
+	@echo "$(GREEN)Comparaison des bases de données...$(NC)"
+	@cd legacy-db && ./compare-databases.sh
+
+legacy-reset: ## Réinitialiser la base legacy (supprime les données)
+	@echo "$(RED)⚠ Suppression de toutes les données legacy!$(NC)"
+	@read -p "Confirmer? (o/N): " confirm; \
+	if [ "$$confirm" = "o" ] || [ "$$confirm" = "O" ]; then \
+		$(DOCKER_COMPOSE_LEGACY) down -v; \
+		echo "$(GREEN)✓ Base legacy réinitialisée$(NC)"; \
+		echo "$(YELLOW)→ Relancer avec: make legacy-up$(NC)"; \
+	else \
+		echo "$(YELLOW)Annulé$(NC)"; \
+	fi
+
+legacy-migrate: ## Lancer la migration legacy (export SQL → nouvelle base)
+	@echo "$(GREEN)Lancement de la migration legacy...$(NC)"
+	$(MAKE) migrate-legacy-load
+	$(EXEC_APP) php artisan legacy:migrate
+	@echo "$(GREEN)✓ Migration legacy terminée$(NC)"

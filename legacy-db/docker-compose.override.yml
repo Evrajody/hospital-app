@@ -1,0 +1,20 @@
+# Development overrides for legacy database
+# Usage: docker compose -f docker-compose.yml -f docker-compose.override.yml up
+
+services:
+  legacy-db:
+    # Expose additional port for direct access
+    ports:
+      - "5433:5432"
+      - "5434:5432"  # Additional port for debugging
+    
+  adminer:
+    # Debug mode
+    environment:
+      ADMINER_DEBUG: "true"
+    
+  postgrest:
+    # Development logging
+    environment:
+      PGRST_LOG_LEVEL: "info"
+      PGRST_DB_MAX_ROWS: 1000

@@ -1,0 +1,346 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Hospital Legacy Database API",
+    "description": "API REST pour l'ancienne base de données hospitalière (PostgREST)",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Legacy System"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Legacy API Server"
+    }
+  ],
+  "paths": {
+    "/api_clients": {
+      "get": {
+        "summary": "Liste des clients",
+        "description": "Récupère la liste de tous les clients avec statistiques de facturation",
+        "tags": ["Clients"],
+        "parameters": [
+          {
+            "name": "select",
+            "in": "query",
+            "description": "Colonnes à sélectionner (ex: numcli,rscli)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Tri (ex: rscli.asc)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Nombre de résultats",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Décalage pour pagination",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Client" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api_factures": {
+      "get": {
+        "summary": "Liste des factures",
+        "description": "Récupère la liste de toutes les factures avec informations client",
+        "tags": ["Factures"],
+        "parameters": [
+          {
+            "name": "etatfac",
+            "in": "query",
+            "description": "Filtrer par état (true=payée, false=impayée)",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "numcli",
+            "in": "query",
+            "description": "Filtrer par numéro client",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "datfac",
+            "in": "query",
+            "description": "Filtrer par date (format: eq.2025-01-01)",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des factures",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Facture" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api_fournisseurs": {
+      "get": {
+        "summary": "Liste des fournisseurs",
+        "description": "Récupère la liste de tous les fournisseurs avec statistiques",
+        "tags": ["Fournisseurs"],
+        "responses": {
+          "200": {
+            "description": "Liste des fournisseurs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Fournisseur" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api_plan_comptable": {
+      "get": {
+        "summary": "Plan comptable OHADA",
+        "description": "Récupère le plan comptable complet avec hiérarchie",
+        "tags": ["Comptabilité"],
+        "parameters": [
+          {
+            "name": "classe",
+            "in": "query",
+            "description": "Filtrer par classe (1-9)",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "type_compte",
+            "in": "query",
+            "description": "Filtrer par type (ACTIF, PASSIF, CHARGE, PRODUIT, SPECIAL)",
+            "schema": { "type": "string", "enum": ["ACTIF", "PASSIF", "CHARGE", "PRODUIT", "SPECIAL"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan comptable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PlanComptable" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client": {
+      "get": {
+        "summary": "Liste des clients (table source)",
+        "description": "Récupère tous les clients depuis la table source",
+        "tags": ["Clients (Source)"],
+        "responses": {
+          "200": {
+            "description": "Liste des clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ClientSource" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/facture": {
+      "get": {
+        "summary": "Liste des factures (table source)",
+        "description": "Récupère toutes les factures depuis la table source",
+        "tags": ["Factures (Source)"],
+        "responses": {
+          "200": {
+            "description": "Liste des factures",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/FactureSource" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fournis": {
+      "get": {
+        "summary": "Liste des fournisseurs (table source)",
+        "description": "Récupère tous les fournisseurs depuis la table source",
+        "tags": ["Fournisseurs (Source)"],
+        "responses": {
+          "200": {
+            "description": "Liste des fournisseurs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/FournisseurSource" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plan_comptable_ohada": {
+      "get": {
+        "summary": "Plan comptable OHADA (table source)",
+        "description": "Récupère le plan comptable OHADA complet",
+        "tags": ["Comptabilité (Source)"],
+        "responses": {
+          "200": {
+            "description": "Plan comptable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PlanComptableSource" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Client": {
+        "type": "object",
+        "properties": {
+          "numcli": { "type": "string", "description": "Numéro client" },
+          "rscli": { "type": "string", "description": "Raison sociale" },
+          "adrcli": { "type": "string", "description": "Adresse" },
+          "user": { "type": "string", "description": "Utilisateur" },
+          "cpt": { "type": "integer", "description": "Compte" },
+          "nombre_factures": { "type": "integer", "description": "Nombre de factures" },
+          "total_factures": { "type": "integer", "description": "Total factures" },
+          "total_regle": { "type": "integer", "description": "Total réglé" },
+          "total_impaye": { "type": "integer", "description": "Total impayé" }
+        }
+      },
+      "Facture": {
+        "type": "object",
+        "properties": {
+          "reffac": { "type": "string", "description": "Référence facture" },
+          "datfac": { "type": "string", "format": "date-time", "description": "Date facture" },
+          "mtfac": { "type": "integer", "description": "Montant facture" },
+          "numcli": { "type": "string", "description": "Numéro client" },
+          "client_nom": { "type": "string", "description": "Nom client" },
+          "etatfac": { "type": "boolean", "description": "État (true=payée)" },
+          "datregfac": { "type": "string", "format": "date-time", "description": "Date règlement" },
+          "user": { "type": "string", "description": "Utilisateur" },
+          "ann": { "type": "integer", "description": "Année" }
+        }
+      },
+      "Fournisseur": {
+        "type": "object",
+        "properties": {
+          "numfrs": { "type": "string", "description": "Numéro fournisseur" },
+          "rsfrs": { "type": "string", "description": "Raison sociale" },
+          "adrfrs": { "type": "string", "description": "Adresse" },
+          "telfrs": { "type": "string", "description": "Téléphone" },
+          "cptfrs": { "type": "integer", "description": "Compte" },
+          "nombre_factures": { "type": "integer", "description": "Nombre de factures" },
+          "total_factures": { "type": "integer", "description": "Total factures" },
+          "total_regle": { "type": "integer", "description": "Total réglé" },
+          "total_impaye": { "type": "integer", "description": "Total impayé" }
+        }
+      },
+      "PlanComptable": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "description": "ID" },
+          "numero_compte": { "type": "string", "description": "Numéro de compte" },
+          "libelle": { "type": "string", "description": "Libellé" },
+          "classe": { "type": "integer", "description": "Classe (1-9)" },
+          "niveau": { "type": "integer", "description": "Niveau hiérarchique" },
+          "type_compte": { "type": "string", "description": "Type (ACTIF, PASSIF, etc.)" },
+          "utilisable": { "type": "boolean", "description": "Utilisable" },
+          "parent_numero": { "type": "string", "description": "Numéro du compte parent" }
+        }
+      },
+      "ClientSource": {
+        "type": "object",
+        "properties": {
+          "numcli": { "type": "string" },
+          "rscli": { "type": "string" },
+          "adrcli": { "type": "string" },
+          "user": { "type": "string" },
+          "cpt": { "type": "integer" }
+        }
+      },
+      "FactureSource": {
+        "type": "object",
+        "properties": {
+          "reffac": { "type": "string" },
+          "datfac": { "type": "string", "format": "date-time" },
+          "mtfac": { "type": "integer" },
+          "numcli": { "type": "string" },
+          "etatfac": { "type": "boolean" },
+          "datregfac": { "type": "string", "format": "date-time" },
+          "user": { "type": "string" },
+          "cpt": { "type": "integer" },
+          "ann": { "type": "integer" }
+        }
+      },
+      "FournisseurSource": {
+        "type": "object",
+        "properties": {
+          "numfrs": { "type": "string" },
+          "rsfrs": { "type": "string" },
+          "adrfrs": { "type": "string" },
+          "telfrs": { "type": "string" },
+          "cptfrs": { "type": "integer" }
+        }
+      },
+      "PlanComptableSource": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "numero_compte": { "type": "string" },
+          "libelle": { "type": "string" },
+          "classe": { "type": "integer" },
+          "niveau": { "type": "integer" },
+          "type_compte": { "type": "string" },
+          "utilisable": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

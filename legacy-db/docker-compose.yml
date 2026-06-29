@@ -1,0 +1,80 @@
+services:
+  # PostgreSQL Legacy Database
+  legacy-db:
+    image: postgres:16-alpine
+    container_name: legacy-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: legacy_hospital
+      POSTGRES_USER: legacy_user
+      POSTGRES_PASSWORD: legacy_password
+    volumes:
+      - legacy_dbdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"
+    networks:
+      - legacy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legacy_user -d legacy_hospital"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Adminer - Interface d'administration
+  adminer:
+    image: adminer:latest
+    container_name: legacy-adminer
+    restart: unless-stopped
+    ports:
+      - "37800:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: legacy-db
+      ADMINER_DESIGN: dracula
+    networks:
+      - legacy-network
+    depends_on:
+      legacy-db:
+        condition: service_healthy
+
+  # PostgREST - API REST automatique
+  postgrest:
+    image: postgrest/postgrest:latest
+    container_name: legacy-postgrest
+    restart: unless-stopped
+    environment:
+      PGRST_DB_URI: postgres://legacy_user:legacy_password@legacy-db:5432/legacy_hospital
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: legacy_anonymous
+      PGRST_SERVER_PORT: 3000
+      PGRST_JWT_SECRET: legacy_jwt_secret_key_change_in_production
+      PGRST_DB_USE_LEGACY_GUC: false
+    ports:
+      - "3001:3000"
+    networks:
+      - legacy-network
+    depends_on:
+      legacy-db:
+        condition: service_healthy
+
+  # Swagger UI - Documentation API
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: legacy-swagger
+    restart: unless-stopped
+    environment:
+      URL: /api/swagger.json
+    volumes:
+      - ./swagger/swagger.json:/usr/share/nginx/html/api/swagger.json
+    ports:
+      - "37801:8080"
+    networks:
+      - legacy-network
+
+networks:
+  legacy-network:
+    driver: bridge
+
+volumes:
+  legacy_dbdata:
+    driver: local
