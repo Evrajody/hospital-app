@@ -133,7 +133,6 @@
                 <el-table-column label="N°PC" min-width="120">
                   <template #default="{ row }">
                     {{ row.numero_piece }}
-                    <el-tag v-if="row.marquee_soldee" type="warning" size="small" effect="plain" style="margin-left: 4px;">Soldée</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="libelle" label="Libellé facture" min-width="180" show-overflow-tooltip />
@@ -162,7 +161,7 @@
                 </el-table-column>
                 <el-table-column label="Mt Total Rég." min-width="110" align="right">
                   <template #default="{ row }">
-                    <span style="font-weight: bold;" :style="{ color: row.marquee_soldee ? '#b91c1c' : 'inherit' }">{{ formatMontant(row.mt_total_reg) }}</span>
+                    <span style="font-weight: bold;">{{ formatMontant(row.mt_total_reg) }}</span>
                   </template>
                 </el-table-column>
               </PaginatedTable>
