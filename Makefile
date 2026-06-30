@@ -21,7 +21,7 @@ GREEN  = \033[0;32m
 YELLOW = \033[0;33m
 RED    = \033[0;31m
 BLUE   = \033[0;34m
-BOLD   = \033[1m
+BOLD   = \033[1mf
 NC     = \033[0m
 
 ##@ Aide
@@ -454,7 +454,7 @@ rebuild-prod: ## Reconstruire et redémarrer la PRODUCTION (docker-compose.prod.
 
 ##@ Migration des données héritées (ancien système Access)
 
-LEGACY_DIR          = olds/migrations
+LEGACY_DIR          = legacy-db/init/sql_processed
 LEGACY_CLIENTS_DB   = $(LEGACY_DIR)/Base Factures Clients.accdb
 LEGACY_FSR_DB       = $(LEGACY_DIR)/Base Factures des Fournisseurs.accdb
 
@@ -472,25 +472,38 @@ migrate-legacy-export: ## 1) Exporter les .accdb (olds/migrations) en SQL (néce
 	@echo "$(GREEN)✓ Exports générés dans olds/sql/$(NC)"
 
 migrate-legacy-load: ## 2) Charger les exports SQL dans les schémas de staging (legacy_clients / legacy_fsr)
-	@CLI=olds/sql/legacy_clients.sql; [ -f "$$CLI" ] || CLI=olds/sql/database_export.sql; \
-	echo "$(GREEN)Staging Clients ($$CLI) -> schéma legacy_clients...$(NC)"; \
-	( printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_clients CASCADE; CREATE SCHEMA legacy_clients; SET search_path TO legacy_clients;\n"; \
-	  sed -e 's/\xEF\xBB\xBF//g' \
-	      -e 's/BOOLEAN/INTEGER/g' \
-	      -e 's/-00 00:00:00/-01 00:00:00/g' \
-	      -e 's/); VALUES/); ON CONFLICT DO NOTHING VALUES/g' \
-	      -e '/^INSERT INTO/{ /ON CONFLICT/!s/;$$/ ON CONFLICT DO NOTHING;/ }' \
-	      "$$CLI" ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null
-	@if [ -f olds/sql/legacy_fournisseurs.sql ]; then \
+	@echo "$(GREEN)Staging Clients -> schéma legacy_clients...$(NC)"; \
+	printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_clients CASCADE; CREATE SCHEMA legacy_clients; SET search_path TO legacy_clients;\n" > /tmp/staging_load.sql; \
+	if [ -f legacy-db/init/sql_processed/database_export.sql ]; then \
+	  echo "$(GREEN)  + database_export.sql$(NC)"; \
+	  sed -e 's/\xEF\xBB\xBF//g' -e 's/BOOLEAN/INTEGER/g' -e 's/-00 00:00:00/-01 00:00:00/g' \
+	      legacy-db/init/sql_processed/database_export.sql >> /tmp/staging_load.sql; \
+	fi; \
+	if [ -f legacy-db/init/sql_processed/legacy_clients.sql ]; then \
+	  echo "$(GREEN)  + legacy_clients.sql$(NC)"; \
+	  sed -e 's/\xEF\xBB\xBF//g' -e 's/BOOLEAN/INTEGER/g' -e 's/-00 00:00:00/-01 00:00:00/g' \
+	      legacy-db/init/sql_processed/legacy_clients.sql >> /tmp/staging_load.sql; \
+	elif [ -f olds/sql/legacy_clients.sql ]; then \
+	  echo "$(GREEN)  + olds/sql/legacy_clients.sql (fallback)$(NC)"; \
+	  sed -e 's/\xEF\xBB\xBF//g' -e 's/BOOLEAN/INTEGER/g' -e 's/-00 00:00:00/-01 00:00:00/g' \
+	      olds/sql/legacy_clients.sql >> /tmp/staging_load.sql; \
+	fi; \
+	cat /tmp/staging_load.sql | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null
+	@if [ -f legacy-db/init/sql_processed/legacy_fournisseurs.sql ]; then \
 	  echo "$(GREEN)Staging Fournisseurs -> schéma legacy_fsr...$(NC)"; \
 	  ( printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_fsr CASCADE; CREATE SCHEMA legacy_fsr; SET search_path TO legacy_fsr;\n"; \
 	    sed -e 's/\xEF\xBB\xBF//g' \
 	        -e 's/BOOLEAN/INTEGER/g' \
 	        -e 's/-00 00:00:00/-01 00:00:00/g' \
-	        -e 's/); VALUES/); ON CONFLICT DO NOTHING VALUES/g' \
-	        -e '/^INSERT INTO/{ /ON CONFLICT/!s/;$$/ ON CONFLICT DO NOTHING;/ }' \
+	        legacy-db/init/sql_processed/legacy_fournisseurs.sql ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null; \
+	elif [ -f olds/sql/legacy_fournisseurs.sql ]; then \
+	  echo "$(GREEN)Staging Fournisseurs -> schéma legacy_fsr (fallback)...$(NC)"; \
+	  ( printf "SET datestyle='ISO, MDY';\nDROP SCHEMA IF EXISTS legacy_fsr CASCADE; CREATE SCHEMA legacy_fsr; SET search_path TO legacy_fsr;\n"; \
+	    sed -e 's/\xEF\xBB\xBF//g' \
+	        -e 's/BOOLEAN/INTEGER/g' \
+	        -e 's/-00 00:00:00/-01 00:00:00/g' \
 	        olds/sql/legacy_fournisseurs.sql ) | $(DOCKER_COMPOSE) exec -T db psql -U hospital_user -d hospital_db -v ON_ERROR_STOP=0 >/dev/null; \
-	else echo "$(YELLOW)olds/sql/legacy_fournisseurs.sql absent — lancez 'make migrate-legacy-export'.$(NC)"; fi
+	else echo "$(YELLOW)Aucun fichier legacy_fournisseurs.sql trouvé$(NC)"; fi
 	@echo "$(GREEN)✓ Staging chargé.$(NC)"
 
 migrate-legacy-dry: migrate-legacy-load ## 3a) Simulation (aucune écriture) : compte ce qui serait importé

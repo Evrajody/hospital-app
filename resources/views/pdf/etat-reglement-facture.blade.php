@@ -13,7 +13,7 @@
 
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 13px;
+            font-size: 8px;
             color: #000;
             line-height: 1.5;
             padding: 14mm 18mm 18mm;
@@ -55,18 +55,18 @@
 
         .fournisseur-line {
             margin: 15px 0 10px;
-            font-size: 13px;
+            font-size: 8px;
         }
 
         .info-line {
             margin: 5px 0;
-            font-size: 13px;
+            font-size: 8px;
         }
 
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 8px;
             margin: 5px 0;
         }
 
@@ -83,33 +83,33 @@
 
         .objet-line {
             margin: 10px 0;
-            font-size: 13px;
+            font-size: 8px;
         }
 
         .montants-line {
             margin: 5px 0 15px;
-            font-size: 13px;
+            font-size: 8px;
         }
 
         .reglements-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
+            font-size: 8px;
             margin: 15px 0;
         }
 
         .reglements-table th {
             border: 1px solid #000;
-            padding: 6px 8px;
+            padding: 4px 6px;
             font-weight: bold;
             text-align: center;
             background-color: #fff;
-            font-size: 11px;
+            font-size: 7px;
         }
 
         .reglements-table td {
             border: 1px solid #000;
-            padding: 5px 8px;
+            padding: 3px 6px;
         }
 
         .reglements-table td.montant {
@@ -119,7 +119,7 @@
         .totaux-table {
             margin-left: auto;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 8px;
             margin-top: 10px;
         }
 
@@ -143,7 +143,7 @@
             bottom: 10mm;
             left: 0;
             right: 0;
-            font-size: 10px;
+            font-size: 7px;
             color: #666;
             font-style: italic;
             padding: 0 10mm;

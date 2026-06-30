@@ -142,14 +142,14 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">
-              {{ groupedReglements.length }} facture(s) sur cette page &mdash; {{ pagination.total }} r&egrave;glement(s)
+              {{ props.groupedReglements.length }} facture(s) sur cette page — {{ pagination.total }} facture(s) au total
             </span>
           </div>
         </template>
 
         <el-table
           ref="mainTableRef"
-          :data="groupedReglements"
+          :data="props.groupedReglements"
           :height="tableHeight"
           stripe
           border
@@ -284,10 +284,11 @@
           </el-table-column>
         </el-table>
 
-        <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <!-- Pagination (par facture) -->
+        <div class="pagination-container">
           <el-pagination
-            :current-page="pagination.current_page"
-            :page-size="pagination.per_page"
+            v-model:current-page="pagination.current_page"
+            v-model:page-size="pagination.per_page"
             :page-sizes="[10, 20, 50, 100]"
             :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
@@ -599,7 +600,7 @@ const mainTableRef = ref(null);
 const { tableHeight } = useTableHeight(mainTableRef, 84);
 
 const props = defineProps({
-  reglements: { type: Array, default: () => [] },
+  groupedReglements: { type: Array, default: () => [] },
   clients: { type: Array, default: () => [] },
   banques: { type: Array, default: () => [] },
   stats: {
@@ -631,7 +632,7 @@ const filters = ref({
   date_range: null,
 });
 
-// --- Filtres & pagination 100 % serveur (mêmes mécaniques que Règlements Fournisseurs) ---
+// --- Filtres 100 % serveur ---
 const handleSearch = () => {
   const params = {};
   if (filters.value.search) params.search = filters.value.search;
@@ -644,7 +645,7 @@ const handleSearch = () => {
   router.get('/reglements-clients', params, {
     preserveState: true,
     preserveScroll: true,
-    only: ['reglements', 'stats', 'pagination', 'filters'],
+    only: ['groupedReglements', 'pagination', 'stats', 'filters'],
   });
 };
 const debouncedSearch = debounce(handleSearch, 300);
@@ -655,7 +656,7 @@ const handleSizeChange = (size) => {
   params.set('page', '1');
   router.visit(`/reglements-clients?${params.toString()}`, {
     preserveState: true,
-    only: ['reglements', 'pagination'],
+    only: ['groupedReglements', 'pagination'],
   });
 };
 
@@ -665,9 +666,10 @@ const handlePageChange = (page) => {
   router.visit(`/reglements-clients?${params.toString()}`, {
     preserveState: true,
     preserveScroll: true,
-    only: ['reglements', 'pagination'],
+    only: ['groupedReglements', 'pagination'],
   });
 };
+
 const detailDialogVisible = ref(false);
 const selectedReglement = ref(null);
 const showNewReglementModal = ref(false);
@@ -702,28 +704,7 @@ const editForm = ref(null);
 const editLoading = ref(false);
 const editingReglementId = ref(null);
 
-// Regroupe par facture les règlements de la PAGE COURANTE (filtrage/pagination serveur).
-const groupedReglements = computed(() => {
-  const map = new Map();
-  for (const r of props.reglements || []) {
-    const factureId = r.facture?.id ?? `${r.facture?.reference || 'unknown'}-${r.client?.id || 0}`;
-    if (!map.has(factureId)) {
-      map.set(factureId, {
-        key: `f-${factureId}`,
-        facture: r.facture || { reference: '-' },
-        client: r.client || { nom: '-' },
-        reglements: [],
-        total_montant_regle: 0,
-        count: 0,
-      });
-    }
-    const grp = map.get(factureId);
-    grp.reglements.push(r);
-    grp.total_montant_regle += parseFloat(r.montant) || 0;
-    grp.count += 1;
-  }
-  return Array.from(map.values());
-});
+// Les données groupedReglements viennent directement du serveur (triées par numero_ligne).
 
 const handleReset = () => {
   filters.value = { search: '', client_id: null, type_reglement: '', date_range: null };
@@ -936,4 +917,5 @@ const formatDate = (date) => {
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
 :deep(.el-descriptions__label) { font-weight: 600; width: 180px; }
 .nowrap-cell { white-space: nowrap; }
+.pagination-container { display: flex; justify-content: flex-end; margin-top: 16px; }
 </style>

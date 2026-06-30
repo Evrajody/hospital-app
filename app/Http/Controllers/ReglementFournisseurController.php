@@ -26,81 +26,83 @@ class ReglementFournisseurController extends Controller
      */
     public function indexView(Request $request): InertiaResponse
     {
-        $query = ReglementFournisseur::with(['facture', 'fournisseur', 'createur']);
+        // --- Étape 1 : construire la requête filtres sur les règlements ---
+        $reglementQuery = ReglementFournisseur::query();
 
-        // Filtre par fournisseur
         if ($request->filled('fournisseur_id')) {
-            $query->where('fournisseur_id', $request->fournisseur_id);
+            $reglementQuery->where('fournisseur_id', $request->fournisseur_id);
         }
-
-        // Filtre par mode de paiement
         if ($request->filled('mode_paiement')) {
-            $query->where('mode_paiement', $request->mode_paiement);
+            $reglementQuery->where('mode_paiement', $request->mode_paiement);
         }
-
-        // Filtre par période
         if ($request->filled('date_debut') && $request->filled('date_fin')) {
-            $query->periode($request->date_debut, $request->date_fin);
+            $reglementQuery->periode($request->date_debut, $request->date_fin);
         }
-
-        // Recherche
         if ($request->filled('search')) {
-            $query->recherche($request->search);
+            $reglementQuery->recherche($request->search);
         }
 
-        // Tri
-        $sortField = $request->input('sort', 'date_reglement');
-        $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
+        // --- Étape 2 : paginer les factures (distinct facture_id) ---
+        $perPage = (int) $request->input('per_page', 20);
+        $page = (int) $request->input('page', 1);
 
-        $relationSortMap = [
-            'facture' => ['factures_fournisseurs', 'facture_id', 'numero_piece'],
-            'fournisseur' => ['fournisseurs', 'fournisseur_id', 'nom'],
-            'compte_bancaire' => ['comptes_bancaires', 'compte_bancaire_id', 'numero_compte'],
-        ];
+        $factureIds = (clone $reglementQuery)
+            ->select('facture_id')
+            ->distinct()
+            ->orderBy('facture_id')
+            ->pluck('facture_id');
 
-        $allowedDirectSorts = ['date_reglement', 'montant', 'mode_paiement', 'reference', 'beneficiaire', 'created_at'];
+        $totalFactures = $factureIds->count();
+        $factureIdsPage = $factureIds->slice(($page - 1) * $perPage, $perPage)->values()->all();
 
-        if (isset($relationSortMap[$sortField])) {
-            [$table, $fk, $column] = $relationSortMap[$sortField];
-            $query->leftJoin($table, "reglements_fournisseurs.{$fk}", '=', "{$table}.id")
-                  ->orderBy("{$table}.{$column}", $sortOrder)
-                  ->select('reglements_fournisseurs.*');
-        } elseif (in_array($sortField, $allowedDirectSorts)) {
-            $query->orderBy($sortField, $sortOrder);
-        } else {
-            $query->orderBy('date_reglement', $sortOrder);
-        }
+        // --- Étape 3 : charger TOUS les règlements de cette page de factures ---
+        $reglements = ReglementFournisseur::with(['facture.fournisseur.compteComptable', 'fournisseur', 'createur'])
+            ->whereIn('facture_id', $factureIdsPage)
+            ->orderBy('facture_id')
+            ->orderBy('numero_ligne')
+            ->get();
 
-        // Pagination
-        $perPage = $request->input('per_page', 20);
-        $reglementsPaginated = $query->paginate($perPage);
-
-        // Formater les règlements
-        $reglements = $reglementsPaginated->map(fn($r) => $r->toApiArray());
+        // --- Étape 4 : regrouper par facture ---
+        $grouped = $reglements->groupBy('facture_id')->map(function ($regs, $factureId) {
+            $first = $regs->first();
+            return [
+                'key' => "f-{$factureId}",
+                'facture' => [
+                    'id' => $first->facture?->id,
+                    'numero' => $first->facture?->numero_piece ?? '-',
+                    'date' => $first->facture?->date?->format('Y-m-d') ?? $first->facture?->date,
+                    'montant_ttc' => (float) ($first->facture?->montant_ttc ?? 0),
+                    'montant_paye' => (float) ($first->facture?->montant_paye ?? 0),
+                    'reste_a_payer' => (float) ($first->facture?->reste_a_payer ?? 0),
+                    'libelle' => $first->facture?->libelle ?? '',
+                ],
+                'fournisseur' => [
+                    'id' => $first->fournisseur?->id,
+                    'nom' => $first->fournisseur?->nom ?? '-',
+                ],
+                'reglements' => $regs->map(fn($r) => $r->toApiArray())->values()->all(),
+                'total_montant_regle' => (float) $regs->sum('montant'),
+                'count' => $regs->count(),
+            ];
+        })->values()->all();
 
         // Fournisseurs pour les filtres
-        $fournisseurs = Fournisseur::select('id', 'nom')    
+        $fournisseurs = Fournisseur::select('id', 'nom')
             ->orderBy('nom')
             ->get()
             ->map(fn($f) => ['id' => $f->id, 'nom' => $f->nom]);
 
-        // Statistiques
         $stats = ReglementFournisseur::getStatistiques();
 
-        // NB : la liste des factures impayées n'est PLUS injectée ici. Sur les gros
-        // volumes (import legacy), elle gonflait les props Inertia stockées dans
-        // history.state → dépassement de la limite de history.pushState sous Firefox
-        // (NS_ERROR_ILLEGAL_VALUE). Le sélecteur de facture du formulaire « Nouveau
-        // règlement » interroge désormais l'API en recherche serveur (cf. front).
-
         return Inertia::render('ReglementsFournisseurs/Index', [
-            'reglements' => $reglements,
+            'groupedReglements' => $grouped,
+            'totalReglements' => $reglements->count(),
             'fournisseurs' => $fournisseurs,
             'stats' => $stats,
             'pagination' => [
-                'current_page' => $reglementsPaginated->currentPage(),
-                'per_page' => $reglementsPaginated->perPage(),
-                'total' => $reglementsPaginated->total(),
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $totalFactures,
             ],
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',

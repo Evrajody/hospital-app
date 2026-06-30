@@ -558,7 +558,7 @@ class RapportFournisseurController extends Controller
                     'taux_aib' => (float) $fact->taux,
                     'montant_aib' => (float) $fact->montant_reduction,
                     'reg_periode' => $regPeriode,
-                    'mt_total_reg' => (float) $fact->montant_paye,
+                    'mt_total_reg' => $regPeriode,
                     'marquee_soldee' => $marqueeSoldee,
                 ];
                 $lignes[] = $row;
@@ -1466,13 +1466,16 @@ class RapportFournisseurController extends Controller
         }
 
         $query = ReglementFournisseur::where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
-            ->whereBetween('date_reglement', [$dateDebut, $dateFin]);
+            ->whereBetween('date_reglement', [$dateDebut, $dateFin])
+            ->with(['facture.fournisseur.compteComptable']);
 
-        $reglements = $query
-            ->with(['facture.fournisseur.compteComptable'])
+        $total = (clone $query)->count();
+
+        $perPage = (int) $request->input('per_page', 20);
+        $paginator = $query
             ->orderByDesc('date_reglement')
-            ->get()
-            ->map(function ($r) {
+            ->paginate($perPage);
+        $reglements = $paginator->map(function ($r) {
                 $fournisseur = $r->facture?->fournisseur;
                 $code = $fournisseur?->compteComptable?->numero_compte ?? '';
                 $fournisseurLabel = $code ? "[{$code}] {$fournisseur->nom}" : ($fournisseur->nom ?? 'Inconnu');
@@ -1498,7 +1501,12 @@ class RapportFournisseurController extends Controller
                 ];
             });
 
-        return response()->json(['reglements' => $reglements]);
+        return response()->json([
+            'reglements' => $reglements,
+            'total' => $total,
+            'current_page' => $paginator->currentPage() ?? 1,
+            'per_page' => $perPage,
+        ]);
     }
 
     public function bordereauTransmissionPdf(Request $request)

@@ -51,11 +51,11 @@
             <el-icon><Money /></el-icon>
             <template #title>Règlements</template>
           </el-menu-item>
-          <el-menu-item v-if="can('factures-fournisseurs.voir')" index="/factures-fournisseurs/soldes" @click="navigate('/factures-fournisseurs/soldes')">
+          <el-menu-item v-if="can('factures-fournisseurs.soldes.voir')" index="/factures-fournisseurs/soldes" @click="navigate('/factures-fournisseurs/soldes')">
             <el-icon><Coin /></el-icon>
             <template #title>Factures et Soldes</template>
           </el-menu-item>
-          <el-menu-item v-if="can('factures-fournisseurs.voir')" index="/factures-fournisseurs/bordereau-transmission" @click="navigate('/factures-fournisseurs/bordereau-transmission')">
+          <el-menu-item v-if="can('factures-fournisseurs.bordereau.voir')" index="/factures-fournisseurs/bordereau-transmission" @click="navigate('/factures-fournisseurs/bordereau-transmission')">
             <el-icon><Tickets /></el-icon>
             <template #title>Bordereau de transmission</template>
           </el-menu-item>

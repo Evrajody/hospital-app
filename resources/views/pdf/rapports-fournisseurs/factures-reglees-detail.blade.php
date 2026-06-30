@@ -13,7 +13,7 @@
            réapplique sur CHAQUE page, y compris les pages de continuation d'un
            tableau qui déborde et les sauts de page entre fournisseurs.
            (Une marge sur un bloc enfant ou sur @page n'est PAS reprise en continuation.) */
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; line-height: 1.4; padding: 14mm 14mm 20mm; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 8px; color: #000; line-height: 1.4; padding: 14mm 14mm 20mm; }
 
         .fournisseur-page + .fournisseur-page { page-break-before: always; }
 
@@ -29,20 +29,15 @@
 
         .fournisseur-label { font-size: 12px; margin: 14px 0 6px; }
 
-        table.report-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10px; margin-top: 6px; }
-        table.report-table th { background: #fff; border: 1px solid #000; padding: 6px 4px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 9px; word-wrap: break-word; }
-        table.report-table td { background: #fff; border: 1px solid #000; padding: 5px 4px; word-wrap: break-word; }
+        table.report-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 8px; margin-top: 6px; }
+        table.report-table th { background: #fff; border: 1px solid #000; padding: 4px 3px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 7px; word-wrap: break-word; }
+        table.report-table td { background: #fff; border: 1px solid #000; padding: 3px 3px; word-wrap: break-word; }
         table.report-table .montant { text-align: right; }
         table.report-table .col-num, table.report-table .col-date { text-align: center; }
         table.report-table .total-row td { font-weight: bold; border: 1px solid #000; }
         table.report-table .total-label { text-align: right; text-transform: uppercase; }
-        table.report-table tr.soldee-row td { background-color: #fff3e0; }
-        table.report-table td.deficit { color: #b91c1c; font-weight: bold; }
 
-        .soldee-legende { font-size: 9px; color: #92400e; margin: 4px 0 8px; }
-        .soldee-legende .swatch { display: inline-block; width: 9px; height: 9px; background: #fff3e0; border: 1px solid #fb923c; vertical-align: middle; }
-
-        .footer-section { position: fixed; bottom: 8mm; left: 0; right: 0; font-size: 10px; padding: 0 14mm; color: #666; font-style: italic; }
+        .footer-section { position: fixed; bottom: 8mm; left: 0; right: 0; font-size: 7px; padding: 0 14mm; color: #666; font-style: italic; }
         .footer-section td { border: none; padding: 4px 0; }
         .page-num:after { content: counter(page); }
     </style>
@@ -72,10 +67,6 @@
                 </div>
                 @endif
 
-                {{-- @if(!empty($fData['has_soldee']))
-                    <div class="soldee-legende"><span class="swatch"></span> Lignes en orange = factures marquées comme soldées (clôturées sans règlement) ; « Mt Total Rég. » en rouge = déficit.</div>
-                @endif --}}
-
                 <div class="fournisseur-label">
                     <strong>Fournisseur :</strong> {{ $fData['fournisseur'] }}
                 </div>
@@ -83,15 +74,15 @@
                 <table class="report-table">
                     <thead>
                         <tr>
-                            <th style="width: 70px">N°PC</th>
+                            <th style="width: 60px">N°PC</th>
                             <th>Libellé facture</th>
-                            <th style="width: 65px">Date PC</th>
-                            <th style="width: 65px">Date Règ.</th>
+                            <th style="width: 55px">Date PC</th>
+                            <th style="width: 55px">Date Règ.</th>
                             <th class="montant">Mt TTC</th>
                             <th class="montant">Mt TVA</th>
                             <th class="montant">Avoir</th>
                             <th class="montant">Mt M.O.</th>
-                            <th class="montant" style="width: 45px">AIB (%)</th>
+                            <th class="montant" style="width: 40px">AIB (%)</th>
                             <th class="montant">Mt AIB</th>
                             <th class="montant">Rég. Période</th>
                             <th class="montant">Mt Total Rég.</th>
@@ -99,8 +90,8 @@
                     </thead>
                     <tbody>
                         @foreach($fData['lignes'] as $ligne)
-                            <tr class="{{ !empty($ligne['marquee_soldee']) ? 'soldee-row' : '' }}">
-                                <td>{{ $ligne['numero_piece'] }}{{ !empty($ligne['marquee_soldee']) ? ' (soldée)' : '' }}</td>
+                            <tr>
+                                <td>{{ $ligne['numero_piece'] }}</td>
                                 <td>{{ $ligne['libelle'] }}</td>
                                 <td>{{ $ligne['date'] }}</td>
                                 <td>{{ $ligne['date_reglement'] }}</td>
@@ -111,7 +102,7 @@
                                 <td class="montant">{{ $ligne['taux_aib'] ? number_format($ligne['taux_aib'], 1) . '%' : '' }}</td>
                                 <td class="montant">{{ number_format($ligne['montant_aib'], 0, ',', ' ') }}</td>
                                 <td class="montant">{{ number_format($ligne['reg_periode'], 0, ',', ' ') }}</td>
-                                <td class="montant {{ !empty($ligne['marquee_soldee']) ? 'deficit' : '' }}">{{ number_format($ligne['mt_total_reg'], 0, ',', ' ') }}</td>
+                                <td class="montant">{{ number_format($ligne['mt_total_reg'], 0, ',', ' ') }}</td>
                             </tr>
                         @endforeach
                     </tbody>

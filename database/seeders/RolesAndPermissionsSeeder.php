@@ -27,6 +27,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'factures-fournisseurs.creer',
             'factures-fournisseurs.modifier',
             'factures-fournisseurs.supprimer',
+            'factures-fournisseurs.soldes.voir',
+            'factures-fournisseurs.bordereau.voir',
 
             // Règlements fournisseurs
             'reglements-fournisseurs.voir',
@@ -116,6 +118,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $chefCompta->syncPermissions([
             'fournisseurs.voir', 'fournisseurs.creer', 'fournisseurs.modifier', 'fournisseurs.supprimer',
             'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.supprimer',
+            'factures-fournisseurs.soldes.voir', 'factures-fournisseurs.bordereau.voir',
             'reglements-fournisseurs.voir', 'reglements-fournisseurs.creer', 'reglements-fournisseurs.modifier', 'reglements-fournisseurs.supprimer',
             'clients.voir', 'clients.creer', 'clients.modifier', 'clients.supprimer',
             'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier', 'factures-clients.supprimer',
@@ -130,6 +133,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $gestFournisseurs->syncPermissions([
             'fournisseurs.voir', 'fournisseurs.creer', 'fournisseurs.modifier',
             'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier',
+            'factures-fournisseurs.soldes.voir', 'factures-fournisseurs.bordereau.voir',
             'reglements-fournisseurs.voir', 'reglements-fournisseurs.creer', 'reglements-fournisseurs.modifier',
             'plan-comptable.voir',
             'banques.voir',

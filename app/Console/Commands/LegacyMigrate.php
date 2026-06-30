@@ -152,9 +152,9 @@ class LegacyMigrate extends Command
             'fournisseurs' => [[$this->schemaFsr, 'fournisseur']],
             'clients' => [[$this->schemaClients, 'client']],
             'banques' => [[$this->schemaClients, 'banque'], [$this->schemaClients, 'bordereau'], [$this->schemaFsr, 'approvisionnement']],
-            'factures-fournisseurs' => [[$this->schemaFsr, 'facture']],
+            'factures-fournisseurs' => [[$this->schemaFsr, 'facture_fournisseur']],
             'factures-clients' => [[$this->schemaClients, 'facture']],
-            'reglements-fournisseurs' => [[$this->schemaFsr, 'reglement']],
+            'reglements-fournisseurs' => [[$this->schemaFsr, 'reglement_fournisseur']],
             'reglements-clients' => [[$this->schemaClients, 'reglement']],
             'imputations' => [[$this->schemaFsr, 'imputation']],
             'users' => [[$this->schemaClients, 'user'], [$this->schemaClients, 'user 1'], [$this->schemaFsr, 'user']],
@@ -245,7 +245,7 @@ class LegacyMigrate extends Command
     {
         foreach ($this->staging($this->schemaClients, 'client') as $r) {
             $nom = $this->cut($r->rscli ?? null, 255) ?: 'Client '.($r->numcli ?? '');
-            $numcli = str_replace(',', '.', $this->cut($r->numcli ?? null, 20));
+            $numcli = $this->cut($r->numcli ?? null, 20);
             $compteId = $this->ensureCompte($numcli, $nom);
             $c = Client::updateOrCreate(
                 ['compte_comptable_id' => $compteId, 'nom' => $nom],
@@ -331,7 +331,7 @@ class LegacyMigrate extends Command
 
     private function migrateFacturesFournisseurs(): void
     {
-        foreach ($this->staging($this->schemaFsr, 'facture') as $r) {
+        foreach ($this->staging($this->schemaFsr, 'facture_fournisseur') as $r) {
             $numP = $this->clean($r->nump ?? null);
             if (! $numP) {
                 continue;
@@ -406,7 +406,7 @@ class LegacyMigrate extends Command
         $introuvables = 0;
 
         DB::beginTransaction();
-        foreach ($this->staging($this->schemaFsr, 'facture') as $r) {
+        foreach ($this->staging($this->schemaFsr, 'facture_fournisseur') as $r) {
             $numP = $this->clean($r->nump ?? null);
             if (! $numP) {
                 continue;
@@ -449,10 +449,10 @@ class LegacyMigrate extends Command
     {
         foreach ($this->staging($this->schemaClients, 'facture') as $r) {
             $ref = $this->clean($r->reffac ?? null);
-            if (! $ref) {
+            if ($ref === null) {
                 continue;
             }
-            $clientId = $this->clientByNumcli[$this->key(str_replace(',', '.', $r->numcli ?? ''))] ?? null;
+            $clientId = $this->clientByNumcli[$this->key($r->numcli ?? '')] ?? null;
             if (! $clientId) {
                 $this->bump('factures_clients_orphelines');
                 continue;
@@ -493,7 +493,7 @@ class LegacyMigrate extends Command
             }
         }
 
-        foreach ($this->staging($this->schemaFsr, 'reglement') as $r) {
+        foreach ($this->staging($this->schemaFsr, 'reglement_fournisseur') as $r) {
             $factureId = $this->factureFsrByNumP[$this->key($r->nump ?? '')] ?? null;
             if (! $factureId) {
                 continue;
@@ -515,7 +515,7 @@ class LegacyMigrate extends Command
                     'fournisseur_nom' => $facture?->fournisseur_nom,
                     'facture_numero' => $facture?->numero_piece,
                     'mode_paiement' => $this->mode($r->modreg ?? null),
-                    'beneficiaire' => $this->cut($r->insreg ?? null, 255) ?: $facture?->fournisseur_nom,
+                    'beneficiaire' => $this->cut($r->ord ?? null, 255) ?: $facture?->fournisseur_nom,
                     'deduire_aib' => (bool) ($this->num($r->raib ?? 0) > 0),
                     'statut' => 'valide',
                     'created_by_name' => $this->clean($r->user ?? null),
@@ -591,7 +591,7 @@ class LegacyMigrate extends Command
     private function migrateImputations(): void
     {
         // Imputations / écritures fournisseurs reprises telles quelles
-        foreach ($this->staging($this->schemaFsr, 'imputation') as $r) {
+        foreach ($this->staging($this->schemaFsr, 'imputation_fournisseur') as $r) {
             $factureId = $this->factureFsrByNumP[$this->key($r->nump ?? '')]
                 ?? FactureFournisseur::where('numero_piece', $this->cut($r->nump ?? null, 50))->value('id');
             if (! $factureId) {

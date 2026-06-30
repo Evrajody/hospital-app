@@ -21,27 +21,24 @@ class ReglementClientController extends Controller
      */
     public function indexView(Request $request): InertiaResponse
     {
-        $query = ReglementClient::with(['facture', 'client', 'banqueDepot', 'approvisionnement', 'avance'])
-            ->orderBy('date_reglement', 'desc');
+        // --- Étape 1 : construire la requête filtres sur les règlements ---
+        $reglementQuery = ReglementClient::query();
 
         if ($request->filled('client_id')) {
-            $query->where('client_id', $request->client_id);
+            $reglementQuery->where('client_id', $request->client_id);
         }
-
         if ($request->filled('type_reglement')) {
-            $query->where('type_reglement', $request->type_reglement);
+            $reglementQuery->where('type_reglement', $request->type_reglement);
         }
-
         if ($request->filled('date_debut')) {
-            $query->whereDate('date_reglement', '>=', $request->date_debut);
+            $reglementQuery->whereDate('date_reglement', '>=', $request->date_debut);
         }
         if ($request->filled('date_fin')) {
-            $query->whereDate('date_reglement', '<=', $request->date_fin);
+            $reglementQuery->whereDate('date_reglement', '<=', $request->date_fin);
         }
-
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
+            $reglementQuery->where(function ($q) use ($search) {
                 $q->where('numero_ligne', 'ILIKE', "%{$search}%")
                   ->orWhere('reference_cheque', 'ILIKE', "%{$search}%")
                   ->orWhere('institution', 'ILIKE', "%{$search}%")
@@ -50,20 +47,51 @@ class ReglementClientController extends Controller
             });
         }
 
-        // Pagination serveur (au lieu d'un ->get() de toute la table).
+        // --- Étape 2 : paginer les factures (distinct facture_id) ---
         $perPage = (int) $request->input('per_page', 20);
-        $reglementsPaginated = $query->paginate($perPage);
-        $reglements = $reglementsPaginated->getCollection()->map(fn($r) => $r->toApiArray());
+        $page = (int) $request->input('page', 1);
+
+        $factureIds = (clone $reglementQuery)
+            ->select('facture_id')
+            ->distinct()
+            ->orderBy('facture_id')
+            ->pluck('facture_id');
+
+        $totalFactures = $factureIds->count();
+        $factureIdsPage = $factureIds->slice(($page - 1) * $perPage, $perPage)->values()->all();
+
+        // --- Étape 3 : charger TOUS les règlements de cette page de factures ---
+        $reglements = ReglementClient::with(['facture', 'client', 'banqueDepot', 'approvisionnement', 'avance'])
+            ->whereIn('facture_id', $factureIdsPage)
+            ->orderBy('facture_id')
+            ->orderBy('numero_ligne')
+            ->get();
+
+        // --- Étape 4 : regrouper par facture ---
+        $grouped = $reglements->groupBy('facture_id')->map(function ($regs, $factureId) {
+            $first = $regs->first();
+            return [
+                'key' => "f-{$factureId}",
+                'facture' => [
+                    'id' => $first->facture?->id,
+                    'reference' => $first->facture?->reference ?? '-',
+                    'date_facture' => $first->facture?->date_facture?->format('Y-m-d') ?? $first->facture?->date,
+                    'montant_ttc' => (float) ($first->facture?->montant_ttc ?? 0),
+                ],
+                'client' => [
+                    'id' => $first->client?->id,
+                    'nom' => $first->client?->nom ?? '-',
+                ],
+                'reglements' => $regs->map(fn($r) => $r->toApiArray())->values()->all(),
+                'total_montant_regle' => (float) $regs->sum('montant'),
+                'count' => $regs->count(),
+            ];
+        })->values()->all();
 
         $clients = Client::orderBy('nom')->get()->map(fn($c) => [
             'id' => $c->id,
             'nom' => $c->nom,
         ]);
-
-        // NB : la liste des factures impayées n'est PLUS injectée dans les props
-        // (elle saturait l'historique Inertia → erreur Firefox sur gros volume).
-        // Le sélecteur du formulaire « Nouveau règlement » la cherche via l'API
-        // /api/factures-clients/impayees (recherche serveur).
 
         $stats = [
             'total_reglements' => (float) ReglementClient::sum('montant'),
@@ -99,16 +127,16 @@ class ReglementClientController extends Controller
             });
 
         return Inertia::render('ReglementClients/Index', [
-            'reglements' => $reglements,
+            'groupedReglements' => $grouped,
+            'totalReglements' => $reglements->count(),
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $totalFactures,
+            ],
             'clients' => $clients,
             'banques' => $banques,
             'stats' => $stats,
-            'pagination' => [
-                'current_page' => $reglementsPaginated->currentPage(),
-                'per_page' => $reglementsPaginated->perPage(),
-                'total' => $reglementsPaginated->total(),
-                'last_page' => $reglementsPaginated->lastPage(),
-            ],
             'filters' => [
                 'search' => $request->input('search', ''),
                 'client_id' => $request->input('client_id') ? (int) $request->input('client_id') : null,

@@ -31,6 +31,11 @@
 
       <!-- Résultats -->
       <el-card v-if="fetched" class="table-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">{{ total }} règlement(s) trouvé(s)</span>
+          </div>
+        </template>
         <div v-if="reglements.length === 0" class="empty-state">
           <el-empty description="Aucun règlement trouvé pour cette période" />
         </div>
@@ -41,10 +46,11 @@
           :data="reglements"
           border
           size="small"
+          :max-height="500"
           @selection-change="handleSelectionChange"
         >
-          <el-table-column type="selection" width="45" />
-          <el-table-column label="Fournisseur" min-width="250">
+          <el-table-column type="selection" width="45" fixed="left" />
+          <el-table-column label="Fournisseur" min-width="250" fixed="left">
             <template #default="{ row }">{{ row.fournisseur_label }}</template>
           </el-table-column>
           <el-table-column prop="numero_piece" label="N° Pièce" min-width="120" />
@@ -58,6 +64,20 @@
           <el-table-column prop="institution" label="Institution" min-width="180" />
           <el-table-column prop="beneficiaire" label="Bénéficiaire" min-width="180" />
         </el-table>
+
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="total"
+            layout="total, sizes, prev, pager, next, jumper"
+            background
+            @size-change="fetchData"
+            @current-change="fetchData"
+          />
+        </div>
       </el-card>
     </div>
 
@@ -111,6 +131,9 @@ const fetched = ref(false);
 const reglements = ref([]);
 const selectedIds = ref([]);
 const tableRef = ref(null);
+const currentPage = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 
 const handleSelectionChange = (selection) => {
   selectedIds.value = selection.map(r => r.id);
@@ -127,9 +150,12 @@ const fetchData = async () => {
     const params = new URLSearchParams();
     params.append('date_debut', debut);
     params.append('date_fin', fin);
+    params.append('page', currentPage.value);
+    params.append('per_page', pageSize.value);
     const res = await fetch(`/factures-fournisseurs/bordereau-transmission/data?${params}`);
     const json = await res.json();
     reglements.value = json.reglements || [];
+    total.value = json.total || 0;
     selectedIds.value = [];
     fetched.value = true;
   } catch (e) {
@@ -158,6 +184,9 @@ const exportExcel = () => {
 .filter-card, .table-card { border-radius: 8px; }
 .filter-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
 .empty-state { padding: 40px 0; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-weight: 600; color: #374151; }
+.pagination-container { display: flex; justify-content: flex-end; margin-top: 16px; }
 
 /* Barre d'actions flottante, toujours accessible en bas de l'écran */
 .floating-actions {

@@ -143,7 +143,7 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">
-              {{ groupedReglements.length }} facture(s) — {{ pagination.total }} règlement(s)
+              {{ groupedReglements.length }} facture(s) sur cette page — {{ pagination.total }} facture(s) au total
             </span>
             <div class="card-actions">
               <el-button :icon="Download" size="small" @click="handleExport">
@@ -160,7 +160,7 @@
         <el-table
           ref="mainTableRef"
           v-loading="loading"
-          :data="groupedReglements"
+          :data="props.groupedReglements"
           :height="tableHeight"
           stripe
           border
@@ -315,7 +315,7 @@
 
         </el-table>
 
-        <!-- Pagination -->
+        <!-- Pagination (par facture) -->
         <div class="pagination-container">
           <el-pagination
             v-model:current-page="pagination.current_page"
@@ -556,7 +556,7 @@ const debounce = (fn, delay) => {
 
 // Props
 const props = defineProps({
-  reglements: {
+  groupedReglements: {
     type: Array,
     default: () => []
   },
@@ -625,36 +625,7 @@ const searchFactureImpayee = async (query) => {
   }
 };
 
-// Regrouper les règlements par facture pour affichage en lignes expansibles
-const groupedReglements = computed(() => {
-  const map = new Map();
-  for (const r of props.reglements || []) {
-    const factureId = r.facture?.id ?? `${r.facture?.numero || 'unknown'}-${r.fournisseur?.id || 0}`;
-    if (!map.has(factureId)) {
-      map.set(factureId, {
-        key: `f-${factureId}`,
-        facture: {
-          id: r.facture?.id,
-          numero: r.facture?.numero || '-',
-          date: r.facture?.date || r.facture?.date_facture || null,
-          montant_ttc: parseFloat(r.facture?.montant_ttc) || 0,
-          montant_paye: parseFloat(r.facture?.montant_paye) || 0,
-          reste_a_payer: parseFloat(r.facture?.reste_a_payer) || 0,
-          libelle: r.facture?.libelle || '',
-        },
-        fournisseur: r.fournisseur || { nom: '-' },
-        reglements: [],
-        total_montant_regle: 0,
-        count: 0,
-      });
-    }
-    const grp = map.get(factureId);
-    grp.reglements.push(r);
-    grp.total_montant_regle += parseFloat(r.montant) || 0;
-    grp.count += 1;
-  }
-  return Array.from(map.values());
-});
+// Les données groupedReglements viennent directement du serveur (triées par numero_ligne).
 
 const filters = reactive({
   search: '',
@@ -724,7 +695,7 @@ const handleSearch = () => {
   router.get('/reglements-fournisseurs', params, {
     preserveState: true,
     preserveScroll: true,
-    only: ['reglements', 'stats', 'pagination']
+    only: ['groupedReglements', 'pagination', 'stats']
   });
 };
 
@@ -739,7 +710,7 @@ const handleReset = () => {
 };
 
 const handleRefresh = () => {
-  router.reload({ only: ['reglements', 'stats', 'pagination'] });
+  router.reload({ only: ['groupedReglements', 'pagination', 'stats'] });
 };
 
 const handleSortChange = ({ prop, order }) => {
@@ -754,7 +725,7 @@ const handleSortChange = ({ prop, order }) => {
 
   router.visit(`/reglements-fournisseurs?${params.toString()}`, {
     preserveState: true,
-    only: ['reglements']
+    only: ['groupedReglements', 'pagination']
   });
 };
 
@@ -762,22 +733,21 @@ const handleSizeChange = (size) => {
   const params = new URLSearchParams(window.location.search);
   params.set('per_page', size);
   params.set('page', '1');
-
   router.visit(`/reglements-fournisseurs?${params.toString()}`, {
     preserveState: true,
-    only: ['reglements', 'pagination']
+    only: ['groupedReglements', 'pagination']
   });
 };
 
 const handlePageChange = (page) => {
   const params = new URLSearchParams(window.location.search);
   params.set('page', page);
-
   router.visit(`/reglements-fournisseurs?${params.toString()}`, {
     preserveState: true,
-    only: ['reglements', 'pagination']
+    only: ['groupedReglements', 'pagination']
   });
 };
+
 
 const handleNewPayment = () => {
   selectedFactureId.value = null;
