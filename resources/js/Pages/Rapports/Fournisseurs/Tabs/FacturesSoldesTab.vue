@@ -67,7 +67,7 @@
     <!-- Résultats -->
     <div v-if="fetched" class="results-section">
       <div v-if="factures.length === 0" class="empty-state">
-        <el-empty description="Aucune facture trouvée" />
+        <el-empty description="Aucune facture soldée trouvée" />
       </div>
       <template v-else>
         <PaginatedTable
@@ -89,14 +89,12 @@
           <el-table-column label="Montant Dû" min-width="130" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant_ttc) }}</template>
           </el-table-column>
-          <el-table-column label="Total Règlement" min-width="130" align="right">
-            <template #default="{ row }">{{ formatMontant(row.montant_paye) }}</template>
+          <el-table-column label="Rég. Période" min-width="130" align="right">
+            <template #default="{ row }">{{ formatMontant(row.reg_periode) }}</template>
           </el-table-column>
-          <el-table-column label="Solde" min-width="130" align="right">
+          <el-table-column label="Mt Total Rég." min-width="130" align="right">
             <template #default="{ row }">
-              <span :style="{ color: row.reste_a_payer > 0 ? '#cc0000' : 'inherit', fontWeight: row.reste_a_payer > 0 ? 'bold' : 'normal' }">
-                {{ formatMontant(row.reste_a_payer) }}
-              </span>
+              <span style="font-weight: bold;">{{ formatMontant(row.mt_total_reg) }}</span>
             </template>
           </el-table-column>
         </PaginatedTable>
@@ -182,7 +180,7 @@ const getSummary = ({ columns }) => {
   columns.forEach((col, i) => {
     if (i === 0) { sums[i] = 'TOTAUX'; return; }
     if (i === 1 || i === 2) { sums[i] = ''; return; }
-    const keys = { 3: 'montant_ttc', 4: 'montant_paye', 5: 'reste_a_payer' };
+    const keys = { 3: 'montant_ttc', 4: 'reg_periode', 5: 'mt_total_reg' };
     if (keys[i]) {
       sums[i] = formatMontant(totaux.value[keys[i]] || 0);
     } else {

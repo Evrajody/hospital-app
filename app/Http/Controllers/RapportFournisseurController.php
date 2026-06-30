@@ -1004,26 +1004,31 @@ class RapportFournisseurController extends Controller
 
         $factures = $query->orderByDesc('date')->get();
 
-        $data = $factures->map(function ($f) use ($datePoint) {
+        $data = $factures->map(function ($f) use ($datePoint, $dateDebut, $dateFin) {
             $code = $f->fournisseur?->compteComptable?->numero_compte;
             $nom = $f->fournisseur?->nom ?? '-';
             $fournisseurLabel = $code ? "[{$code}] {$nom}" : $nom;
 
+            // Filtre des règlements non annulés
+            $reglementsValides = $f->reglements->filter(
+                fn($r) => $r->statut !== ReglementFournisseur::STATUT_ANNULE
+            );
+
+            // Filtre des règlements de la période uniquement
             if ($datePoint) {
-                // Solde arrêté à la date : on recalcule à partir des règlements effectués
-                // jusqu'à cette date (règlements déjà chargés → pas de requête par facture).
-                $montantPaye = (float) $f->reglements
-                    ->filter(fn($r) => $r->statut !== ReglementFournisseur::STATUT_ANNULE
-                        && $r->date_reglement
-                        && $r->date_reglement->format('Y-m-d') <= $datePoint)
-                    ->sum('montant');
-                // Borné à ≥ 0 : un reste à payer ne peut être négatif (facture sur-réglée
-                // quand l'AIB a été enregistrée au TTC dans le règlement → soldée).
-                $resteAPayer = max(0, (float) $f->montant_net - $montantPaye);
+                $reglementsPeriode = $reglementsValides->filter(fn($r) => $r->date_reglement
+                    && $r->date_reglement->format('Y-m-d') <= $datePoint);
             } else {
-                $montantPaye = (float) $f->montant_paye;
-                $resteAPayer = max(0, (float) $f->reste_a_payer);
+                $reglementsPeriode = $reglementsValides->filter(fn($r) => $r->date_reglement
+                    && $r->date_reglement->format('Y-m-d') >= $dateDebut
+                    && $r->date_reglement->format('Y-m-d') <= $dateFin);
             }
+
+            // Règ. Période = somme des règlements de la période pour cette facture
+            $regPeriode = (float) $reglementsPeriode->sum('montant');
+
+            // Mt Total Rég. = somme des règlements de la période (hors période exclue)
+            $mtTotalReg = $regPeriode;
 
             return [
                 'id' => $f->id,
@@ -1031,15 +1036,19 @@ class RapportFournisseurController extends Controller
                 'date_facture' => $f->date?->format('Y-m-d'),
                 'fournisseur_label' => $fournisseurLabel,
                 'montant_ttc' => (float) $f->montant_net,
-                'montant_paye' => $montantPaye,
-                'reste_a_payer' => $resteAPayer,
+                'reg_periode' => $regPeriode,
+                'mt_total_reg' => $mtTotalReg,
             ];
         });
 
+        // Ne garder que les factures soldées par les règlements de la période
+        // (mt_total_reg >= montant_net, i.e. reste à payer ≤ 0)
+        $data = $data->filter(fn($row) => $row['mt_total_reg'] >= $row['montant_ttc'])->values();
+
         $totaux = [
             'montant_ttc' => $data->sum('montant_ttc'),
-            'montant_paye' => $data->sum('montant_paye'),
-            'reste_a_payer' => $data->sum('reste_a_payer'),
+            'reg_periode' => $data->sum('reg_periode'),
+            'mt_total_reg' => $data->sum('mt_total_reg'),
         ];
 
         return [
@@ -2048,19 +2057,22 @@ class RapportFournisseurController extends Controller
             $f['date_facture'],
             $f['fournisseur_label'],
             $f['montant_ttc'],
-            $f['montant_paye'],
-            $f['reste_a_payer'],
+            $f['reg_periode'],
+            $f['mt_total_reg'],
         ], $data['factures']);
         $t = $data['totaux'];
-        $rows[] = ['', '', 'TOTAL', $t['montant_ttc'], $t['montant_paye'], $t['reste_a_payer']];
+        $rows[] = ['', '', 'TOTAL', $t['montant_ttc'], $t['reg_periode'], $t['mt_total_reg']];
 
-        $titre = 'Factures et soldes';
+        $titre = 'Factures soldées';
         if (!empty($data['date_point'])) {
             $titre .= ' au ' . \Carbon\Carbon::parse($data['date_point'])->format('d/m/Y');
+        } elseif (!empty($data['date_debut']) && !empty($data['date_fin'])) {
+            $titre .= ' du ' . \Carbon\Carbon::parse($data['date_debut'])->format('d/m/Y')
+                . ' au ' . \Carbon\Carbon::parse($data['date_fin'])->format('d/m/Y');
         }
 
         return \App\Support\ExcelExporter::download(
-            ['N° PC', 'Date', 'Fournisseur', 'Mt TTC', 'Mt Payé', 'Reste à payer'],
+            ['N° PC', 'Date', 'Fournisseur', 'Mt Dû', 'Rég. Période', 'Mt Total Rég.'],
             $rows,
             'factures-soldes',
             $titre,
