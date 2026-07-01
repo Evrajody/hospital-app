@@ -62,6 +62,14 @@
                 >
                   Marquer comme soldée
                 </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="estSoldee && can('factures-fournisseurs.desolder')"
+                  command="annuler_solde"
+                  :icon="RefreshLeft"
+                  divided
+                >
+                  Annuler le solde
+                </el-dropdown-item>
                 <el-dropdown-item v-if="!estSoldee && can('factures-fournisseurs.modifier')" command="edit" :icon="Edit">
                   Modifier
                 </el-dropdown-item>
@@ -329,6 +337,18 @@
                   </div>
                 </template>
               </el-alert>
+
+              <el-button
+                v-if="estSoldee && can('factures-fournisseurs.desolder')"
+                type="warning"
+                size="large"
+                plain
+                style="width: 100%; margin-top: 12px;"
+                @click="handleAction('annuler_solde')"
+              >
+                <el-icon><RefreshLeft /></el-icon>
+                <span>Annuler le solde et ajouter des règlements</span>
+              </el-button>
             </div>
           </el-card>
 
@@ -392,7 +412,7 @@
             </el-timeline>
 
             <el-empty v-else description="Aucun règlement" :image-size="60">
-              <el-button v-if="can('reglements-fournisseurs.creer')" type="primary" size="small" @click="handleAction('pay')">
+              <el-button v-if="!estSoldee && can('reglements-fournisseurs.creer')" type="primary" size="small" @click="handleAction('pay')">
                 Ajouter un règlement
               </el-button>
             </el-empty>
@@ -569,7 +589,8 @@ import {
   Notebook,
   DocumentCopy,
   CreditCard,
-  CircleCheck
+  CircleCheck,
+  RefreshLeft
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureFournisseurModal from '@/Components/Modals/FactureFournisseurModal.vue';
@@ -808,6 +829,36 @@ const handleAction = (command) => {
             router.reload({ only: ['facture'] });
           } else {
             ElMessage.error(result.message || 'Erreur lors du marquage de la facture');
+          }
+        } catch (error) {
+          console.error('Erreur:', error);
+          ElMessage.error('Erreur de connexion au serveur');
+        }
+      }).catch(() => {
+        // User cancelled
+      });
+      break;
+    }
+    case 'annuler_solde': {
+      ElMessageBox.confirm(
+        "Le marquage « soldée » sera annulé et le statut recalculé d'après les règlements réels. Vous pourrez de nouveau enregistrer des règlements. Aucun règlement existant n'est supprimé.",
+        'Annuler le solde',
+        {
+          confirmButtonText: 'Annuler le solde',
+          cancelButtonText: 'Fermer',
+          type: 'warning',
+        }
+      ).then(async () => {
+        try {
+          const response = await fetchApi(`/api/factures-fournisseurs/${props.facture.id}/desolder`, {
+            method: 'POST',
+          });
+          const result = await response.json();
+          if (result.success) {
+            ElMessage.success(result.message || 'Solde annulé');
+            router.reload({ only: ['facture'] });
+          } else {
+            ElMessage.error(result.message || "Erreur lors de l'annulation du solde");
           }
         } catch (error) {
           console.error('Erreur:', error);

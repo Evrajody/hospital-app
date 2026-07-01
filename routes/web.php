@@ -80,6 +80,8 @@ Route::prefix('api/factures-fournisseurs')->group(function () {
         ->where('id', '[0-9]+')->name('api.factures-fournisseurs.annuler');
     Route::post('/{id}/solder', [FactureFournisseurController::class, 'solder'])->middleware('permission:factures-fournisseurs.modifier')
         ->where('id', '[0-9]+')->name('api.factures-fournisseurs.solder');
+    Route::post('/{id}/desolder', [FactureFournisseurController::class, 'desolder'])->middleware('permission:factures-fournisseurs.desolder')
+        ->where('id', '[0-9]+')->name('api.factures-fournisseurs.desolder');
     Route::post('/{id}/imputation', [FactureFournisseurController::class, 'creerImputation'])->middleware('permission:factures-fournisseurs.modifier')
         ->where('id', '[0-9]+')->name('api.factures-fournisseurs.imputation');
     Route::get('/{id}/imputation-data', [FactureFournisseurController::class, 'imputationData'])->middleware('permission:factures-fournisseurs.voir')
@@ -161,6 +163,7 @@ Route::prefix('api/factures-clients')->group(function () {
     Route::post('/', [FactureClientController::class, 'store'])->middleware('permission:factures-clients.creer')->name('api.factures-clients.store');
     Route::put('/{id}', [FactureClientController::class, 'update'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.update');
     Route::post('/{id}/solder', [FactureClientController::class, 'solder'])->middleware('permission:factures-clients.modifier')->name('api.factures-clients.solder');
+    Route::post('/{id}/desolder', [FactureClientController::class, 'desolder'])->middleware('permission:factures-clients.desolder')->where('id', '[0-9]+')->name('api.factures-clients.desolder');
     Route::get('/{id}/etat-reglement-data', [FactureClientController::class, 'etatReglementData'])->middleware('permission:factures-clients.voir')
         ->where('id', '[0-9]+')->name('api.factures-clients.etat-reglement-data');
     Route::delete('/{id}', [FactureClientController::class, 'destroy'])->middleware('permission:factures-clients.supprimer')->name('api.factures-clients.destroy');

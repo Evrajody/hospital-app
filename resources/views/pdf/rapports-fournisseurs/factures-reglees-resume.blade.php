@@ -13,14 +13,14 @@
         <table class="report-table">
             <thead>
                 <tr>
-                    <th>Fournisseur</th>
-                    <th class="montant" style="width: 110px">Total Mt TTC</th>
-                    <th class="montant" style="width: 100px">Total Mt TVA</th>
-                    <th class="montant" style="width: 95px">Total Avoir</th>
-                    <th class="montant" style="width: 100px">Total Mt M.O.</th>
-                    <th class="montant" style="width: 95px">Total AIB</th>
-                    <th class="montant" style="width: 120px">Total Rég. Période</th>
-                    <th class="montant" style="width: 110px">Total Mt Rég.</th>
+                    <th style="width: 44%">Fournisseur</th>
+                    <th class="montant" style="width: 9%">Total Mt TTC</th>
+                    <th class="montant" style="width: 7%">Total Mt TVA</th>
+                    <th class="montant" style="width: 7%">Total Avoir</th>
+                    <th class="montant" style="width: 9%">Total Mt M.O.</th>
+                    <th class="montant" style="width: 7%">Total AIB</th>
+                    <th class="montant" style="width: 9%">Total Rég. Période</th>
+                    <th class="montant" style="width: 8%">Total Mt Rég.</th>
                 </tr>
             </thead>
             <tbody>

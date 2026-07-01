@@ -127,7 +127,7 @@ class LegacyMigrate extends Command
             $this->runStep('reglements-fournisseurs', fn () => $this->migrateReglementsFournisseurs());
             $this->runStep('reglements-clients', fn () => $this->migrateReglementsClients());
             $this->runStep('imputations', fn () => $this->migrateImputations());
-            $this->runStep('users', fn () => $this->migrateUsers());
+            // $this->runStep('users', fn () => $this->migrateUsers());
 
             $this->recomputeSoldes();
             $this->newLine();
@@ -331,13 +331,24 @@ class LegacyMigrate extends Command
 
     private function migrateFacturesFournisseurs(): void
     {
+        // Si la map fournisseurs n'a pas été construite (ex. --only=factures-fournisseurs),
+        // la repeupler depuis la DB (par n° de compte ET par nom) pour que la step soit
+        // autonome — sinon fournisseur_id resterait null (colonne NOT NULL).
+        if (empty($this->fournisseurByCompte)) {
+            foreach (Fournisseur::with('compteComptable')->get() as $f) {
+                if ($f->compteComptable) {
+                    $this->fournisseurByCompte[$this->key($f->compteComptable->numero_compte)] = $f->id;
+                }
+                $this->fournisseurByCompte['NOM:'.$this->key($f->nom)] = $f->id;
+            }
+        }
+
         foreach ($this->staging($this->schemaFsr, 'facture_fournisseur') as $r) {
             $numP = $this->clean($r->nump ?? null);
             if (! $numP) {
                 continue;
             }
-            $fId = $this->fournisseurByCompte[$this->key($r->comptimp ?? '')]
-                ?? $this->fournisseurByCompte['NOM:'.$this->key($r->rsfsr ?? '')]
+            $fId = $this->fournisseurByCompte['NOM:'.$this->key($r->rsfsr ?? '')]
                 ?? null;
             // SÉMANTIQUE DES DATES :
             //  - date (PC) = date d'ENREGISTREMENT de la pièce dans le système = datenreg.
@@ -345,23 +356,40 @@ class LegacyMigrate extends Command
             // On rejette les années aberrantes (saisie source erronée) avec repli sur
             // l'autre date puis l'année. La colonne `date` est NOT NULL → dernier recours
             // = date brute (évite un échec d'insert).
-            $datePc = $this->saneDate($r->datenreg ?? null)
-                ?: $this->saneDate($r->datfac ?? null)
-                ?: $this->yearToDate($r->annee ?? null)
-                ?: $this->date($r->datenreg ?? $r->datfac ?? null);
+            // date (PC) = date d'enregistrement de la pièce = datenreg, IMPORTÉE TELLE
+            // QUELLE. On ne substitue JAMAIS une autre colonne (datfac, année…) : fabriquer
+            // une date d'enregistrement qui n'existe pas dans la source serait une
+            // falsification. Les années visiblement erronées (ex. PC/012/0984 datenreg=1991,
+            // PC/013/1258 datenreg=1981) sont CONSERVÉES fidèlement — à corriger à la main,
+            // pas à inventer. Seul un datenreg réellement absent/illisible est ingérable :
+            // on ne peut pas l'inventer → la pièce part en quarantaine (loggée, non importée).
+            $datePc = $this->date($r->datenreg ?? null);
+            if ($datePc === null) {
+                $this->bump('factures_fsr_sans_date_enregistrement');
+                continue;
+            }
 
-            // Marqueur « soldé » de la source (statu=1) → date_solde = date de règlement,
-            // avec repli date d'enregistrement / facture (années aberrantes filtrées).
-            // recomputeSoldes() forcera ensuite 'payee' (le déficit éventuel reste lisible).
+            // Marqueur « soldé » de la source (statu=1) → date_solde = date de règlement
+            // telle quelle (nullable, pas de substitution non plus).
             $soldee = $this->bool($r->statu ?? false);
-            $dateSolde = $soldee
-                ? ($this->saneDate($r->datreg ?? null) ?: $this->saneDate($r->datenreg ?? null) ?: $datePc)
-                : null;
+            $dateSolde = $soldee ? $this->date($r->datreg ?? null) : null;
+
+            // Compte de CHARGE / investissement porté directement par la facture (champ
+            // `cmptimp` du legacy, ex. 601, 63244, 604123 ; typimp = classe). C'est la source
+            // AUTORITAIRE du compte d'imputation, indispensable au « Point des charges ».
+            // On ne le prenait pas (le code cherchait `comptimp`, colonne inexistante) : le
+            // compte_id ne venait que des imputations (quasi vides). On le pose ici si c'est
+            // bien une charge (6/42) ou un investissement (2).
+            $compteChargeId = null;
+            $cmptimp = $this->clean($r->cmptimp ?? null);
+            if ($cmptimp && preg_match('/^(6|42|2)/', preg_replace('/\D/', '', $cmptimp))) {
+                $compteChargeId = $this->ensureCompte($cmptimp);
+            }
 
             $f = FactureFournisseur::firstOrNew(['numero_piece' => $this->cut($numP, 50)]);
             $f->fill([
                 'date' => $datePc,
-                'date_facture_bc' => $this->saneDate($r->datfac ?? null) ?: $this->saneDate($r->datenreg ?? null),
+                'date_facture_bc' => $this->saneDate($r->datfac ?? null),
                 'reference_facture' => $this->cut($r->reffac ?? null, 100),
                 'fournisseur_id' => $fId,
                 'fournisseur_nom' => $this->cut($r->rsfsr ?? null, 255),
@@ -376,10 +404,15 @@ class LegacyMigrate extends Command
                 'montant_reduction' => $this->num($r->mtacpt ?? 0),
                 'type_reduction' => $this->clean($r->numcptacpt ?? null),
                 'assujetti_tva' => false,
-                'statut' => 'validee',
-                'date_solde' => $dateSolde,
+                'statut' => $soldee ? 'payee' : ($this->num($r->mtreg ?? 0) < $this->num($r->mtfac ?? 0) ? 'partiellement_payee' : 'payee'),
+                'date_solde' =>  $dateSolde,
                 'created_by_name' => $this->clean($r->user ?? null),
             ]);
+            // Ne pose le compte de charge que s'il est résolu (n'écrase pas avec null un
+            // compte_id éventuellement déjà renseigné par le backfill des imputations).
+            if ($compteChargeId) {
+                $f->compte_id = $compteChargeId;
+            }
             $f->save();
             $this->factureFsrByNumP[$this->key($numP)] = $f->id;
             $this->bump('factures_fournisseurs');
@@ -474,7 +507,7 @@ class LegacyMigrate extends Command
                 'montant' => $this->num($r->mtfac ?? 0),
                 'client_id' => $clientId,
                 'client_nom' => $this->cut(optional(Client::find($clientId))->nom, 255),
-                'statut' => 'non_payee',
+                'statut' => $soldee ? 'payee' : ($this->num($r->mtregfac ?? 0) < $this->num($r->mtfac ?? 0) ? 'partiellement_payee' : 'payee'),
                 'date_solde' => $dateSolde,
                 'created_by_name' => $this->clean($r->user ?? null),
             ]);
@@ -493,6 +526,15 @@ class LegacyMigrate extends Command
             }
         }
 
+        // Lookup des institutions (banques) par numéro de compte de trésorerie (classe 52).
+        // Beaucoup de règlements récents n'ont pas de nom en texte (`insreg` vide) mais un
+        // numéro de compte banque dans `comptinsreg` (ex. 5215 → ECOBANK). On résout ce
+        // numéro vers le compte du plan pour renseigner `banque` (nom) et `compte_tresorerie_id`.
+        $institutionParCompte = [];
+        foreach (CompteComptable::where('numero_compte', 'LIKE', '52%')->get(['id', 'numero_compte', 'libelle']) as $c) {
+            $institutionParCompte[$this->key($c->numero_compte)] = ['id' => $c->id, 'nom' => $c->libelle];
+        }
+
         foreach ($this->staging($this->schemaFsr, 'reglement_fournisseur') as $r) {
             $factureId = $this->factureFsrByNumP[$this->key($r->nump ?? '')] ?? null;
             if (! $factureId) {
@@ -502,6 +544,18 @@ class LegacyMigrate extends Command
             $montant = $this->num($r->mtreg ?? 0);
             $ref = $this->cut($r->numch ?? null, 100);
             $date = $this->date($r->datreg ?? null);
+
+            // Institution / banque : nom texte (insreg) en priorité, sinon résolu depuis le
+            // numéro de compte de trésorerie (comptinsreg, ex. 5215 → ECOBANK). On pose aussi
+            // compte_tresorerie_id (→ plan comptable) pour lier le règlement à sa banque.
+            $institution = $this->cut($r->insreg ?? null, 255);
+            $compteTresoId = null;
+            $cptIns = $this->clean($r->comptinsreg ?? null);
+            if ($cptIns && isset($institutionParCompte[$this->key($cptIns)])) {
+                $hit = $institutionParCompte[$this->key($cptIns)];
+                $compteTresoId = $hit['id'];
+                $institution ??= $this->cut($hit['nom'], 255);
+            }
             // Clé naturelle basée sur le CONTENU (lreg vaut souvent 0 dans l'ancien système)
             ReglementFournisseur::updateOrCreate(
                 ['facture_id' => $factureId, 'date_reglement' => $date, 'montant' => $montant, 'reference' => $ref],
@@ -515,7 +569,9 @@ class LegacyMigrate extends Command
                     'fournisseur_nom' => $facture?->fournisseur_nom,
                     'facture_numero' => $facture?->numero_piece,
                     'mode_paiement' => $this->mode($r->modreg ?? null),
-                    'beneficiaire' => $this->cut($r->ord ?? null, 255) ?: $facture?->fournisseur_nom,
+                    'beneficiaire' => $this->cut($r->ord ?? null, 255),
+                    'banque' => $institution,
+                    'compte_tresorerie_id' => $compteTresoId,
                     'deduire_aib' => (bool) ($this->num($r->raib ?? 0) > 0),
                     'statut' => 'valide',
                     'created_by_name' => $this->clean($r->user ?? null),

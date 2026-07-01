@@ -95,6 +95,14 @@
               <strong>{{ row.nom }}</strong>
             </template>
           </el-table-column>
+          <el-table-column prop="type_client_label" label="Type" width="130" sortable resizable>
+            <template #default="{ row }">
+              <el-tag v-if="row.type_client_label" size="small" type="info" class="type-client-tag">
+                {{ row.type_client_label }}
+              </el-tag>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="telephone" label="Téléphone" width="180" sortable resizable />
           <el-table-column prop="adresse" label="Adresse" sortable resizable />
         </el-table>
@@ -335,4 +343,5 @@ const handleClientSuccess = async (data) => {
 .card-title { font-size: 16px; font-weight: 600; color: #374151; }
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
 .pagination-container { margin-top: 16px; padding: 0 20px 16px; display: flex; justify-content: flex-end; }
+.type-client-tag { text-transform: capitalize; }
 </style>

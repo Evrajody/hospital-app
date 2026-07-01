@@ -27,6 +27,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'factures-fournisseurs.creer',
             'factures-fournisseurs.modifier',
             'factures-fournisseurs.supprimer',
+            'factures-fournisseurs.desolder',
             'factures-fournisseurs.soldes.voir',
             'factures-fournisseurs.bordereau.voir',
 
@@ -47,6 +48,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'factures-clients.creer',
             'factures-clients.modifier',
             'factures-clients.supprimer',
+            'factures-clients.desolder',
 
             // Règlements clients
             'reglements-clients.voir',
@@ -117,11 +119,11 @@ class RolesAndPermissionsSeeder extends Seeder
         $chefCompta = Role::firstOrCreate(['name' => User::ROLE_CHEF_COMPTA_NAME, 'guard_name' => 'web']);
         $chefCompta->syncPermissions([
             'fournisseurs.voir', 'fournisseurs.creer', 'fournisseurs.modifier', 'fournisseurs.supprimer',
-            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.supprimer',
+            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.supprimer', 'factures-fournisseurs.desolder',
             'factures-fournisseurs.soldes.voir', 'factures-fournisseurs.bordereau.voir',
             'reglements-fournisseurs.voir', 'reglements-fournisseurs.creer', 'reglements-fournisseurs.modifier', 'reglements-fournisseurs.supprimer',
             'clients.voir', 'clients.creer', 'clients.modifier', 'clients.supprimer',
-            'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier', 'factures-clients.supprimer',
+            'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier', 'factures-clients.supprimer', 'factures-clients.desolder',
             'reglements-clients.voir', 'reglements-clients.creer', 'reglements-clients.modifier', 'reglements-clients.supprimer',
             'plan-comptable.voir', 'plan-comptable.modifier', 'plan-comptable.supprimer',
             'banques.voir', 'banques.creer', 'banques.modifier', 'banques.supprimer',
@@ -132,7 +134,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $gestFournisseurs = Role::firstOrCreate(['name' => User::ROLE_GEST_FOURNISSEURS_NAME, 'guard_name' => 'web']);
         $gestFournisseurs->syncPermissions([
             'fournisseurs.voir', 'fournisseurs.creer', 'fournisseurs.modifier',
-            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier',
+            'factures-fournisseurs.voir', 'factures-fournisseurs.creer', 'factures-fournisseurs.modifier', 'factures-fournisseurs.desolder',
             'factures-fournisseurs.soldes.voir', 'factures-fournisseurs.bordereau.voir',
             'reglements-fournisseurs.voir', 'reglements-fournisseurs.creer', 'reglements-fournisseurs.modifier',
             'plan-comptable.voir',
@@ -144,7 +146,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $gestClients = Role::firstOrCreate(['name' => User::ROLE_GEST_CLIENTS_NAME, 'guard_name' => 'web']);
         $gestClients->syncPermissions([
             'clients.voir', 'clients.creer', 'clients.modifier',
-            'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier',
+            'factures-clients.voir', 'factures-clients.creer', 'factures-clients.modifier', 'factures-clients.desolder',
             'reglements-clients.voir', 'reglements-clients.creer', 'reglements-clients.modifier',
             'rapports-clients.voir',
         ]);

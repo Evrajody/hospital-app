@@ -74,18 +74,18 @@
                 <table class="report-table">
                     <thead>
                         <tr>
-                            <th style="width: 60px">N°PC</th>
-                            <th>Libellé facture</th>
-                            <th style="width: 55px">Date PC</th>
-                            <th style="width: 55px">Date Règ.</th>
-                            <th class="montant">Mt TTC</th>
-                            <th class="montant">Mt TVA</th>
-                            <th class="montant">Avoir</th>
-                            <th class="montant">Mt M.O.</th>
-                            <th class="montant" style="width: 40px">AIB (%)</th>
-                            <th class="montant">Mt AIB</th>
-                            <th class="montant">Rég. Période</th>
-                            <th class="montant">Mt Total Rég.</th>
+                            <th style="width: 6%">N°PC</th>
+                            <th style="width: 30%">Libellé facture</th>
+                            <th style="width: 6%">Date PC</th>
+                            <th style="width: 6%">Date Règ.</th>
+                            <th class="montant" style="width: 8%">Mt TTC</th>
+                            <th class="montant" style="width: 6%">Mt TVA</th>
+                            <th class="montant" style="width: 6%">Avoir</th>
+                            <th class="montant" style="width: 8%">Mt M.O.</th>
+                            <th class="montant" style="width: 4%">AIB (%)</th>
+                            <th class="montant" style="width: 6%">Mt AIB</th>
+                            <th class="montant" style="width: 7%">Rég. Période</th>
+                            <th class="montant" style="width: 7%">Mt Total Rég.</th>
                         </tr>
                     </thead>
                     <tbody>

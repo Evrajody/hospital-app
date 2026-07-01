@@ -247,14 +247,12 @@
                 <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
                 <td class="montant-mots"></td>
             </tr>
-            @if((float) ($facture->montant_tva ?? 0) > 0)
             <tr>
                 <td class="details-label">MONTANT TVA ({{ $facture->taux_tva }}%) :</td>
-                <td class="montant-val">{{ number_format((float) $facture->montant_tva, 0, ',', ' ') }}</td>
+                <td class="montant-val">{{ number_format((float) ($facture->montant_tva ?? 0), 0, ',', ' ') }}</td>
                 <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
                 <td class="montant-mots"></td>
             </tr>
-            @endif
             <tr>
                 <td class="details-label">MONTANT AVOIR / ESCOMPT :</td>
                 <td class="montant-val">{{ number_format((float) ($facture->avoir ?? 0), 0, ',', ' ') }}</td>

@@ -145,6 +145,13 @@ class FactureClientController extends Controller
     {
         $facture = FactureClient::with('client')->findOrFail($id);
 
+        // Historique des règlements de la facture (affiché dans le détail).
+        $reglements = ReglementClient::with(['banqueDepot', 'approvisionnement', 'avance'])
+            ->where('facture_id', $id)
+            ->orderBy('date_reglement', 'desc')
+            ->get()
+            ->map(fn($r) => $r->toApiArray());
+
         $clients = Client::orderBy('nom')
             ->get()
             ->map(fn($c) => [
@@ -157,6 +164,7 @@ class FactureClientController extends Controller
 
         return Inertia::render('Clients/Factures/Show', [
             'facture' => $facture->toApiArray(),
+            'reglements' => $reglements,
             'clients' => $clients,
             'prochaineReference' => $prochaineReference,
             'user' => [
@@ -454,6 +462,36 @@ class FactureClientController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Facture marquée comme soldée',
+            'data' => $facture->toApiArray(),
+        ]);
+    }
+
+    /**
+     * Annuler le marquage « soldée » d'une facture client (API).
+     *
+     * recalculerSoldes() rétablit le statut réel d'après les règlements et retire
+     * date_solde s'il reste à payer → ré-autorise l'ajout de règlements. Aucun
+     * règlement n'est supprimé.
+     */
+    public function desolder(int $id): JsonResponse
+    {
+        $facture = FactureClient::findOrFail($id);
+
+        if (is_null($facture->date_solde) && $facture->statut !== FactureClient::STATUT_PAYEE) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cette facture n'est pas soldée",
+            ], 422);
+        }
+
+        $facture->recalculerSoldes();
+        $facture->load('client');
+
+        ActivityLog::log('unsettle', 'facture_client', "Solde annulé pour la facture {$facture->reference}", $facture);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solde annulé. Vous pouvez de nouveau ajouter des règlements.',
             'data' => $facture->toApiArray(),
         ]);
     }

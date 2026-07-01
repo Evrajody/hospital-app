@@ -1012,6 +1012,65 @@ class FactureFournisseurController extends Controller
     }
 
     /**
+     * Annuler le marquage « soldée » d'une facture (API).
+     *
+     * Retire date_solde et rétablit le statut RÉEL d'après les règlements existants
+     * (payée / partiellement payée / validée). Cela ré-autorise l'ajout de règlements
+     * (peut_etre_payee redevient vrai tant qu'il reste à payer). Aucun règlement n'est
+     * supprimé : on ne fait qu'annuler la clôture manuelle.
+     */
+    public function desolder(int $id): JsonResponse
+    {
+        $facture = FactureFournisseur::findOrFail($id);
+
+        if ($facture->statut === FactureFournisseur::STATUT_ANNULEE) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Une facture annulée ne peut pas être modifiée',
+            ], 422);
+        }
+
+        if (is_null($facture->date_solde) && $facture->statut !== FactureFournisseur::STATUT_PAYEE) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cette facture n'est pas soldée",
+            ], 422);
+        }
+
+        try {
+            // Payé réel = somme des règlements non annulés.
+            $montantPaye = (float) $facture->reglements()
+                ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
+                ->sum('montant');
+            $reste = round((float) $facture->montant_net - $montantPaye, 2);
+
+            $facture->date_solde = null;
+            $facture->montant_paye = $montantPaye;
+            $facture->statut = $reste <= 0.01
+                ? FactureFournisseur::STATUT_PAYEE
+                : ($montantPaye > 0
+                    ? FactureFournisseur::STATUT_PARTIELLEMENT_PAYEE
+                    : FactureFournisseur::STATUT_VALIDEE);
+            // reste_a_payer est recalculé par calculerMontants() (hook saving).
+            $facture->save();
+
+            ActivityLog::log('unsettle', 'facture_fournisseur', "Solde annulé pour la facture {$facture->numero_piece}", $facture, ['numero_piece' => $facture->numero_piece]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Solde annulé. Vous pouvez de nouveau ajouter des règlements.',
+                'data' => $facture->fresh()->toApiArray(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Erreur lors de l'annulation du solde",
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Générer un numéro de pièce (API)
      */
     public function genererNumero(): JsonResponse

@@ -31,6 +31,9 @@
                 <el-dropdown-item v-if="!estPayee && can('reglements-clients.creer')" command="regler" :icon="Money">
                   Enregistrer un r&#232;glement
                 </el-dropdown-item>
+                <el-dropdown-item v-if="estPayee && can('factures-clients.desolder')" command="annuler_solde" :icon="RefreshLeft" divided>
+                  Annuler le solde
+                </el-dropdown-item>
                 <el-dropdown-item v-if="!estPayee && can('factures-clients.modifier')" command="edit" :icon="Edit" divided>
                   Modifier
                 </el-dropdown-item>
@@ -92,6 +95,40 @@
                 </el-tag>
               </el-descriptions-item>
             </el-descriptions>
+          </el-card>
+
+          <!-- Historique des Règlements -->
+          <el-card shadow="never" class="section-card">
+            <template #header>
+              <div class="card-header-custom">
+                <el-icon :size="20"><Clock /></el-icon>
+                <span>Historique des R&#232;glements ({{ reglements.length }})</span>
+              </div>
+            </template>
+
+            <el-timeline v-if="reglements.length > 0">
+              <el-timeline-item
+                v-for="r in reglements"
+                :key="r.id"
+                :timestamp="formatDate(r.date_reglement)"
+                placement="top"
+                color="#67c23a"
+              >
+                <el-card class="reglement-item" shadow="never">
+                  <div class="reglement-header">
+                    <el-tag size="small" :type="r.type_reglement_couleur || 'primary'">{{ r.type_reglement_libelle || 'Règlement' }}</el-tag>
+                    <strong class="reglement-montant">{{ formatMontant(r.montant) }}</strong>
+                  </div>
+                  <div class="reglement-details">
+                    <div v-if="r.institution"><el-icon><Document /></el-icon> {{ r.institution }}</div>
+                    <div v-if="r.reference_cheque"><el-icon><DocumentCopy /></el-icon> R&#233;f : {{ r.reference_cheque }}</div>
+                    <div v-if="r.banque_depot"><el-icon><CreditCard /></el-icon> D&#233;p&#244;t : {{ r.banque_depot.nom }}</div>
+                    <div v-if="r.avance"><el-icon><Money /></el-icon> Avance : {{ r.avance.societe_emettrice }} — Chq {{ r.avance.numero_cheque }}</div>
+                  </div>
+                </el-card>
+              </el-timeline-item>
+            </el-timeline>
+            <el-empty v-else description="Aucun r&#232;glement enregistr&#233;" :image-size="70" />
           </el-card>
         </el-col>
 
@@ -181,6 +218,18 @@
                   </div>
                 </template>
               </el-alert>
+
+              <el-button
+                v-if="estPayee && can('factures-clients.desolder')"
+                type="warning"
+                size="default"
+                plain
+                style="width: 100%; margin-top: 12px;"
+                @click="handleAction('annuler_solde')"
+              >
+                <el-icon><RefreshLeft /></el-icon>
+                Annuler le solde et ajouter des règlements
+              </el-button>
             </div>
           </el-card>
         </el-col>
@@ -205,7 +254,8 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   ArrowLeft, ArrowDown, Document, Operation, Money,
-  Edit, Delete, Printer, Phone, CircleCheck
+  Edit, Delete, Printer, Phone, CircleCheck,
+  Clock, CreditCard, DocumentCopy, RefreshLeft
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
@@ -216,6 +266,7 @@ const { can } = usePermissions();
 
 const props = defineProps({
   facture: { type: Object, required: true },
+  reglements: { type: Array, default: () => [] },
   clients: { type: Array, default: () => [] },
   prochaineReference: { type: String, default: '' },
   user: { type: Object, default: () => null },
@@ -339,6 +390,33 @@ const handleAction = (command) => {
       }).catch(() => {});
       break;
     }
+    case 'annuler_solde': {
+      ElMessageBox.confirm(
+        "Le marquage « soldée » sera annulé et le statut recalculé d'après les règlements réels. Vous pourrez de nouveau enregistrer des règlements. Aucun règlement existant n'est supprimé.",
+        'Annuler le solde',
+        {
+          confirmButtonText: 'Annuler le solde',
+          cancelButtonText: 'Fermer',
+          type: 'warning',
+        }
+      ).then(async () => {
+        try {
+          const response = await fetchApi(`/api/factures-clients/${props.facture.id}/desolder`, {
+            method: 'POST',
+          });
+          const result = await response.json();
+          if (result.success) {
+            ElMessage.success(result.message || 'Solde annulé');
+            router.reload();
+          } else {
+            ElMessage.error(result.message || "Erreur lors de l'annulation du solde");
+          }
+        } catch (error) {
+          ElMessage.error('Erreur de connexion');
+        }
+      }).catch(() => {});
+      break;
+    }
     case 'delete':
       ElMessageBox.confirm(
         '\u00cates-vous s\u00fbr de vouloir supprimer cette facture ?',
@@ -434,6 +512,12 @@ const handleFactureSuccess = async (data) => {
   display: flex;
   gap: 12px;
 }
+
+.reglement-item { box-shadow: none; border: 1px solid #e5e7eb; }
+.reglement-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.reglement-montant { font-size: 15px; color: #059669; }
+.reglement-details { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #6b7280; }
+.reglement-details > div { display: flex; align-items: center; gap: 6px; }
 
 .section-card {
   border-radius: 8px;

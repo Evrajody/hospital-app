@@ -483,38 +483,17 @@ class RapportFournisseurController extends Controller
             ->with('fournisseur.compteComptable')
             ->get();
 
-        // Factures MARQUÉES comme soldées (date_solde renseignée, sans règlement) dont la
-        // date de mise en solde tombe dans la période : elles apparaissent avec leur montant
-        // réellement payé, d'où un déficit visible (montant facture > montant total réglé).
-        // Garde défensive : si la migration ajoutant `date_solde` n'a pas encore été exécutée,
-        // on ignore cette partie pour ne pas casser le rapport (qui reste fonctionnel).
-        $facturesSoldees = collect();
-        if (\Illuminate\Support\Facades\Schema::hasColumn('factures_fournisseurs', 'date_solde')) {
-            $soldeQuery = FactureFournisseur::whereNotNull('date_solde')
-                ->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE])
-                ->whereNotIn('id', $factureIdsAvecReglement)
-                ->with('fournisseur.compteComptable');
-
-            if ($fournisseurId) {
-                $soldeQuery->where('fournisseur_id', $fournisseurId);
-            }
-
-            if ($mode === 'date' && $date) {
-                $soldeQuery->whereDate('date_solde', $date);
-            } else {
-                $soldeQuery->whereBetween('date_solde', [$dateDebut, $dateFin]);
-            }
-
-            $facturesSoldees = $soldeQuery->get();
-        }
-
-        if ($facturesReglees->isEmpty() && $facturesSoldees->isEmpty()) {
+        // === Conformité stricte à la requête Access "Point des factures réglées" ===
+        // Access fait un INNER JOIN sur REGLEMENT : une facture SANS règlement dans la
+        // période n'apparaît jamais. On ne réintègre donc PAS les factures « marquées
+        // soldées » sans règlement (aucun équivalent dans la requête Access).
+        if ($facturesReglees->isEmpty()) {
             $emptyResult['titre'] = $titre;
             return $emptyResult;
         }
 
-        // Fusionner et grouper par fournisseur (ordonné par fournisseur)
-        $grouped = $facturesReglees->concat($facturesSoldees)
+        // Grouper par fournisseur (ordonné par fournisseur)
+        $grouped = $facturesReglees
             ->sortBy('fournisseur_id')
             ->groupBy('fournisseur_id');
 
@@ -537,6 +516,15 @@ class RapportFournisseurController extends Controller
             foreach ($fFactures->sortByDesc(fn($f) => $f->date?->getTimestamp() ?? 0) as $fact) {
                 $factReglements = $reglementsByFacture[$fact->id] ?? collect();
                 $regPeriode = (float) $factReglements->sum('montant');
+
+                // HAVING Access : ne garder que les factures ENTIÈREMENT soldées par les
+                // règlements de la période. Montant dû = MtFac - Avoir - MtAcpt (AIB),
+                // exactement comme (FACTURE.MtFac-FACTURE.Avoir-FACTURE.MtAcpt) de la requête.
+                $montantDu = round((float) $fact->montant_facture - (float) $fact->avoir - (float) $fact->montant_reduction, 2);
+                if ($regPeriode + 0.01 < $montantDu) {
+                    continue;
+                }
+
                 $marqueeSoldee = !is_null($fact->date_solde);
                 if ($marqueeSoldee) {
                     $aSoldeeManuelle = true;
@@ -570,6 +558,12 @@ class RapportFournisseurController extends Controller
                 $totauxFournisseur['montant_aib'] += $row['montant_aib'];
                 $totauxFournisseur['reg_periode'] += $row['reg_periode'];
                 $totauxFournisseur['mt_total_reg'] += $row['mt_total_reg'];
+            }
+
+            // INNER JOIN Access : un fournisseur sans facture soldée sur la période
+            // n'apparaît pas dans l'état.
+            if (empty($lignes)) {
+                continue;
             }
 
             $detail[] = [
@@ -1350,8 +1344,13 @@ class RapportFournisseurController extends Controller
             ->whereNotNull('compte_id')
             ->whereHas('compte', function ($q) use ($type) {
                 if ($type === 'charges') {
-                    $q->where('numero_compte', 'LIKE', '6%')
-                      ->orWhere('numero_compte', 'LIKE', '42%');
+                    // OR groupé : sinon le orWhere « sort » de la corrélation whereHas et
+                    // rend l'EXISTS toujours vrai (banques 52, fournisseurs 401 remontaient
+                    // à tort dans le Point des charges).
+                    $q->where(function ($sub) {
+                        $sub->where('numero_compte', 'LIKE', '6%')
+                            ->orWhere('numero_compte', 'LIKE', '42%');
+                    });
                 } else {
                     $q->where('numero_compte', 'LIKE', '2%');
                 }
@@ -1392,8 +1391,13 @@ class RapportFournisseurController extends Controller
             ->whereNotNull('compte_id')
             ->whereHas('compte', function ($q) use ($type) {
                 if ($type === 'charges') {
-                    $q->where('numero_compte', 'LIKE', '6%')
-                      ->orWhere('numero_compte', 'LIKE', '42%');
+                    // OR groupé : sinon le orWhere « sort » de la corrélation whereHas et
+                    // rend l'EXISTS toujours vrai (banques 52, fournisseurs 401 remontaient
+                    // à tort dans le Point des charges).
+                    $q->where(function ($sub) {
+                        $sub->where('numero_compte', 'LIKE', '6%')
+                            ->orWhere('numero_compte', 'LIKE', '42%');
+                    });
                 } else {
                     $q->where('numero_compte', 'LIKE', '2%');
                 }
@@ -1416,6 +1420,18 @@ class RapportFournisseurController extends Controller
                 foreach ($f->imputations as $imp) {
                     $compte = $imp->compte;
                     if (!$compte) continue;
+
+                    // Ne garder que les imputations sur un compte de la classe visée
+                    // (6/42 pour les charges, 2 pour les investissements). Sinon la
+                    // contrepartie double-partie (crédit banque 52 / fournisseur 401)
+                    // remonterait à tort comme une dépense.
+                    $num = (string) $compte->numero_compte;
+                    $estCible = $type === 'charges'
+                        ? (str_starts_with($num, '6') || str_starts_with($num, '42'))
+                        : str_starts_with($num, '2');
+                    if (!$estCible) {
+                        continue;
+                    }
 
                     $key = $compte->numero_compte;
                     if (!isset($parCompte[$key])) {
