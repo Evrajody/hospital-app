@@ -73,7 +73,8 @@ function remove(id) {
 }
 
 function clearFinished() {
-  state.items = state.items.filter((i) => i.status !== 'completed' && i.status !== 'failed');
+  const done = ['completed', 'failed', 'cancelled'];
+  state.items = state.items.filter((i) => !done.includes(i.status));
 }
 
 export function useExportsStore() {

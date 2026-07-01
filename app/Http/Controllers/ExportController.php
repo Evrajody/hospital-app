@@ -67,6 +67,28 @@ class ExportController extends Controller
     }
 
     /**
+     * Annuler un export en cours (ou en file d'attente).
+     *
+     * Marque le job « cancelled » ; le job/service s'interrompt avant le rendu (ou
+     * jette le résultat si le rendu était déjà en cours). Idempotent.
+     */
+    public function cancel(string $id): JsonResponse
+    {
+        $job = ExportJob::findOrFail($id);
+        abort_unless($job->user_id === auth()->id(), 403);
+
+        if (in_array($job->status, [ExportJob::STATUT_PENDING, ExportJob::STATUT_PROCESSING], true)) {
+            $job->update([
+                'status' => ExportJob::STATUT_CANCELLED,
+                'step' => 'Annulé',
+                'completed_at' => now(),
+            ]);
+        }
+
+        return response()->json(['success' => true, 'export' => $job->fresh()->toApiArray()]);
+    }
+
+    /**
      * Téléchargement du fichier généré.
      */
     public function download(string $id): StreamedResponse

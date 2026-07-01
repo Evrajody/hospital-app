@@ -46,12 +46,23 @@ export function useAsyncExport() {
     pollStatus(exp.id);
   };
 
+  const TERMINAL = ['completed', 'failed', 'cancelled'];
+
   const pollStatus = (id) => {
     let attempts = 0;
-    const maxAttempts = 300; // ~10 min à 2 s
+    // Fenêtre alignée sur le timeout du job (1800 s). Backoff : 2 s pendant ~2 min,
+    // puis 4 s → couvre ~36 min sans marteler le serveur.
+    const maxAttempts = 600;
 
     const tick = async () => {
       attempts += 1;
+
+      // L'item a été retiré du bandeau, ou annulé localement → on arrête de sonder.
+      const local = store.state.items.find((i) => i.id === id);
+      if (!local || local.status === 'cancelled') {
+        return;
+      }
+
       try {
         const res = await api.get(`/rapports/exports/${id}/status`);
         const { export: exp } = await res.json();
@@ -64,15 +75,15 @@ export function useAsyncExport() {
           download_url: exp.download_url,
         });
 
-        if (exp.status === 'completed' || exp.status === 'failed') {
-          return; // terminé : le bandeau gère l'affichage / le téléchargement
+        if (TERMINAL.includes(exp.status)) {
+          return; // terminé/échoué/annulé : le bandeau gère l'affichage
         }
       } catch (e) {
         // erreur transitoire : on retente
       }
 
       if (attempts < maxAttempts) {
-        setTimeout(tick, 2000);
+        setTimeout(tick, attempts < 60 ? 2000 : 4000);
       } else {
         store.patch(id, { status: 'failed', step: 'Délai dépassé', error: 'La génération prend trop de temps.' });
       }
@@ -81,5 +92,18 @@ export function useAsyncExport() {
     setTimeout(tick, 1200);
   };
 
-  return { startExport };
+  /**
+   * Interrompt un export en cours. Marque l'item annulé immédiatement (retour visuel
+   * instantané), puis demande l'annulation côté serveur (arrêt du rendu / mise au rebut).
+   */
+  const cancelExport = async (id) => {
+    store.patch(id, { status: 'cancelled', step: 'Annulé' });
+    try {
+      await api.post(`/rapports/exports/${id}/cancel`);
+    } catch (e) {
+      // Le job finira par voir le statut ; on n'échoue pas côté UI.
+    }
+  };
+
+  return { startExport, cancelExport };
 }

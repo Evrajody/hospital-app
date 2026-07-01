@@ -361,6 +361,7 @@ Route::prefix('rapports')->group(function () {
     Route::prefix('exports')->group(function () {
         Route::post('/', [ExportController::class, 'store']);
         Route::get('/{id}/status', [ExportController::class, 'status']);
+        Route::post('/{id}/cancel', [ExportController::class, 'cancel']);
         Route::get('/{id}/download', [ExportController::class, 'download']);
     });
 

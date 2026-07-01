@@ -14,6 +14,7 @@ class ExportJob extends Model
     public const STATUT_PROCESSING = 'processing';
     public const STATUT_COMPLETED = 'completed';
     public const STATUT_FAILED = 'failed';
+    public const STATUT_CANCELLED = 'cancelled';
 
     protected $fillable = [
         'user_id', 'report', 'format', 'label', 'params',

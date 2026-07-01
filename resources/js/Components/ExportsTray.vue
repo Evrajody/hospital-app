@@ -11,7 +11,11 @@
             <span class="item-label" :title="it.label">{{ it.label }}</span>
             <el-tag size="small" effect="plain">{{ (it.format || '').toUpperCase() }}</el-tag>
             <el-button
-              v-if="it.status === 'completed' || it.status === 'failed'"
+              v-if="it.status === 'pending' || it.status === 'processing'"
+              text size="small" type="warning" class="item-close" @click="cancel(it.id)"
+            >Annuler</el-button>
+            <el-button
+              v-else
               text size="small" class="item-close" @click="remove(it.id)"
             >✕</el-button>
           </div>
@@ -30,6 +34,7 @@
             <el-button type="primary" size="small" :icon="Download" @click="download(it)">Télécharger</el-button>
           </div>
           <div v-else-if="it.status === 'failed'" class="item-error">{{ it.error || 'Échec de la génération.' }}</div>
+          <div v-else-if="it.status === 'cancelled'" class="item-cancelled">Export annulé.</div>
         </div>
       </div>
     </div>
@@ -40,16 +45,26 @@
 import { computed } from 'vue';
 import { Download } from '@element-plus/icons-vue';
 import { useExportsStore } from '@/Composables/useExportsStore';
+import { useAsyncExport } from '@/Composables/useAsyncExport';
 
 const { state, remove, clearFinished } = useExportsStore();
+const { cancelExport } = useAsyncExport();
 
+const FINISHED = ['completed', 'failed', 'cancelled'];
 const activeCount = computed(() => state.items.filter((i) => i.status === 'processing' || i.status === 'pending').length);
-const hasFinished = computed(() => state.items.some((i) => i.status === 'completed' || i.status === 'failed'));
+const hasFinished = computed(() => state.items.some((i) => FINISHED.includes(i.status)));
 
-const progressStatus = (it) => (it.status === 'completed' ? 'success' : it.status === 'failed' ? 'exception' : '');
+const cancel = (id) => cancelExport(id);
+
+const progressStatus = (it) =>
+  it.status === 'completed' ? 'success'
+    : it.status === 'failed' ? 'exception'
+    : it.status === 'cancelled' ? 'warning'
+    : '';
 const stepText = (it) =>
   it.status === 'completed' ? 'Prêt à télécharger'
     : it.status === 'failed' ? 'Échec'
+    : it.status === 'cancelled' ? 'Annulé'
     : (it.step || '…');
 
 const elapsed = (it) => {
@@ -87,6 +102,7 @@ const download = (it) => {
 .item-bottom { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #6b7280; }
 .item-actions { margin-top: 8px; }
 .item-error { margin-top: 6px; font-size: 12px; color: #f56c6c; }
+.item-cancelled { margin-top: 6px; font-size: 12px; color: #e6a23c; }
 .tray-fade-enter-active, .tray-fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .tray-fade-enter-from, .tray-fade-leave-to { opacity: 0; transform: translateY(10px); }
 </style>

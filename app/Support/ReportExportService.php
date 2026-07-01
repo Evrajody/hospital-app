@@ -175,6 +175,11 @@ class ReportExportService
 
         $job->update(['progress' => 25, 'step' => 'Préparation des données']);
 
+        // Point de contrôle : annulation demandée avant le rendu (le plus coûteux) ?
+        if ($this->estAnnule($job)) {
+            return;
+        }
+
         $job->update(['progress' => 40, 'step' => 'Génération du fichier']);
         $controller = app($def['controller']);
         $response = app()->call([$controller, $method], ['request' => $request]);
@@ -182,6 +187,13 @@ class ReportExportService
         $content = $this->captureContent($response);
         if ($content === '') {
             throw new \RuntimeException('Contenu de l\'export vide.');
+        }
+
+        // Le rendu (dompdf) n'est pas interruptible : si l'utilisateur a annulé
+        // pendant celui-ci, on jette le résultat sans l'enregistrer ni écraser le
+        // statut « cancelled ».
+        if ($this->estAnnule($job)) {
+            return;
         }
 
         $job->update(['progress' => 90, 'step' => 'Enregistrement du fichier']);
@@ -202,6 +214,14 @@ class ReportExportService
             'completed_at' => now(),
             'error' => null,
         ]);
+    }
+
+    /**
+     * L'export a-t-il été annulé (statut relu en base, non l'instance en mémoire) ?
+     */
+    private function estAnnule(ExportJob $job): bool
+    {
+        return ExportJob::where('id', $job->id)->value('status') === ExportJob::STATUT_CANCELLED;
     }
 
     /**

@@ -26,8 +26,8 @@ class GenerateReportExport implements ShouldQueue
     public function handle(ReportExportService $service): void
     {
         $job = ExportJob::find($this->exportJobId);
-        if (! $job || $job->status === ExportJob::STATUT_COMPLETED) {
-            return;
+        if (! $job || in_array($job->status, [ExportJob::STATUT_COMPLETED, ExportJob::STATUT_CANCELLED], true)) {
+            return; // déjà terminé ou annulé avant d'être traité par le worker
         }
 
         $job->update(['status' => ExportJob::STATUT_PROCESSING, 'progress' => 10, 'step' => 'Initialisation']);
