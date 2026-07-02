@@ -1552,8 +1552,8 @@ class RapportFournisseurController extends Controller
             $facture = $reglement->facture;
             // Reste à payer À CE RÈGLEMENT (solde cumulé chronologique), pas le reste final.
             $resteApres = $reglement->resteApres();
-            $montantEnLettres = montant_en_lettres((float) $reglement->montant);
-            $resteAPayerLettres = montant_en_lettres($resteApres);
+            $montantEnLettres = montant_en_lettres_francs((float) $reglement->montant);
+            $resteAPayerLettres = montant_en_lettres_francs($resteApres);
 
             $modeLabel = match($reglement->mode_paiement) {
                 'especes' => 'Espèces',

@@ -350,6 +350,10 @@ class FactureFournisseurController extends Controller
         $reglements = ReglementFournisseur::where('facture_id', $id)
             ->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE)
             ->with(['compteTresorerie'])
+            // Tri par numéro de ligne DÉCROISSANT (du plus récent au plus ancien).
+            // numero_ligne est un entier stocké en texte → on caste sa partie numérique
+            // pour éviter le tri lexicographique (1, 10, 2…) ; les valeurs vides en dernier.
+            ->orderByRaw("NULLIF(regexp_replace(COALESCE(numero_ligne, ''), '[^0-9]', '', 'g'), '')::int desc nulls last")
             ->orderBy('date_reglement', 'desc')
             ->get()
             ->map(fn($r) => [
