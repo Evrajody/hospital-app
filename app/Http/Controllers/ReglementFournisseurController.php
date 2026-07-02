@@ -698,7 +698,8 @@ class ReglementFournisseurController extends Controller
         $data = $this->buildPdfData($reglement);
         $data['facture'] = $reglement->facture;
         $data['user'] = auth()->user();
-        $data['resteAPayerLettres'] = montant_en_lettres_francs((float) $reglement->facture->reste_a_payer);
+        $data['montantPayeLettres'] = strtoupper(montant_en_lettres((float) $reglement->facture->montant_paye));
+        $data['resteAPayerLettres'] = strtoupper(montant_en_lettres((float) $reglement->facture->reste_a_payer));
 
         $pdf = Pdf::loadView('pdf.mandat-paiement', $data);
         $pdf->setPaper('a4', 'portrait');
