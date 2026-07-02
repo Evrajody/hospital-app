@@ -698,8 +698,11 @@ class ReglementFournisseurController extends Controller
         $data = $this->buildPdfData($reglement);
         $data['facture'] = $reglement->facture;
         $data['user'] = auth()->user();
+        // Reste à payer À CE RÈGLEMENT (solde cumulé), pas le reste final de la facture.
+        $resteApres = $reglement->resteApres();
+        $data['resteApres'] = $resteApres;
         $data['montantPayeLettres'] = strtoupper(montant_en_lettres((float) $reglement->montant));
-        $data['resteAPayerLettres'] = strtoupper(montant_en_lettres((float) $reglement->facture->reste_a_payer));
+        $data['resteAPayerLettres'] = strtoupper(montant_en_lettres($resteApres));
 
         $pdf = Pdf::loadView('pdf.mandat-paiement', $data);
         $pdf->setPaper('a4', 'portrait');

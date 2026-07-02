@@ -113,6 +113,35 @@ class ReglementFournisseur extends Model
     }
 
     /**
+     * Reste à payer de la facture APRÈS ce règlement.
+     *
+     * = montant net de la facture − cumul des règlements non annulés jusqu'à celui-ci
+     * inclus (ordre chronologique : date de règlement, puis id en cas d'égalité). Sert
+     * aux bordereaux : chaque règlement d'une facture réglée en plusieurs fois doit
+     * afficher le solde restant à SA date, et non le reste à payer final de la facture.
+     */
+    public function resteApres(): float
+    {
+        $facture = $this->facture;
+        if (! $facture) {
+            return 0.0;
+        }
+
+        $cumul = (float) $facture->reglements()
+            ->where('statut', '!=', self::STATUT_ANNULE)
+            ->where(function ($q) {
+                $q->where('date_reglement', '<', $this->date_reglement)
+                    ->orWhere(function ($q2) {
+                        $q2->where('date_reglement', $this->date_reglement)
+                            ->where('id', '<=', $this->id);
+                    });
+            })
+            ->sum('montant');
+
+        return round(max((float) $facture->montant_net - $cumul, 0), 2);
+    }
+
+    /**
      * Relation avec le compte de trésorerie
      */
     public function compteTresorerie(): BelongsTo

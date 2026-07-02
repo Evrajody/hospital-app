@@ -140,6 +140,7 @@
             $modeLabel = $mandat['modeLabel'];
             $montantEnLettres = $mandat['montantEnLettres'];
             $resteAPayerLettres = $mandat['resteAPayerLettres'];
+            $resteApres = $mandat['resteApres'] ?? $facture->reste_a_payer;
             $user = $mandat['user'];
         @endphp
 
@@ -194,13 +195,21 @@
                 </tr>
 
                 <tr>
+                    <td class="details-label">IMP&Ocirc;T/AIB ({{ (float) ($facture->taux ?? 0) }}%) :</td>
+                    {{-- AIB retenu sur le règlement ; fallback montant_reduction (facture) pour le
+                         legacy. Cast float AVANT le ?: (la chaîne decimal "0.00" est truthy). --}}
+                    <td class="montant-val">{{ number_format((float) $reglement->montant_aib_deduit ?: (float) ($facture->montant_reduction ?? 0), 0, ',', ' ') }}</td>
+                    <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
+                    <td class="montant-mots"></td>
+                </tr>
+                <tr>
                     <td class="details-label">MONTANT PAYE (FCFA):</td>
                     <td class="montant-val montant-fort">{{ number_format((float) $reglement->montant, 0, ',', ' ') }}</td>
                     <td class="montant-unit montant-fort">&nbsp;&nbsp;FCFA</td>
                     <td class="montant-mots">{{ strtoupper($montantEnLettres) }}</td>
                 </tr>
                 <tr>
-                    @php $resteAPayer = (float) $facture->reste_a_payer; @endphp
+                    @php $resteAPayer = (float) $resteApres; @endphp
                     <td class="details-label">RESTE A PAYER (FCFA):</td>
                     <td class="montant-val montant-fort">{{ number_format($resteAPayer, 0, ',', ' ') }}</td>
                     <td class="montant-unit montant-fort">&nbsp;&nbsp;FCFA</td>
