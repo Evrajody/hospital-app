@@ -698,7 +698,7 @@ class ReglementFournisseurController extends Controller
         $data = $this->buildPdfData($reglement);
         $data['facture'] = $reglement->facture;
         $data['user'] = auth()->user();
-        $data['resteAPayerLettres'] = strtoupper($this->convertirMontantEnLettres((float) $reglement->facture->reste_a_payer) . ' FRANCS');
+        $data['resteAPayerLettres'] = montant_en_lettres_francs((float) $reglement->facture->reste_a_payer);
 
         $pdf = Pdf::loadView('pdf.mandat-paiement', $data);
         $pdf->setPaper('a4', 'portrait');
@@ -751,7 +751,7 @@ class ReglementFournisseurController extends Controller
                 'date_reglement' => $reglement->date_reglement?->format('d/m/Y'),
                 'montant' => $montant,
                 'montant_formate' => number_format($montant, 0, ',', ' '),
-                'montant_en_lettres' => strtoupper($this->convertirMontantEnLettres($montant) . ' FRANCS'),
+                'montant_en_lettres' => montant_en_lettres_francs($montant),
                 'mode_paiement' => $modeLabel,
                 'reference' => $reglement->reference,
                 'beneficiaire' => $reglement->beneficiaire,
@@ -770,9 +770,9 @@ class ReglementFournisseurController extends Controller
                 'taux_aib' => $tauxAib,
                 'montant_aib' => number_format($montantAib, 0, ',', ' '),
                 'montant_paye' => number_format((float) $facture->montant_paye, 0, ',', ' '),
-                'montant_paye_lettres' => strtoupper($this->convertirMontantEnLettres((float) $facture->montant_paye) . ' FRANCS'),
+                'montant_paye_lettres' => montant_en_lettres_francs((float) $facture->montant_paye),
                 'reste_a_payer' => number_format($resteAPayer, 0, ',', ' '),
-                'reste_a_payer_lettres' => strtoupper($this->convertirMontantEnLettres($resteAPayer) . ' FRANCS'),
+                'reste_a_payer_lettres' => montant_en_lettres_francs($resteAPayer),
             ],
             'fournisseur' => [
                 'nom' => $reglement->fournisseur_nom ?: $reglement->fournisseur?->nom,
@@ -913,7 +913,7 @@ class ReglementFournisseurController extends Controller
         };
 
         $montantFormate = number_format($montant, 0, ',', ' ');
-        $montantEnLettres = $this->convertirMontantEnLettres($montant) . ' francs';
+        $montantEnLettres = strtolower(montant_en_lettres_francs($montant));
 
         $etablissementLive = \App\Models\Setting::getEtablissement();
 
@@ -935,92 +935,6 @@ class ReglementFournisseurController extends Controller
                 'entete_site' => $reglement->etablissement_entete_site ?: $etablissementLive['entete_site'],
             ],
         ];
-    }
-
-    /**
-     * Convertir un montant en lettres (français)
-     */
-    private function convertirMontantEnLettres(float $montant): string
-    {
-        $montant = (int) $montant;
-
-        if ($montant === 0) return 'zéro';
-
-        $unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf',
-                   'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
-        $dizaines = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'];
-
-        $convertirBloc = function(int $n) use ($unites, $dizaines): string {
-            if ($n === 0) return '';
-            if ($n < 20) return $unites[$n];
-            if ($n < 100) {
-                $d = intdiv($n, 10);
-                $u = $n % 10;
-                if ($d === 7 || $d === 9) {
-                    $u += 10;
-                    $base = $dizaines[$d];
-                    if ($u === 11 && $d === 7) return $base . ' et onze';
-                    return $base . '-' . $unites[$u];
-                }
-                if ($u === 0) {
-                    return $dizaines[$d] . ($d === 8 ? 's' : '');
-                }
-                if ($u === 1 && $d !== 8) return $dizaines[$d] . ' et un';
-                return $dizaines[$d] . '-' . $unites[$u];
-            }
-            $c = intdiv($n, 100);
-            $r = $n % 100;
-            $result = ($c === 1 ? 'cent' : $unites[$c] . ' cent');
-            if ($r === 0 && $c > 1) $result .= 's';
-            if ($r > 0) {
-                $convertirBloc2 = function(int $n2) use ($unites, $dizaines): string {
-                    if ($n2 < 20) return $unites[$n2];
-                    $d = intdiv($n2, 10);
-                    $u = $n2 % 10;
-                    if ($d === 7 || $d === 9) {
-                        $u += 10;
-                        $base = $dizaines[$d];
-                        if ($u === 11 && $d === 7) return $base . ' et onze';
-                        return $base . '-' . $unites[$u];
-                    }
-                    if ($u === 0) return $dizaines[$d] . ($d === 8 ? 's' : '');
-                    if ($u === 1 && $d !== 8) return $dizaines[$d] . ' et un';
-                    return $dizaines[$d] . '-' . $unites[$u];
-                };
-                $result .= ' ' . $convertirBloc2($r);
-            }
-            return $result;
-        };
-
-        $parties = [];
-
-        // Milliards
-        $milliards = intdiv($montant, 1000000000);
-        $montant %= 1000000000;
-        if ($milliards > 0) {
-            $parties[] = ($milliards === 1 ? 'un milliard' : $convertirBloc($milliards) . ' milliards');
-        }
-
-        // Millions
-        $millions = intdiv($montant, 1000000);
-        $montant %= 1000000;
-        if ($millions > 0) {
-            $parties[] = ($millions === 1 ? 'un million' : $convertirBloc($millions) . ' millions');
-        }
-
-        // Milliers
-        $milliers = intdiv($montant, 1000);
-        $montant %= 1000;
-        if ($milliers > 0) {
-            $parties[] = ($milliers === 1 ? 'mille' : $convertirBloc($milliers) . ' mille');
-        }
-
-        // Reste
-        if ($montant > 0) {
-            $parties[] = $convertirBloc($montant);
-        }
-
-        return ucfirst(implode(' ', $parties));
     }
 
     /**

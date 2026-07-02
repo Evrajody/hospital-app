@@ -360,8 +360,9 @@ class ReglementFournisseur extends Model
         $annee = date('Y');
         $prefixe = 'REG/' . substr($annee, -2);
 
-        // Trouver le dernier numéro
-        $dernierNumero = self::where('numero_reglement', 'LIKE', $prefixe . '/%')
+        $dernierNumero = DB::table('reglements_fournisseurs')
+            ->where('numero_reglement', 'LIKE', $prefixe . '/%')
+            ->lockForUpdate()
             ->orderBy('numero_reglement', 'desc')
             ->value('numero_reglement');
 

@@ -2,6 +2,7 @@
 
 use App\Models\CompteComptable;
 use App\Services\PlanComptableService;
+use NumberToWords\NumberToWords;
 
 if (!function_exists('compte')) {
     /**
@@ -284,5 +285,45 @@ if (!function_exists('stats_plan_comptable')) {
     function stats_plan_comptable(): array
     {
         return plan_comptable()->getStatistiques();
+    }
+}
+
+if (!function_exists('montant_en_lettres')) {
+    /**
+     * Convertir un montant en lettres (français)
+     *
+     * @param float $montant
+     * @return string
+     */
+    function montant_en_lettres(float $montant): string
+    {
+        $numberTransformer = (new NumberToWords())->getNumberTransformer('fr');
+        return $numberTransformer->toWords((int) $montant);
+    }
+}
+
+if (!function_exists('montant_en_lettres_majuscule')) {
+    /**
+     * Convertir un montant en lettres majuscules (français)
+     *
+     * @param float $montant
+     * @return string
+     */
+    function montant_en_lettres_majuscule(float $montant): string
+    {
+        return strtoupper(montant_en_lettres($montant));
+    }
+}
+
+if (!function_exists('montant_en_lettres_francs')) {
+    /**
+     * Convertir un montant en lettres avec la devise FRANCS
+     *
+     * @param float $montant
+     * @return string
+     */
+    function montant_en_lettres_francs(float $montant): string
+    {
+        return montant_en_lettres($montant) . ' FRANCS';
     }
 }

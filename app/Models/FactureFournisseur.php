@@ -419,8 +419,9 @@ class FactureFournisseur extends Model
         $annee = date('Y');
         $prefixe = 'PC/' . substr($annee, -3);
 
-        // Trouver le dernier numéro
-        $dernierNumero = self::where('numero_piece', 'LIKE', $prefixe . '/%')
+        $dernierNumero = DB::table('factures_fournisseurs')
+            ->where('numero_piece', 'LIKE', $prefixe . '/%')
+            ->lockForUpdate()
             ->orderBy('numero_piece', 'desc')
             ->value('numero_piece');
 

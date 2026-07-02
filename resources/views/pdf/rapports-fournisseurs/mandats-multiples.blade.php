@@ -192,14 +192,7 @@
                     <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
                     <td class="montant-mots"></td>
                 </tr>
-                @if($facture->taux && (float) $facture->taux > 0)
-                <tr>
-                    <td class="details-label">IMPÔT / AIB : {{ $facture->taux }}%</td>
-                    <td class="montant-val">{{ number_format((float) ($reglement->montant_aib_deduit ?? 0), 0, ',', ' ') }}</td>
-                    <td class="montant-unit">&nbsp;&nbsp;FCFA</td>
-                    <td class="montant-mots"></td>
-                </tr>
-                @endif
+
                 <tr>
                     <td class="details-label">MONTANT PAYE (FCFA):</td>
                     <td class="montant-val montant-fort">{{ number_format((float) $facture->montant_paye, 0, ',', ' ') }}</td>

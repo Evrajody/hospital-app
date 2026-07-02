@@ -703,7 +703,7 @@ class RapportFournisseurController extends Controller
             'totaux' => ['montant_mo' => $totalMontantMo, 'montant_aib' => $totalMontantAib],
             'parTaux' => array_values($parTaux),
             'montantTotal' => $totalMontantAib,
-            'montantEnLettres' => $this->montantEnLettres((int) round($totalMontantAib)),
+            'montantEnLettres' => montant_en_lettres($totalMontantAib),
             'dateDebut' => $dateDebut,
             'dateFin' => $dateFin,
             'mois' => $mois,
@@ -1052,52 +1052,6 @@ class RapportFournisseurController extends Controller
             'date_debut' => $dateDebut,
             'date_fin' => $dateFin,
         ];
-    }
-
-    private function montantEnLettres(int $nombre): string
-    {
-        if ($nombre === 0) return 'ZÉRO FRANC';
-
-        $unites = ['', 'UN', 'DEUX', 'TROIS', 'QUATRE', 'CINQ', 'SIX', 'SEPT', 'HUIT', 'NEUF',
-            'DIX', 'ONZE', 'DOUZE', 'TREIZE', 'QUATORZE', 'QUINZE', 'SEIZE', 'DIX-SEPT', 'DIX-HUIT', 'DIX-NEUF'];
-        $dizaines = ['', 'DIX', 'VINGT', 'TRENTE', 'QUARANTE', 'CINQUANTE', 'SOIXANTE', 'SOIXANTE', 'QUATRE-VINGT', 'QUATRE-VINGT'];
-
-        $convertir = function (int $n) use (&$convertir, $unites, $dizaines): string {
-            if ($n === 0) return '';
-            if ($n < 20) return $unites[$n];
-            if ($n < 100) {
-                $d = intdiv($n, 10);
-                $u = $n % 10;
-                if ($d === 7 || $d === 9) {
-                    return $dizaines[$d] . '-' . $unites[$u + 10];
-                }
-                if ($u === 1 && $d !== 8) return $dizaines[$d] . ' ET UN';
-                if ($u === 0 && $d === 8) return 'QUATRE-VINGTS';
-                return $dizaines[$d] . ($u > 0 ? '-' . $unites[$u] : '');
-            }
-            if ($n < 1000) {
-                $c = intdiv($n, 100);
-                $reste = $n % 100;
-                $prefix = $c === 1 ? 'CENT' : $unites[$c] . ' CENT';
-                if ($reste === 0 && $c > 1) return $prefix . 'S';
-                return $prefix . ($reste > 0 ? ' ' . $convertir($reste) : '');
-            }
-            if ($n < 1000000) {
-                $milliers = intdiv($n, 1000);
-                $reste = $n % 1000;
-                $prefix = $milliers === 1 ? 'MILLE' : $convertir($milliers) . ' MILLE';
-                return $prefix . ($reste > 0 ? ' ' . $convertir($reste) : '');
-            }
-            if ($n < 1000000000) {
-                $millions = intdiv($n, 1000000);
-                $reste = $n % 1000000;
-                $prefix = $convertir($millions) . ($millions === 1 ? ' MILLION' : ' MILLIONS');
-                return $prefix . ($reste > 0 ? ' ' . $convertir($reste) : '');
-            }
-            return (string) $n;
-        };
-
-        return $convertir($nombre) . ' FRANCS';
     }
 
     // ==========================================
@@ -1596,8 +1550,8 @@ class RapportFournisseurController extends Controller
 
         $mandats = $reglements->map(function ($reglement) use ($etablissement, $user) {
             $facture = $reglement->facture;
-            $montantEnLettres = $this->montantEnLettres((int) round((float) $facture->montant_paye));
-            $resteAPayerLettres = strtoupper($this->montantEnLettres((int) round((float) $facture->reste_a_payer)) . ' FRANCS');
+            $montantEnLettres = montant_en_lettres((float) $facture->montant_paye);
+            $resteAPayerLettres = montant_en_lettres_francs((float) $facture->reste_a_payer);
 
             $modeLabel = match($reglement->mode_paiement) {
                 'especes' => 'Espèces',
