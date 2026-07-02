@@ -1550,7 +1550,7 @@ class RapportFournisseurController extends Controller
 
         $mandats = $reglements->map(function ($reglement) use ($etablissement, $user) {
             $facture = $reglement->facture;
-            $montantEnLettres = montant_en_lettres((float) $facture->montant_paye);
+            $montantEnLettres = montant_en_lettres((float) $reglement->montant);
             $resteAPayerLettres = montant_en_lettres((float) $facture->reste_a_payer);
 
             $modeLabel = match($reglement->mode_paiement) {

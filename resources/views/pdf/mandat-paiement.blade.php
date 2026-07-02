@@ -262,7 +262,7 @@
 
             <tr>
                 <td class="details-label">MONTANT PAYE (FCFA):</td>
-                <td class="montant-val montant-fort">{{ number_format((float) $facture->montant_paye, 0, ',', ' ') }}</td>
+                <td class="montant-val montant-fort">{{ number_format((float) $reglement->montant, 0, ',', ' ') }}</td>
                 <td class="montant-unit montant-fort">&nbsp;&nbsp;FCFA</td>
                 <td class="montant-mots">{{ $montantPayeLettres }}</td>
             </tr>
