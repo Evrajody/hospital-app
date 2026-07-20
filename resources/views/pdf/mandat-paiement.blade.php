@@ -187,7 +187,6 @@
         .signature-title {
             font-weight: bold;
             font-size: 13px;
-            margin-bottom: 5px;
         }
 
         .signature-name {
@@ -323,11 +322,13 @@
         <tr>
             <td class="sig-cell">
                 <div class="signature-title">Le Bénéficiaire,</div>
+                <br><br><br>
                 <div class="signature-name">{{ strtoupper($reglement->beneficiaire ?: ($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '')) }}</div>
             </td>
             <td class="sig-gap"></td>
             <td class="sig-cell">
                 <div class="signature-title">L'Administrateur,</div>
+                <br><br><br>
                 <div class="signature-name">{{ $etablissement['directeur'] ?? '' }}</div>
             </td>
         </tr>

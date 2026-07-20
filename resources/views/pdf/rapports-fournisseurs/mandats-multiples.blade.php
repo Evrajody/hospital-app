@@ -125,7 +125,7 @@
         .signatures-table { width: 100%; }
         .signatures-table td.sig-cell { width: 40%; vertical-align: top; padding: 0 15px; text-align: center; }
         .signatures-table td.sig-gap { width: 20%; }
-        .signature-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; }
+        .signature-title { font-weight: bold; font-size: 13px; }
         .signature-name { margin-top: 55px; font-size: 13px; font-weight: bold; }
 
         .footer { position: fixed; bottom: 10mm; left: 0; right: 0; font-size: 10px; color: #666; font-style: italic; padding: 0 10mm; }
@@ -254,11 +254,13 @@
             <tr>
                 <td class="sig-cell">
                     <div class="signature-title">Le Bénéficiaire,</div>
+                    <br><br><br>
                     <div class="signature-name">{{ strtoupper($reglement->beneficiaire ?: ($reglement->fournisseur_nom ?: $reglement->fournisseur?->nom ?? '')) }}</div>
                 </td>
                 <td class="sig-gap"></td>
                 <td class="sig-cell">
                     <div class="signature-title">L'Administrateur,</div>
+                    <br><br><br>
                     <div class="signature-name">{{ $etablissement['directeur'] ?? '' }}</div>
                 </td>
             </tr>
