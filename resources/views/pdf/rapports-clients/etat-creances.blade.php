@@ -23,7 +23,7 @@
     .type-header { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; background: #e5e7eb; border-left: 4px solid #1f2937; margin: 0 0 12px; page-break-after: avoid; }
     .type-inline { font-size: 10px; color: #444; }
     .type-inline em { font-style: italic; }
-    .solde-anterieur td { font-weight: bold; background: #f3f4f6; }
+
 @endsection
 
 @section('content')
@@ -74,12 +74,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if($periodeDebut)
-                                <tr class="solde-anterieur">
-                                    <td colspan="7">SOLDE CRÉANCE ANTÉRIEUR <em>(créance au {{ $periodeDebut }} exclu)</em></td>
-                                    <td class="montant reste">{{ number_format($clientData['solde_anterieur'] ?? 0, 0, ',', ' ') }}</td>
-                                </tr>
-                            @endif
                             @foreach($clientData['lignes'] as $ligne)
                                 <tr>
                                     <td class="col-num"><strong>{{ $ligne['numero'] }}</strong></td>

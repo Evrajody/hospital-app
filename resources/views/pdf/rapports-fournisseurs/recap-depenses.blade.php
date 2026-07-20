@@ -8,6 +8,33 @@
 @section('content')
     @if(count($lignes) === 0)
         <p style="text-align: center; padding: 40px; color: #666;">Aucune donn&eacute;e trouv&eacute;e.</p>
+    @elseif(($mode ?? 'toutes') === 'par_compte')
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th style="width: 130px">N&deg; PC</th>
+                    <th style="width: 90px">Date Enreg</th>
+                    <th>Intitul&eacute;</th>
+                    <th class="montant" style="width: 150px">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($lignes as $ligne)
+                    <tr>
+                        <td class="col-num">{{ $ligne['numero_piece'] }}</td>
+                        <td class="col-date">{{ $ligne['date'] }}</td>
+                        <td>{{ $ligne['libelle'] }}</td>
+                        <td class="montant">{{ number_format($ligne['montant_ttc'], 0, ',', ' ') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3" class="total-label">{{ $labelTotal ?? 'TOTAL DEPENSES' }} :</td>
+                    <td class="montant">{{ number_format($totalDepenses, 0, ',', ' ') }}</td>
+                </tr>
+            </tfoot>
+        </table>
     @else
         <table class="report-table">
             <thead>

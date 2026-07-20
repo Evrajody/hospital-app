@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\FactureClient;
 use App\Models\FactureFournisseur;
 use Database\Factories\ClientFactory;
 use Database\Factories\FactureClientFactory;
@@ -31,8 +32,14 @@ class RapportsTriTest extends TestCase
     {
         $this->actingAsWithPermissions(['rapports-clients.voir']);
         $client = ClientFactory::new()->create();
-        FactureClientFactory::new()->create(['client_id' => $client->id, 'date_facture' => '2026-01-10', 'reference' => 'ANCIENNE']);
-        FactureClientFactory::new()->create(['client_id' => $client->id, 'date_facture' => '2026-06-10', 'reference' => 'RECENTE']);
+        FactureClientFactory::new()->create([
+            'client_id' => $client->id, 'date_facture' => '2026-01-10', 'reference' => 'ANCIENNE',
+            'statut' => FactureClient::STATUT_PAYEE, 'date_solde' => '2026-01-20',
+        ]);
+        FactureClientFactory::new()->create([
+            'client_id' => $client->id, 'date_facture' => '2026-06-10', 'reference' => 'RECENTE',
+            'statut' => FactureClient::STATUT_PAYEE, 'date_solde' => '2026-06-20',
+        ]);
 
         $data = $this->getJson('/rapports/clients/api/etat-reglements?mode=un_client&client_id='.$client->id.'&date_debut=2026-01-01&date_fin=2026-12-31')
             ->assertOk()->json('data.0.lignes');

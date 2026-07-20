@@ -77,8 +77,10 @@ class RapportClientController extends Controller
                 $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
             }
 
+            $query->where('statut', FactureClient::STATUT_PAYEE);
+
             if ($dateDebut && $dateFin) {
-                $query->whereBetween('date_facture', [$dateDebut, $dateFin]);
+                $query->whereBetween('date_solde', [$dateDebut, $dateFin]);
             }
 
             $factures = $query->orderBy('client_id')->orderByDesc('date_facture')->get();
@@ -100,16 +102,13 @@ class RapportClientController extends Controller
                     $montantPaye = (float) $reglementsNonPerte->sum('montant');
                     $totalPerteFacture = (float) $reglementsPerte->sum('montant');
                     $totalRejetFacture = (float) $facture->reglements->sum('montant_rejet');
-                    // Reste à payer borné à ≥ 0 (cohérent avec l'état des créances).
                     $solde = max(0, $montantFacture - $montantPaye - $totalPerteFacture - $totalRejetFacture);
-
-                    $dernierReglement = $facture->reglements->sortByDesc('date_reglement')->first();
 
                     $lignes[] = [
                         'numero' => $index + 1,
                         'reference' => $facture->reference,
                         'date_facture' => $facture->date_facture?->format('d/m/Y'),
-                        'date_reglement' => $dernierReglement?->date_reglement?->format('d/m/Y') ?? '-',
+                        'date_reglement' => $facture->date_solde?->format('d/m/Y') ?? '-',
                         'montant_facture' => $montantFacture,
                         'montant_paye' => $montantPaye,
                         'total_perte' => $totalPerteFacture,
@@ -143,16 +142,19 @@ class RapportClientController extends Controller
         } elseif ($mode === 'tous_clients') {
             $deb = $dateDebut ?: now()->startOfYear()->format('Y-m-d');
             $fin = $dateFin ?: now()->format('Y-m-d');
-            // Eager-load des factures de la période + de leurs règlements → évite le N+1
-            // (1 requête clients + 1 factures + 1 règlements au lieu d'une requête par client).
             $clientsAvecFactures = Client::with([
                     'compteComptable',
-                    'facturesClient' => fn($q) => $q->whereBetween('date_facture', [$deb, $fin]),
+                    'facturesClient' => fn($q) => $q
+                        ->where('statut', FactureClient::STATUT_PAYEE)
+                        ->whereNotNull('date_solde')
+                        ->whereBetween('date_solde', [$deb, $fin]),
                     'facturesClient.reglements',
                 ])
                 ->when($typeClient, fn($q) => $q->where('type_client', $typeClient))
                 ->whereHas('facturesClient', function ($q) use ($deb, $fin) {
-                    $q->whereBetween('date_facture', [$deb, $fin]);
+                    $q->where('statut', FactureClient::STATUT_PAYEE)
+                      ->whereNotNull('date_solde')
+                      ->whereBetween('date_solde', [$deb, $fin]);
                 })
                 ->orderBy('nom')
                 ->get();
@@ -240,24 +242,7 @@ class RapportClientController extends Controller
 
         $data = [];
 
-        // Helper : calcule le reste à payer d'une facture en ne tenant compte
-        // que des reglements effectués jusqu'à $dateFin (pointage à une date donnée).
-        // Si $dateFin est null, on utilise le reste_a_payer courant (sans filtrage temporel).
-        $calcRestePeriode = function (FactureClient $facture, ?string $dateFin) {
-            $montantFacture = (float) $facture->montant - (float) ($facture->ristourne ?? 0);
-            $reglements = $facture->reglements;
-            if ($dateFin) {
-                $reglements = $reglements->filter(fn($r) => $r->date_reglement && $r->date_reglement->lte($dateFin));
-            }
-            $montantPaye = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
-            $perteFacture = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
-            $rejetFacture = (float) $reglements->sum('montant_rejet');
-            return max(0, $montantFacture - $montantPaye - $rejetFacture - $perteFacture);
-        };
-
         if ($mode === 'par_client' || $mode === 'un_client') {
-            // On charge TOUTES les factures non annulées de la période (+ antérieures pour solde).
-            // On ne filtre PAS par reste_a_payer > 0 ici car le reste est recalculé à la date point.
             $query = FactureClient::with(['client.compteComptable', 'reglements'])
                 ->whereNull('deleted_at');
 
@@ -269,18 +254,12 @@ class RapportClientController extends Controller
                 $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
             }
 
-            // Charger les factures de la période ET les factures antérieures (pour le solde antérieur).
-            $query->where(function ($q) use ($dateDebut, $dateFin) {
-                // Factures dans la période
-                $q->where(function ($sub) use ($dateDebut, $dateFin) {
-                    if ($dateDebut) $sub->where('date_facture', '>=', $dateDebut);
-                    if ($dateFin) $sub->where('date_facture', '<=', $dateFin);
-                });
-                // OU factures antérieures (nécessaires pour le solde antérieur)
-                if ($dateDebut) {
-                    $q->orWhere('date_facture', '<', $dateDebut);
-                }
-            });
+            if ($dateFin) {
+                $query->where('date_facture', '<=', $dateFin);
+            }
+            if ($dateDebut) {
+                $query->where('date_facture', '>=', $dateDebut);
+            }
 
             $factures = $query->orderBy('client_id')->orderBy('date_facture')->get();
 
@@ -294,42 +273,40 @@ class RapportClientController extends Controller
                 $totalRejet = 0;
                 $totalReste = 0;
 
-                $soldeAnterieur = 0.0;
-
                 foreach ($clientFactures as $index => $facture) {
                     $montantFacture = (float) $facture->montant - (float) ($facture->ristourne ?? 0);
-                    $resteAPayer = $calcRestePeriode($facture, $dateFin);
 
-                    // Facture antérieure à la période → solde antérieur
-                    if ($dateDebut && $facture->date_facture && $facture->date_facture->lt($dateDebut)) {
-                        if ($resteAPayer > 0) {
-                            $soldeAnterieur += $resteAPayer;
-                        }
-                        continue;
+                    $reglements = $facture->reglements;
+                    if ($dateFin) {
+                        $reglements = $reglements->filter(fn($r) => $r->date_reglement && $r->date_reglement->lte($dateFin));
                     }
 
-                    // Exclure les factures soldées à la date point
-                    if ($resteAPayer <= 0) continue;
+                    $paye = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+                    $perte = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
+                    $rejet = (float) $reglements->sum('montant_rejet');
+                    $reste = max(0, $montantFacture - $paye - $rejet - $perte);
 
-                    $montantPayePeriode = $montantFacture - $resteAPayer;
+                    if ($reste <= 0) continue;
 
                     $lignes[] = [
                         'numero' => count($lignes) + 1,
                         'reference' => $facture->reference,
                         'date_facture' => $facture->date_facture?->format('d/m/Y'),
                         'montant_facture' => $montantFacture,
-                        'montant_paye' => $montantPayePeriode,
-                        'total_rejet' => (float) $facture->reglements->sum('montant_rejet'),
-                        'total_perte' => (float) $facture->reglements->where('type_reglement', 'perte')->sum('montant'),
-                        'reste_a_payer' => $resteAPayer,
+                        'montant_paye' => $paye,
+                        'total_rejet' => $rejet,
+                        'total_perte' => $perte,
+                        'reste_a_payer' => $reste,
                     ];
 
                     $totalFacture += $montantFacture;
-                    $totalPaye += $montantPayePeriode;
-                    $totalReste += $resteAPayer;
+                    $totalPaye += $paye;
+                    $totalPerte += $perte;
+                    $totalRejet += $rejet;
+                    $totalReste += $reste;
                 }
 
-                if (empty($lignes) && $soldeAnterieur <= 0) continue;
+                if (empty($lignes)) continue;
 
                 $data[] = [
                     'client_id' => $cId,
@@ -340,34 +317,37 @@ class RapportClientController extends Controller
                         ? (Client::TYPES_LABELS[$client->type_client] ?? ucfirst($client->type_client))
                         : null,
                     'lignes' => $lignes,
-                    'solde_anterieur' => $soldeAnterieur,
                     'total_facture' => $totalFacture,
                     'total_paye' => $totalPaye,
                     'total_perte' => $totalPerte,
                     'total_rejet' => $totalRejet,
-                    'total_reste' => $totalReste + $soldeAnterieur,
+                    'total_reste' => $totalReste,
                 ];
             }
         } elseif ($mode === 'tous_clients') {
-            // Charger tous les clients ayant des factures non annulées dans la période.
+            $fin = $dateFin ?: now()->format('Y-m-d');
+
             $clientsQuery = Client::with('compteComptable')
                 ->when($typeClient, fn($q) => $q->where('type_client', $typeClient))
-                ->whereHas('facturesClient', function ($q) use ($dateDebut, $dateFin) {
-                    $q->whereNull('deleted_at');
-                    if ($dateDebut) $q->where('date_facture', '>=', $dateDebut);
-                    if ($dateFin) $q->where('date_facture', '<=', $dateFin);
+                ->whereHas('facturesClient', function ($q) use ($dateDebut, $fin) {
+                    $q->whereNull('deleted_at')
+                      ->where('date_facture', '<=', $fin);
+                    if ($dateDebut) {
+                        $q->where('date_facture', '>=', $dateDebut);
+                    }
                 })
                 ->orderBy('nom')
                 ->get();
 
             $numero = 0;
             foreach ($clientsQuery as $client) {
-                $facturesQuery = $client->facturesClient()
+                $factures = $client->facturesClient()
                     ->with('reglements')
-                    ->whereNull('deleted_at');
-                if ($dateDebut) $facturesQuery->where('date_facture', '>=', $dateDebut);
-                if ($dateFin) $facturesQuery->where('date_facture', '<=', $dateFin);
-                $factures = $facturesQuery->get();
+                    ->whereNull('deleted_at')
+                    ->where('date_facture', '<=', $fin)
+                    ->when($dateDebut, fn($q) => $q->where('date_facture', '>=', $dateDebut))
+                    ->orderBy('date_facture')
+                    ->get();
 
                 $totalFacture = 0;
                 $totalPaye = 0;
@@ -376,14 +356,23 @@ class RapportClientController extends Controller
                 $totalReste = 0;
 
                 foreach ($factures as $f) {
-                    $resteAPayer = $calcRestePeriode($f, $dateFin);
-                    if ($resteAPayer <= 0) continue;
+                    $montantFacture = (float) $f->montant - (float) ($f->ristourne ?? 0);
 
-                    $totalFacture += (float) $f->montant - (float) ($f->ristourne ?? 0);
-                    $totalPaye += (float) $f->reglements->where('type_reglement', '!=', 'perte')->sum('montant');
-                    $totalPerte += (float) $f->reglements->where('type_reglement', 'perte')->sum('montant');
-                    $totalRejet += (float) $f->reglements->sum('montant_rejet');
-                    $totalReste += $resteAPayer;
+                    $reglements = $f->reglements;
+                    $reglements = $reglements->filter(fn($r) => $r->date_reglement && $r->date_reglement->lte($fin));
+
+                    $paye = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
+                    $perte = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
+                    $rejet = (float) $reglements->sum('montant_rejet');
+                    $reste = max(0, $montantFacture - $paye - $rejet - $perte);
+
+                    if ($reste <= 0) continue;
+
+                    $totalFacture += $montantFacture;
+                    $totalPaye += $paye;
+                    $totalPerte += $perte;
+                    $totalRejet += $rejet;
+                    $totalReste += $reste;
                 }
 
                 if ($totalReste <= 0) continue;
@@ -397,13 +386,15 @@ class RapportClientController extends Controller
                     'type_client_label' => $client->type_client
                         ? (Client::TYPES_LABELS[$client->type_client] ?? ucfirst($client->type_client))
                         : null,
-                    'total_perte' => $totalPerte,
-                    'total_rejet' => $totalRejet,
                     'total_facture' => $totalFacture,
                     'total_paye' => $totalPaye,
+                    'total_perte' => $totalPerte,
+                    'total_rejet' => $totalRejet,
                     'total_reste' => $totalReste,
                 ];
             }
+
+            $dateFin = $fin;
         }
 
         // Groupement par type uniquement pour le mode "par_client" sans filtre de type

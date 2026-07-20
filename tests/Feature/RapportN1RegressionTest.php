@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\FactureClient;
 use App\Models\FactureFournisseur;
 use Database\Factories\ClientFactory;
 use Database\Factories\CompteComptableFactory;
@@ -109,10 +110,10 @@ class RapportN1RegressionTest extends TestCase
         $facture = FactureClientFactory::new()->create([
             'client_id' => $client->id, 'montant' => 100000, 'ristourne' => 0, 'date_facture' => '2026-05-01',
         ]);
-        // 1 règlement de 40 000 (type reglement), pas de perte ni rejet
         ReglementClientFactory::new()->pourFacture($facture)->create([
             'montant' => 40000, 'date_reglement' => '2026-05-10', 'montant_rejet' => 0,
         ]);
+        $facture->update(['statut' => FactureClient::STATUT_PAYEE, 'date_solde' => '2026-05-15']);
 
         $json = $this->getJson('/rapports/clients/api/etat-reglements?mode=tous_clients&date_debut=2026-01-01&date_fin=2026-12-31')
             ->assertOk()->json();

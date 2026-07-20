@@ -222,27 +222,15 @@ class RapportFournisseurController extends Controller
         // donc sans requête supplémentaire (évite le N+1 par facture).
         $getReglementsPeriode = fn (FactureFournisseur $facture) => (float) $facture->reglements->sum('montant');
 
-        // Filtre de base. Une facture entre dans la situation de la période si :
-        //  - elle a subi un RÈGLEMENT dans la période (date_reglement), OU
-        //  - elle n'a subi aucun règlement dans la période mais a été ENREGISTRÉE
-        //    (date PC) dans la période.
-        // (union des deux ensembles ⇒ un simple OR.)
+        // Filtre de base. Une facture entre dans la situation si sa date PC
+        // respecte le filtre temporel choisi (période ou point au).
         $baseFilter = function ($q) use ($dateDebut, $dateFin) {
             $q->whereNotIn('statut', [FactureFournisseur::STATUT_ANNULEE]);
-            if ($dateDebut || $dateFin) {
-                $q->where(function ($sub) use ($dateDebut, $dateFin) {
-                    // Date PC (enregistrement) dans la période.
-                    $sub->where(function ($pc) use ($dateDebut, $dateFin) {
-                        if ($dateDebut) $pc->where('date', '>=', $dateDebut);
-                        if ($dateFin) $pc->where('date', '<=', $dateFin);
-                    })
-                    // OU un règlement (non annulé) dans la période.
-                    ->orWhereHas('reglements', function ($r) use ($dateDebut, $dateFin) {
-                        $r->where('statut', '!=', ReglementFournisseur::STATUT_ANNULE);
-                        if ($dateDebut) $r->where('date_reglement', '>=', $dateDebut);
-                        if ($dateFin) $r->where('date_reglement', '<=', $dateFin);
-                    });
-                });
+            if ($dateFin) {
+                $q->where('date', '<=', $dateFin);
+            }
+            if ($dateDebut) {
+                $q->where('date', '>=', $dateDebut);
             }
         };
 
@@ -1364,6 +1352,28 @@ class RapportFournisseurController extends Controller
 
         $factures = $query->with(['compte', 'imputations.compte'])->get();
 
+        // Mode 'par_compte' → retourner le détail par facture (conforme legacy)
+        if ($mode === 'par_compte' && $compteId) {
+            $lignes = $factures->map(fn($f) => [
+                'numero_piece' => $f->numero_piece,
+                'date' => $f->date?->format('d/m/Y'),
+                'libelle' => $f->libelle,
+                'montant_ttc' => (float) ($f->montant_ttc ?: $f->montant_facture),
+            ])->toArray();
+            $totalDepenses = array_sum(array_column($lignes, 'montant_ttc'));
+
+            return [
+                'titre' => $titre,
+                'mode' => $mode,
+                'lignes' => $lignes,
+                'totalDepenses' => $totalDepenses,
+                'comptesDisponibles' => $comptesDisponibles,
+                'dateDebut' => $dateDebut,
+                'dateFin' => $dateFin,
+                'labelTotal' => $type === 'charges' ? 'TOTAL DEPENSES' : 'TOTAL INVESTISSEMENTS',
+            ];
+        }
+
         // Grouper par compte et totaliser (inclut les imputations multiples)
         $parCompte = [];
         foreach ($factures as $f) {
@@ -1419,6 +1429,7 @@ class RapportFournisseurController extends Controller
         $totalDepenses = array_sum(array_column($lignes, 'montant'));
 
         return [
+            'mode' => $mode,
             'titre' => $titre,
             'labelTotal' => $type === 'charges' ? 'TOTAL DEPENSES' : 'TOTAL INVESTISSEMENTS',
             'lignes' => $lignes,
@@ -2007,6 +2018,25 @@ class RapportFournisseurController extends Controller
     private function buildRecapExcel(Request $request, string $type)
     {
         $data = $this->buildRecapData($request, $type);
+        $isDetail = ($data['mode'] ?? 'toutes') === 'par_compte';
+
+        if ($isDetail) {
+            $rows = array_map(fn($l) => [
+                $l['numero_piece'],
+                $l['date'],
+                $l['libelle'],
+                $l['montant_ttc'],
+            ], $data['lignes']);
+            $rows[] = ['', '', $data['labelTotal'] ?? 'TOTAL', $data['totalDepenses']];
+
+            return \App\Support\ExcelExporter::download(
+                ['N° PC', 'Date Enreg', 'Libellé', 'Montant'],
+                $rows,
+                $type === 'charges' ? 'recap-charges' : 'recap-investissements',
+                $data['titre'] ?: ($type === 'charges' ? 'Récapitulatif des charges' : 'Récapitulatif des investissements'),
+            );
+        }
+
         $rows = array_map(fn($l) => [
             $l['numero_compte'],
             $l['libelle'],

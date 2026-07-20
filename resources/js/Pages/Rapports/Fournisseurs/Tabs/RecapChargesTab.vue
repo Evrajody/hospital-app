@@ -51,13 +51,25 @@
       <template v-else>
         <div class="report-title">{{ titre }}</div>
 
-        <PaginatedTable style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummary">
-          <el-table-column prop="numero_compte" label="N° Compte" min-width="120" />
-          <el-table-column prop="libelle" label="Intitulé" min-width="350" />
-          <el-table-column label="Montant TTC" min-width="150" align="right">
-            <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
-          </el-table-column>
-        </PaginatedTable>
+        <template v-if="mode === 'par_compte'">
+          <PaginatedTable style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummary">
+            <el-table-column prop="numero_piece" label="N° PC" min-width="130" />
+            <el-table-column prop="date" label="Date Enreg" min-width="110" />
+            <el-table-column prop="libelle" label="Intitulé" min-width="350" />
+            <el-table-column label="Montant" min-width="150" align="right">
+              <template #default="{ row }">{{ formatMontant(row.montant_ttc) }}</template>
+            </el-table-column>
+          </PaginatedTable>
+        </template>
+        <template v-else>
+          <PaginatedTable style="width: 100%" :data="lignes" border size="small" stripe show-summary :summary-method="getSummary">
+            <el-table-column prop="numero_compte" label="N° Compte" min-width="120" />
+            <el-table-column prop="libelle" label="Intitulé" min-width="350" />
+            <el-table-column label="Montant TTC" min-width="150" align="right">
+              <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
+            </el-table-column>
+          </PaginatedTable>
+        </template>
 
         <!-- Actions Export -->
         <div class="actions-bar">
@@ -126,6 +138,7 @@ const fetchData = async () => {
     lignes.value = json.lignes || [];
     totalDepenses.value = json.totalDepenses || 0;
     if (json.comptesDisponibles) comptesCharges.value = json.comptesDisponibles;
+    if (json.mode) mode.value = json.mode;
     fetched.value = true;
   } catch (e) {
     ElMessage.error('Erreur lors du chargement des données');
@@ -135,10 +148,18 @@ const fetchData = async () => {
 };
 
 const getSummary = ({ columns }) => {
+  const isDetail = mode.value === 'par_compte';
   return columns.map((col, index) => {
-    if (index === 0) return '';
-    if (index === 1) return 'TOTAL DEPENSES :';
-    if (index === 2) return formatMontant(totalDepenses.value);
+    if (isDetail) {
+      if (index === 0) return '';
+      if (index === 1) return '';
+      if (index === 2) return 'TOTAL DEPENSES :';
+      if (index === 3) return formatMontant(totalDepenses.value);
+    } else {
+      if (index === 0) return '';
+      if (index === 1) return 'TOTAL DEPENSES :';
+      if (index === 2) return formatMontant(totalDepenses.value);
+    }
     return '';
   });
 };

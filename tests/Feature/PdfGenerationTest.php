@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\FactureClient;
 use Database\Factories\ApprovisionnementBanqueFactory;
 use Database\Factories\ClientFactory;
 use Database\Factories\CompteComptableFactory;
@@ -131,7 +132,8 @@ class PdfGenerationTest extends TestCase
     {
         $this->actingAsWithPermissions(['rapports-clients.voir']);
         $client = ClientFactory::new()->create();
-        FactureClientFactory::new()->create(['client_id' => $client->id, 'date_facture' => '2026-04-01']);
+        $facture = FactureClientFactory::new()->create(['client_id' => $client->id, 'date_facture' => '2026-04-01']);
+        $facture->update(['statut' => FactureClient::STATUT_PAYEE, 'date_solde' => '2026-04-15']);
 
         $this->assertPdf($this->get('/rapports/clients/pdf/etat-reglements?mode=un_client&client_id='.$client->id.'&date_debut=2026-01-01&date_fin=2026-12-31'));
     }
