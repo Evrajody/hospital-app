@@ -78,7 +78,7 @@
               <strong>Banque :</strong> <em>{{ group.numero_compte }} {{ group.intitule }}</em>
             </template>
             <template #default="{ group }">
-            <el-table style="width: 100%" :data="group.displayRows" border size="small" :show-header="true" class="detail-table">
+            <el-table style="width: 100%" :data="group.displayRows" border size="small" max-height="calc(100vh - 300px)" :show-header="true" class="detail-table">
               <el-table-column label="DATE" min-width="110">
                 <template #default="{ row }">
                   <span :class="{ 'row-special': row._special }">{{ row.date_fmt }}</span>

@@ -261,7 +261,10 @@
               </el-table-column>
               <el-table-column label="Reste" width="160" align="right" sortable sort-by="reste_a_payer" resizable>
                 <template #default="{ row }">
-                  <span :class="['nowrap-cell', 'montant-reste', row.reste_a_payer > 0 ? 'has-reste' : '']">{{ formatMontant(row.reste_a_payer) }}</span>
+                  <span :class="['nowrap-cell', 'montant-reste', row.reste_a_payer > 0 ? 'has-reste' : (row.reste_a_payer < 0 ? 'has-credit' : '')]">
+                    {{ formatMontant(row.reste_a_payer) }}
+                    <small v-if="row.reste_a_payer < 0" class="credit-label">Trop-perçu</small>
+                  </span>
                 </template>
               </el-table-column>
               <el-table-column prop="statut" label="Statut" width="160" align="center" sortable resizable>
@@ -376,7 +379,7 @@
               </el-table-column>
               <el-table-column label="Reste à payer" width="150" align="right">
                 <template #default="{ row }">
-                  <span class="nowrap-cell" :class="(row.facture?.reste_a_payer || 0) > 0 ? 'reste-due' : 'reste-paid'">
+                  <span class="nowrap-cell" :class="(row.facture?.reste_a_payer || 0) > 0 ? 'reste-due' : ((row.facture?.reste_a_payer || 0) < 0 ? 'reste-credit' : 'reste-paid')">
                     <strong>{{ formatMontant(row.facture?.reste_a_payer || 0) }}</strong>
                   </span>
                 </template>
@@ -824,6 +827,18 @@ const handleReglementActions = (command, reglement) => {
 .montant-reste.has-reste {
   color: #f56c6c;
   font-weight: 600;
+}
+
+.montant-reste.has-credit,
+.reste-credit {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.credit-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .montant-reglement {

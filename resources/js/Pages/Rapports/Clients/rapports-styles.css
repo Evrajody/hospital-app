@@ -152,6 +152,12 @@
   border: 1px solid #000000;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #eeeeee;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .data-table tbody tr {
@@ -179,6 +185,9 @@
   text-align: right;
   font-weight: 600;
   font-family: 'Courier New', monospace;
+  width: 110px;
+  white-space: nowrap;
+  word-wrap: normal;
 }
 
 .data-table tfoot {
@@ -311,6 +320,10 @@
   .data-table tfoot,
   .total-row {
     background: #eeeeee !important;
+  }
+
+  .data-table th {
+    position: static;
   }
 
   /* Pas de saut de page dans les éléments critiques */

@@ -106,6 +106,10 @@
                     <strong class="reglement-montant">{{ formatMontant(reglement.montant) }}</strong>
                   </div>
                   <div class="reglement-details">
+                    <div v-if="Number(reglement.montant_rejet) > 0" class="montant-rejet">
+                      <el-icon><WarningFilled /></el-icon>
+                      Montant rejet&eacute; : <strong>{{ formatMontant(reglement.montant_rejet) }}</strong>
+                    </div>
                     <div v-if="reglement.institution">
                       <el-icon><OfficeBuilding /></el-icon>
                       {{ reglement.institution }}
@@ -751,7 +755,7 @@ import { router } from '@inertiajs/vue3';
 import { ElMessage } from 'element-plus';
 import {
   ArrowLeft, Document, Clock, Money, Check,
-  DocumentCopy, CreditCard, SuccessFilled, CircleCheck, UploadFilled
+  DocumentCopy, CreditCard, SuccessFilled, CircleCheck, UploadFilled, WarningFilled
 } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -833,7 +837,7 @@ const montantRejetActif = computed(() => {
 
 const newReste = computed(() => {
   const montant = parseFloat(form.value.montant) || 0;
-  return Math.max(0, resteAPayer.value - montant - montantRejetActif.value);
+  return resteAPayer.value - montant - montantRejetActif.value;
 });
 
 const filteredApprovisionnements = computed(() => {
@@ -1261,6 +1265,10 @@ const formatDate = (date) => {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.reglement-details .montant-rejet {
+  color: #dc2626;
 }
 
 .reglement-actions {

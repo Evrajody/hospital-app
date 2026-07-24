@@ -218,8 +218,9 @@
           </el-table-column>
           <el-table-column label="Reste" width="160" align="right" sortable sort-by="reste_a_payer" resizable>
             <template #default="{ row }">
-              <span :class="['nowrap-cell', 'montant-reste', row.reste_a_payer > 0 ? 'has-reste' : '']">
+              <span :class="['nowrap-cell', 'montant-reste', row.reste_a_payer > 0 ? 'has-reste' : (row.reste_a_payer < 0 ? 'has-credit' : '')]">
                 {{ formatMontant(row.reste_a_payer) }}
+                <small v-if="row.reste_a_payer < 0" class="credit-label">Trop-perçu</small>
               </span>
             </template>
           </el-table-column>
@@ -286,6 +287,13 @@
           <span><strong>Montant :</strong> {{ etatReglementData.facture.montant }}</span>
           <span><strong>Ristourne :</strong> {{ etatReglementData.facture.ristourne }}</span>
           <span><strong>Net à payer :</strong> {{ etatReglementData.facture.net_a_payer }}</span>
+        </div>
+        <div class="etat-reglement-montants">
+          <span><strong>Statut :</strong> {{ etatReglementData.facture.statut_libelle }}</span>
+          <span><strong>Date de solde :</strong> {{ etatReglementData.facture.date_solde || '-' }}</span>
+          <span v-if="etatReglementData.facture.soldee_manuellement">
+            <strong>Déficit constaté :</strong> {{ etatReglementData.facture.deficit_solde }}
+          </span>
         </div>
 
         <table class="etat-reglement-table">
@@ -630,6 +638,8 @@ const formatDate = (date) => {
 .montant-paye { color: #059669; font-weight: 600; }
 .montant-reste { font-weight: 600; color: #666; }
 .montant-reste.has-reste { color: #dc2626; }
+.montant-reste.has-credit { color: #2563eb; }
+.credit-label { display: block; font-size: 10px; font-weight: 500; }
 .ref-link { color: var(--el-color-primary); cursor: pointer; font-weight: 600; text-decoration: none; }
 .ref-link:hover { text-decoration: underline; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }

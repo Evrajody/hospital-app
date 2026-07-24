@@ -37,11 +37,11 @@
             <table class="report-table">
                 <thead>
                     <tr>
-                        <th style="width: 40px">N&deg;</th>
-                        <th>Raison sociale</th>
-                        <th class="montant" style="width: 130px">Montant total d&ucirc;</th>
-                        <th class="montant" style="width: 130px">Montant total des r&egrave;glements</th>
-                        <th class="montant restant" style="width: 120px">Restant d&ucirc;</th>
+                        <th style="width: 5%">N&deg;</th>
+                        <th style="width: 44%">Raison sociale</th>
+                        <th class="montant" style="width: 17% !important">Montant total d&ucirc;</th>
+                        <th class="montant" style="width: 17% !important">Montant total des r&egrave;glements</th>
+                        <th class="montant restant" style="width: 17% !important">Restant d&ucirc;</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -78,11 +78,11 @@
             <table class="report-table">
                 <thead>
                     <tr>
-                        <th style="width: 40px">N&deg;</th>
-                        <th>Raison sociale</th>
-                        <th class="montant" style="width: 130px">Montant total d&ucirc;</th>
-                        <th class="montant" style="width: 130px">Montant total des r&egrave;glements</th>
-                        <th class="montant restant" style="width: 120px">Restant d&ucirc;</th>
+                        <th style="width: 5%">N&deg;</th>
+                        <th style="width: 44%">Raison sociale</th>
+                        <th class="montant" style="width: 17% !important">Montant total d&ucirc;</th>
+                        <th class="montant" style="width: 17% !important">Montant total des r&egrave;glements</th>
+                        <th class="montant restant" style="width: 17% !important">Restant d&ucirc;</th>
                     </tr>
                 </thead>
                 <tbody>

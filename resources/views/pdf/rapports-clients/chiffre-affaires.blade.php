@@ -52,12 +52,12 @@
                 <table class="report-table" style="margin-top: 10px;">
                     <thead>
                         <tr>
-                            <th style="width: 30px">N°</th>
-                            <th style="width: 90px">N° Compte</th>
-                            <th>Client</th>
-                            <th class="montant" style="width: 110px">Mt Facture</th>
-                            <th class="montant" style="width: 110px">Mt encaissé</th>
-                            <th class="montant ecart" style="width: 100px">Écart</th>
+                            <th style="width: 4%">N°</th>
+                            <th style="width: 12%">N° Compte</th>
+                            <th style="width: 39%">Client</th>
+                            <th class="montant" style="width: 15% !important">Mt Facture</th>
+                            <th class="montant" style="width: 15% !important">Mt encaissé</th>
+                            <th class="montant ecart" style="width: 15% !important">Écart</th>
                         </tr>
                     </thead>
                     <tbody>

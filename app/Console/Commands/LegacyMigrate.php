@@ -48,16 +48,24 @@ class LegacyMigrate extends Command
     protected $description = "Migre les données de l'ancien système Access (schémas de staging) vers le nouveau schéma.";
 
     private string $schemaClients;
+
     private string $schemaFsr;
+
     private array $only = [];
+
     private array $stats = [];
 
     /** Caches de remappage clé naturelle -> id */
     private array $compteByNumero = [];
+
     private array $fournisseurByCompte = [];
+
     private array $clientByNumcli = [];
+
     private array $factureClientByRef = [];
+
     private array $factureFsrByNumP = [];
+
     private array $compteBancaireByNum = [];
 
     public function handle(): int
@@ -93,11 +101,13 @@ class LegacyMigrate extends Command
                 DB::commit();
                 $this->info("{$n} factures mises à jour avec leur compte de charge/investissement.");
             }
+
             return self::SUCCESS;
         }
 
         if (! $this->schemaExists($this->schemaClients) && ! $this->schemaExists($this->schemaFsr)) {
             $this->error("Aucun schéma de staging trouvé. Lancez d'abord :  make migrate-legacy-load");
+
             return self::FAILURE;
         }
 
@@ -111,6 +121,7 @@ class LegacyMigrate extends Command
         // saturerait les verrous PostgreSQL (max_locks_per_transaction).
         if ($dryRun) {
             $this->dryRunReport();
+
             return self::SUCCESS;
         }
 
@@ -137,10 +148,12 @@ class LegacyMigrate extends Command
             $this->line($e->getFile().':'.$e->getLine());
             $this->renderStats();
             $this->comment('La migration est idempotente : corrigez la cause et relancez, elle reprendra sans doublon.');
+
             return self::FAILURE;
         }
 
         $this->renderStats();
+
         return self::SUCCESS;
     }
 
@@ -185,6 +198,7 @@ class LegacyMigrate extends Command
         if (! $this->schemaExists($schema) || ! $this->tableExists($schema, $table)) {
             return 0;
         }
+
         return (int) DB::selectOne('SELECT count(*) AS c FROM "'.$schema.'"."'.$table.'"')->c;
     }
 
@@ -366,6 +380,7 @@ class LegacyMigrate extends Command
             $datePc = $this->date($r->datenreg ?? null);
             if ($datePc === null) {
                 $this->bump('factures_fsr_sans_date_enregistrement');
+
                 continue;
             }
 
@@ -405,7 +420,7 @@ class LegacyMigrate extends Command
                 'type_reduction' => $this->clean($r->numcptacpt ?? null),
                 'assujetti_tva' => false,
                 'statut' => $soldee ? 'payee' : ($this->num($r->mtreg ?? 0) < $this->num($r->mtfac ?? 0) ? 'partiellement_payee' : 'payee'),
-                'date_solde' =>  $dateSolde,
+                'date_solde' => $dateSolde,
                 'created_by_name' => $this->clean($r->user ?? null),
             ]);
             // Ne pose le compte de charge que s'il est résolu (n'écrase pas avec null un
@@ -431,6 +446,7 @@ class LegacyMigrate extends Command
     {
         if (! $this->schemaExists($this->schemaFsr)) {
             $this->error("Schéma de staging {$this->schemaFsr} absent. Lancez : make migrate-legacy-load");
+
             return self::FAILURE;
         }
 
@@ -448,6 +464,7 @@ class LegacyMigrate extends Command
             $f = FactureFournisseur::where('numero_piece', $this->cut($numP, 50))->first();
             if (! $f) {
                 $introuvables++;
+
                 continue;
             }
 
@@ -488,6 +505,7 @@ class LegacyMigrate extends Command
             $clientId = $this->clientByNumcli[$this->key($r->numcli ?? '')] ?? null;
             if (! $clientId) {
                 $this->bump('factures_clients_orphelines');
+
                 continue;
             }
             // Date facture : années aberrantes filtrées, repli date règlement / année.
@@ -594,6 +612,7 @@ class LegacyMigrate extends Command
             $factureId = $this->factureClientByRef[$this->key($this->clean($r->reffac ?? '') ?? '')] ?? null;
             if (! $factureId) {
                 $this->bump('reglements_clients_orphelins');
+
                 continue;
             }
             $facture = FactureClient::find($factureId);
@@ -656,6 +675,7 @@ class LegacyMigrate extends Command
             $numCompte = str_replace(',', '.', $this->cut($r->numcpt ?? null, 50));
             if (! $numCompte) {
                 $this->bump('imputations_ignorees_sans_compte');
+
                 continue; // ligne d'imputation sans compte exploitable
             }
             $debit = $this->num($r->debit ?? 0);
@@ -755,22 +775,28 @@ class LegacyMigrate extends Command
     private function recomputeSoldes(): void
     {
         // Toujours exécuté (2 requêtes groupées, idempotentes) pour finaliser les soldes.
-        {
-            DB::statement(<<<'SQL'
+
+        DB::statement(<<<'SQL'
                 UPDATE factures_clients f SET
-                    montant_paye  = COALESCE(r.s, 0),
-                    reste_a_payer = GREATEST((f.montant - COALESCE(f.ristourne,0)) - COALESCE(r.s,0), 0),
-                    statut = CASE WHEN COALESCE(r.s,0) <= 0 THEN 'non_payee'
-                                  WHEN COALESCE(r.s,0) + 0.01 >= (f.montant - COALESCE(f.ristourne,0)) THEN 'payee'
+                    montant_paye  = COALESCE(r.paye, 0),
+                    total_rejet   = COALESCE(r.rejet, 0),
+                    total_perte   = COALESCE(r.perte, 0),
+                    reste_a_payer = (f.montant - COALESCE(f.ristourne,0))
+                        - COALESCE(r.paye,0) - COALESCE(r.rejet,0) - COALESCE(r.perte,0),
+                    statut = CASE WHEN COALESCE(r.paye,0) + COALESCE(r.rejet,0) + COALESCE(r.perte,0) <= 0 THEN 'non_payee'
+                                  WHEN COALESCE(r.paye,0) + COALESCE(r.rejet,0) + COALESCE(r.perte,0) + 0.01 >= (f.montant - COALESCE(f.ristourne,0)) THEN 'payee'
                                   ELSE 'partiellement_payee' END
-                FROM (SELECT facture_id, SUM(montant) s FROM reglements_clients
-                      WHERE type_reglement = 'reglement' AND deleted_at IS NULL
+                FROM (SELECT facture_id,
+                             SUM(montant) FILTER (WHERE type_reglement IS DISTINCT FROM 'perte') paye,
+                             SUM(COALESCE(montant_rejet, 0)) rejet,
+                             SUM(montant) FILTER (WHERE type_reglement = 'perte') perte
+                      FROM reglements_clients
+                      WHERE deleted_at IS NULL
                       GROUP BY facture_id) r
                 WHERE r.facture_id = f.id
             SQL);
-        }
-        {
-            DB::statement(<<<'SQL'
+
+        DB::statement(<<<'SQL'
                 UPDATE factures_fournisseurs f SET
                     montant_paye  = COALESCE(r.s, 0),
                     reste_a_payer = GREATEST(COALESCE(f.montant_net,0) - COALESCE(r.s,0), 0),
@@ -782,17 +808,15 @@ class LegacyMigrate extends Command
                       GROUP BY facture_id) r
                 WHERE r.facture_id = f.id
             SQL);
-        }
 
         // Factures marquées SOLDÉES à la source (date_solde renseignée) : on force le
-        // statut 'payee' et reste_a_payer = 0, exactement comme le bouton « Marquer
-        // comme soldée ». On garde montant_paye = somme réelle des règlements (calculée
-        // ci-dessus), donc le déficit éventuel (montant > réglé) reste lisible dans
+        // statut 'payee' sans écraser le solde signé. On garde montant_paye = somme
+        // réelle des règlements (calculée ci-dessus), donc le déficit ou le trop-perçu reste lisible dans
         // l'état des factures réglées. Sans cette passe, une facture soldée mais
         // partiellement réglée à la source restait à tort en non_payee/partiellement_payee.
         DB::statement(<<<'SQL'
             UPDATE factures_clients
-            SET statut = 'payee', reste_a_payer = 0
+            SET statut = 'payee'
             WHERE date_solde IS NOT NULL AND deleted_at IS NULL AND statut <> 'payee'
         SQL);
         DB::statement(<<<'SQL'
@@ -802,7 +826,7 @@ class LegacyMigrate extends Command
         SQL);
 
         // Toute facture payée (statut = 'payee') sans date_solde reçoit la date du
-        // dernier règlement. Cela couvre les factures soldées par des règlements
+        // premier règlement qui atteint le net à payer. Cela couvre les factures soldées par des règlements
         // (pas seulement celles marquées statu=1 à la source Access).
         DB::statement(<<<'SQL'
             UPDATE factures_fournisseurs f
@@ -820,11 +844,21 @@ class LegacyMigrate extends Command
         SQL);
         DB::statement(<<<'SQL'
             UPDATE factures_clients f
-            SET date_solde = sub.derniere_date
+            SET date_solde = sub.date_atteinte_solde
             FROM (
-                SELECT facture_id, MAX(date_reglement) AS derniere_date
-                FROM reglements_clients
-                WHERE deleted_at IS NULL
+                SELECT facture_id, MIN(date_reglement) AS date_atteinte_solde
+                FROM (
+                    SELECT facture_id, date_reglement,
+                           SUM(montant + COALESCE(montant_rejet, 0)) OVER (
+                               PARTITION BY facture_id
+                               ORDER BY date_reglement, id
+                               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                           ) AS couverture_cumulee
+                    FROM reglements_clients
+                    WHERE deleted_at IS NULL
+                ) cumuls
+                JOIN factures_clients facture ON facture.id = cumuls.facture_id
+                WHERE cumuls.couverture_cumulee + 0.01 >= facture.montant - COALESCE(facture.ristourne, 0)
                 GROUP BY facture_id
             ) sub
             WHERE sub.facture_id = f.id
@@ -888,6 +922,7 @@ class LegacyMigrate extends Command
                 'is_custom' => true,
             ]
         );
+
         return $this->compteByNumero[$k] = $compte->id;
     }
 
@@ -924,6 +959,7 @@ class LegacyMigrate extends Command
         if (! $this->schemaExists($schema) || ! $this->tableExists($schema, $table)) {
             return [];
         }
+
         return DB::select('SELECT * FROM "'.$schema.'"."'.$table.'"');
     }
 
@@ -935,12 +971,14 @@ class LegacyMigrate extends Command
         // Retire le BOM UTF-8 (U+FEFF) que mdb-export place en tête de chaque table
         $v = str_replace("\u{FEFF}", '', (string) $v);
         $v = trim($v);
+
         return $v === '' ? null : $v;
     }
 
     private function cut($v, int $max): ?string
     {
         $v = $this->clean($v);
+
         return $v === null ? null : mb_substr($v, 0, $max);
     }
 
@@ -949,6 +987,7 @@ class LegacyMigrate extends Command
         if ($v === null || $v === '') {
             return 0.0;
         }
+
         return (float) preg_replace('/[^0-9.\-]/', '', (string) $v);
     }
 
@@ -971,6 +1010,7 @@ class LegacyMigrate extends Command
         if (is_bool($v)) {
             return $v;
         }
+
         return in_array(strtolower(trim((string) $v)), ['1', 't', 'true', 'oui', 'yes', 'y'], true);
     }
 
@@ -986,6 +1026,7 @@ class LegacyMigrate extends Command
             return null;
         }
         $year = (int) substr($d, 0, 4);
+
         return ($year >= 2000 && $year <= ((int) date('Y') + 1)) ? $d : null;
     }
 
@@ -993,6 +1034,7 @@ class LegacyMigrate extends Command
     private function yearToDate($annee): ?string
     {
         $y = (int) preg_replace('/\D/', '', (string) $annee);
+
         return ($y >= 2000 && $y <= ((int) date('Y') + 1)) ? sprintf('%04d-01-01', $y) : null;
     }
 
@@ -1002,6 +1044,7 @@ class LegacyMigrate extends Command
         if (strlen($v) === 2) {
             return $v;
         }
+
         return match (true) {
             str_contains($v, 'BEN') => 'BJ',
             str_contains($v, 'TOG') => 'TG',
@@ -1018,6 +1061,7 @@ class LegacyMigrate extends Command
     private function mode(?string $v): string
     {
         $v = strtolower($this->clean($v) ?? '');
+
         return match (true) {
             str_contains($v, 'esp') => 'especes',
             str_contains($v, 'vir') => 'virement',

@@ -20,11 +20,11 @@
         <table class="report-table">
             <thead>
                 <tr>
-                    <th style="width: 30px">N°</th>
-                    <th style="width: 130px">N° Facture</th>
-                    <th style="width: 90px">Date Facture</th>
-                    <th>Nom Client</th>
-                    <th class="montant" style="width: 130px">Montant</th>
+                    <th style="width: 4%">N°</th>
+                    <th style="width: 16%">N° Facture</th>
+                    <th style="width: 12%">Date Facture</th>
+                    <th style="width: 48%">Nom Client</th>
+                    <th class="montant" style="width: 20% !important">Montant</th>
                 </tr>
             </thead>
             <tbody>

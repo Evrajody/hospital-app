@@ -263,8 +263,12 @@
 
           <el-table-column label="Reste &agrave; payer" width="150" align="right">
             <template #default="{ row }">
-              <span class="nowrap-cell" :class="(row.facture?.reste_a_payer || 0) > 0 ? 'reste-due' : 'reste-paid'">
+              <span
+                class="nowrap-cell"
+                :class="(row.facture?.reste_a_payer || 0) < 0 ? 'reste-credit' : (row.facture?.reste_a_payer || 0) > 0 ? 'reste-due' : 'reste-paid'"
+              >
                 <strong>{{ formatMontant(row.facture?.reste_a_payer || 0) }}</strong>
+                <small v-if="(row.facture?.reste_a_payer || 0) < 0">Trop-perçu</small>
               </span>
             </template>
           </el-table-column>
@@ -909,6 +913,8 @@ const formatDate = (date) => {
 .text-muted { color: #d1d5db; }
 .reste-due { color: #dc2626; }
 .reste-paid { color: #6b7280; }
+.reste-credit { color: #2563eb; }
+.reste-credit small { display: block; font-size: 11px; font-weight: 600; }
 .expand-reglements { padding: 12px 24px; background-color: #f9fafb; }
 .inner-reglements-table { background: #ffffff; }
 .inner-reglements-table :deep(.el-table th) { background-color: #eef2ff; font-size: 12px; font-weight: 600; }

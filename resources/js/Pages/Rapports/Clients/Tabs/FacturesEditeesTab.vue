@@ -35,8 +35,8 @@
           <el-table-column prop="numero" label="N°" min-width="50" align="center" />
           <el-table-column prop="reference" label="N° Facture" min-width="130" />
           <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
-          <el-table-column prop="client" label="Nom Client" min-width="220" />
-          <el-table-column label="Montant" min-width="140" align="right">
+          <el-table-column prop="client" label="Nom Client" min-width="320" />
+          <el-table-column label="Montant" width="145" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
           </el-table-column>
         </PaginatedTable>

@@ -73,6 +73,23 @@
         }
         table.report-table .montant {
             text-align: right;
+            /* Les chiffres restent compacts afin de réserver la largeur utile
+               aux libellés, clients, fournisseurs et observations. */
+            width: 82px !important;
+            font-size: 9px;
+        }
+        table.report-table td.montant {
+            white-space: nowrap;
+            word-wrap: normal;
+            overflow-wrap: normal;
+        }
+        table.report-table th.montant {
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+            text-align: center;
+            vertical-align: middle;
         }
         /* Colonnes N° de ligne et date : contenu centré (cf. demande uniformisation). */
         table.report-table .col-num,
@@ -80,6 +97,24 @@
         table.report-table td.col-num,
         table.report-table td.col-date {
             text-align: center;
+        }
+        table.report-table .col-num {
+            width: 30px !important;
+            white-space: nowrap;
+        }
+        table.report-table .col-date {
+            width: 62px !important;
+            white-space: nowrap;
+            word-wrap: normal;
+            overflow-wrap: normal;
+        }
+        /* Une colonne non dimensionnée absorbe automatiquement l'espace libéré.
+           Son texte peut revenir à la ligne sans être tronqué. */
+        table.report-table .col-text {
+            width: auto;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         table.report-table .total-row {
             font-weight: bold;

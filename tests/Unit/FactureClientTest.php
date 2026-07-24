@@ -43,6 +43,15 @@ class FactureClientTest extends TestCase
         $this->assertEquals(0, $f->reste_a_payer);
     }
 
+    public function test_un_trop_percu_conserve_un_solde_negatif(): void
+    {
+        $f = FactureClientFactory::new()->create(['montant' => 100000, 'ristourne' => 0]);
+
+        $this->assertTrue($f->enregistrerPaiement(120000));
+        $this->assertSame(FactureClient::STATUT_PAYEE, $f->statut);
+        $this->assertEquals(-20000, $f->reste_a_payer);
+    }
+
     public function test_generer_reference_format_et_increment(): void
     {
         $mois = date('m');

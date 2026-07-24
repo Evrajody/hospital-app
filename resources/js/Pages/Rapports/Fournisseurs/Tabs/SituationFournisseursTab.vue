@@ -99,15 +99,15 @@
         </div>
         <template v-else>
           <PaginatedTable style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
-            <el-table-column prop="numero" label="N°" min-width="50" align="center" />
-            <el-table-column prop="raison_sociale" label="Raison sociale" />
-            <el-table-column label="Montant total dû" min-width="150" align="right">
+            <el-table-column prop="numero" label="N°" width="55" align="center" />
+            <el-table-column prop="raison_sociale" label="Raison sociale" min-width="340" />
+            <el-table-column label="Montant total dû" width="155" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_du) }}</template>
             </el-table-column>
-            <el-table-column label="Montant total règlements" min-width="170" align="right">
+            <el-table-column label="Montant total règlements" width="180" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_reglements) }}</template>
             </el-table-column>
-            <el-table-column label="Restant dû" min-width="140" align="right">
+            <el-table-column label="Restant dû" width="145" align="right">
               <template #default="{ row }">
                 <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.restant_du) }}</span>
               </template>
@@ -127,17 +127,17 @@
           </div>
 
           <PaginatedTable style="width: 100%" :data="data" border size="small" stripe show-summary :summary-method="getSummaryTous">
-            <el-table-column prop="numero" label="N°" min-width="50" align="center" />
-            <el-table-column label="Raison sociale">
+            <el-table-column prop="numero" label="N°" width="55" align="center" />
+            <el-table-column label="Raison sociale" min-width="340">
               <template #default="{ row }">[{{ row.numero_compte }}] {{ row.raison_sociale }}</template>
             </el-table-column>
-            <el-table-column label="Montant total dû" min-width="150" align="right">
+            <el-table-column label="Montant total dû" width="155" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_du) }}</template>
             </el-table-column>
-            <el-table-column label="Montant total règlements" min-width="170" align="right">
+            <el-table-column label="Montant total règlements" width="180" align="right">
               <template #default="{ row }">{{ formatMontant(row.montant_reglements) }}</template>
             </el-table-column>
-            <el-table-column label="Restant dû" min-width="140" align="right">
+            <el-table-column label="Restant dû" width="145" align="right">
               <template #default="{ row }">
                 <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.restant_du) }}</span>
               </template>

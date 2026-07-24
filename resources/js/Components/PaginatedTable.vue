@@ -5,6 +5,7 @@
       v-bind="$attrs"
       :show-summary="showSummary"
       :summary-method="showSummary && summaryMethod ? wrappedSummary : undefined"
+      :max-height="maxHeight"
     >
       <slot />
     </el-table>
@@ -37,6 +38,9 @@ const props = defineProps({
   // portent sur le dataset COMPLET, pas seulement la page affichée.
   showSummary: { type: Boolean, default: false },
   summaryMethod: { type: Function, default: null },
+  // Une hauteur bornée active le défilement interne d'Element Plus et maintient
+  // automatiquement les en-têtes visibles pendant le défilement des lignes.
+  maxHeight: { type: [String, Number], default: 'calc(100vh - 300px)' },
 });
 
 const currentPage = ref(1);

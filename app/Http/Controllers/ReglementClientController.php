@@ -40,10 +40,10 @@ class ReglementClientController extends Controller
             $search = $request->search;
             $reglementQuery->where(function ($q) use ($search) {
                 $q->where('numero_ligne', 'ILIKE', "%{$search}%")
-                  ->orWhere('reference_cheque', 'ILIKE', "%{$search}%")
-                  ->orWhere('institution', 'ILIKE', "%{$search}%")
-                  ->orWhereHas('facture', fn($fq) => $fq->where('reference', 'ILIKE', "%{$search}%"))
-                  ->orWhereHas('client', fn($cq) => $cq->where('nom', 'ILIKE', "%{$search}%"));
+                    ->orWhere('reference_cheque', 'ILIKE', "%{$search}%")
+                    ->orWhere('institution', 'ILIKE', "%{$search}%")
+                    ->orWhereHas('facture', fn ($fq) => $fq->where('reference', 'ILIKE', "%{$search}%"))
+                    ->orWhereHas('client', fn ($cq) => $cq->where('nom', 'ILIKE', "%{$search}%"));
             });
         }
 
@@ -70,6 +70,7 @@ class ReglementClientController extends Controller
         // --- Étape 4 : regrouper par facture ---
         $grouped = $reglements->groupBy('facture_id')->map(function ($regs, $factureId) {
             $first = $regs->first();
+
             return [
                 'key' => "f-{$factureId}",
                 'facture' => [
@@ -77,18 +78,19 @@ class ReglementClientController extends Controller
                     'reference' => $first->facture?->reference ?? '-',
                     'date_facture' => $first->facture?->date_facture?->format('Y-m-d') ?? $first->facture?->date,
                     'montant_ttc' => (float) ($first->facture?->montant_ttc ?? 0),
+                    'reste_a_payer' => (float) ($first->facture?->reste_a_payer ?? 0),
                 ],
                 'client' => [
                     'id' => $first->client?->id,
                     'nom' => $first->client?->nom ?? '-',
                 ],
-                'reglements' => $regs->map(fn($r) => $r->toApiArray())->values()->all(),
+                'reglements' => $regs->map(fn ($r) => $r->toApiArray())->values()->all(),
                 'total_montant_regle' => (float) $regs->sum('montant'),
                 'count' => $regs->count(),
             ];
         })->values()->all();
 
-        $clients = Client::orderBy('nom')->get()->map(fn($c) => [
+        $clients = Client::orderBy('nom')->get()->map(fn ($c) => [
             'id' => $c->id,
             'nom' => $c->nom,
         ]);
@@ -119,6 +121,7 @@ class ReglementClientController extends Controller
                         ]);
                     }
                 }
+
                 return [
                     'id' => $b->id,
                     'nom' => $b->nom,
@@ -156,7 +159,19 @@ class ReglementClientController extends Controller
     {
         $request->validate([
             'facture_id' => ['required', 'integer', 'exists:factures_clients,id'],
-            'date_reglement' => ['required', 'date'],
+        ]);
+        $facture = FactureClient::findOrFail($request->input('facture_id'));
+
+        if ($facture->statut === FactureClient::STATUT_PAYEE) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette facture est déjà soldée. Aucun nouveau règlement ne peut être ajouté.',
+            ], 422);
+        }
+
+        $request->validate([
+            'facture_id' => ['required', 'integer', 'exists:factures_clients,id'],
+            'date_reglement' => ['required', 'date', 'after_or_equal:'.$facture->date_facture->format('Y-m-d')],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
             'type_reglement' => ['nullable', 'string', 'in:reglement,perte'],
@@ -169,8 +184,6 @@ class ReglementClientController extends Controller
             'bordereau_depot' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'montant_rejet' => ['nullable', 'numeric', 'min:0'],
         ]);
-
-        $facture = FactureClient::findOrFail($request->facture_id);
 
         // Si imputation sur avance : vérifier appartenance au client et solde disponible
         $avance = null;
@@ -185,7 +198,7 @@ class ReglementClientController extends Controller
             if ((float) $request->montant > $avance->montant_restant) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Le montant dépasse le solde restant de cette avance (' . number_format($avance->montant_restant, 0, ',', ' ') . ' XOF)',
+                    'message' => 'Le montant dépasse le solde restant de cette avance ('.number_format($avance->montant_restant, 0, ',', ' ').' XOF)',
                 ], 422);
             }
         }
@@ -199,7 +212,7 @@ class ReglementClientController extends Controller
                 if ((float) $request->montant > $soldeBordereau) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Le montant dépasse le solde du bordereau (' . number_format($soldeBordereau, 0, ',', ' ') . ' XOF)',
+                        'message' => 'Le montant dépasse le solde du bordereau ('.number_format($soldeBordereau, 0, ',', ' ').' XOF)',
                     ], 422);
                 }
             }
@@ -210,16 +223,19 @@ class ReglementClientController extends Controller
             $bordereauPath = $request->file('bordereau_depot')->store('bordereaux-depot', 'public');
         }
 
-        // Vérifier que le montant ne dépasse pas le reste à payer
-        if ($request->montant > (float) $facture->reste_a_payer) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Le montant dépasse le reste à payer (' . number_format($facture->reste_a_payer, 0, ',', ' ') . ' XOF)',
-            ], 422);
-        }
-
         try {
             DB::beginTransaction();
+
+            // Sérialise les créations concurrentes : une seule peut solder la facture.
+            $facture = FactureClient::lockForUpdate()->findOrFail($facture->id);
+            if ($facture->statut === FactureClient::STATUT_PAYEE) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette facture est déjà soldée. Aucun nouveau règlement ne peut être ajouté.',
+                ], 422);
+            }
 
             $reglement = ReglementClient::create([
                 'numero_ligne' => $request->numero_ligne,
@@ -253,7 +269,7 @@ class ReglementClientController extends Controller
             DB::commit();
 
             $montantReglement = (float) $request->montant;
-            ActivityLog::log('create', 'reglement_client', "Règlement de " . number_format($montantReglement, 0, ',', ' ') . " XOF sur facture {$facture->reference}", $reglement, ['montant' => $montantReglement]);
+            ActivityLog::log('create', 'reglement_client', 'Règlement de '.number_format($montantReglement, 0, ',', ' ')." XOF sur facture {$facture->reference}", $reglement, ['montant' => $montantReglement]);
 
             $reglement->load(['facture', 'client', 'banqueDepot', 'approvisionnement']);
 
@@ -264,9 +280,10 @@ class ReglementClientController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage(),
+                'message' => 'Erreur lors de l\'enregistrement : '.$e->getMessage(),
             ], 500);
         }
     }
@@ -280,7 +297,7 @@ class ReglementClientController extends Controller
         $facture = $reglement->facture;
 
         $request->validate([
-            'date_reglement' => ['required', 'date'],
+            'date_reglement' => ['required', 'date', 'after_or_equal:'.$facture->date_facture->format('Y-m-d')],
             'montant' => ['required', 'numeric', 'min:1'],
             'numero_ligne' => ['nullable', 'string', 'max:50'],
             'type_reglement' => ['nullable', 'string', 'in:reglement,perte'],
@@ -314,7 +331,7 @@ class ReglementClientController extends Controller
             if ($nouveauMontant > $soldeDispo) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Le montant dépasse le solde restant de cette avance (' . number_format($soldeDispo, 0, ',', ' ') . ' XOF)',
+                    'message' => 'Le montant dépasse le solde restant de cette avance ('.number_format($soldeDispo, 0, ',', ' ').' XOF)',
                 ], 422);
             }
         }
@@ -330,7 +347,7 @@ class ReglementClientController extends Controller
                 if ($nouveauMontant > $soldeBordereau) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Le montant dépasse le solde du bordereau (' . number_format($soldeBordereau, 0, ',', ' ') . ' XOF)',
+                        'message' => 'Le montant dépasse le solde du bordereau ('.number_format($soldeBordereau, 0, ',', ' ').' XOF)',
                     ], 422);
                 }
             }
@@ -342,15 +359,6 @@ class ReglementClientController extends Controller
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($bordereauPath);
             }
             $bordereauPath = $request->file('bordereau_depot')->store('bordereaux-depot', 'public');
-        }
-
-        // Vérifier que le nouveau montant ne dépasse pas le reste à payer + ancien montant
-        $resteDisponible = (float) $facture->reste_a_payer + $ancienMontant;
-        if ($nouveauMontant > $resteDisponible) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Le montant dépasse le reste à payer (' . number_format($resteDisponible, 0, ',', ' ') . ' XOF)',
-            ], 422);
         }
 
         try {
@@ -396,9 +404,10 @@ class ReglementClientController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de la modification : ' . $e->getMessage(),
+                'message' => 'Erreur lors de la modification : '.$e->getMessage(),
             ], 500);
         }
     }
@@ -436,6 +445,7 @@ class ReglementClientController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la suppression',

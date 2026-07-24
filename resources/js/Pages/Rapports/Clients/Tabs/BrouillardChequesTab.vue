@@ -32,20 +32,20 @@
           </div>
 
           <template v-if="brouillard.length > 0">
-            <el-table style="width: 100%" :data="brouillard" border size="small" :span-method="brouillardSpanMethod">
-              <el-table-column label="Date" min-width="100">
+            <el-table style="width: 100%" :data="brouillard" border size="small" max-height="calc(100vh - 300px)" :span-method="brouillardSpanMethod">
+              <el-table-column label="Date" width="105">
                 <template #default="{ row }">
                   <strong>{{ row.date }}</strong>
                 </template>
               </el-table-column>
-              <el-table-column prop="libelle" label="Libellés" />
-              <el-table-column label="Débit" min-width="130" align="right">
+              <el-table-column prop="libelle" label="Libellés" min-width="360" />
+              <el-table-column label="Débit" width="135" align="right">
                 <template #default="{ row }">{{ row.debit ? formatMontant(row.debit) : '' }}</template>
               </el-table-column>
-              <el-table-column label="Crédit" min-width="130" align="right">
+              <el-table-column label="Crédit" width="135" align="right">
                 <template #default="{ row }">{{ row.credit ? formatMontant(row.credit) : '' }}</template>
               </el-table-column>
-              <el-table-column label="Solde" min-width="130" align="right">
+              <el-table-column label="Solde" width="135" align="right">
                 <template #default="{ row }">
                   <strong>{{ formatMontant(row.solde) }}</strong>
                 </template>
@@ -82,7 +82,7 @@
                   <el-table-column label="Crédit" width="160" align="right">
                     <template #default="{ row }">{{ row.credit ? formatMontant(row.credit) : '' }}</template>
                   </el-table-column>
-                  <el-table-column label="Libellé" prop="libelle" />
+                  <el-table-column label="Libellé" prop="libelle" min-width="360" />
                 </PaginatedTable>
               </template>
             </GroupNavigator>

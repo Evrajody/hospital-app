@@ -22,7 +22,7 @@ class RapportClientController extends Controller
         return Client::with('compteComptable')
             ->orderBy('nom')
             ->get()
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id' => $c->id,
                 'code' => $c->compteComptable?->numero_compte ?? '-',
                 'nom' => $c->nom,
@@ -48,7 +48,7 @@ class RapportClientController extends Controller
             'user' => [
                 'name' => auth()->user()?->name ?? 'Utilisateur',
                 'email' => auth()->user()?->email ?? 'user@hospital.bj',
-            ]
+            ],
         ]);
     }
 
@@ -74,7 +74,7 @@ class RapportClientController extends Controller
             }
 
             if ($typeClient) {
-                $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
+                $query->whereHas('client', fn ($q) => $q->where('type_client', $typeClient));
             }
 
             $query->where('statut', FactureClient::STATUT_PAYEE);
@@ -102,11 +102,12 @@ class RapportClientController extends Controller
                     $montantPaye = (float) $reglementsNonPerte->sum('montant');
                     $totalPerteFacture = (float) $reglementsPerte->sum('montant');
                     $totalRejetFacture = (float) $facture->reglements->sum('montant_rejet');
-                    $solde = max(0, $montantFacture - $montantPaye - $totalPerteFacture - $totalRejetFacture);
+                    $solde = $montantFacture - $montantPaye - $totalPerteFacture - $totalRejetFacture;
 
                     $lignes[] = [
                         'numero' => $index + 1,
                         'reference' => $facture->reference,
+                        'autres_informations' => $facture->autres_informations,
                         'date_facture' => $facture->date_facture?->format('d/m/Y'),
                         'date_reglement' => $facture->date_solde?->format('d/m/Y') ?? '-',
                         'montant_facture' => $montantFacture,
@@ -143,18 +144,18 @@ class RapportClientController extends Controller
             $deb = $dateDebut ?: now()->startOfYear()->format('Y-m-d');
             $fin = $dateFin ?: now()->format('Y-m-d');
             $clientsAvecFactures = Client::with([
-                    'compteComptable',
-                    'facturesClient' => fn($q) => $q
-                        ->where('statut', FactureClient::STATUT_PAYEE)
-                        ->whereNotNull('date_solde')
-                        ->whereBetween('date_solde', [$deb, $fin]),
-                    'facturesClient.reglements',
-                ])
-                ->when($typeClient, fn($q) => $q->where('type_client', $typeClient))
+                'compteComptable',
+                'facturesClient' => fn ($q) => $q
+                    ->where('statut', FactureClient::STATUT_PAYEE)
+                    ->whereNotNull('date_solde')
+                    ->whereBetween('date_solde', [$deb, $fin]),
+                'facturesClient.reglements',
+            ])
+                ->when($typeClient, fn ($q) => $q->where('type_client', $typeClient))
                 ->whereHas('facturesClient', function ($q) use ($deb, $fin) {
                     $q->where('statut', FactureClient::STATUT_PAYEE)
-                      ->whereNotNull('date_solde')
-                      ->whereBetween('date_solde', [$deb, $fin]);
+                        ->whereNotNull('date_solde')
+                        ->whereBetween('date_solde', [$deb, $fin]);
                 })
                 ->orderBy('nom')
                 ->get();
@@ -177,7 +178,7 @@ class RapportClientController extends Controller
                     $totalPerte += $tp;
                     $totalRejet += $tr;
                 }
-                $totalSolde = max(0, $totalFacture - $totalPaye - $totalPerte - $totalRejet);
+                $totalSolde = $totalFacture - $totalPaye - $totalPerte - $totalRejet;
 
                 $numero++;
                 $data[] = [
@@ -202,12 +203,12 @@ class RapportClientController extends Controller
 
         // Groupement par type uniquement pour le mode "par_client" sans filtre de type
         $groupesParType = null;
-        if ($mode === 'par_client' && !$typeClient && count($data) > 0) {
+        if ($mode === 'par_client' && ! $typeClient && count($data) > 0) {
             $groupes = [];
             foreach ($data as $clientData) {
                 $type = $clientData['type_client'] ?: 'non_defini';
                 $label = $clientData['type_client_label'] ?: 'Non défini';
-                if (!isset($groupes[$type])) {
+                if (! isset($groupes[$type])) {
                     $groupes[$type] = [
                         'type' => $type,
                         'label' => $label,
@@ -251,7 +252,7 @@ class RapportClientController extends Controller
             }
 
             if ($typeClient) {
-                $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
+                $query->whereHas('client', fn ($q) => $q->where('type_client', $typeClient));
             }
 
             if ($dateFin) {
@@ -276,21 +277,38 @@ class RapportClientController extends Controller
                 foreach ($clientFactures as $index => $facture) {
                     $montantFacture = (float) $facture->montant - (float) ($facture->ristourne ?? 0);
 
+                    // Sans date : situation actuelle, toute facture payée est exclue.
+                    if (! $dateFin && $facture->statut === FactureClient::STATUT_PAYEE) {
+                        continue;
+                    }
+
+                    // À une date historique, une facture soldée manuellement ne constitue
+                    // plus une créance dès sa date de solde. Une facture réglée normalement
+                    // reste évaluée par ses règlements datés ci-dessous.
+                    if ($dateFin
+                        && $this->estSoldeeManuellement($facture)
+                        && $facture->date_solde?->lte($dateFin)) {
+                        continue;
+                    }
+
                     $reglements = $facture->reglements;
                     if ($dateFin) {
-                        $reglements = $reglements->filter(fn($r) => $r->date_reglement && $r->date_reglement->lte($dateFin));
+                        $reglements = $reglements->filter(fn ($r) => $r->date_reglement && $r->date_reglement->lte($dateFin));
                     }
 
                     $paye = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
                     $perte = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
                     $rejet = (float) $reglements->sum('montant_rejet');
-                    $reste = max(0, $montantFacture - $paye - $rejet - $perte);
+                    $reste = $montantFacture - $paye - $rejet - $perte;
 
-                    if ($reste <= 0) continue;
+                    if ($reste <= 0) {
+                        continue;
+                    }
 
                     $lignes[] = [
                         'numero' => count($lignes) + 1,
                         'reference' => $facture->reference,
+                        'autres_informations' => $facture->autres_informations,
                         'date_facture' => $facture->date_facture?->format('d/m/Y'),
                         'montant_facture' => $montantFacture,
                         'montant_paye' => $paye,
@@ -306,7 +324,9 @@ class RapportClientController extends Controller
                     $totalReste += $reste;
                 }
 
-                if (empty($lignes)) continue;
+                if (empty($lignes)) {
+                    continue;
+                }
 
                 $data[] = [
                     'client_id' => $cId,
@@ -328,10 +348,10 @@ class RapportClientController extends Controller
             $fin = $dateFin ?: now()->format('Y-m-d');
 
             $clientsQuery = Client::with('compteComptable')
-                ->when($typeClient, fn($q) => $q->where('type_client', $typeClient))
+                ->when($typeClient, fn ($q) => $q->where('type_client', $typeClient))
                 ->whereHas('facturesClient', function ($q) use ($dateDebut, $fin) {
                     $q->whereNull('deleted_at')
-                      ->where('date_facture', '<=', $fin);
+                        ->where('date_facture', '<=', $fin);
                     if ($dateDebut) {
                         $q->where('date_facture', '>=', $dateDebut);
                     }
@@ -345,7 +365,7 @@ class RapportClientController extends Controller
                     ->with('reglements')
                     ->whereNull('deleted_at')
                     ->where('date_facture', '<=', $fin)
-                    ->when($dateDebut, fn($q) => $q->where('date_facture', '>=', $dateDebut))
+                    ->when($dateDebut, fn ($q) => $q->where('date_facture', '>=', $dateDebut))
                     ->orderBy('date_facture')
                     ->get();
 
@@ -358,15 +378,21 @@ class RapportClientController extends Controller
                 foreach ($factures as $f) {
                     $montantFacture = (float) $f->montant - (float) ($f->ristourne ?? 0);
 
+                    if ($this->estSoldeeManuellement($f) && $f->date_solde?->lte($fin)) {
+                        continue;
+                    }
+
                     $reglements = $f->reglements;
-                    $reglements = $reglements->filter(fn($r) => $r->date_reglement && $r->date_reglement->lte($fin));
+                    $reglements = $reglements->filter(fn ($r) => $r->date_reglement && $r->date_reglement->lte($fin));
 
                     $paye = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant');
                     $perte = (float) $reglements->where('type_reglement', 'perte')->sum('montant');
                     $rejet = (float) $reglements->sum('montant_rejet');
-                    $reste = max(0, $montantFacture - $paye - $rejet - $perte);
+                    $reste = $montantFacture - $paye - $rejet - $perte;
 
-                    if ($reste <= 0) continue;
+                    if ($reste <= 0) {
+                        continue;
+                    }
 
                     $totalFacture += $montantFacture;
                     $totalPaye += $paye;
@@ -375,7 +401,9 @@ class RapportClientController extends Controller
                     $totalReste += $reste;
                 }
 
-                if ($totalReste <= 0) continue;
+                if ($totalReste <= 0) {
+                    continue;
+                }
 
                 $numero++;
                 $data[] = [
@@ -399,12 +427,12 @@ class RapportClientController extends Controller
 
         // Groupement par type uniquement pour le mode "par_client" sans filtre de type
         $groupesParType = null;
-        if ($mode === 'par_client' && !$typeClient && count($data) > 0) {
+        if ($mode === 'par_client' && ! $typeClient && count($data) > 0) {
             $groupes = [];
             foreach ($data as $clientData) {
                 $type = $clientData['type_client'] ?: 'non_defini';
                 $label = $clientData['type_client_label'] ?: 'Non défini';
-                if (!isset($groupes[$type])) {
+                if (! isset($groupes[$type])) {
                     $groupes[$type] = [
                         'type' => $type,
                         'label' => $label,
@@ -429,6 +457,27 @@ class RapportClientController extends Controller
         ];
     }
 
+    /**
+     * Détecte un solde manuel sans nouvelle colonne afin de préserver et reconnaître
+     * les données déjà en production : statut payé + date de solde + déficit réel.
+     */
+    private function estSoldeeManuellement(FactureClient $facture): bool
+    {
+        if ($facture->statut !== FactureClient::STATUT_PAYEE || ! $facture->date_solde) {
+            return false;
+        }
+
+        $net = (float) $facture->montant - (float) ($facture->ristourne ?? 0);
+        $reglements = $facture->relationLoaded('reglements')
+            ? $facture->reglements
+            : $facture->reglements()->get();
+        $couverture = (float) $reglements->where('type_reglement', '!=', 'perte')->sum('montant')
+            + (float) $reglements->sum('montant_rejet')
+            + (float) $reglements->where('type_reglement', 'perte')->sum('montant');
+
+        return ($net - $couverture) > 0.01;
+    }
+
     private function buildBrouillardChequesData(Request $request): array
     {
         $dateDebut = $request->input('date_debut');
@@ -441,15 +490,15 @@ class RapportClientController extends Controller
             // on liste ses chèques (CH liés via approvisionnement_id), puis la ligne SB.
             // Le solde repart à 0 à chaque nouveau groupe SB.
             $approvisionnements = ApprovisionnementBanque::with([
-                    'compteBancaire.banque',
-                    'reglementsClients' => fn($q) => $q
-                        ->where('type_reglement', '!=', 'perte')
-                        ->whereNotNull('reference_cheque')
-                        ->where('reference_cheque', '!=', '')
-                        ->with('client.compteComptable', 'facture')
-                        ->orderBy('date_reglement')
-                        ->orderBy('id'),
-                ])
+                'compteBancaire.banque',
+                'reglementsClients' => fn ($q) => $q
+                    ->where('type_reglement', '!=', 'perte')
+                    ->whereNotNull('reference_cheque')
+                    ->where('reference_cheque', '!=', '')
+                    ->with('client.compteComptable', 'facture')
+                    ->orderBy('date_reglement')
+                    ->orderBy('id'),
+            ])
                 ->whereNotNull('reference_bordereau')
                 ->where('reference_bordereau', '!=', '')
                 ->where('date_depot', '>=', $dateDebut)
@@ -480,7 +529,7 @@ class RapportClientController extends Controller
 
                     // Libellé du chèque complété par l'institution saisie lors du règlement.
                     $chequeInfos = collect([$r->client?->nom, $r->institution])
-                        ->map(fn($v) => trim((string) $v))
+                        ->map(fn ($v) => trim((string) $v))
                         ->filter()
                         ->implode(' - ');
 
@@ -488,9 +537,9 @@ class RapportClientController extends Controller
                         'date' => $dateGroupe,
                         'show_date' => $showDateForGroup && $isFirstLineOfGroup,
                         'date_raw' => $dateRawGroupe,
-                        'group_id' => 'sb-' . $appro->id,
+                        'group_id' => 'sb-'.$appro->id,
                         'nature' => 'CH',
-                        'libelle' => "CHn° {$r->reference_cheque}/" . ($chequeInfos !== '' ? $chequeInfos : '-'),
+                        'libelle' => "CHn° {$r->reference_cheque}/".($chequeInfos !== '' ? $chequeInfos : '-'),
                         'debit' => $montant,
                         'credit' => 0,
                         'solde' => $solde,
@@ -515,7 +564,7 @@ class RapportClientController extends Controller
                     'date' => $dateGroupe,
                     'show_date' => $showDateForGroup && $isFirstLineOfGroup,
                     'date_raw' => $dateRawGroupe,
-                    'group_id' => 'sb-' . $appro->id,
+                    'group_id' => 'sb-'.$appro->id,
                     'nature' => 'SB',
                     'libelle' => "SBn° {$appro->reference_bordereau}/{$banqueNom}",
                     'debit' => 0,
@@ -547,16 +596,16 @@ class RapportClientController extends Controller
 
         if ($dateDebut && $dateFin) {
             $approvisionnements = ApprovisionnementBanque::with([
-                    'compteBancaire.banque',
-                    'compteBancaire.compteOhada',
-                    'reglementsClients' => fn($q) => $q
-                        ->where('type_reglement', '!=', 'perte')
-                        ->whereNotNull('reference_cheque')
-                        ->where('reference_cheque', '!=', '')
-                        ->with('client.compteComptable', 'facture')
-                        ->orderBy('date_reglement')
-                        ->orderBy('id'),
-                ])
+                'compteBancaire.banque',
+                'compteBancaire.compteOhada',
+                'reglementsClients' => fn ($q) => $q
+                    ->where('type_reglement', '!=', 'perte')
+                    ->whereNotNull('reference_cheque')
+                    ->where('reference_cheque', '!=', '')
+                    ->with('client.compteComptable', 'facture')
+                    ->orderBy('date_reglement')
+                    ->orderBy('id'),
+            ])
                 ->whereNotNull('reference_bordereau')
                 ->where('reference_bordereau', '!=', '')
                 ->where('date_depot', '>=', $dateDebut)
@@ -679,7 +728,7 @@ class RapportClientController extends Controller
                 $row['ecart'] = $row['theorique'] - $row['physique'];
                 $clients[] = $row;
             }
-            usort($clients, fn($a, $b) => strcmp($a['raison_sociale'], $b['raison_sociale']));
+            usort($clients, fn ($a, $b) => strcmp($a['raison_sociale'], $b['raison_sociale']));
 
             $theorique = array_sum(array_column($clients, 'theorique'));
             $physique = array_sum(array_column($clients, 'physique'));
@@ -695,8 +744,12 @@ class RapportClientController extends Controller
             if ($client) {
                 $facturesQuery = FactureClient::where('client_id', $clientId)
                     ->orderByDesc('date_facture');
-                if ($dateDebut) $facturesQuery->where('date_facture', '>=', $dateDebut);
-                if ($dateFin) $facturesQuery->where('date_facture', '<=', $dateFin);
+                if ($dateDebut) {
+                    $facturesQuery->where('date_facture', '>=', $dateDebut);
+                }
+                if ($dateFin) {
+                    $facturesQuery->where('date_facture', '<=', $dateFin);
+                }
                 $factures = $facturesQuery->get();
 
                 $lignes = [];
@@ -744,7 +797,7 @@ class RapportClientController extends Controller
         $query = ReglementClient::with(['client.compteComptable', 'facture', 'banqueDepot'])
             ->where(function ($q) {
                 $q->where('type_reglement', 'perte')
-                  ->orWhere('montant_rejet', '>', 0);
+                    ->orWhere('montant_rejet', '>', 0);
             });
 
         if ($typeFilter === 'perte') {
@@ -758,7 +811,7 @@ class RapportClientController extends Controller
         }
 
         if ($typeClient) {
-            $query->whereHas('client', fn($q) => $q->where('type_client', $typeClient));
+            $query->whereHas('client', fn ($q) => $q->where('type_client', $typeClient));
         }
 
         if ($dateDebut) {
@@ -811,13 +864,16 @@ class RapportClientController extends Controller
 
         // Application du filtre nature côté lignes éclatées (utile si une perte aurait aussi un montant_rejet, cas marginal).
         if ($typeFilter === 'perte' || $typeFilter === 'rejet') {
-            $eclate = array_values(array_filter($eclate, fn($l) => $l['nature'] === $typeFilter));
+            $eclate = array_values(array_filter($eclate, fn ($l) => $l['nature'] === $typeFilter));
         }
 
         $totaux = ['pertes' => 0, 'rejets' => 0];
         foreach ($eclate as $l) {
-            if ($l['nature'] === 'perte') $totaux['pertes'] += $l['montant'];
-            elseif ($l['nature'] === 'rejet') $totaux['rejets'] += $l['montant'];
+            if ($l['nature'] === 'perte') {
+                $totaux['pertes'] += $l['montant'];
+            } elseif ($l['nature'] === 'rejet') {
+                $totaux['rejets'] += $l['montant'];
+            }
         }
         $totaux['solde'] = $totaux['pertes'] + $totaux['rejets'];
 
@@ -825,7 +881,7 @@ class RapportClientController extends Controller
         $data = [];
         foreach ($eclate as $l) {
             $data[] = [
-                'id' => $l['reglement_id'] . '-' . $l['nature'],
+                'id' => $l['reglement_id'].'-'.$l['nature'],
                 'reglement_id' => $l['reglement_id'],
                 'date_reglement' => $l['date_reglement'],
                 'date_reglement_raw' => $l['date_reglement_raw'],
@@ -849,7 +905,7 @@ class RapportClientController extends Controller
         $parClient = [];
         foreach ($eclate as $l) {
             $cId = $l['client_id'];
-            if (!isset($parClient[$cId])) {
+            if (! isset($parClient[$cId])) {
                 $parClient[$cId] = [
                     'client_id' => $cId,
                     'numero_compte' => $l['client_code'],
@@ -1078,7 +1134,7 @@ class RapportClientController extends Controller
     {
         $result = $this->buildFacturesEditeesData($request);
 
-        $rows = array_map(fn($l) => [
+        $rows = array_map(fn ($l) => [
             $l['numero'],
             $l['reference'],
             $l['date_facture'],
@@ -1089,9 +1145,9 @@ class RapportClientController extends Controller
 
         $periode = $result['periode'];
         $titre = 'État des factures clients éditées';
-        if (!empty($periode['debut']) && !empty($periode['fin'])) {
-            $titre .= ' — du ' . \Carbon\Carbon::parse($periode['debut'])->format('d/m/Y')
-                . ' au ' . \Carbon\Carbon::parse($periode['fin'])->format('d/m/Y');
+        if (! empty($periode['debut']) && ! empty($periode['fin'])) {
+            $titre .= ' — du '.\Carbon\Carbon::parse($periode['debut'])->format('d/m/Y')
+                .' au '.\Carbon\Carbon::parse($periode['fin'])->format('d/m/Y');
         }
 
         return \App\Support\ExcelExporter::download(
@@ -1110,6 +1166,7 @@ class RapportClientController extends Controller
     {
         $result = $this->buildEtatReglementsData($request);
         $result['clients'] = $this->getClientsList();
+
         return Inertia::render('Rapports/Clients/EtatReglements', $result);
     }
 
@@ -1117,12 +1174,14 @@ class RapportClientController extends Controller
     {
         $result = $this->buildEtatCreancesData($request);
         $result['clients'] = $this->getClientsList();
+
         return Inertia::render('Rapports/Clients/EtatCreances', $result);
     }
 
     public function brouillardChequesPage(Request $request)
     {
         $result = $this->buildBrouillardChequesData($request);
+
         return Inertia::render('Rapports/Clients/BrouillardCheques', $result);
     }
 
@@ -1130,6 +1189,7 @@ class RapportClientController extends Controller
     {
         $result = $this->buildChiffreAffairesData($request);
         $result['clients'] = $this->getClientsList();
+
         return Inertia::render('Rapports/Clients/ChiffreAffaires', $result);
     }
 
@@ -1137,6 +1197,7 @@ class RapportClientController extends Controller
     {
         $result = $this->buildPertesRejetsData($request);
         $result['clients'] = $this->getClientsList();
+
         return Inertia::render('Rapports/Clients/PertesRejets', $result);
     }
 
@@ -1149,19 +1210,19 @@ class RapportClientController extends Controller
         $result = $this->buildEtatReglementsData($request);
         $mode = $result['mode'];
         $titre = 'État des Règlements Clients';
-        if (!empty($result['type_client_label'])) {
-            $titre .= ' — ' . strtoupper($result['type_client_label']);
+        if (! empty($result['type_client_label'])) {
+            $titre .= ' — '.strtoupper($result['type_client_label']);
         }
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
-            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
-                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+            $titre .= ' du '.\Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                .' au '.\Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
         }
 
         if ($mode === 'tous_clients') {
             $rows = [];
             if (empty($result['type_client'])) {
                 $sorted = collect($result['data'])
-                    ->sortBy(fn($r) => ($r['type_client_label'] ?? 'zzz') . '|' . ($r['raison_sociale'] ?? ''))
+                    ->sortBy(fn ($r) => ($r['type_client_label'] ?? 'zzz').'|'.($r['raison_sociale'] ?? ''))
                     ->values();
                 $lastType = null;
                 foreach ($sorted as $c) {
@@ -1177,6 +1238,7 @@ class RapportClientController extends Controller
                     $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_solde']];
                 }
             }
+
             return \App\Support\ExcelExporter::download(
                 ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Total rejet', 'Total pertes', 'Solde'],
                 $rows,
@@ -1187,28 +1249,28 @@ class RapportClientController extends Controller
 
         // Mode par_client / un_client : aplatir avec en-têtes (+ groupes par type si dispo)
         $rows = [];
-        $renderGroupes = (!empty($result['groupes_par_type']))
+        $renderGroupes = (! empty($result['groupes_par_type']))
             ? $result['groupes_par_type']
             : [['label' => null, 'clients' => $result['data']]];
 
         foreach ($renderGroupes as $groupe) {
-            if (!empty($groupe['label'])) {
-                $rows[] = ['=== ' . strtoupper($groupe['label']) . ' ===', '', '', '', '', '', '', '', '', ''];
+            if (! empty($groupe['label'])) {
+                $rows[] = ['=== '.strtoupper($groupe['label']).' ===', '', '', '', '', '', '', '', '', '', ''];
             }
             foreach ($groupe['clients'] as $bloc) {
-                $suffixe = ($mode === 'un_client' && !empty($bloc['type_client_label']))
-                    ? ' - ' . $bloc['type_client_label']
+                $suffixe = ($mode === 'un_client' && ! empty($bloc['type_client_label']))
+                    ? ' - '.$bloc['type_client_label']
                     : '';
-                $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'] . $suffixe, '', '', '', '', '', '', '', '', ''];
+                $rows[] = ['['.$bloc['numero_compte'].'] '.$bloc['raison_sociale'].$suffixe, '', '', '', '', '', '', '', '', '', ''];
                 foreach ($bloc['lignes'] as $l) {
-                    $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['date_reglement'], $l['montant_facture'], $l['montant_paye'], $l['total_rejet'], $l['total_perte'], $l['solde']];
+                    $rows[] = ['', $l['numero'], $l['reference'], $l['autres_informations'] ?? '', $l['date_facture'], $l['date_reglement'], $l['montant_facture'], $l['montant_paye'], $l['total_rejet'], $l['total_perte'], $l['solde']];
                 }
-                $rows[] = ['', '', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet'], $bloc['total_perte'], $bloc['total_solde']];
+                $rows[] = ['', '', '', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet'], $bloc['total_perte'], $bloc['total_solde']];
             }
         }
 
         return \App\Support\ExcelExporter::download(
-            ['Client', 'N°', 'Référence', 'Date Facture', 'Date Règlement', 'Mt Facture', 'Mt Payé', 'Total rejet', 'Total pertes', 'Solde'],
+            ['Client', 'N°', 'Référence', 'Autres informations', 'Date Facture', 'Date Règlement', 'Mt Facture', 'Mt Payé', 'Total rejet', 'Total pertes', 'Solde'],
             $rows,
             'etat-reglements-clients',
             $titre,
@@ -1220,14 +1282,14 @@ class RapportClientController extends Controller
         $result = $this->buildEtatCreancesData($request);
         $mode = $result['mode'];
         $titre = 'États Périodiques des Créances Clients';
-        if (!empty($result['type_client_label'])) {
-            $titre .= ' — ' . strtoupper($result['type_client_label']);
+        if (! empty($result['type_client_label'])) {
+            $titre .= ' — '.strtoupper($result['type_client_label']);
         }
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
-            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
-                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
-        } elseif (!empty($result['periode']['fin'])) {
-            $titre .= ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+            $titre .= ' du '.\Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                .' au '.\Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+        } elseif (! empty($result['periode']['fin'])) {
+            $titre .= ' au '.\Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
         }
 
         if ($mode === 'tous_clients') {
@@ -1235,7 +1297,7 @@ class RapportClientController extends Controller
             $rows = [];
             if (empty($result['type_client'])) {
                 $sorted = collect($result['data'])
-                    ->sortBy(fn($r) => ($r['type_client_label'] ?? 'zzz') . '|' . ($r['raison_sociale'] ?? ''))
+                    ->sortBy(fn ($r) => ($r['type_client_label'] ?? 'zzz').'|'.($r['raison_sociale'] ?? ''))
                     ->values();
                 $lastType = null;
                 foreach ($sorted as $c) {
@@ -1251,6 +1313,7 @@ class RapportClientController extends Controller
                     $rows[] = [$c['numero'] ?? '', $c['numero_compte'], $c['raison_sociale'], $c['total_facture'], $c['total_paye'], $c['total_rejet'], $c['total_perte'], $c['total_reste']];
                 }
             }
+
             return \App\Support\ExcelExporter::download(
                 ['N°', 'Compte', 'Raison sociale', 'Total Facture', 'Total Payé', 'Total rejet', 'Total pertes', 'Reste à payer'],
                 $rows,
@@ -1261,28 +1324,28 @@ class RapportClientController extends Controller
 
         // par_client / un_client. Si groupes par type disponibles, on intercale un en-tête de type.
         $rows = [];
-        $renderGroupes = (!empty($result['groupes_par_type']))
+        $renderGroupes = (! empty($result['groupes_par_type']))
             ? $result['groupes_par_type']
             : [['label' => null, 'clients' => $result['data']]];
 
         foreach ($renderGroupes as $groupe) {
-            if (!empty($groupe['label'])) {
-                $rows[] = ['=== ' . strtoupper($groupe['label']) . ' ===', '', '', '', '', '', '', ''];
+            if (! empty($groupe['label'])) {
+                $rows[] = ['=== '.strtoupper($groupe['label']).' ===', '', '', '', '', '', '', '', '', ''];
             }
             foreach ($groupe['clients'] as $bloc) {
-                $suffixe = ($mode === 'un_client' && !empty($bloc['type_client_label']))
-                    ? ' - ' . $bloc['type_client_label']
+                $suffixe = ($mode === 'un_client' && ! empty($bloc['type_client_label']))
+                    ? ' - '.$bloc['type_client_label']
                     : '';
-                $rows[] = ['[' . $bloc['numero_compte'] . '] ' . $bloc['raison_sociale'] . $suffixe, '', '', '', '', '', '', ''];
+                $rows[] = ['['.$bloc['numero_compte'].'] '.$bloc['raison_sociale'].$suffixe, '', '', '', '', '', '', '', '', ''];
                 foreach ($bloc['lignes'] as $l) {
-                    $rows[] = ['', $l['numero'], $l['reference'], $l['date_facture'], $l['montant_facture'], $l['montant_paye'], $l['total_rejet'], $l['total_perte'], $l['reste_a_payer']];
+                    $rows[] = ['', $l['numero'], $l['reference'], $l['autres_informations'] ?? '', $l['date_facture'], $l['montant_facture'], $l['montant_paye'], $l['total_rejet'], $l['total_perte'], $l['reste_a_payer']];
                 }
-                $rows[] = ['', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet'], $bloc['total_perte'], $bloc['total_reste']];
+                $rows[] = ['', '', '', '', 'Sous-total', $bloc['total_facture'], $bloc['total_paye'], $bloc['total_rejet'], $bloc['total_perte'], $bloc['total_reste']];
             }
         }
 
         return \App\Support\ExcelExporter::download(
-            ['Client', 'N°', 'Référence', 'Date Facture', 'Mt Facture', 'Mt Payé', 'Total rejet', 'Total pertes', 'Reste à payer'],
+            ['Client', 'N°', 'Référence', 'Autres informations', 'Date Facture', 'Mt Facture', 'Mt Payé', 'Total rejet', 'Total pertes', 'Reste à payer'],
             $rows,
             'etat-creances-clients',
             $titre,
@@ -1294,11 +1357,11 @@ class RapportClientController extends Controller
         $result = $this->buildBrouillardChequesData($request);
         $titre = 'Brouillard de Chèques';
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
-            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
-                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+            $titre .= ' du '.\Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                .' au '.\Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
         }
 
-        $rows = array_map(fn($l) => [
+        $rows = array_map(fn ($l) => [
             $l['date'],
             $l['nature'],
             $l['libelle'],
@@ -1320,8 +1383,8 @@ class RapportClientController extends Controller
         $result = $this->buildImputationsComptablesData($request);
         $titre = 'Imputations Comptables Clients';
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
-            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
-                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+            $titre .= ' du '.\Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                .' au '.\Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
         }
 
         $rows = [];
@@ -1359,6 +1422,7 @@ class RapportClientController extends Controller
                 ['CA Physique (règlements)', $d['physique'] ?? 0],
                 ['Écart', $d['ecart'] ?? 0],
             ];
+
             return \App\Support\ExcelExporter::download(
                 ['Indicateur', 'Montant'],
                 $rows,
@@ -1371,9 +1435,10 @@ class RapportClientController extends Controller
         $d = $result['data'];
         if (empty($d)) {
             $rows = [['Aucune donnée']];
+
             return \App\Support\ExcelExporter::download(['Info'], $rows, 'chiffre-affaires', $titre);
         }
-        $rows = [['Client', '[' . $d['numero_compte'] . '] ' . $d['raison_sociale'], '', '']];
+        $rows = [['Client', '['.$d['numero_compte'].'] '.$d['raison_sociale'], '', '']];
         foreach ($d['lignes'] as $l) {
             $rows[] = [$l['numero'], $l['reference'], $l['date_facture'], $l['montant']];
         }
@@ -1383,7 +1448,7 @@ class RapportClientController extends Controller
             ['N°', 'Référence', 'Date Facture', 'Montant'],
             $rows,
             'chiffre-affaires-client',
-            $titre . ' — ' . ($d['raison_sociale'] ?? ''),
+            $titre.' — '.($d['raison_sociale'] ?? ''),
         );
     }
 
@@ -1392,13 +1457,13 @@ class RapportClientController extends Controller
         $result = $this->buildPertesRejetsData($request);
         $titre = 'Pertes et Rejets';
         if (($result['periode']['debut'] ?? null) && ($result['periode']['fin'] ?? null)) {
-            $titre .= ' du ' . \Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
-                . ' au ' . \Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
+            $titre .= ' du '.\Carbon\Carbon::parse($result['periode']['debut'])->format('d/m/Y')
+                .' au '.\Carbon\Carbon::parse($result['periode']['fin'])->format('d/m/Y');
         }
 
-        $rows = array_map(fn($l) => [
+        $rows = array_map(fn ($l) => [
             $l['date_reglement'],
-            $l['client_code'] . ' — ' . ($l['client_nom'] ?? '-'),
+            $l['client_code'].' — '.($l['client_nom'] ?? '-'),
             $l['facture_reference'] ?? '',
             $l['reference_cheque'] ?? '',
             $l['montant'],
@@ -1412,5 +1477,4 @@ class RapportClientController extends Controller
             $titre,
         );
     }
-
 }

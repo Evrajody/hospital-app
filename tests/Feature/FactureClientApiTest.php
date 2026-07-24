@@ -43,12 +43,14 @@ class FactureClientApiTest extends TestCase
             'date_facture' => '2026-05-01',
             'montant' => 100000,
             'ristourne' => 10000,
+            'autres_informations' => 'Bon de commande BC-2026-015',
             'client_id' => $client->id,
         ])->assertCreated()->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('factures_clients', [
             'reference' => '0001/05/26',
             'reste_a_payer' => 90000,
+            'autres_informations' => 'Bon de commande BC-2026-015',
         ]);
     }
 

@@ -86,6 +86,12 @@
                                         <td class="montant">{{ number_format($ligne['total_perte'], 0, ',', ' ') }}</td>
                                         <td class="montant">{{ number_format($ligne['solde'], 0, ',', ' ') }}</td>
                                     </tr>
+                                    @if(!empty($ligne['autres_informations']))
+                                        <tr>
+                                            <td></td>
+                                            <td colspan="8"><strong>Autres informations :</strong> {{ $ligne['autres_informations'] }}</td>
+                                        </tr>
+                                    @endif
                                 @endforeach
                             </tbody>
                             <tfoot>
@@ -127,14 +133,14 @@
                 <table class="report-table">
                     <thead>
                         <tr>
-                            <th style="width: 30px">N°</th>
-                            <th style="width: 80px">N° Compte</th>
-                            <th>Raison sociale</th>
-                            <th class="montant" style="width: 95px">Montant Factures</th>
-                            <th class="montant" style="width: 95px">Montant Règlements</th>
-                            <th class="montant" style="width: 80px">Total rejet</th>
-                            <th class="montant" style="width: 80px">Total pertes</th>
-                            <th class="montant" style="width: 85px">Solde</th>
+                            <th style="width: 4%">N°</th>
+                            <th style="width: 12%">N° Compte</th>
+                            <th style="width: 32%">Raison sociale</th>
+                            <th class="montant" style="width: 10.4% !important">Montant Factures</th>
+                            <th class="montant" style="width: 10.4% !important">Montant Règlements</th>
+                            <th class="montant" style="width: 10.4% !important">Total rejet</th>
+                            <th class="montant" style="width: 10.4% !important">Total pertes</th>
+                            <th class="montant" style="width: 10.4% !important">Solde</th>
                         </tr>
                     </thead>
                     <tbody>

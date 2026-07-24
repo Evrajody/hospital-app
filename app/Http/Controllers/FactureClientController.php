@@ -25,9 +25,9 @@ class FactureClientController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('reference', 'ILIKE', "%{$search}%")
-                  ->orWhereHas('client', function ($cq) use ($search) {
-                      $cq->where('nom', 'ILIKE', "%{$search}%");
-                  });
+                    ->orWhereHas('client', function ($cq) use ($search) {
+                        $cq->where('nom', 'ILIKE', "%{$search}%");
+                    });
             });
         }
 
@@ -58,11 +58,11 @@ class FactureClientController extends Controller
         $perPage = $request->input('per_page', 20);
         $facturesPaginated = $query->paginate($perPage);
 
-        $factures = $facturesPaginated->getCollection()->map(fn($f) => $f->toApiArray());
+        $factures = $facturesPaginated->getCollection()->map(fn ($f) => $f->toApiArray());
 
         $clients = Client::orderBy('nom')
             ->get()
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id' => $c->id,
                 'nom' => $c->nom,
                 'code' => $c->compteComptable?->numero_compte ?? '-',
@@ -121,7 +121,7 @@ class FactureClientController extends Controller
             $s = $request->input('search');
             $query->where(function ($q) use ($s) {
                 $q->where('reference', 'ILIKE', "%{$s}%")
-                  ->orWhereHas('client', fn ($cq) => $cq->where('nom', 'ILIKE', "%{$s}%"));
+                    ->orWhereHas('client', fn ($cq) => $cq->where('nom', 'ILIKE', "%{$s}%"));
             });
         }
 
@@ -150,11 +150,11 @@ class FactureClientController extends Controller
             ->where('facture_id', $id)
             ->orderBy('date_reglement', 'desc')
             ->get()
-            ->map(fn($r) => $r->toApiArray());
+            ->map(fn ($r) => $r->toApiArray());
 
         $clients = Client::orderBy('nom')
             ->get()
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id' => $c->id,
                 'nom' => $c->nom,
                 'code' => $c->compteComptable?->numero_compte ?? '-',
@@ -185,14 +185,14 @@ class FactureClientController extends Controller
             ->where('facture_id', $id)
             ->orderBy('date_reglement', 'desc')
             ->get()
-            ->map(fn($r) => $r->toApiArray());
+            ->map(fn ($r) => $r->toApiArray());
 
         // Pour le dropdown de la page règlement on liste les approvisionnements (référence bordereau)
         // regroupés par banque. Le compte bancaire est résolu via l'approvisionnement.
         $banques = Banque::with(['comptes.approvisionnements' => function ($q) {
             $q->whereNotNull('reference_bordereau')
-              ->orderBy('date_depot', 'desc')
-              ->with('reglementsClients');
+                ->orderBy('date_depot', 'desc')
+                ->with('reglementsClients');
         }])
             ->orderBy('nom')
             ->get()
@@ -214,12 +214,13 @@ class FactureClientController extends Controller
                         ]);
                     }
                 }
+
                 return [
                     'id' => $b->id,
                     'nom' => $b->nom,
                     // On masque les bordereaux épuisés (solde restant ≤ 0)
                     'approvisionnements' => $approvisionnements
-                        ->filter(fn($a) => $a['montant_restant'] > 0)
+                        ->filter(fn ($a) => $a['montant_restant'] > 0)
                         ->values(),
                 ];
             });
@@ -234,8 +235,8 @@ class FactureClientController extends Controller
             ])
             ->orderBy('date_cheque', 'desc')
             ->get()
-            ->map(fn($a) => $a->toApiArray())
-            ->filter(fn($a) => $a['montant_restant'] > 0)
+            ->map(fn ($a) => $a->toApiArray())
+            ->filter(fn ($a) => $a['montant_restant'] > 0)
             ->values();
 
         return Inertia::render('Clients/Factures/Reglement', [
@@ -261,6 +262,7 @@ class FactureClientController extends Controller
             'date_facture' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'ristourne' => ['nullable', 'numeric', 'min:0'],
+            'autres_informations' => ['nullable', 'string', 'max:2000'],
             'client_id' => ['required', 'integer', 'exists:clients,id'],
         ]);
 
@@ -273,6 +275,7 @@ class FactureClientController extends Controller
             'date_facture' => $request->date_facture,
             'montant' => $request->montant,
             'ristourne' => $ristourne,
+            'autres_informations' => $request->input('autres_informations'),
             'client_id' => $request->client_id,
             'client_nom' => $client?->nom,
             'reste_a_payer' => $request->montant - $ristourne,
@@ -300,10 +303,11 @@ class FactureClientController extends Controller
         $facture = FactureClient::findOrFail($id);
 
         $request->validate([
-            'reference' => ['required', 'string', 'max:20', 'unique:factures_clients,reference,' . $id],
+            'reference' => ['required', 'string', 'max:20', 'unique:factures_clients,reference,'.$id],
             'date_facture' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
             'ristourne' => ['nullable', 'numeric', 'min:0'],
+            'autres_informations' => ['nullable', 'string', 'max:2000'],
             'client_id' => ['required', 'integer', 'exists:clients,id'],
         ]);
 
@@ -318,6 +322,7 @@ class FactureClientController extends Controller
             'date_facture' => $request->date_facture,
             'montant' => $request->montant,
             'ristourne' => $request->ristourne ?? 0,
+            'autres_informations' => $request->input('autres_informations'),
             'client_id' => $request->client_id,
             'client_nom' => $clientNom,
         ]);
@@ -368,8 +373,15 @@ class FactureClientController extends Controller
                 'montant' => number_format($montant, 0, ',', ' '),
                 'ristourne' => number_format($ristourne, 0, ',', ' '),
                 'net_a_payer' => number_format($montantDu, 0, ',', ' '),
+                'statut' => $facture->statut,
+                'statut_libelle' => $facture->estSoldeeManuellement()
+                    ? 'Soldée manuellement'
+                    : ($facture->statut === FactureClient::STATUT_PAYEE ? 'Réglée intégralement' : 'Non soldée'),
+                'date_solde' => $facture->date_solde?->format('d/m/Y'),
+                'soldee_manuellement' => $facture->estSoldeeManuellement(),
+                'deficit_solde' => number_format($facture->deficitSolde(), 0, ',', ' '),
             ],
-            'reglements' => $reglements->values()->map(fn($r) => [
+            'reglements' => $reglements->values()->map(fn ($r) => [
                 'date_reglement' => $r->date_reglement?->format('d/m/Y'),
                 'type' => $r->type_reglement_libelle ?: 'Règlement',
                 'institution' => $r->institution ?: '-',
@@ -424,6 +436,7 @@ class FactureClientController extends Controller
         ]);
 
         $filename = "etat-reglement-client-{$facture->id}.pdf";
+
         return request()->query('action') === 'stream'
             ? $pdf->stream($filename)
             : $pdf->download($filename);
@@ -435,6 +448,10 @@ class FactureClientController extends Controller
     public function solder(Request $request, int $id): JsonResponse
     {
         $facture = FactureClient::findOrFail($id);
+
+        $request->validate([
+            'date_solde' => ['required', 'date', 'after_or_equal:'.$facture->date_facture->format('Y-m-d')],
+        ]);
 
         if ($facture->statut === FactureClient::STATUT_PAYEE) {
             return response()->json([
@@ -457,7 +474,7 @@ class FactureClientController extends Controller
 
         $facture->load('client');
 
-        ActivityLog::log('settle', 'facture_client', "Facture {$facture->reference} marquée comme soldée au " . \Carbon\Carbon::parse($dateSolde)->format('d/m/Y'), $facture);
+        ActivityLog::log('settle', 'facture_client', "Facture {$facture->reference} marquée comme soldée au ".\Carbon\Carbon::parse($dateSolde)->format('d/m/Y'), $facture);
 
         return response()->json([
             'success' => true,

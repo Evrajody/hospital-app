@@ -111,6 +111,17 @@
           </el-form-item>
         </el-col>
       </el-row>
+
+      <el-form-item label="Autres informations" prop="autres_informations">
+        <el-input
+          v-model="form.autres_informations"
+          type="textarea"
+          :rows="3"
+          maxlength="2000"
+          show-word-limit
+          placeholder="Informations complémentaires à faire figurer sur les états"
+        />
+      </el-form-item>
     </el-form>
 
     <template #footer>
@@ -160,6 +171,7 @@ const getInitialFormData = () => ({
   client_id: null,
   montant: null,
   ristourne: 0,
+  autres_informations: '',
 });
 
 const form = reactive(getInitialFormData());
@@ -171,6 +183,7 @@ watch(() => props.facture, (newFacture) => {
     form.client_id = newFacture.client_id || null;
     form.montant = newFacture.montant || null;
     form.ristourne = newFacture.ristourne || 0;
+    form.autres_informations = newFacture.autres_informations || '';
     castNumericFields(form, ['montant', 'ristourne']);
   }
 }, { immediate: true, deep: true });
@@ -184,6 +197,7 @@ watch(() => props.modelValue, (isOpen) => {
       form.client_id = props.facture.client_id || null;
       form.montant = props.facture.montant || null;
       form.ristourne = props.facture.ristourne || 0;
+      form.autres_informations = props.facture.autres_informations || '';
       castNumericFields(form, ['montant', 'ristourne']);
     } else {
       // Mode création : auto-remplir la référence
@@ -192,6 +206,7 @@ watch(() => props.modelValue, (isOpen) => {
       form.client_id = null;
       form.montant = null;
       form.ristourne = 0;
+      form.autres_informations = '';
     }
   }
 });
@@ -249,6 +264,7 @@ const buildPayload = () => {
     client_id: form.client_id,
     montant: form.montant,
     ristourne: form.ristourne || 0,
+    autres_informations: form.autres_informations?.trim() || null,
   };
 };
 

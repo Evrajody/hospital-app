@@ -91,7 +91,7 @@
               <div class="bordereau-title">BORDEREAU DE VERSEMENT DES PRÉLÈVEMENTS D'ACOMPTE IMPUTABLE SUR L'IMPÔT ASSIS SUR LES BÉNÉFICES</div>
 
               <div class="bordereau-section-header">II- LIQUIDATION DES DROITS</div>
-              <el-table style="width: 100%" :data="bordereauRows" border size="small" :show-header="true" :span-method="bordereauSpan">
+              <el-table style="width: 100%" :data="bordereauRows" border size="small" max-height="calc(100vh - 300px)" :show-header="true" :span-method="bordereauSpan">
                 <el-table-column prop="nature" label="NATURE" min-width="300">
                   <template #default="{ row }">
                     <span v-if="row.isLettres" style="font-style: italic;">{{ row.nature }}</span>

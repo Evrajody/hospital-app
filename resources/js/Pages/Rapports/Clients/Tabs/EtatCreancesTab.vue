@@ -93,6 +93,9 @@
               <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe>
                 <el-table-column prop="numero" label="N°" min-width="50" align="center" />
                 <el-table-column prop="reference" label="Réf. Facture" />
+                <el-table-column prop="autres_informations" label="Autres informations" min-width="180">
+                  <template #default="{ row }">{{ row.autres_informations || '-' }}</template>
+                </el-table-column>
                 <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
                 <el-table-column label="Montant Facture" min-width="130" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
@@ -138,6 +141,9 @@
               <PaginatedTable style="width: 100%" :data="group.lignes" border size="small" stripe>
                 <el-table-column prop="numero" label="N°" min-width="50" align="center" />
                 <el-table-column prop="reference" label="Réf. Facture" />
+                <el-table-column prop="autres_informations" label="Autres informations" min-width="180">
+                  <template #default="{ row }">{{ row.autres_informations || '-' }}</template>
+                </el-table-column>
                 <el-table-column prop="date_facture" label="Date Facture" min-width="110" />
                 <el-table-column label="Montant Facture" min-width="130" align="right">
                   <template #default="{ row }">{{ formatMontant(row.montant_facture) }}</template>
@@ -194,31 +200,31 @@
           :span-method="tousClientsSpanMethod"
           :row-class-name="tousClientsRowClass"
         >
-          <el-table-column label="N°" min-width="50" align="center">
+          <el-table-column label="N°" width="55" align="center">
             <template #default="{ row }">
               <template v-if="row.isTypeHeader"><strong>{{ row.type_label }}</strong></template>
               <template v-else>{{ row.numero }}</template>
             </template>
           </el-table-column>
-          <el-table-column prop="numero_compte" label="N° Compte" min-width="110" />
-          <el-table-column prop="raison_sociale" label="Raison sociale" />
-          <el-table-column label="Total Factures" min-width="140" align="right">
+          <el-table-column prop="numero_compte" label="N° Compte" width="125" />
+          <el-table-column prop="raison_sociale" label="Raison sociale" min-width="320" />
+          <el-table-column label="Total Factures" width="145" align="right">
             <template #default="{ row }">{{ formatMontant(row.total_facture) }}</template>
           </el-table-column>
-          <el-table-column label="Total Règlements" min-width="150" align="right">
+          <el-table-column label="Total Règlements" width="155" align="right">
             <template #default="{ row }">{{ formatMontant(row.total_paye) }}</template>
           </el-table-column>
-          <el-table-column label="Total rejet" min-width="120" align="right">
+          <el-table-column label="Total rejet" width="120" align="right">
             <template #default="{ row }">
               <span :style="{ color: row.total_rejet > 0 ? '#cc0000' : 'inherit' }">{{ formatMontant(row.total_rejet) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Total pertes" min-width="120" align="right">
+          <el-table-column label="Total pertes" width="120" align="right">
             <template #default="{ row }">
               <span :style="{ color: row.total_perte > 0 ? '#cc0000' : 'inherit' }">{{ formatMontant(row.total_perte) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Reste à Payer" min-width="130" align="right">
+          <el-table-column label="Reste à Payer" width="130" align="right">
             <template #default="{ row }">
               <span style="color: #cc0000; font-weight: bold;">{{ formatMontant(row.total_reste) }}</span>
             </template>

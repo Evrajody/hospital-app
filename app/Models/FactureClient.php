@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FactureClient extends Model
 {
@@ -18,6 +18,7 @@ class FactureClient extends Model
         'date_facture',
         'montant',
         'ristourne',
+        'autres_informations',
         'client_id',
         'client_nom',
         'montant_paye',
@@ -42,7 +43,9 @@ class FactureClient extends Model
     ];
 
     const STATUT_NON_PAYEE = 'non_payee';
+
     const STATUT_PARTIELLEMENT_PAYEE = 'partiellement_payee';
+
     const STATUT_PAYEE = 'payee';
 
     // ==========================================
@@ -81,7 +84,7 @@ class FactureClient extends Model
                 - (float) $facture->montant_paye
                 - (float) ($facture->total_rejet ?? 0)
                 - (float) ($facture->total_perte ?? 0);
-            $facture->reste_a_payer = max(0, $reste);
+            $facture->reste_a_payer = $reste;
         });
     }
 
@@ -111,11 +114,11 @@ class FactureClient extends Model
         $this->total_perte = $perte;
 
         $net = (float) $this->montant - (float) ($this->ristourne ?? 0);
-        $reste = max(0, $net - ($paye + $rejet + $perte));
+        $reste = $net - ($paye + $rejet + $perte);
 
         if ($reste <= 0.01) {
             $this->statut = self::STATUT_PAYEE;
-            $this->date_solde = now();
+            $this->date_solde = $this->dateAtteinteSolde($reglements, $net) ?: now();
         } elseif ($paye + $rejet + $perte > 0.01) {
             $this->statut = self::STATUT_PARTIELLEMENT_PAYEE;
             $this->date_solde = null;
@@ -151,7 +154,7 @@ class FactureClient extends Model
             $numero = 1;
         }
 
-        return str_pad($numero, 4, '0', STR_PAD_LEFT) . $suffixe;
+        return str_pad($numero, 4, '0', STR_PAD_LEFT).$suffixe;
     }
 
     // ==========================================
@@ -166,7 +169,7 @@ class FactureClient extends Model
         $this->montant_paye = $montantPaye;
         // Le hook saving() recalcule reste_a_payer (payé + rejet + perte) ; on évalue
         // ici le statut avec la même règle pour rester cohérent.
-        $reste = max(0, $netAPayer - $montantPaye - (float) ($this->total_rejet ?? 0) - (float) ($this->total_perte ?? 0));
+        $reste = $netAPayer - $montantPaye - (float) ($this->total_rejet ?? 0) - (float) ($this->total_perte ?? 0);
 
         if ($reste <= 0.01) {
             $this->statut = self::STATUT_PAYEE;
@@ -189,6 +192,7 @@ class FactureClient extends Model
             'date_facture' => $this->date_facture?->format('Y-m-d'),
             'montant' => $montant,
             'ristourne' => $ristourne,
+            'autres_informations' => $this->autres_informations,
             'net_a_payer' => $montant - $ristourne,
             'client_id' => $this->client_id,
             'client' => [
@@ -201,7 +205,53 @@ class FactureClient extends Model
             'total_perte' => (float) ($this->total_perte ?? 0),
             'reste_a_payer' => (float) $this->reste_a_payer,
             'statut' => $this->statut,
+            'date_solde' => $this->date_solde?->format('Y-m-d'),
+            'soldee_manuellement' => $this->estSoldeeManuellement(),
+            'deficit_solde' => $this->deficitSolde(),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
         ];
+    }
+
+    public function deficitSolde(): float
+    {
+        $net = (float) $this->montant - (float) ($this->ristourne ?? 0);
+        $couverture = (float) $this->montant_paye
+            + (float) ($this->total_rejet ?? 0)
+            + (float) ($this->total_perte ?? 0);
+
+        return max(0, $net - $couverture);
+    }
+
+    /**
+     * Retourne la date du règlement qui fait atteindre ou dépasser le net à payer.
+     */
+    private function dateAtteinteSolde($reglements, float $net): mixed
+    {
+        $couverture = 0.0;
+        $tries = $reglements->sortBy(fn ($reglement) => sprintf(
+            '%s-%020d',
+            $reglement->date_reglement?->format('Y-m-d') ?? '9999-12-31',
+            $reglement->id ?? 0
+        ));
+
+        foreach ($tries as $reglement) {
+            $couverture += (float) $reglement->montant + (float) ($reglement->montant_rejet ?? 0);
+            if (($net - $couverture) <= 0.01) {
+                return $reglement->date_reglement;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Une facture payée mais encore déficitaire a été soldée manuellement.
+     * Cette règle reconnaît aussi les données historiques existantes.
+     */
+    public function estSoldeeManuellement(): bool
+    {
+        return $this->statut === self::STATUT_PAYEE
+            && $this->date_solde !== null
+            && $this->deficitSolde() > 0.01;
     }
 }

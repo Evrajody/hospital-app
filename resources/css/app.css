@@ -50,6 +50,15 @@ h1, h2, h3, h4, h5, h6 {
     color: #1f2937;
 }
 
+/* Rapports : les titres étroits peuvent occuper plusieurs lignes sans se
+   chevaucher. Les tableaux bornés en hauteur gardent cet en-tête visible. */
+.rapports-content .el-table thead th.el-table__cell .cell {
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.25;
+    text-align: inherit;
+}
+
 /* Liseré tricolore (drapeau du Bénin) — à poser en bandeau */
 .gov-liserai,
 .gov-tricolore {

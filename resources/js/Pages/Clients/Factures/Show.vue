@@ -86,13 +86,22 @@
               <el-descriptions-item v-if="facture.ristourne > 0" label="Net &#224; payer" :span="2">
                 <strong style="font-size: 16px; color: #059669;">{{ formatMontant(facture.net_a_payer) }}</strong>
               </el-descriptions-item>
+              <el-descriptions-item label="Autres informations" :span="2">
+                <span class="autres-informations">{{ facture.autres_informations || '-' }}</span>
+              </el-descriptions-item>
               <el-descriptions-item label="Cr&#233;&#233;e le">
                 {{ facture.created_at ? formatDateTime(facture.created_at) : '-' }}
               </el-descriptions-item>
+              <el-descriptions-item label="Date de solde">
+                {{ facture.date_solde ? formatDate(facture.date_solde) : '-' }}
+              </el-descriptions-item>
               <el-descriptions-item label="Statut">
                 <el-tag :type="getStatutType(facture.statut)" size="small">
-                  {{ getStatutLabel(facture.statut) }}
+                  {{ facture.soldee_manuellement ? 'Soldée manuellement' : getStatutLabel(facture.statut) }}
                 </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item v-if="facture.soldee_manuellement" label="Déficit constaté">
+                <strong style="color: #e6a23c;">{{ formatMontant(facture.deficit_solde) }}</strong>
               </el-descriptions-item>
             </el-descriptions>
           </el-card>
@@ -120,6 +129,10 @@
                     <strong class="reglement-montant">{{ formatMontant(r.montant) }}</strong>
                   </div>
                   <div class="reglement-details">
+                    <div v-if="Number(r.montant_rejet) > 0" class="montant-rejet">
+                      <el-icon><WarningFilled /></el-icon>
+                      Montant rejet&#233; : <strong>{{ formatMontant(r.montant_rejet) }}</strong>
+                    </div>
                     <div v-if="r.institution"><el-icon><Document /></el-icon> {{ r.institution }}</div>
                     <div v-if="r.reference_cheque"><el-icon><DocumentCopy /></el-icon> R&#233;f : {{ r.reference_cheque }}</div>
                     <div v-if="r.banque_depot"><el-icon><CreditCard /></el-icon> D&#233;p&#244;t : {{ r.banque_depot.nom }}</div>
@@ -167,9 +180,10 @@
               </div>
 
               <div class="total-row reste-row">
-                <span class="total-label"><strong>Reste &#224; payer :</strong></span>
-                <span class="total-value total-reste" :class="{ 'soldee': estPayee }">
-                  <strong>{{ estPayee ? 'Pay\u00e9e' : formatMontant(facture.reste_a_payer) }}</strong>
+                <span class="total-label"><strong>Solde :</strong></span>
+                <span class="total-value total-reste" :class="{ 'soldee': estPayee && facture.reste_a_payer === 0, 'credit': facture.reste_a_payer < 0 }">
+                  <strong>{{ formatMontant(facture.reste_a_payer) }}</strong>
+                  <small v-if="facture.reste_a_payer < 0" style="display: block; font-size: 11px;">Trop-perçu</small>
                 </span>
               </div>
 
@@ -255,7 +269,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   ArrowLeft, ArrowDown, Document, Operation, Money,
   Edit, Delete, Printer, Phone, CircleCheck,
-  Clock, CreditCard, DocumentCopy, RefreshLeft
+  Clock, CreditCard, DocumentCopy, RefreshLeft, WarningFilled
 } from '@element-plus/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FactureClientModal from '@/Components/Modals/FactureClientModal.vue';
@@ -518,6 +532,7 @@ const handleFactureSuccess = async (data) => {
 .reglement-montant { font-size: 15px; color: #059669; }
 .reglement-details { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #6b7280; }
 .reglement-details > div { display: flex; align-items: center; gap: 6px; }
+.reglement-details .montant-rejet { color: #dc2626; }
 
 .section-card {
   border-radius: 8px;
@@ -596,6 +611,10 @@ const handleFactureSuccess = async (data) => {
 
 .total-reste.soldee {
   color: #059669;
+}
+
+.total-reste.credit {
+  color: #2563eb;
 }
 
 :deep(.el-card__header) {

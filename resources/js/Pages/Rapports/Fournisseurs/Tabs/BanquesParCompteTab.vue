@@ -26,15 +26,15 @@
       </div>
       <template v-else>
         <PaginatedTable :data="data" border size="small" stripe>
-          <el-table-column prop="banque" label="Banque" min-width="180" />
-          <el-table-column prop="numero_compte" label="N° Compte" min-width="160" />
-          <el-table-column label="Approvisionnements" min-width="170" align="right">
+          <el-table-column prop="banque" label="Banque" min-width="300" />
+          <el-table-column prop="numero_compte" label="N° Compte" width="165" />
+          <el-table-column label="Approvisionnements" width="175" align="right">
             <template #default="{ row }">{{ formatMontant(row.approvisionnements) }}</template>
           </el-table-column>
-          <el-table-column label="Débits (règlements)" min-width="170" align="right">
+          <el-table-column label="Débits (règlements)" width="175" align="right">
             <template #default="{ row }">{{ formatMontant(row.debits) }}</template>
           </el-table-column>
-          <el-table-column label="Solde actuel" min-width="150" align="right">
+          <el-table-column label="Solde actuel" width="155" align="right">
             <template #default="{ row }">
               <strong :style="{ color: row.solde < 0 ? '#f56c6c' : '#67c23a' }">{{ formatMontant(row.solde) }}</strong>
             </template>

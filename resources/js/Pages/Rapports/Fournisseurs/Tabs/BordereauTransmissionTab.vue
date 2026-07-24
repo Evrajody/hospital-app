@@ -49,6 +49,7 @@
           ref="tableRef"
           style="width: 100%"
           :data="reglements"
+          max-height="calc(100vh - 300px)"
           border
           size="small"
           @selection-change="handleSelectionChange"

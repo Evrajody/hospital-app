@@ -72,17 +72,17 @@
             <template #default="{ $index }">{{ $index + 1 }}</template>
           </el-table-column>
           <el-table-column prop="date_reglement" label="Date" min-width="100" />
-          <el-table-column prop="client_nom" label="Client" min-width="180">
+          <el-table-column prop="client_nom" label="Client" min-width="260">
             <template #default="{ row }">
               <strong>{{ row.client_nom }}</strong><br>
               <small style="color: #999">{{ row.client_code }}</small>
             </template>
           </el-table-column>
           <el-table-column prop="facture_reference" label="Réf. Facture" min-width="120" />
-          <el-table-column label="Montant" min-width="120" align="right">
+          <el-table-column label="Montant" width="125" align="right">
             <template #default="{ row }">{{ formatMontant(row.montant) }}</template>
           </el-table-column>
-          <el-table-column prop="observations" label="Observations" min-width="180">
+          <el-table-column prop="observations" label="Observations" min-width="320">
             <template #default="{ row }">
               <span style="font-size: 12px; color: #666">{{ row.observations || '-' }}</span>
             </template>

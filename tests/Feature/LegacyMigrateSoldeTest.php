@@ -14,9 +14,8 @@ use Tests\TestCase;
 
 /**
  * Verrouille la correction du bug : une facture marquée SOLDÉE à la source
- * (date_solde renseignée) doit finir en 'payee' avec reste_a_payer = 0, même si
- * le détail des règlements est inférieur au montant (déficit), tout en conservant
- * montant_paye = somme réelle des règlements.
+ * (date_solde renseignée) doit finir en 'payee' tout en conservant fidèlement
+ * le solde signé et montant_paye = somme réelle des règlements.
  */
 class LegacyMigrateSoldeTest extends TestCase
 {
@@ -73,8 +72,8 @@ class LegacyMigrateSoldeTest extends TestCase
 
         $f->refresh();
         $this->assertSame(FactureClient::STATUT_PAYEE, $f->statut);
-        $this->assertEquals(0, $f->reste_a_payer);
-        $this->assertEquals(600, $f->montant_paye); // déficit lisible : 1000 - 600
+        $this->assertEquals(400, $f->reste_a_payer);
+        $this->assertEquals(600, $f->montant_paye);
     }
 
     public function test_facture_client_soldee_sans_reglement_devient_payee(): void
@@ -87,7 +86,7 @@ class LegacyMigrateSoldeTest extends TestCase
 
         $f->refresh();
         $this->assertSame(FactureClient::STATUT_PAYEE, $f->statut);
-        $this->assertEquals(0, $f->reste_a_payer);
+        $this->assertEquals(1000, $f->reste_a_payer);
         $this->assertEquals(0, $f->montant_paye);
     }
 
@@ -103,6 +102,32 @@ class LegacyMigrateSoldeTest extends TestCase
         $f->refresh();
         $this->assertSame(FactureClient::STATUT_PARTIELLEMENT_PAYEE, $f->statut);
         $this->assertEquals(600, $f->reste_a_payer);
+    }
+
+    public function test_recalcul_client_integre_pertes_rejets_et_premiere_date_de_solde(): void
+    {
+        $f = FactureClientFactory::new()->create([
+            'date_facture' => '2026-01-01', 'montant' => 1000, 'ristourne' => 0, 'date_solde' => null,
+        ]);
+        ReglementClientFactory::new()->pourFacture($f)->create([
+            'date_reglement' => '2026-01-10', 'montant' => 400, 'montant_rejet' => 100, 'type_reglement' => 'reglement',
+        ]);
+        ReglementClientFactory::new()->pourFacture($f)->create([
+            'date_reglement' => '2026-01-20', 'montant' => 500, 'montant_rejet' => 0, 'type_reglement' => 'perte',
+        ]);
+        ReglementClientFactory::new()->pourFacture($f)->create([
+            'date_reglement' => '2026-01-30', 'montant' => 200, 'montant_rejet' => 0, 'type_reglement' => 'reglement',
+        ]);
+
+        $this->recompute();
+
+        $f->refresh();
+        $this->assertEquals(600, $f->montant_paye);
+        $this->assertEquals(100, $f->total_rejet);
+        $this->assertEquals(500, $f->total_perte);
+        $this->assertEquals(-200, $f->reste_a_payer);
+        $this->assertSame(FactureClient::STATUT_PAYEE, $f->statut);
+        $this->assertSame('2026-01-20', $f->date_solde?->format('Y-m-d'));
     }
 
     public function test_facture_fournisseur_soldee_partielle_devient_payee(): void

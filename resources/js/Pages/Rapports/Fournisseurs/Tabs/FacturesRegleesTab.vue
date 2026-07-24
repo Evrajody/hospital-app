@@ -70,26 +70,26 @@
             </template>
 
             <PaginatedTable style="width: 100%" :data="resume" border size="small" stripe>
-              <el-table-column prop="fournisseur" label="Fournisseur" min-width="200" />
-              <el-table-column label="Total Mt TTC" min-width="130" align="right">
+              <el-table-column prop="fournisseur" label="Fournisseur" min-width="340" />
+              <el-table-column label="Total Mt TTC" width="135" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_facture) }}</template>
               </el-table-column>
-              <el-table-column label="Total Mt TVA" min-width="120" align="right">
+              <el-table-column label="Total Mt TVA" width="125" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_tva) }}</template>
               </el-table-column>
-              <el-table-column label="Total Avoir" min-width="110" align="right">
+              <el-table-column label="Total Avoir" width="115" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_avoir) }}</template>
               </el-table-column>
-              <el-table-column label="Total Mt M.O." min-width="120" align="right">
+              <el-table-column label="Total Mt M.O." width="125" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_montant_mo) }}</template>
               </el-table-column>
-              <el-table-column label="Total AIB" min-width="110" align="right">
+              <el-table-column label="Total AIB" width="115" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_aib) }}</template>
               </el-table-column>
-              <el-table-column label="Total Rég. Période" min-width="140" align="right">
+              <el-table-column label="Total Rég. Période" width="145" align="right">
                 <template #default="{ row }">{{ formatMontant(row.total_reg_periode) }}</template>
               </el-table-column>
-              <el-table-column label="Total Mt Rég." min-width="130" align="right">
+              <el-table-column label="Total Mt Rég." width="135" align="right">
                 <template #default="{ row }">
                   <span style="font-weight: bold;">{{ formatMontant(row.total_mt_reg) }}</span>
                 </template>
