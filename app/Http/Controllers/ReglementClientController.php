@@ -77,7 +77,7 @@ class ReglementClientController extends Controller
                     'id' => $first->facture?->id,
                     'reference' => $first->facture?->reference ?? '-',
                     'date_facture' => $first->facture?->date_facture?->format('Y-m-d') ?? $first->facture?->date,
-                    'montant_ttc' => (float) ($first->facture?->montant_ttc ?? 0),
+                    'montant' => (float) ($first->facture?->montant ?? 0),
                     'reste_a_payer' => (float) ($first->facture?->reste_a_payer ?? 0),
                 ],
                 'client' => [

@@ -722,6 +722,11 @@
               <strong>{{ formatMontant(selectedReglement.montant) }}</strong>
             </el-tag>
           </el-descriptions-item>
+          <el-descriptions-item v-if="Number(selectedReglement.montant_rejet) > 0" label="Montant rejeté">
+            <el-tag type="danger" size="large" style="font-size: 16px; padding: 8px 16px;">
+              <strong>{{ formatMontant(selectedReglement.montant_rejet) }}</strong>
+            </el-tag>
+            </el-descriptions-item>
           <el-descriptions-item label="N&deg; Ligne">
             {{ selectedReglement.numero_ligne || '-' }}
           </el-descriptions-item>

@@ -375,7 +375,7 @@ class FactureClientController extends Controller
                 'net_a_payer' => number_format($montantDu, 0, ',', ' '),
                 'statut' => $facture->statut,
                 'statut_libelle' => $facture->estSoldeeManuellement()
-                    ? 'Soldée manuellement'
+                    ? 'Considérée comme soldée'
                     : ($facture->statut === FactureClient::STATUT_PAYEE ? 'Réglée intégralement' : 'Non soldée'),
                 'date_solde' => $facture->date_solde?->format('d/m/Y'),
                 'soldee_manuellement' => $facture->estSoldeeManuellement(),

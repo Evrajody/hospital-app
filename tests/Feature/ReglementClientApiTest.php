@@ -6,6 +6,7 @@ use App\Models\FactureClient;
 use Database\Factories\AvanceClientFactory;
 use Database\Factories\FactureClientFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\Concerns\SeedsPermissions;
 use Tests\TestCase;
 
@@ -53,6 +54,31 @@ class ReglementClientApiTest extends TestCase
         $facture->refresh();
         $this->assertEquals(60000, $facture->montant_paye);
         $this->assertSame(FactureClient::STATUT_PARTIELLEMENT_PAYEE, $facture->statut);
+    }
+
+    public function test_liste_reglements_expose_le_montant_reel_de_la_facture(): void
+    {
+        $this->actingAsWithPermissions([
+            'reglements-clients.voir',
+            'reglements-clients.creer',
+        ]);
+        $facture = FactureClientFactory::new()->create([
+            'date_facture' => '2026-05-01',
+            'montant' => 123456,
+            'ristourne' => 0,
+        ]);
+
+        $this->postJson('/api/reglements-clients', [
+            'facture_id' => $facture->id,
+            'date_reglement' => '2026-05-10',
+            'montant' => 10000,
+        ])->assertCreated();
+
+        $this->get('/reglements-clients')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('ReglementClients/Index')
+                ->where('groupedReglements.0.facture.montant', 123456));
     }
 
     public function test_paiement_total_utilise_la_date_du_reglement_comme_date_solde(): void

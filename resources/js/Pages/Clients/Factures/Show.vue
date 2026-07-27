@@ -97,7 +97,7 @@
               </el-descriptions-item>
               <el-descriptions-item label="Statut">
                 <el-tag :type="getStatutType(facture.statut)" size="small">
-                  {{ facture.soldee_manuellement ? 'Soldée manuellement' : getStatutLabel(facture.statut) }}
+                  {{ facture.soldee_manuellement ? 'Considérée comme soldée' : getStatutLabel(facture.statut) }}
                 </el-tag>
               </el-descriptions-item>
               <el-descriptions-item v-if="facture.soldee_manuellement" label="Déficit constaté">

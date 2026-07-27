@@ -54,7 +54,7 @@
 
     <table class="info-table" style="margin-top: 6px;">
         <tr>
-            <td><strong>Statut :</strong> {{ $facture->estSoldeeManuellement() ? 'Soldée manuellement' : ($facture->statut === \App\Models\FactureClient::STATUT_PAYEE ? 'Réglée intégralement' : 'Non soldée') }}</td>
+            <td><strong>Statut :</strong> {{ $facture->estSoldeeManuellement() ? 'Considérée comme soldée' : ($facture->statut === \App\Models\FactureClient::STATUT_PAYEE ? 'Réglée intégralement' : 'Non soldée') }}</td>
             <td><strong>Date de solde :</strong> {{ $facture->date_solde?->format('d/m/Y') ?? '-' }}</td>
             @if($facture->estSoldeeManuellement())
                 <td><strong>Déficit constaté :</strong> {{ number_format($facture->deficitSolde(), 0, ',', ' ') }}</td>
