@@ -9,9 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('avances_clients', function (Blueprint $table) {
-            $table->json('beneficiaires_noms')->nullable()->after('societe_emettrice');
-        });
+        // La migration peut être relancée après un échec durant le backfill.
+        if (! Schema::hasColumn('avances_clients', 'beneficiaires_noms')) {
+            Schema::table('avances_clients', function (Blueprint $table) {
+                $table->json('beneficiaires_noms')->nullable()->after('societe_emettrice');
+            });
+        }
 
         DB::table('avances_clients')->orderBy('id')->chunkById(100, function ($avances) {
             foreach ($avances as $avance) {
@@ -19,7 +22,8 @@ return new class extends Migration
                     ->leftJoin('clients as c', 'c.id', '=', 'acb.client_id')
                     ->where('acb.avance_id', $avance->id)
                     ->orderBy('acb.id')
-                    ->pluck(DB::raw('COALESCE(acb.client_nom, c.nom)'))
+                    ->selectRaw('COALESCE(acb.client_nom, c.nom) AS beneficiaire_nom')
+                    ->pluck('beneficiaire_nom')
                     ->filter()
                     ->values()
                     ->all();
@@ -37,8 +41,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('avances_clients', function (Blueprint $table) {
-            $table->dropColumn('beneficiaires_noms');
-        });
+        if (Schema::hasColumn('avances_clients', 'beneficiaires_noms')) {
+            Schema::table('avances_clients', function (Blueprint $table) {
+                $table->dropColumn('beneficiaires_noms');
+            });
+        }
     }
 };
