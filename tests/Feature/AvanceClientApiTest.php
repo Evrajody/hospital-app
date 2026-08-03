@@ -23,7 +23,7 @@ class AvanceClientApiTest extends TestCase
     {
         return array_merge([
             'societe_emettrice_client_id' => ClientFactory::new()->create(['type_client' => 'societe'])->id,
-            'beneficiaires' => [ClientFactory::new()->create()->id],
+            'beneficiaires' => ['Patient Jean', 'Patiente Jeanne'],
             'numero_cheque' => '7654321',
             'date_cheque' => '2026-05-01',
             'montant' => 300000,
@@ -42,11 +42,9 @@ class AvanceClientApiTest extends TestCase
         $this->actingAsWithPermissions(['reglements-clients.creer']);
 
         $emetteur = ClientFactory::new()->create(['type_client' => 'societe', 'nom' => 'NSIA Assurances']);
-        $beneficiaire = ClientFactory::new()->create();
-
         $this->postJson('/api/avances-clients', $this->payload([
             'societe_emettrice_client_id' => $emetteur->id,
-            'beneficiaires' => [$beneficiaire->id],
+            'beneficiaires' => ['Patient non enregistré', 'Deuxième patient'],
         ]))
             ->assertCreated()
             ->assertJson(['success' => true]);
@@ -54,11 +52,11 @@ class AvanceClientApiTest extends TestCase
         $this->assertDatabaseHas('avances_clients', [
             'societe_emettrice_client_id' => $emetteur->id,
             'societe_emettrice' => 'NSIA Assurances',
+            'client_id' => $emetteur->id,
             'statut' => 'disponible',
         ]);
-        $this->assertDatabaseHas('avance_client_beneficiaires', [
-            'client_id' => $beneficiaire->id,
-        ]);
+        $avance = \App\Models\AvanceClient::latest('id')->firstOrFail();
+        $this->assertSame(['Patient non enregistré', 'Deuxième patient'], $avance->beneficiaires_noms);
     }
 
     public function test_societe_emettrice_doit_etre_de_type_societe(): void

@@ -6,7 +6,7 @@
         <div class="sidebar-logo">
           <img
             v-if="!isCollapse"
-            src="/images/ministere_sante_without_republic.png"
+            src="/images/ministere_sante.png"
             alt="Ministère de la Santé — République du Bénin"
             class="sidebar-logo-img"
           />

@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -33,8 +34,7 @@ class AvanceClientController extends Controller
             $cid = (int) $request->client_id;
             $query->where(function ($q) use ($cid) {
                 $q->where('client_id', $cid)
-                  ->orWhere('societe_emettrice_client_id', $cid)
-                  ->orWhereHas('beneficiaires', fn($bq) => $bq->where('clients.id', $cid));
+                  ->orWhere('societe_emettrice_client_id', $cid);
             });
         }
         if ($request->filled('statut')) {
@@ -47,6 +47,7 @@ class AvanceClientController extends Controller
                   ->orWhere('numero_cheque', 'ILIKE', "%{$s}%")
                   ->orWhere('numero_proforma', 'ILIKE', "%{$s}%")
                   ->orWhereHas('societeEmettrice', fn($cq) => $cq->where('nom', 'ILIKE', "%{$s}%"))
+                  ->orWhereRaw('CAST(beneficiaires_noms AS TEXT) ILIKE ?', ["%{$s}%"])
                   ->orWhereHas('beneficiaires', fn($cq) => $cq->where('clients.nom', 'ILIKE', "%{$s}%"))
                   ->orWhereHas('client', fn($cq) => $cq->where('nom', 'ILIKE', "%{$s}%"));
             });
@@ -139,7 +140,7 @@ class AvanceClientController extends Controller
         $request->validate([
             'societe_emettrice_client_id' => ['required', 'integer', 'exists:clients,id'],
             'beneficiaires' => ['required', 'array', 'min:1'],
-            'beneficiaires.*' => ['integer', 'distinct', 'exists:clients,id'],
+            'beneficiaires.*' => ['string', 'distinct:ignore_case', 'max:255'],
             'numero_cheque' => ['required', 'string', 'max:100'],
             'date_cheque' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
@@ -161,7 +162,7 @@ class AvanceClientController extends Controller
             ], 422);
         }
 
-        $beneficiaires = Client::whereIn('id', $request->beneficiaires)->get();
+        $beneficiaires = $this->normaliserBeneficiaires($request->beneficiaires);
 
         $bordereauPath = null;
         if ($request->hasFile('bordereau_depot')) {
@@ -171,15 +172,13 @@ class AvanceClientController extends Controller
         try {
             DB::beginTransaction();
 
-            // client_id legacy = premier bénéficiaire (compat).
-            $premier = $beneficiaires->first();
-
             $avance = AvanceClient::create([
                 'numero_ligne' => $request->numero_ligne,
-                'client_id' => $premier?->id,
-                'client_nom' => $premier?->nom,
+                'client_id' => $emetteur->id,
+                'client_nom' => $emetteur->nom,
                 'societe_emettrice_client_id' => $emetteur->id,
                 'societe_emettrice' => $emetteur->nom,
+                'beneficiaires_noms' => $beneficiaires->all(),
                 'numero_cheque' => $request->numero_cheque,
                 'date_cheque' => $request->date_cheque,
                 'montant' => $request->montant,
@@ -195,11 +194,9 @@ class AvanceClientController extends Controller
                 'created_by_name' => auth()->user()->name,
             ]);
 
-            $avance->beneficiaires()->sync($this->beneficiairesSyncPayload($beneficiaires));
-
             DB::commit();
 
-            ActivityLog::log('create', 'avance_client', "Avance de " . number_format($avance->montant, 0, ',', ' ') . " XOF reçue de {$avance->societe_emettrice} pour " . $beneficiaires->pluck('nom')->join(', '), $avance);
+            ActivityLog::log('create', 'avance_client', "Avance de " . number_format($avance->montant, 0, ',', ' ') . " XOF reçue de {$avance->societe_emettrice} pour " . $beneficiaires->join(', '), $avance);
 
             $avance->load(['client', 'societeEmettrice.compteComptable', 'beneficiaires.compteComptable', 'banqueDepot', 'approvisionnement']);
 
@@ -232,14 +229,21 @@ class AvanceClientController extends Controller
         return $client;
     }
 
-    /**
-     * Construit le payload sync() du pivot (client_id => ['client_nom' => ...]).
-     *
-     * @param  \Illuminate\Support\Collection<int,\App\Models\Client>  $beneficiaires
-     */
-    private function beneficiairesSyncPayload($beneficiaires): array
+    private function normaliserBeneficiaires(array $beneficiaires)
     {
-        return $beneficiaires->mapWithKeys(fn ($c) => [$c->id => ['client_nom' => $c->nom]])->all();
+        $noms = collect($beneficiaires)
+            ->map(fn ($nom) => trim($nom))
+            ->filter()
+            ->unique(fn ($nom) => mb_strtolower($nom))
+            ->values();
+
+        if ($noms->isEmpty()) {
+            throw ValidationException::withMessages([
+                'beneficiaires' => ['Saisissez au moins un nom de bénéficiaire.'],
+            ]);
+        }
+
+        return $noms;
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -249,7 +253,7 @@ class AvanceClientController extends Controller
         $request->validate([
             'societe_emettrice_client_id' => ['required', 'integer', 'exists:clients,id'],
             'beneficiaires' => ['required', 'array', 'min:1'],
-            'beneficiaires.*' => ['integer', 'distinct', 'exists:clients,id'],
+            'beneficiaires.*' => ['string', 'distinct:ignore_case', 'max:255'],
             'numero_cheque' => ['required', 'string', 'max:100'],
             'date_cheque' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:1'],
@@ -277,18 +281,17 @@ class AvanceClientController extends Controller
             ], 422);
         }
 
-        $beneficiaires = Client::whereIn('id', $request->beneficiaires)->get();
+        $beneficiaires = $this->normaliserBeneficiaires($request->beneficiaires);
 
         try {
             DB::beginTransaction();
 
-            $premier = $beneficiaires->first();
-
             $avance->update([
-                'client_id' => $premier?->id,
-                'client_nom' => $premier?->nom,
+                'client_id' => $emetteur->id,
+                'client_nom' => $emetteur->nom,
                 'societe_emettrice_client_id' => $emetteur->id,
                 'societe_emettrice' => $emetteur->nom,
+                'beneficiaires_noms' => $beneficiaires->all(),
                 'numero_cheque' => $request->numero_cheque,
                 'date_cheque' => $request->date_cheque,
                 'montant' => $request->montant,
@@ -298,8 +301,6 @@ class AvanceClientController extends Controller
                 'approvisionnement_id' => $request->approvisionnement_id,
                 'observations' => $request->observations,
             ]);
-
-            $avance->beneficiaires()->sync($this->beneficiairesSyncPayload($beneficiaires));
 
             $avance->recalculerSolde();
 
@@ -356,8 +357,10 @@ class AvanceClientController extends Controller
     {
         $avances = AvanceClient::with(['societeEmettrice.compteComptable', 'beneficiaires.compteComptable'])
             ->where(function ($q) use ($clientId) {
-                $q->where('client_id', $clientId)
-                  ->orWhereHas('beneficiaires', fn($bq) => $bq->where('clients.id', $clientId));
+                $q->where('societe_emettrice_client_id', $clientId)
+                  ->orWhere(function ($legacy) use ($clientId) {
+                      $legacy->whereNull('societe_emettrice_client_id')->where('client_id', $clientId);
+                  });
             })
             ->whereIn('statut', [AvanceClient::STATUT_DISPONIBLE, AvanceClient::STATUT_PARTIELLEMENT_UTILISEE])
             ->orderBy('date_cheque', 'desc')
@@ -439,9 +442,6 @@ class AvanceClientController extends Controller
 
         $lignes = $avances->map(function ($a) {
             $emetteur = $a->societeEmettrice;
-            $reglementsParClient = $a->reglements->groupBy('client_id');
-            $declaredIds = $a->beneficiaires->pluck('id')->all();
-
             $mapReglement = fn ($r, $nom) => [
                 'beneficiaire' => $nom,
                 'facture_ref' => $r->facture_reference ?: $r->facture?->reference,
@@ -452,30 +452,26 @@ class AvanceClientController extends Controller
 
             $rows = [];
 
-            // 1) Tous les bénéficiaires déclarés (même sans règlement → ligne facture vide).
-            foreach ($a->beneficiaires as $benef) {
-                $nom = $benef->pivot->client_nom ?: $benef->nom;
-                $regs = $reglementsParClient->get($benef->id, collect());
-                if ($regs->isEmpty()) {
-                    $rows[] = [
-                        'beneficiaire' => $nom,
-                        'facture_ref' => null,
-                        'date_facture' => null,
-                        'montant_facture' => null,
-                        'montant_regle' => null,
-                    ];
-                } else {
-                    foreach ($regs as $r) {
-                        $rows[] = $mapReglement($r, $nom);
-                    }
-                }
+            $noms = collect($a->beneficiaires_noms);
+            if ($noms->isEmpty()) {
+                $noms = $a->beneficiaires->map(fn ($b) => $b->pivot->client_nom ?: $b->nom);
             }
 
-            // 2) Règlements dont le client n'est pas un bénéficiaire déclaré (sécurité : ne rien perdre).
+            // Les noms de patients sont descriptifs : il n'existe volontairement aucun lien
+            // technique avec les clients/factures. On les restitue donc sans inventer une
+            // ventilation, puis on affiche séparément tous les règlements réellement liés.
+            foreach ($noms->filter()->unique() as $nom) {
+                $rows[] = [
+                    'beneficiaire' => $nom,
+                    'facture_ref' => null,
+                    'date_facture' => null,
+                    'montant_facture' => null,
+                    'montant_regle' => null,
+                ];
+            }
+
             foreach ($a->reglements as $r) {
-                if (! in_array($r->client_id, $declaredIds, true)) {
-                    $rows[] = $mapReglement($r, $r->client?->nom ?? '-');
-                }
+                $rows[] = $mapReglement($r, $r->client?->nom ?? '-');
             }
 
             $utilise = (float) $a->reglements->sum('montant');

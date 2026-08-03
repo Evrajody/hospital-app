@@ -6,7 +6,7 @@
         <!-- Logo officiel -->
         <div class="login-header">
           <img
-            src="/images/ministere_sante_without_republic.png"
+            src="/images/ministere_sante.png"
             alt="Ministère de la Santé — République du Bénin"
             class="login-logo"
           />

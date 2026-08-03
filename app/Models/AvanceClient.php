@@ -20,6 +20,7 @@ class AvanceClient extends Model
         'client_nom',
         'societe_emettrice_client_id',
         'societe_emettrice',
+        'beneficiaires_noms',
         'numero_cheque',
         'date_cheque',
         'montant',
@@ -39,6 +40,7 @@ class AvanceClient extends Model
         'date_cheque' => 'date',
         'montant' => 'decimal:2',
         'montant_utilise' => 'decimal:2',
+        'beneficiaires_noms' => 'array',
     ];
 
     const STATUT_DISPONIBLE = 'disponible';
@@ -134,6 +136,13 @@ class AvanceClient extends Model
     public function toApiArray(): array
     {
         $emetteur = $this->societeEmettrice;
+        $beneficiairesNoms = collect($this->beneficiaires_noms);
+        if ($beneficiairesNoms->isEmpty()) {
+            $beneficiairesNoms = $this->beneficiaires->map(
+                fn ($b) => $b->pivot->client_nom ?: $b->nom
+            );
+        }
+        $beneficiairesNoms = $beneficiairesNoms->filter()->values();
 
         return [
             'id' => $this->id,
@@ -146,12 +155,13 @@ class AvanceClient extends Model
                 'numero_compte' => $emetteur->compteComptable?->numero_compte,
             ] : null,
             'societe_emettrice' => $this->societe_emettrice,
-            // Bénéficiaires (many-to-many).
-            'beneficiaires' => $this->beneficiaires->map(fn ($b) => [
-                'id' => $b->id,
-                'nom' => $b->pivot->client_nom ?: $b->nom,
-                'numero_compte' => $b->compteComptable?->numero_compte,
-            ])->values()->all(),
+            'beneficiaires_noms' => $beneficiairesNoms->all(),
+            // Format conservé pour les écrans qui affichent déjà des badges.
+            'beneficiaires' => $beneficiairesNoms->map(fn ($nom, $index) => [
+                'id' => "nom-{$index}",
+                'nom' => $nom,
+                'numero_compte' => null,
+            ])->all(),
             'client_id' => $this->client_id,
             'client' => [
                 'id' => $this->client_id,

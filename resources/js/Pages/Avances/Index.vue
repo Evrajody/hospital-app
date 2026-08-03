@@ -200,18 +200,31 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="Bénéficiaire(s)" prop="beneficiaires">
-            <el-select
-              v-model="form.beneficiaires"
-              multiple
-              filterable
-              collapse-tags
-              collapse-tags-tooltip
-              placeholder="Sélectionner un ou plusieurs clients bénéficiaires"
-              style="width: 100%"
-            >
-              <el-option v-for="c in clients" :key="c.id" :label="c.nom" :value="c.id" />
-            </el-select>
+          <el-form-item label="Bénéficiaire(s) / patient(s)" prop="beneficiaires">
+            <div class="beneficiaires-editor">
+              <div v-if="form.beneficiaires.length" class="beneficiaires-list">
+                <el-tag
+                  v-for="(nom, index) in form.beneficiaires"
+                  :key="`${nom}-${index}`"
+                  closable
+                  size="large"
+                  @close="removeBeneficiaire(index)"
+                >
+                  {{ nom }}
+                </el-tag>
+              </div>
+              <el-input
+                v-model="nouveauBeneficiaire"
+                placeholder="Nom du patient"
+                maxlength="255"
+                @keyup.enter.prevent="addBeneficiaire"
+              >
+                <template #append>
+                  <el-button @click="addBeneficiaire">Ajouter</el-button>
+                </template>
+              </el-input>
+              <span class="beneficiaires-help">Saisissez un nom, puis appuyez sur Entrée ou sur Ajouter.</span>
+            </div>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -469,6 +482,7 @@ const formVisible = ref(false);
 const editingId = ref(null);
 const submitting = ref(false);
 const formRef = ref(null);
+const nouveauBeneficiaire = ref('');
 const emptyForm = () => ({
   societe_emettrice_client_id: null,
   beneficiaires: [],
@@ -483,6 +497,28 @@ const emptyForm = () => ({
 });
 
 const form = ref(emptyForm());
+
+const addBeneficiaire = () => {
+  const nom = nouveauBeneficiaire.value.trim();
+  if (!nom) return;
+
+  const existe = form.value.beneficiaires.some(
+    (beneficiaire) => beneficiaire.toLocaleLowerCase('fr') === nom.toLocaleLowerCase('fr')
+  );
+  if (existe) {
+    ElMessage.warning('Ce bénéficiaire est déjà ajouté');
+    nouveauBeneficiaire.value = '';
+    return;
+  }
+
+  form.value.beneficiaires.push(nom);
+  nouveauBeneficiaire.value = '';
+  formRef.value?.clearValidate('beneficiaires');
+};
+
+const removeBeneficiaire = (index) => {
+  form.value.beneficiaires.splice(index, 1);
+};
 
 const rules = {
   societe_emettrice_client_id: [{ required: true, message: 'Société émettrice requise', trigger: 'change' }],
@@ -557,15 +593,17 @@ const filteredApprovisionnements = computed(() => {
 
 const openCreate = () => {
   editingId.value = null;
+  nouveauBeneficiaire.value = '';
   form.value = emptyForm();
   formVisible.value = true;
 };
 
 const openEdit = (avance) => {
   editingId.value = avance.id;
+  nouveauBeneficiaire.value = '';
   form.value = {
     societe_emettrice_client_id: avance.societe_emettrice_client_id || null,
-    beneficiaires: (avance.beneficiaires || []).map((b) => b.id),
+    beneficiaires: avance.beneficiaires_noms || (avance.beneficiaires || []).map((b) => b.nom),
     numero_cheque: avance.numero_cheque,
     date_cheque: avance.date_cheque,
     montant: avance.montant,
@@ -580,6 +618,8 @@ const openEdit = (avance) => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return;
+  // Ne pas perdre le dernier nom si l'utilisateur l'a saisi sans appuyer sur Entrée.
+  addBeneficiaire();
   try {
     await formRef.value.validate();
   } catch {
@@ -692,6 +732,9 @@ const handleAvanceAction = (command, avance) => {
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .card-title { font-size: 16px; font-weight: 600; color: #374151; }
 .benef-tag { margin: 2px 4px 2px 0; }
+.beneficiaires-editor { width: 100%; }
+.beneficiaires-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.beneficiaires-help { display: block; margin-top: 5px; color: #909399; font-size: 12px; line-height: 1.4; }
 :deep(.el-table th) { background-color: #f9fafb; font-weight: 600; color: #374151; }
 :deep(.el-card__header) { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
 </style>
