@@ -128,6 +128,38 @@ class PdfGenerationTest extends TestCase
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
+    public function test_etat_avances_affiche_les_beneficiaires_dans_entete_et_non_dans_tableau(): void
+    {
+        $data = [
+            'titre' => 'ÉTAT DES AVANCES CLIENTS',
+            'periode' => ['debut' => null, 'fin' => null],
+            'generatedAt' => '10/08/2026 à 10:00',
+            'generatedBy' => 'Testeur',
+            'avances' => [[
+                'emetteur_compte' => '4111.001',
+                'emetteur_nom' => 'ASSURANCE TEST',
+                'beneficiaires' => ['PATIENT ALPHA', 'PATIENT BETA'],
+                'numero_cheque' => 'CHQ-001',
+                'date_cheque' => '10/08/2026',
+                'montant' => 100000,
+                'montant_utilise' => 25000,
+                'montant_restant' => 75000,
+                'rows' => [[
+                    'facture_ref' => 'FAC-001',
+                    'date_facture' => '09/08/2026',
+                    'montant_facture' => 50000,
+                    'montant_regle' => 25000,
+                ]],
+            ]],
+        ];
+
+        $html = view('pdf.rapports-clients.etat-avances', $data)->render();
+
+        $this->assertStringContainsString('PATIENT ALPHA • PATIENT BETA', $html);
+        $this->assertStringNotContainsString('<th>Bénéficiaire</th>', $html);
+        $this->assertStringContainsString('FAC-001', $html);
+    }
+
     public function test_etat_reglements_clients_pdf_valide(): void
     {
         $this->actingAsWithPermissions(['rapports-clients.voir']);

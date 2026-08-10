@@ -27,21 +27,18 @@
     }
     .avance-entete .lib { font-weight: bold; text-transform: uppercase; font-size: 9px; color: #333; }
     .avance-entete .val { font-size: 11px; }
+    .beneficiaires-val { line-height: 1.45; }
     .reste { color: #cc0000; font-weight: bold; }
     .ligne-vide td { color: #999; font-style: italic; }
     .avance-pied {
         margin-top: 6px;
         font-size: 10px;
-        width: 100%;
-        border-collapse: collapse;
+        text-align: right;
+        line-height: 1.7;
     }
-    .avance-pied td {
-        border: 1px solid #000;
-        padding: 5px 8px;
-        font-weight: bold;
-    }
-    .avance-pied .label { text-transform: uppercase; text-align: right; }
-    .avance-pied .montant { text-align: right; }
+    .avance-pied .ligne { white-space: nowrap; }
+    .avance-pied .label { display: inline-block; min-width: 145px; text-transform: uppercase; font-weight: bold; }
+    .avance-pied .montant { display: inline-block; min-width: 110px; font-weight: bold; }
 @endsection
 
 @section('content')
@@ -75,25 +72,31 @@
                             <div class="val">{{ $av['numero_cheque'] ?: '-' }}</div>
                         </td>
                     </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div class="lib">Bénéficiaire(s) / patient(s)</div>
+                            <div class="val beneficiaires-val">
+                                {{ count($av['beneficiaires']) ? implode(' • ', $av['beneficiaires']) : '-' }}
+                            </div>
+                        </td>
+                    </tr>
                 </table>
 
-                {{-- Détail des bénéficiaires / factures réglées --}}
+                {{-- Détail des factures réglées avec l'avance --}}
                 <table class="report-table">
                     <thead>
                         <tr>
                             <th style="width: 28px">N°</th>
-                            <th>Bénéficiaire</th>
-                            <th style="width: 95px">Réf. facture</th>
-                            <th class="col-date" style="width: 70px">Date fac.</th>
-                            <th class="montant" style="width: 95px">Mt facture</th>
-                            <th class="montant" style="width: 100px">Mt réglé (avance)</th>
+                            <th>Réf. facture</th>
+                            <th class="col-date" style="width: 85px">Date fac.</th>
+                            <th class="montant" style="width: 125px">Mt facture</th>
+                            <th class="montant" style="width: 135px">Mt réglé (avance)</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($av['rows'] as $row)
-                            <tr class="{{ is_null($row['montant_regle']) ? 'ligne-vide' : '' }}">
+                            <tr>
                                 <td class="col-num">{{ $loop->iteration }}</td>
-                                <td>{{ $row['beneficiaire'] ?: '-' }}</td>
                                 <td>{{ $row['facture_ref'] ?: '—' }}</td>
                                 <td class="col-date">{{ $row['date_facture'] ?: '—' }}</td>
                                 <td class="montant">{{ is_null($row['montant_facture']) ? '—' : number_format($row['montant_facture'], 0, ',', ' ') }}</td>
@@ -101,23 +104,23 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" style="text-align: center; color: #666;">Aucun bénéficiaire déclaré.</td>
+                                <td colspan="5" style="text-align: center; color: #666;">Aucun règlement effectué avec cette avance.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
 
-                {{-- Pied de l'avance : total utilisé + restant --}}
-                <table class="avance-pied">
-                    <tr>
-                        <td class="label" style="width: 70%;">Total utilisé :</td>
-                        <td class="montant" style="width: 30%;">{{ number_format($av['montant_utilise'], 0, ',', ' ') }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label reste">Restant de l'avance :</td>
-                        <td class="montant reste">{{ number_format($av['montant_restant'], 0, ',', ' ') }}</td>
-                    </tr>
-                </table>
+                {{-- Synthèse simple, sans tableau --}}
+                <div class="avance-pied">
+                    <div class="ligne">
+                        <span class="label">Total utilisé :</span>
+                        <span class="montant">{{ number_format($av['montant_utilise'], 0, ',', ' ') }} F CFA</span>
+                    </div>
+                    <div class="ligne reste">
+                        <span class="label">Restant de l'avance :</span>
+                        <span class="montant">{{ number_format($av['montant_restant'], 0, ',', ' ') }} F CFA</span>
+                    </div>
+                </div>
             </div>
         @endforeach
     @endif

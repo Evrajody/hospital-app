@@ -409,9 +409,8 @@ class AvanceClientController extends Controller
      * Toujours périodique (date_debut / date_fin sur date_cheque).
      * Filtre optionnel `avance_id` : limite l'état à un seul chèque/avance.
      *
-     * Pour chaque avance : en-tête (société émettrice, date chèque, réf chèque, montant),
-     * puis le détail de TOUS les bénéficiaires déclarés avec, pour chaque facture réglée
-     * depuis l'avance : réf facture, date facture, montant facture, montant réglé (utilisé).
+     * Pour chaque avance : en-tête (société émettrice, bénéficiaires, date chèque,
+     * réf chèque, montant), puis le détail des factures réglées depuis l'avance.
      * En pied : total utilisé et restant de l'avance.
      */
     public function etatAvancesPdf(Request $request)
@@ -442,43 +441,26 @@ class AvanceClientController extends Controller
 
         $lignes = $avances->map(function ($a) {
             $emetteur = $a->societeEmettrice;
-            $mapReglement = fn ($r, $nom) => [
-                'beneficiaire' => $nom,
+            $mapReglement = fn ($r) => [
                 'facture_ref' => $r->facture_reference ?: $r->facture?->reference,
                 'date_facture' => $r->facture?->date_facture?->format('d/m/Y'),
                 'montant_facture' => (float) ($r->facture?->montant ?? 0),
                 'montant_regle' => (float) $r->montant,
             ];
 
-            $rows = [];
-
             $noms = collect($a->beneficiaires_noms);
             if ($noms->isEmpty()) {
                 $noms = $a->beneficiaires->map(fn ($b) => $b->pivot->client_nom ?: $b->nom);
             }
-
-            // Les noms de patients sont descriptifs : il n'existe volontairement aucun lien
-            // technique avec les clients/factures. On les restitue donc sans inventer une
-            // ventilation, puis on affiche séparément tous les règlements réellement liés.
-            foreach ($noms->filter()->unique() as $nom) {
-                $rows[] = [
-                    'beneficiaire' => $nom,
-                    'facture_ref' => null,
-                    'date_facture' => null,
-                    'montant_facture' => null,
-                    'montant_regle' => null,
-                ];
-            }
-
-            foreach ($a->reglements as $r) {
-                $rows[] = $mapReglement($r, $r->client?->nom ?? '-');
-            }
+            $noms = $noms->map(fn ($nom) => trim($nom))->filter()->unique()->values();
+            $rows = $a->reglements->map($mapReglement)->values()->all();
 
             $utilise = (float) $a->reglements->sum('montant');
 
             return [
                 'emetteur_compte' => $emetteur?->compteComptable?->numero_compte,
                 'emetteur_nom' => $emetteur?->nom ?: $a->societe_emettrice,
+                'beneficiaires' => $noms->all(),
                 'numero_cheque' => $a->numero_cheque,
                 'date_cheque' => $a->date_cheque?->format('d/m/Y'),
                 'numero_proforma' => $a->numero_proforma,
