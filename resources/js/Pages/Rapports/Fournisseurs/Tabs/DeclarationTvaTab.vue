@@ -2,18 +2,39 @@
   <div class="tab-content">
     <div class="filters-section">
       <el-form :inline="true" class="filters-form">
-        <el-form-item label="Période">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="à"
-            start-placeholder="Date début"
-            end-placeholder="Date fin"
-            format="DD/MM/YYYY"
-            value-format="YYYY-MM-DD"
-            unlink-panels
-          />
+        <el-form-item label="Mode">
+          <el-radio-group v-model="selectedMode" size="default">
+            <el-radio-button label="mois_annee">Mois/Année</el-radio-button>
+            <el-radio-button label="periode">Période</el-radio-button>
+          </el-radio-group>
         </el-form-item>
+
+        <template v-if="selectedMode === 'mois_annee'">
+          <el-form-item label="Mois">
+            <el-select v-model="selectedMois" placeholder="Mois" style="width: 150px">
+              <el-option v-for="m in moisOptions" :key="m.value" :label="m.label" :value="m.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="Année">
+            <el-input-number v-model="selectedAnnee" :min="2000" :max="2099" :controls="false" style="width: 90px" />
+          </el-form-item>
+        </template>
+
+        <template v-if="selectedMode === 'periode'">
+          <el-form-item label="Période">
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="à"
+              start-placeholder="Date début"
+              end-placeholder="Date fin"
+              format="DD/MM/YYYY"
+              value-format="YYYY-MM-DD"
+              unlink-panels
+            />
+          </el-form-item>
+        </template>
+
         <el-form-item>
           <el-button type="primary" @click="fetchData" :loading="loading">Afficher</el-button>
         </el-form-item>
@@ -25,6 +46,8 @@
         <el-empty description="Aucune facture assujettie à la TVA pour la période" />
       </div>
       <template v-else>
+        <div class="report-title">{{ titreDeclaration }}</div>
+
         <div class="summary-cards">
           <div class="summary-card">
             <div class="label">Total TTC</div>
@@ -71,8 +94,6 @@
 </template>
 
 <script setup>
-import { usePdfViewer } from '@/Composables/usePdfViewer';
-const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
 const { startExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-fournisseurs.declaration-tva';
@@ -83,30 +104,52 @@ import PaginatedTable from '@/Components/PaginatedTable.vue';
 
 const { formatMontant } = useMontant();
 
+const selectedMode = ref('mois_annee');
+const selectedMois = ref(new Date().getMonth() + 1);
+const selectedAnnee = ref(new Date().getFullYear());
 const dateRange = ref([]);
 const loading = ref(false);
 const fetched = ref(false);
+const titreDeclaration = ref('');
 const lignes = ref([]);
 const totaux = ref({ ttc: 0, tva: 0, ht: 0 });
 
+const moisOptions = [
+  { value: 1, label: 'JANVIER' }, { value: 2, label: 'FÉVRIER' }, { value: 3, label: 'MARS' },
+  { value: 4, label: 'AVRIL' }, { value: 5, label: 'MAI' }, { value: 6, label: 'JUIN' },
+  { value: 7, label: 'JUILLET' }, { value: 8, label: 'AOÛT' }, { value: 9, label: 'SEPTEMBRE' },
+  { value: 10, label: 'OCTOBRE' }, { value: 11, label: 'NOVEMBRE' }, { value: 12, label: 'DÉCEMBRE' },
+];
+
 const buildParams = () => {
-  const params = new URLSearchParams();
-  const [debut, fin] = dateRange.value || [];
-  if (debut) params.append('date_debut', debut);
-  if (fin) params.append('date_fin', fin);
+  const params = new URLSearchParams({ mode: selectedMode.value });
+  if (selectedMode.value === 'mois_annee') {
+    params.append('mois', selectedMois.value);
+    params.append('annee', selectedAnnee.value);
+  } else {
+    const [debut, fin] = dateRange.value || [];
+    if (debut) params.append('date_debut', debut);
+    if (fin) params.append('date_fin', fin);
+  }
   return params;
 };
 
 const fetchData = async () => {
-  const [debut, fin] = dateRange.value || [];
-  if (!debut || !fin) {
-    ElMessage.warning('Sélectionnez la période');
+  if (selectedMode.value === 'mois_annee' && (!selectedMois.value || !selectedAnnee.value)) {
+    ElMessage.warning('Veuillez sélectionner le mois et l\'année');
     return;
   }
+  const [debut, fin] = dateRange.value || [];
+  if (selectedMode.value === 'periode' && (!debut || !fin)) {
+    ElMessage.warning('Veuillez sélectionner la période complète');
+    return;
+  }
+
   loading.value = true;
   try {
     const res = await fetch(`/rapports/fournisseurs/api/declaration-tva?${buildParams()}`);
     const json = await res.json();
+    titreDeclaration.value = json.titreDeclaration || '';
     lignes.value = json.lignes || [];
     totaux.value = json.totaux || { ttc: 0, tva: 0, ht: 0 };
     fetched.value = true;
@@ -140,6 +183,7 @@ const exportExcel = () => {
 .filters-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
 .results-section { padding: 0 4px; }
 .empty-state { padding: 40px 0; }
+.report-title { text-align: center; font-size: 15px; font-weight: 700; text-transform: uppercase; margin-bottom: 16px; }
 .summary-cards { display: flex; gap: 16px; margin-bottom: 20px; }
 .summary-card { flex: 1; background: #fafafa; border: 1px solid #e0e0e0; border-left: 4px solid var(--el-color-primary); padding: 14px 16px; }
 .summary-card.danger { border-left-color: #f56c6c; }

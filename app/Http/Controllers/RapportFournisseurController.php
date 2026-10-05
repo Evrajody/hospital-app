@@ -18,6 +18,10 @@ use Inertia\Inertia;
 
 class RapportFournisseurController extends Controller
 {
+    /** Libellés des mois pour les titres de déclaration (AIB, TVA). Index = numéro du mois. */
+    private const MOIS = ['', 'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
+        'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
+
     // ==========================================
     // HELPERS
     // ==========================================
@@ -601,8 +605,7 @@ class RapportFournisseurController extends Controller
         if ($mode === 'mois_annee' && $mois && $annee) {
             $dateDebut = Carbon::create($annee, $mois, 1)->startOfMonth()->format('Y-m-d');
             $dateFin = Carbon::create($annee, $mois, 1)->endOfMonth()->format('Y-m-d');
-            $moisNoms = ['', 'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
-            $titreDeclaration = 'DECLARATION AIB MOIS DE ' . ($moisNoms[(int) $mois] ?? '') . ' ' . $annee;
+            $titreDeclaration = 'DECLARATION AIB MOIS DE ' . (self::MOIS[(int) $mois] ?? '') . ' ' . $annee;
         } elseif ($mode === 'periode' && $dateDebut && $dateFin) {
             $titreDeclaration = 'DECLARATION AIB DU ' . Carbon::parse($dateDebut)->format('d/m/Y') . ' AU ' . Carbon::parse($dateFin)->format('d/m/Y');
         } else {
@@ -1607,24 +1610,33 @@ class RapportFournisseurController extends Controller
     // EXPORTS EXCEL
     // ==========================================
 
+    /**
+     * Export Excel de la déclaration TVA.
+     *
+     * Mêmes colonnes que le PDF et l'écran : l'IFU et le fournisseur sont
+     * indispensables à la déclaration (ils manquaient ici).
+     */
     public function declarationTvaExcel(Request $request)
     {
         $data = $this->buildDeclarationTvaData($request);
         $rows = array_map(fn($l) => [
-            $l['date'],
             $l['numero_piece'],
+            $l['date'],
+            $l['fournisseur_ifu'],
+            $l['fournisseur'],
             $l['libelle'],
             $l['montant_ttc'],
+            $l['montant_ht'],
             $l['taux_tva'],
             $l['montant_tva'],
         ], $data['lignes']);
-        $rows[] = ['', '', 'TOTAL', $data['totaux']['ttc'], '', $data['totaux']['tva']];
+        $rows[] = ['', '', '', '', 'TOTAL', $data['totaux']['ttc'], $data['totaux']['ht'], '', $data['totaux']['tva']];
 
         return \App\Support\ExcelExporter::download(
-            ['Date', 'N° PC', 'Libellé', 'Montant TTC', 'Taux TVA (%)', 'Montant TVA'],
+            ['N° PC', 'Date', 'N° IFU', 'Raison sociale', 'Libellé', 'Montant TTC', 'Montant HT', 'Taux TVA (%)', 'Montant TVA'],
             $rows,
             'declaration-tva',
-            'Déclaration TVA du ' . ($data['dateDebut'] ? Carbon::parse($data['dateDebut'])->format('d/m/Y') : '-') . ' au ' . ($data['dateFin'] ? Carbon::parse($data['dateFin'])->format('d/m/Y') : '-'),
+            $data['titreDeclaration'] ?: 'Déclaration TVA',
         );
     }
 
@@ -2088,15 +2100,33 @@ class RapportFournisseurController extends Controller
 
     private function buildDeclarationTvaData(Request $request): array
     {
+        $mois = $request->input('mois');
+        $annee = $request->input('annee');
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
+        // Mode déduit quand il n'est pas transmis : compatibilité avec les anciens
+        // appels (liens, exports enregistrés) qui ne passaient que les deux dates.
+        $mode = $request->input('mode') ?: (($mois && $annee) ? 'mois_annee' : 'periode');
 
-        if (!$dateDebut || !$dateFin) {
+        if ($mode === 'mois_annee' && $mois && $annee) {
+            // Le mois de déclaration porte sur la DATE DE FACTURE (TVA déductible),
+            // contrairement à l'AIB qui est daté du prélèvement au règlement.
+            $dateDebut = Carbon::create($annee, $mois, 1)->startOfMonth()->format('Y-m-d');
+            $dateFin = Carbon::create($annee, $mois, 1)->endOfMonth()->format('Y-m-d');
+            $titreDeclaration = 'DÉCLARATION TVA MOIS DE ' . (self::MOIS[(int) $mois] ?? '') . ' ' . $annee;
+        } elseif ($mode === 'periode' && $dateDebut && $dateFin) {
+            $titreDeclaration = 'DÉCLARATION TVA DU ' . Carbon::parse($dateDebut)->format('d/m/Y')
+                . ' AU ' . Carbon::parse($dateFin)->format('d/m/Y');
+        } else {
             return [
+                'mode' => $mode,
+                'titreDeclaration' => '',
                 'lignes' => [],
                 'totaux' => ['ttc' => 0, 'tva' => 0, 'ht' => 0],
                 'dateDebut' => null,
                 'dateFin' => null,
+                'mois' => $mois,
+                'annee' => $annee,
             ];
         }
 
@@ -2135,10 +2165,14 @@ class RapportFournisseurController extends Controller
         }
 
         return [
+            'mode' => $mode,
+            'titreDeclaration' => $titreDeclaration,
             'lignes' => $lignes,
             'totaux' => $totaux,
             'dateDebut' => $dateDebut,
             'dateFin' => $dateFin,
+            'mois' => $mois,
+            'annee' => $annee,
         ];
     }
 
@@ -2151,7 +2185,7 @@ class RapportFournisseurController extends Controller
     {
         $data = $this->buildDeclarationTvaData($request);
         $pdf = Pdf::loadView('pdf.rapports-fournisseurs.declaration-tva', array_merge($data, [
-            'titre' => 'DÉCLARATION TVA du ' . ($data['dateDebut'] ? Carbon::parse($data['dateDebut'])->format('d/m/Y') : '-') . ' au ' . ($data['dateFin'] ? Carbon::parse($data['dateFin'])->format('d/m/Y') : '-'),
+            'titre' => $data['titreDeclaration'] ?: 'DÉCLARATION TVA',
             'etablissement' => \App\Models\Setting::getEtablissement(),
         ]));
         $pdf->setPaper('a4', 'landscape');

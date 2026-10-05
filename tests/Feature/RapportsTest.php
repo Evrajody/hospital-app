@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use Database\Factories\ApprovisionnementBanqueFactory;
 use Database\Factories\FactureClientFactory;
+use Database\Factories\FactureFournisseurFactory;
+use Database\Factories\FournisseurFactory;
 use Database\Factories\ReglementClientFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\Concerns\SeedsPermissions;
 use Tests\TestCase;
 
@@ -157,5 +160,69 @@ class RapportsTest extends TestCase
         $this->actingAsWithPermissions(['rapports-fournisseurs.voir']);
         $this->getJson('/rapports/fournisseurs/api/situation-fournisseurs?point_au=2026-12-31')
             ->assertSuccessful();
+    }
+
+    public function test_declaration_tva_par_mois_ne_retient_que_le_mois_demande(): void
+    {
+        $this->actingAsWithPermissions(['rapports-fournisseurs.voir']);
+        $fournisseur = FournisseurFactory::new()->create();
+        FactureFournisseurFactory::new()->create([
+            'fournisseur_id' => $fournisseur->id,
+            'numero_piece' => 'PC/TVA/JUIL',
+            'date' => '2026-07-15',
+            'assujetti_tva' => true,
+        ]);
+        FactureFournisseurFactory::new()->create([
+            'fournisseur_id' => $fournisseur->id,
+            'numero_piece' => 'PC/TVA/AOUT',
+            'date' => '2026-08-03',
+            'assujetti_tva' => true,
+        ]);
+
+        $this->getJson('/rapports/fournisseurs/api/declaration-tva?mode=mois_annee&mois=7&annee=2026')
+            ->assertSuccessful()
+            ->assertJsonPath('titreDeclaration', 'DÉCLARATION TVA MOIS DE JUILLET 2026')
+            ->assertJsonCount(1, 'lignes')
+            ->assertJsonPath('lignes.0.numero_piece', 'PC/TVA/JUIL')
+            ->assertJsonPath('lignes.0.fournisseur_ifu', $fournisseur->ifu);
+    }
+
+    public function test_declaration_tva_reste_compatible_avec_les_dates_seules(): void
+    {
+        // Anciens liens / exports enregistrés : pas de `mode`, seulement les deux dates.
+        $this->actingAsWithPermissions(['rapports-fournisseurs.voir']);
+        FactureFournisseurFactory::new()->create(['date' => '2026-07-15', 'assujetti_tva' => true]);
+
+        $this->getJson('/rapports/fournisseurs/api/declaration-tva?date_debut=2026-07-01&date_fin=2026-07-31')
+            ->assertSuccessful()
+            ->assertJsonPath('mode', 'periode')
+            ->assertJsonCount(1, 'lignes');
+    }
+
+    public function test_export_excel_declaration_tva_contient_ifu_et_fournisseur(): void
+    {
+        $this->actingAsWithPermissions(['rapports-fournisseurs.voir']);
+        $fournisseur = FournisseurFactory::new()->create(['nom' => 'SOCIÉTÉ TEST']);
+        FactureFournisseurFactory::new()->create([
+            'fournisseur_id' => $fournisseur->id,
+            'date' => '2026-07-15',
+            'assujetti_tva' => true,
+        ]);
+
+        $reponse = $this->get('/rapports/fournisseurs/excel/declaration-tva?mode=mois_annee&mois=7&annee=2026');
+        $reponse->assertSuccessful();
+
+        $chemin = tempnam(sys_get_temp_dir(), 'tva').'.xlsx';
+        file_put_contents($chemin, $reponse->streamedContent());
+        $feuille = IOFactory::load($chemin)->getActiveSheet();
+
+        // Ligne 1 : titre ; ligne 3 : en-têtes ; ligne 4 : première facture.
+        $entetes = $feuille->rangeToArray('A3:I3')[0];
+        $this->assertContains('N° IFU', $entetes);
+        $this->assertContains('Raison sociale', $entetes);
+        $this->assertSame($fournisseur->ifu, (string) $feuille->getCell('C4')->getValue());
+        $this->assertSame('SOCIÉTÉ TEST', $feuille->getCell('D4')->getValue());
+
+        unlink($chemin);
     }
 }

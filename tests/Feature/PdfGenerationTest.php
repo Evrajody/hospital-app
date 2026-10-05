@@ -26,6 +26,25 @@ class PdfGenerationTest extends TestCase
         $this->seedPermissions();
     }
 
+    /** La déclaration TVA par mois doit produire un vrai PDF, titré sur le mois. */
+    public function test_declaration_tva_par_mois_genere_un_pdf_valide(): void
+    {
+        $this->actingAsWithPermissions(['rapports-fournisseurs.voir']);
+
+        $fournisseur = FournisseurFactory::new()->create();
+        FactureFournisseurFactory::new()->create([
+            'fournisseur_id' => $fournisseur->id,
+            'date' => '2026-07-15',
+            'assujetti_tva' => true,
+        ]);
+
+        $response = $this->get('/rapports/fournisseurs/pdf/declaration-tva?mode=mois_annee&mois=7&annee=2026');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
     /** Le bordereau de transmission fournisseurs doit produire un vrai PDF. */
     public function test_bordereau_transmission_genere_un_pdf_valide(): void
     {
