@@ -8,7 +8,7 @@
 import { reactive } from 'vue';
 
 const state = reactive({
-  items: [], // { id, label, format, status, targetProgress, displayProgress, step, error, download_url, startedAt }
+  items: [], // { id, label, format, status, targetProgress, displayProgress, step, error, download_url, view_url, startedAt }
   now: Date.now(),
 });
 
@@ -48,6 +48,7 @@ function add(item) {
     status: 'pending',
     error: null,
     download_url: null,
+    view_url: null,
     startedAt: Date.now(),
     ...item,
   });

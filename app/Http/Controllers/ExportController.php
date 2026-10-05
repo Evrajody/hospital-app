@@ -8,6 +8,7 @@ use App\Support\ReportExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
@@ -60,10 +61,7 @@ class ExportController extends Controller
      */
     public function status(string $id): JsonResponse
     {
-        $job = ExportJob::findOrFail($id);
-        abort_unless($job->user_id === auth()->id(), 403);
-
-        return response()->json(['export' => $job->toApiArray()]);
+        return response()->json(['export' => $this->jobDeLUtilisateur($id)->toApiArray()]);
     }
 
     /**
@@ -74,8 +72,7 @@ class ExportController extends Controller
      */
     public function cancel(string $id): JsonResponse
     {
-        $job = ExportJob::findOrFail($id);
-        abort_unless($job->user_id === auth()->id(), 403);
+        $job = $this->jobDeLUtilisateur($id);
 
         if (in_array($job->status, [ExportJob::STATUT_PENDING, ExportJob::STATUT_PROCESSING], true)) {
             $job->update([
@@ -90,13 +87,44 @@ class ExportController extends Controller
 
     /**
      * Téléchargement du fichier généré.
+     *
+     * `?inline=1` sert le même fichier en affichage (aperçu / impression dans un
+     * onglet) au lieu d'un téléchargement forcé.
      */
-    public function download(string $id): StreamedResponse
+    public function download(Request $request, string $id): StreamedResponse
+    {
+        $job = $this->jobDeLUtilisateur($id);
+        abort_unless($job->isReady() && Storage::disk('local')->exists($job->file_path), 404);
+
+        $disposition = $request->boolean('inline') ? 'inline' : 'attachment';
+
+        return Storage::disk('local')->response($job->file_path, $job->file_name, [], $disposition);
+    }
+
+    /**
+     * Page d'attente ouverte dans un nouvel onglet quand l'utilisateur demande
+     * un aperçu ou une impression : elle suit la génération (même job, même
+     * progression que le bandeau « Exports ») puis affiche le PDF dès qu'il est
+     * prêt — et lance l'impression si `?print=1`.
+     */
+    public function wait(Request $request, string $id): View
+    {
+        $job = $this->jobDeLUtilisateur($id);
+
+        return view('exports.wait', [
+            'job' => $job->toApiArray(),
+            'print' => $request->boolean('print'),
+        ]);
+    }
+
+    /**
+     * Récupère un export en vérifiant qu'il appartient bien à l'utilisateur courant.
+     */
+    private function jobDeLUtilisateur(string $id): ExportJob
     {
         $job = ExportJob::findOrFail($id);
         abort_unless($job->user_id === auth()->id(), 403);
-        abort_unless($job->isReady() && Storage::disk('local')->exists($job->file_path), 404);
 
-        return Storage::disk('local')->download($job->file_path, $job->file_name);
+        return $job;
     }
 }

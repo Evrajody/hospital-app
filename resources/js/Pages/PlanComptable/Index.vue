@@ -315,7 +315,7 @@ import { useAsyncExport } from '@/Composables/useAsyncExport';
 import { usePermissions } from '@/Composables/usePermissions';
 import { useTableHeight } from '@/Composables/useTableHeight';
 import { debounce } from '@/utils/debounce';
-const { startExport } = useAsyncExport();
+const { startExport, printExport } = useAsyncExport();
 const { can } = usePermissions();
 const mainTableRef = ref(null);
 const { tableHeight } = useTableHeight(mainTableRef, 84);
@@ -443,16 +443,6 @@ const handlePageChange = (page) => {
   });
 };
 
-const buildExportQuery = (extra = {}) => {
-  const params = new URLSearchParams();
-  if (filters.search) params.set('search', filters.search);
-  if (filters.classe) params.set('classe', filters.classe);
-  if (filters.source) params.set('source', filters.source);
-  Object.entries(extra).forEach(([k, v]) => params.set(k, v));
-  const qs = params.toString();
-  return qs ? `?${qs}` : '';
-};
-
 const exportParams = () => {
   const p = {};
   if (filters.search) p.search = filters.search;
@@ -467,8 +457,8 @@ const handleExport = (command) => {
 };
 
 const handlePrint = () => {
-  // Ouvre le PDF en ligne dans un nouvel onglet (l'utilisateur imprime depuis le visualiseur)
-  window.open('/plan-comptable/export/pdf' + buildExportQuery(), '_blank');
+  // Génération asynchrone (~3300 comptes) : l'onglet suit la progression puis imprime.
+  printExport('plan-comptable', 'pdf', exportParams(), 'Plan comptable OHADA');
 };
 
 const handleEdit = (compte) => {

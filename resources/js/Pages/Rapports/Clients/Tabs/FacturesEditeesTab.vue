@@ -55,7 +55,7 @@
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
-const { startExport } = useAsyncExport();
+const { startExport, printExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-clients.factures-editees';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
@@ -121,9 +121,7 @@ const exportExcel = () => {
 };
 
 const printReport = () => {
-  const params = new URLSearchParams({ ...periodeParams.value, action: 'stream' });
-  const w = window.open(`/rapports/clients/pdf/factures-editees?${params}`, '_blank');
-  if (w) w.onload = () => setTimeout(() => w.print(), 500);
+  printExport(REPORT_KEY, 'pdf', periodeParams.value);
 };
 </script>
 

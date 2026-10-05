@@ -103,7 +103,7 @@
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
-const { startExport } = useAsyncExport();
+const { startExport, printExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-clients.brouillard-cheques';
 const IMPUTATIONS_KEY = 'rapports-clients.imputations-comptables';
 import { ref } from 'vue';
@@ -171,10 +171,7 @@ const exportBrouillardExcel = () => {
   startExport(REPORT_KEY, 'excel', Object.fromEntries(buildParams()), 'Brouillard des chèques');
 };
 const printBrouillard = () => {
-  const p = buildParams();
-  p.append('action', 'stream');
-  const w = window.open(`/rapports/clients/pdf/brouillard-cheques?${p}`, '_blank');
-  w.onload = () => setTimeout(() => w.print(), 500);
+  printExport(REPORT_KEY, 'pdf', Object.fromEntries(buildParams()), 'Brouillard des chèques');
 };
 
 const exportImputationsPdf = () => {
@@ -184,10 +181,7 @@ const exportImputationsExcel = () => {
   startExport(IMPUTATIONS_KEY, 'excel', Object.fromEntries(buildParams()));
 };
 const printImputations = () => {
-  const p = buildParams();
-  p.append('action', 'stream');
-  const w = window.open(`/rapports/clients/pdf/imputations-comptables?${p}`, '_blank');
-  w.onload = () => setTimeout(() => w.print(), 500);
+  printExport(IMPUTATIONS_KEY, 'pdf', Object.fromEntries(buildParams()));
 };
 </script>
 

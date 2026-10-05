@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Http\Controllers\AvanceClientController;
 use App\Http\Controllers\PlanComptableController;
 use App\Http\Controllers\RapportClientController;
 use App\Http\Controllers\RapportFournisseurController;
@@ -128,6 +129,12 @@ class ReportExportService
             'controller' => RapportClientController::class,
             'pdf' => 'facturesEditeesPdf', 'excel' => 'facturesEditeesExcel',
             'label' => 'État des factures clients éditées',
+        ],
+
+        'rapports-clients.etat-avances' => [
+            'controller' => AvanceClientController::class,
+            'pdf' => 'etatAvancesPdf',
+            'label' => 'État des avances clients',
         ],
 
         // ----- Plan comptable -----

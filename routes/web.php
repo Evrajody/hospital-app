@@ -363,6 +363,8 @@ Route::prefix('rapports')->group(function () {
         Route::get('/{id}/status', [ExportController::class, 'status']);
         Route::post('/{id}/cancel', [ExportController::class, 'cancel']);
         Route::get('/{id}/download', [ExportController::class, 'download']);
+        // Onglet d'attente : suit la génération puis affiche/imprime le PDF.
+        Route::get('/{id}/wait', [ExportController::class, 'wait']);
     });
 
 });

@@ -6,6 +6,7 @@ use App\Models\ApprovisionnementBanque;
 use App\Models\Client;
 use App\Models\FactureClient;
 use App\Models\ReglementClient;
+use App\Support\PhpMemory;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -1008,7 +1009,7 @@ class RapportClientController extends Controller
         // Le brouillard peut être volumineux (plusieurs milliers de lignes sur une
         // large période) → on relève la mémoire/le temps pour éviter un 500 en
         // génération synchrone (stream/print), comme le fait le job d'export asynchrone.
-        @ini_set('memory_limit', '1024M');
+        PhpMemory::raiseTo('1024M');
         @set_time_limit(300);
 
         $result = $this->buildBrouillardChequesData($request);
@@ -1025,7 +1026,7 @@ class RapportClientController extends Controller
 
     public function imputationsComptablesPdf(Request $request)
     {
-        @ini_set('memory_limit', '1024M');
+        PhpMemory::raiseTo('1024M');
         @set_time_limit(300);
 
         $result = $this->buildImputationsComptablesData($request);

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\ExportJob;
+use App\Support\PhpMemory;
 use App\Support\ReportExportService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,8 +34,9 @@ class GenerateReportExport implements ShouldQueue
         $job->update(['status' => ExportJob::STATUT_PROCESSING, 'progress' => 10, 'step' => 'Initialisation']);
 
         // Marge mémoire pour les gros rapports (ex. plan comptable ~3300 comptes ≈ 1,3 Go).
-        // Le worker absorbe la charge sans impacter la requête web.
-        @ini_set('memory_limit', '2048M');
+        // Le worker absorbe la charge sans impacter la requête web. En production la
+        // limite vaut déjà -1 : PhpMemory ne la rabaisse pas.
+        PhpMemory::raiseTo('2048M');
 
         try {
             $service->generate($job);

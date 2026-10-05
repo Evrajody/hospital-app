@@ -15,6 +15,8 @@ services:
       # Dossier partagé avec nginx pour les fichiers statiques — bind mount voisin du projet
       - ../hospital-public:/var/www/public-shared
       - ./docker/entrypoint.prod.sh:/usr/local/bin/entrypoint.sh:ro
+      # Surcharges PHP (memory_limit, etc.) — chargées après production.ini de l'image.
+      - ./docker/php/production-overrides.ini:/usr/local/etc/php/conf.d/zz-production-overrides.ini:ro
     networks:
       - hospital-network
     depends_on:
@@ -41,6 +43,8 @@ services:
     volumes:
       - ./.env.production:/var/www/.env:ro
       - ../hospital-storage:/var/www/storage
+      # Même surcharge PHP que le conteneur app : le rendu des gros PDF a lieu ici.
+      - ./docker/php/production-overrides.ini:/usr/local/etc/php/conf.d/zz-production-overrides.ini:ro
     networks:
       - hospital-network
     depends_on:

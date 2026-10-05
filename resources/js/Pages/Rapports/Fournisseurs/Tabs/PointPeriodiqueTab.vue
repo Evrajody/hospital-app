@@ -62,7 +62,7 @@
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
-const { startExport } = useAsyncExport();
+const { startExport, printExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-fournisseurs.point-periodique';
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
@@ -113,10 +113,7 @@ const exportExcel = () => {
 };
 
 const printReport = () => {
-  const params = buildPdfParams();
-  params.append('action', 'stream');
-  const w = window.open(`/rapports/fournisseurs/pdf/point-periodique?${params}`, '_blank');
-  if (w) w.onload = () => setTimeout(() => w.print(), 500);
+  printExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()));
 };
 </script>
 

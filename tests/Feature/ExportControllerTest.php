@@ -8,6 +8,7 @@ use Database\Factories\ExportJobFactory;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ExportControllerTest extends TestCase
@@ -80,6 +81,56 @@ class ExportControllerTest extends TestCase
         $this->actingAs($user)
             ->get("/rapports/exports/{$job->id}/download")
             ->assertStatus(404);
+    }
+
+    public function test_export_de_l_etat_des_avances_est_supporte(): void
+    {
+        Queue::fake();
+        $user = UserFactory::new()->create();
+
+        $this->actingAs($user)
+            ->postJson('/rapports/exports', [
+                'report' => 'rapports-clients.etat-avances',
+                'format' => 'pdf',
+                'params' => ['date_debut' => '2026-01-01', 'date_fin' => '2026-12-31'],
+            ])
+            ->assertSuccessful()
+            ->assertJson(['success' => true]);
+
+        Queue::assertPushed(GenerateReportExport::class);
+    }
+
+    public function test_apercu_inline_sert_le_fichier_sans_forcer_le_telechargement(): void
+    {
+        Storage::fake('local');
+        $user = UserFactory::new()->create();
+        $job = ExportJobFactory::new()->completed()->create(['user_id' => $user->id]);
+        Storage::disk('local')->put($job->file_path, '%PDF-1.4 test');
+
+        $reponse = $this->actingAs($user)->get("/rapports/exports/{$job->id}/download?inline=1");
+
+        $reponse->assertSuccessful();
+        $this->assertStringContainsString('inline', $reponse->headers->get('content-disposition'));
+
+        // Sans le paramètre, on garde le téléchargement forcé.
+        $telechargement = $this->actingAs($user)->get("/rapports/exports/{$job->id}/download");
+        $telechargement->assertSuccessful();
+        $this->assertStringContainsString('attachment', $telechargement->headers->get('content-disposition'));
+    }
+
+    public function test_page_d_attente_accessible_au_proprietaire_seulement(): void
+    {
+        $proprietaire = UserFactory::new()->create();
+        $job = ExportJobFactory::new()->create(['user_id' => $proprietaire->id]);
+
+        $this->actingAs($proprietaire)
+            ->get("/rapports/exports/{$job->id}/wait?print=1")
+            ->assertSuccessful()
+            ->assertSee($job->label);
+
+        $this->actingAs(UserFactory::new()->create())
+            ->get("/rapports/exports/{$job->id}/wait")
+            ->assertStatus(403);
     }
 
     public function test_status_renvoie_l_etat_du_job(): void

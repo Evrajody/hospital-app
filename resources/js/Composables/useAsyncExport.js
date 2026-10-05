@@ -18,17 +18,25 @@ export function useAsyncExport() {
    * @param {'pdf'|'excel'} format
    * @param {object} params  filtres du rapport
    * @param {string} [label] libellé affiché dans le bandeau
+   * @param {{open?: 'print'|'view'}} [options] ouvre un onglet de suivi qui affiche
+   *        (ou imprime) le fichier dès qu'il est prêt, en plus du bandeau
    */
-  const startExport = async (report, format, params = {}, label = '') => {
+  const startExport = async (report, format, params = {}, label = '', options = {}) => {
+    // L'onglet doit être ouvert DANS le geste utilisateur, sinon le navigateur le
+    // bloque : on l'ouvre vide, puis on l'envoie sur la page de suivi.
+    const onglet = options.open ? window.open('', '_blank') : null;
+
     let json;
     try {
       const res = await api.post('/rapports/exports', { report, format, params });
       json = await res.json();
       if (!res.ok || !json.success) {
+        if (onglet) onglet.close();
         ElMessage.error(json?.message || "Impossible de lancer l'export.");
         return;
       }
     } catch (e) {
+      if (onglet) onglet.close();
       ElMessage.error("Impossible de lancer l'export.");
       return;
     }
@@ -43,8 +51,28 @@ export function useAsyncExport() {
       step: exp.step || 'En file d\'attente…',
     });
 
+    if (onglet) {
+      onglet.location.href = waitUrl(exp.id, options.open === 'print');
+    }
+
     pollStatus(exp.id);
   };
+
+  /** URL de l'onglet de suivi (progression puis affichage/impression du PDF). */
+  const waitUrl = (id, print = false) =>
+    `/rapports/exports/${id}/wait${print ? '?print=1' : ''}`;
+
+  /**
+   * Génère le rapport puis l'ouvre pour impression dans un onglet de suivi.
+   * Remplace l'ancien window.open() direct sur les routes /pdf/... : le rendu des
+   * gros rapports (dompdf) ne tient pas dans une requête web.
+   */
+  const printExport = (report, format, params = {}, label = '') =>
+    startExport(report, format, params, label, { open: 'print' });
+
+  /** Idem, mais simple aperçu (sans lancer l'impression). */
+  const viewExport = (report, format, params = {}, label = '') =>
+    startExport(report, format, params, label, { open: 'view' });
 
   const TERMINAL = ['completed', 'failed', 'cancelled'];
 
@@ -73,6 +101,7 @@ export function useAsyncExport() {
           step: exp.step,
           error: exp.error,
           download_url: exp.download_url,
+          view_url: exp.view_url,
         });
 
         if (TERMINAL.includes(exp.status)) {
@@ -105,5 +134,5 @@ export function useAsyncExport() {
     }
   };
 
-  return { startExport, cancelExport };
+  return { startExport, printExport, viewExport, cancelExport, waitUrl };
 }

@@ -32,6 +32,7 @@
           </div>
           <div v-if="it.status === 'completed'" class="item-actions">
             <el-button type="primary" size="small" :icon="Download" @click="download(it)">Télécharger</el-button>
+            <el-button v-if="it.view_url" size="small" :icon="Printer" @click="print(it)">Imprimer</el-button>
           </div>
           <div v-else-if="it.status === 'failed'" class="item-error">{{ it.error || 'Échec de la génération.' }}</div>
           <div v-else-if="it.status === 'cancelled'" class="item-cancelled">Export annulé.</div>
@@ -43,7 +44,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Download } from '@element-plus/icons-vue';
+import { Download, Printer } from '@element-plus/icons-vue';
 import { useExportsStore } from '@/Composables/useExportsStore';
 import { useAsyncExport } from '@/Composables/useAsyncExport';
 
@@ -79,6 +80,12 @@ const download = (it) => {
   document.body.appendChild(a);
   a.click();
   a.remove();
+};
+
+// Rouvre le fichier déjà généré dans un onglet, pour impression.
+const print = (it) => {
+  if (!it.view_url) return;
+  window.open(it.view_url, '_blank');
 };
 </script>
 

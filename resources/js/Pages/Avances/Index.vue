@@ -404,13 +404,13 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { useMontant } from '@/Composables/useMontant';
 import { fetchApi } from '@/Composables/useFetch';
 import { usePermissions } from '@/Composables/usePermissions';
-import { usePdfViewer } from '@/Composables/usePdfViewer';
+import { useAsyncExport } from '@/Composables/useAsyncExport';
 import { useTableHeight } from '@/Composables/useTableHeight';
 import { debounce } from '@/utils/debounce';
 
 const { formatMontant, formatInputMontant, parseInputMontant } = useMontant();
 const { can } = usePermissions();
-const { openPdf } = usePdfViewer();
+const { viewExport } = useAsyncExport();
 
 const mainTableRef = ref(null);
 const { tableHeight } = useTableHeight(mainTableRef, 84);
@@ -580,8 +580,9 @@ const genererEtat = () => {
   if (etat.value.mode === 'avance' && etat.value.avance_id) {
     params.set('avance_id', etat.value.avance_id);
   }
-  // Le drawer ajoute action=stream pour l'aperçu (et garde l'URL nue pour le téléchargement).
-  openPdf(`/avances-clients/etat/pdf?${params.toString()}`, 'État des avances');
+  // Génération asynchrone (l'état détaillé peut couvrir des centaines d'avances) :
+  // l'onglet suit la progression, le bandeau « Exports » garde le fichier.
+  viewExport('rapports-clients.etat-avances', 'pdf', Object.fromEntries(params), 'État des avances clients');
   etatVisible.value = false;
 };
 

@@ -127,7 +127,7 @@
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
-const { startExport } = useAsyncExport();
+const { startExport, printExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-fournisseurs.declaration-aib';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
@@ -251,10 +251,7 @@ const exportPdf = (type) => {
 };
 
 const printReport = (type) => {
-  const params = buildPdfParams(type);
-  params.append('action', 'stream');
-  const w = window.open(`/rapports/fournisseurs/pdf/declaration-aib?${params}`, '_blank');
-  if (w) w.onload = () => setTimeout(() => w.print(), 500);
+  printExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams(type)));
 };
 
 // Export Excel au format d'import AIB : mêmes données/période que la Déclaration AIB affichée.

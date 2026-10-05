@@ -124,7 +124,7 @@
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
-const { startExport } = useAsyncExport();
+const { startExport, printExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-fournisseurs.situation-banques';
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
@@ -265,8 +265,6 @@ const buildPdfParams = () => {
   return params;
 };
 
-const getBasePath = () => window.location.pathname.includes('/rapports/banques') ? '/rapports/banques' : '/rapports/fournisseurs';
-
 const exportPdf = () => {
   startExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()));
 };
@@ -277,10 +275,7 @@ const exportExcel = () => {
 };
 
 const printReport = () => {
-  const params = buildPdfParams();
-  params.append('action', 'stream');
-  const w = window.open(`${getBasePath()}/pdf/situation-banques?${params}`, '_blank');
-  if (w) w.onload = () => setTimeout(() => w.print(), 500);
+  printExport(REPORT_KEY, 'pdf', Object.fromEntries(buildPdfParams()));
 };
 </script>
 

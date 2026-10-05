@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\AvanceClient;
 use App\Models\Banque;
 use App\Models\Client;
+use App\Support\PhpMemory;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -415,7 +416,7 @@ class AvanceClientController extends Controller
      */
     public function etatAvancesPdf(Request $request)
     {
-        @ini_set('memory_limit', '1024M');
+        PhpMemory::raiseTo('1024M');
         @set_time_limit(300);
 
         $query = AvanceClient::with([

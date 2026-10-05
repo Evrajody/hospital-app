@@ -246,7 +246,7 @@
 import { usePdfViewer } from '@/Composables/usePdfViewer';
 const { openPdf } = usePdfViewer();
 import { useAsyncExport } from '@/Composables/useAsyncExport';
-const { startExport } = useAsyncExport();
+const { startExport, printExport } = useAsyncExport();
 const REPORT_KEY = 'rapports-clients.etat-creances';
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
@@ -400,10 +400,7 @@ const exportExcel = () => {
 };
 
 const printReport = () => {
-  const params = buildBaseParams();
-  params.append('action', 'stream');
-  const w = window.open(`/rapports/clients/pdf/etat-creances?${params}`, '_blank');
-  w.onload = () => setTimeout(() => w.print(), 500);
+  printExport(REPORT_KEY, 'pdf', Object.fromEntries(buildBaseParams()), 'État des créances clients');
 };
 </script>
 

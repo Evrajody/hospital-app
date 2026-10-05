@@ -49,6 +49,8 @@ class ExportJob extends Model
             'file_name' => $this->file_name,
             'error' => $this->error,
             'download_url' => $this->isReady() ? url("/rapports/exports/{$this->id}/download") : null,
+            // Même fichier servi en `inline` : aperçu / impression dans un onglet.
+            'view_url' => $this->isReady() ? url("/rapports/exports/{$this->id}/download?inline=1") : null,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'completed_at' => $this->completed_at?->format('Y-m-d H:i:s'),
         ];
